@@ -65,8 +65,11 @@ DECLARE
   v_secondary_client RECORD;
   v_merge_notes BOOLEAN;
   v_merge_loyalty BOOLEAN;
+  v_merge_preferences BOOLEAN;
+  v_merge_alerts BOOLEAN;
   v_merged_notes JSONB;
   v_merged_loyalty JSONB;
+  v_merged_preferences JSONB;
   v_appointments_updated INTEGER;
   v_tickets_updated INTEGER;
   v_transactions_updated INTEGER;
@@ -84,6 +87,8 @@ BEGIN
   -- Extract options (default to false if not specified)
   v_merge_notes := COALESCE((p_options->>'mergeNotes')::BOOLEAN, FALSE);
   v_merge_loyalty := COALESCE((p_options->>'mergeLoyalty')::BOOLEAN, FALSE);
+  v_merge_preferences := COALESCE((p_options->>'mergePreferences')::BOOLEAN, FALSE);
+  v_merge_alerts := COALESCE((p_options->>'mergeAlerts')::BOOLEAN, FALSE);
 
   -- Lock and fetch primary client
   SELECT * INTO v_primary_client
@@ -164,6 +169,57 @@ BEGIN
     WHERE id = p_primary_id;
   END IF;
 
+  -- Merge preferences if requested
+  IF v_merge_preferences AND v_secondary_client.preferences IS NOT NULL THEN
+    -- Merge preferences by combining arrays and taking non-null values from secondary if primary is null
+    v_merged_preferences := jsonb_build_object(
+      'preferredStaffIds', COALESCE(
+        v_primary_client.preferences->'preferredStaffIds',
+        v_secondary_client.preferences->'preferredStaffIds',
+        '[]'::JSONB
+      ),
+      'preferredServices', COALESCE(
+        v_primary_client.preferences->'preferredServices',
+        v_secondary_client.preferences->'preferredServices',
+        '[]'::JSONB
+      ),
+      'beveragePreference', COALESCE(
+        v_primary_client.preferences->>'beveragePreference',
+        v_secondary_client.preferences->>'beveragePreference'
+      ),
+      'otherNotes', COALESCE(
+        v_primary_client.preferences->>'otherNotes',
+        v_secondary_client.preferences->>'otherNotes'
+      )
+    );
+
+    UPDATE clients
+    SET preferences = v_merged_preferences,
+        updated_at = NOW()
+    WHERE id = p_primary_id;
+  END IF;
+
+  -- Merge staff alerts if requested
+  IF v_merge_alerts AND v_secondary_client.staff_alert IS NOT NULL THEN
+    -- If primary has no alert, use secondary's alert
+    -- If both have alerts, append secondary's to primary's
+    IF v_primary_client.staff_alert IS NULL OR v_primary_client.staff_alert = '' THEN
+      UPDATE clients
+      SET staff_alert = v_secondary_client.staff_alert,
+          staff_alert_created_by = v_secondary_client.staff_alert_created_by,
+          staff_alert_created_by_name = v_secondary_client.staff_alert_created_by_name,
+          staff_alert_created_at = v_secondary_client.staff_alert_created_at,
+          updated_at = NOW()
+      WHERE id = p_primary_id;
+    ELSE
+      -- Append secondary alert to primary with separator
+      UPDATE clients
+      SET staff_alert = v_primary_client.staff_alert || E'\n---\n' || v_secondary_client.staff_alert,
+          updated_at = NOW()
+      WHERE id = p_primary_id;
+    END IF;
+  END IF;
+
   -- Mark secondary client as merged
   UPDATE clients
   SET merged_into_id = p_primary_id,
@@ -190,7 +246,9 @@ BEGIN
     ),
     'options_applied', jsonb_build_object(
       'mergeNotes', v_merge_notes,
-      'mergeLoyalty', v_merge_loyalty
+      'mergeLoyalty', v_merge_loyalty,
+      'mergePreferences', v_merge_preferences,
+      'mergeAlerts', v_merge_alerts
     ),
     'primary_client', to_jsonb(v_primary_client)
   );

@@ -36,6 +36,10 @@ export function toClient(row: ClientRow): Client {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     syncStatus: row.sync_status as SyncStatus,
+    // Merge tracking fields
+    mergedIntoId: row.merged_into_id || undefined,
+    mergedAt: row.merged_at || undefined,
+    mergedBy: row.merged_by || undefined,
   };
 }
 

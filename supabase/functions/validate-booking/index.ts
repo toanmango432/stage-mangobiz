@@ -33,7 +33,9 @@ import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-
 // ==================== TYPES ====================
 
 interface ValidateBookingRequest {
-  clientId: string;
+  clientId?: string;
+  email?: string;
+  phone?: string;
   serviceId: string;
   appointmentDate?: string;
   storeId?: string;
@@ -104,18 +106,9 @@ async function validateBooking(
   supabase: SupabaseClient,
   request: ValidateBookingRequest
 ): Promise<ValidationResponse> {
-  const { clientId, serviceId, appointmentDate } = request;
+  const { clientId, email, phone, serviceId, appointmentDate, storeId } = request;
 
   // Validate required parameters
-  if (!clientId) {
-    return {
-      valid: false,
-      reason: 'client_blocked',
-      message: 'Client ID is required',
-      canOverride: false,
-    };
-  }
-
   if (!serviceId) {
     return {
       valid: false,
@@ -125,23 +118,65 @@ async function validateBooking(
     };
   }
 
-  // 1. Check if client exists and is blocked
-  const { data: client, error: clientError } = await supabase
-    .from('clients')
-    .select('id, is_blocked, block_reason')
-    .eq('id', clientId)
-    .maybeSingle<ClientRecord>();
+  // 1. Look up client by clientId, email, or phone
+  let client: ClientRecord | null = null;
 
-  if (clientError) {
-    console.error('[validate-booking] Client query error:', clientError);
-    // Fail open - allow booking on error
-    return { valid: true };
+  if (clientId) {
+    // Direct ID lookup
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, is_blocked, block_reason')
+      .eq('id', clientId)
+      .maybeSingle<ClientRecord>();
+
+    if (error) {
+      console.error('[validate-booking] Client ID query error:', error);
+      // Fail open - allow booking on error
+      return { valid: true };
+    }
+    client = data;
+  } else if (email && storeId) {
+    // Lookup by email within store
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, is_blocked, block_reason')
+      .eq('store_id', storeId)
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle<ClientRecord>();
+
+    if (error) {
+      console.error('[validate-booking] Client email query error:', error);
+      // Fail open - allow booking on error
+      return { valid: true };
+    }
+    client = data;
+  } else if (phone && storeId) {
+    // Lookup by phone within store
+    const normalizedPhone = phone.replace(/\D/g, '');
+
+    // Require minimum phone length to avoid false matches
+    if (normalizedPhone.length >= 10) {
+      // Use suffix match (last 10 digits) to handle country code variations
+      const phoneSuffix = normalizedPhone.slice(-10);
+
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, is_blocked, block_reason')
+        .eq('store_id', storeId)
+        .like('phone', `%${phoneSuffix}`)
+        .maybeSingle<ClientRecord>();
+
+      if (error) {
+        console.error('[validate-booking] Client phone query error:', error);
+        // Fail open - allow booking on error
+        return { valid: true };
+      }
+      client = data;
+    }
   }
 
-  if (!client) {
-    // Client not found - could be a new client
-    // Continue with validation (no block check needed)
-  } else if (client.is_blocked) {
+  // Check if client is blocked
+  if (client?.is_blocked) {
     return {
       valid: false,
       reason: 'client_blocked',
@@ -149,6 +184,8 @@ async function validateBooking(
       canOverride: true, // Staff can override blocks
     };
   }
+
+  // If no client found, they're either new or not in system - continue with validation
 
   // 2. Check if service requires patch test
   const { data: service, error: serviceError } = await supabase
@@ -178,6 +215,19 @@ async function validateBooking(
   }
 
   // 3. Service requires patch test - check if client has a valid one
+  // If we don't have a client ID (new client or lookup failed), require patch test
+  const resolvedClientId = client?.id || clientId;
+
+  if (!resolvedClientId) {
+    // No client found/identified - require patch test for this service
+    return {
+      valid: false,
+      reason: 'patch_test_required',
+      message: `Patch test required for ${service.name}. Please visit the salon first.`,
+      canOverride: true,
+    };
+  }
+
   // Note: patch_tests table may not exist in Supabase yet
   // For now, try to query it and handle the error gracefully
   try {
@@ -186,7 +236,7 @@ async function validateBooking(
     const { data: patchTests, error: patchTestError } = await supabase
       .from('patch_tests')
       .select('id, client_id, service_id, result, expires_at')
-      .eq('client_id', clientId)
+      .eq('client_id', resolvedClientId)
       .eq('service_id', serviceId)
       .eq('result', 'pass')
       .gte('expires_at', now)
@@ -211,7 +261,7 @@ async function validateBooking(
       const { data: expiredTests } = await supabase
         .from('patch_tests')
         .select('id, expires_at')
-        .eq('client_id', clientId)
+        .eq('client_id', resolvedClientId)
         .eq('service_id', serviceId)
         .eq('result', 'pass')
         .lt('expires_at', now)

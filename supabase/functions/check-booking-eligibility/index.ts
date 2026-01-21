@@ -98,11 +98,24 @@ async function checkEligibility(
       .eq('email', email.toLowerCase().trim());
   } else if (phone && storeId) {
     // Lookup by phone within store
-    // Normalize phone by removing non-digits
+    // Normalize phone by removing non-digits for exact match
     const normalizedPhone = phone.replace(/\D/g, '');
+
+    // Require minimum phone length to avoid false matches
+    if (normalizedPhone.length < 10) {
+      // Phone number too short - allow booking (new client)
+      return { eligible: true };
+    }
+
+    // Use suffix match (last 10 digits) to handle country code variations
+    // This prevents partial matches while handling +1, 1, or no prefix
+    const phoneSuffix = normalizedPhone.slice(-10);
+
+    // Build a more precise query using text pattern matching
+    // This matches phones ending with the last 10 digits
     query = query
       .eq('store_id', storeId)
-      .ilike('phone', `%${normalizedPhone}%`);
+      .like('phone', `%${phoneSuffix}`);
   } else {
     // No valid lookup criteria - allow booking (new client)
     return { eligible: true };

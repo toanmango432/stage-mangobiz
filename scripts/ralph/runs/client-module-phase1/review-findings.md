@@ -14,7 +14,7 @@ Phase 1 implementation is **functionally complete** with all 21 user stories imp
 | Severity | Count | Status |
 |----------|-------|--------|
 | Critical | 0 | - |
-| Major | 6 | Must fix before Phase 2 |
+| Major | 6 | ✅ All fixed (US-P1F) |
 | Minor | 8 | Can defer to cleanup sprint |
 
 ---
@@ -43,7 +43,8 @@ mergedAt: row.merged_at || undefined,
 mergedBy: row.merged_by || undefined,
 ```
 
-**Resolution Status:** [ ] Not Started
+**Resolution Status:** [x] Fixed (2026-01-21)
+- Added `mergedIntoId`, `mergedAt`, `mergedBy` fields to toClient() function in clientAdapter.ts
 
 ---
 
@@ -71,7 +72,10 @@ records_updated: Record<string, number>;
 **Fix Required:**
 Change line 213 from `merged_counts` to `records_updated`, and update usage at line 258.
 
-**Resolution Status:** [ ] Not Started
+**Resolution Status:** [x] Fixed (2026-01-21)
+- Changed type to `records_updated` in thunks.ts
+- Updated audit log to use `recordsUpdated` metadata key
+- Updated return statement to use `records_updated`
 
 ---
 
@@ -101,7 +105,11 @@ p_options: {
 1. Add support to RPC function for these options, OR
 2. Remove these options from MergeClientOptions interface and UI
 
-**Resolution Status:** [ ] Not Started
+**Resolution Status:** [x] Fixed (2026-01-21)
+- Added `mergePreferences` and `mergeAlerts` support to RPC function in 031_client_merge.sql
+- mergePreferences: Copies preferredStaffIds, preferredServices, beveragePreference, otherNotes from secondary if primary is null
+- mergeAlerts: Copies staff_alert from secondary, or appends if both have alerts
+- Updated options_applied in RPC result to include new options
 
 ---
 
@@ -122,7 +130,10 @@ The `checkPatchTestRequired` thunk is exported from `thunks.ts` but NOT imported
 **Fix Required:**
 Either add reducer handlers for `checkPatchTestRequired` in slice.ts, or document that this thunk is side-effect only.
 
-**Resolution Status:** [ ] Not Started
+**Resolution Status:** [x] Fixed (2026-01-21)
+- Added import for `checkPatchTestRequired` thunk in slice.ts
+- Added reducer handlers for pending/fulfilled/rejected states
+- Added documentation comment explaining this is primarily a validation thunk with direct result consumption
 
 ---
 
@@ -146,7 +157,11 @@ A phone number `1234` could accidentally match multiple unrelated clients.
 **Fix Required:**
 Use exact match after phone normalization, or use more precise phone matching logic.
 
-**Resolution Status:** [ ] Not Started
+**Resolution Status:** [x] Fixed (2026-01-21)
+- Added minimum length validation (10 digits)
+- Changed from `ilike('%phone%')` to `like('%last10digits')` suffix match
+- Uses last 10 digits to handle country code variations (+1, 1, or no prefix)
+- Prevents partial matches while allowing flexible input formats
 
 ---
 
@@ -166,7 +181,12 @@ The validate-booking Edge Function only accepts `clientId` for lookup, but Onlin
 **Fix Required:**
 Add email/phone lookup support to validate-booking to match check-booking-eligibility capability.
 
-**Resolution Status:** [ ] Not Started
+**Resolution Status:** [x] Fixed (2026-01-21)
+- Added email and phone as optional parameters in ValidateBookingRequest
+- Implemented client lookup by email (case-insensitive, trimmed) with storeId
+- Implemented client lookup by phone using same suffix match logic as check-booking-eligibility
+- Used resolved clientId for patch test lookups
+- Returns patch_test_required for new clients booking patch-test-required services
 
 ---
 
@@ -341,14 +361,14 @@ These issues existed before Phase 1 and are NOT related to the new implementatio
 ## Recommendations
 
 ### Before Phase 2 (Must Fix)
-1. Fix Type Adapter merge field mapping (M1)
-2. Fix RPC return type mismatch (M2)
-3. Either implement or remove unsupported merge options (M3)
-4. Add email/phone support to validate-booking (M6)
+1. ✅ Fix Type Adapter merge field mapping (M1) - **DONE**
+2. ✅ Fix RPC return type mismatch (M2) - **DONE**
+3. ✅ Either implement or remove unsupported merge options (M3) - **DONE** (implemented in RPC)
+4. ✅ Add email/phone support to validate-booking (M6) - **DONE**
 
 ### During Phase 2 (Should Fix)
-5. Add reducer handlers for checkPatchTestRequired (M4)
-6. Fix phone lookup in check-booking-eligibility (M5)
+5. ✅ Add reducer handlers for checkPatchTestRequired (M4) - **DONE**
+6. ✅ Fix phone lookup in check-booking-eligibility (M5) - **DONE**
 
 ### Technical Debt (Can Defer)
 7. All minor issues (m1-m8)
@@ -357,6 +377,20 @@ These issues existed before Phase 1 and are NOT related to the new implementatio
 
 ## Conclusion
 
-Phase 1 implementation is **production-ready for core functionality** but has integration-layer gaps that should be addressed. The 6 major issues are primarily about type safety, data mapping, and API contracts - the underlying database and business logic is solid.
+Phase 1 implementation is **COMPLETE and production-ready**. All 6 major issues have been resolved in US-P1F:
 
-**Recommendation:** Address M1, M2, M3, and M6 in US-P1F before starting Phase 2.
+| Issue | Status | Fix Summary |
+|-------|--------|-------------|
+| M1: Type Adapter | ✅ Fixed | Added merge fields to toClient() |
+| M2: RPC Return Type | ✅ Fixed | Changed merged_counts → records_updated |
+| M3: Merge Options | ✅ Fixed | Added mergePreferences/mergeAlerts to RPC |
+| M4: Missing Reducer | ✅ Fixed | Added checkPatchTestRequired handlers |
+| M5: Phone Lookup | ✅ Fixed | Suffix match with 10-digit minimum |
+| M6: validate-booking | ✅ Fixed | Added email/phone lookup support |
+
+**Phase 1 Test Gates:**
+- ✅ Gate 1: Merge two clients → data consolidated
+- ✅ Gate 2: Blocked client cannot book online → generic error shown
+- ✅ Gate 3: Patch test warning for required services → banner appears
+
+**Ready to proceed to Phase 2.**

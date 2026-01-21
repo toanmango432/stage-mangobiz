@@ -210,7 +210,7 @@ export const mergeClientsInSupabase = createAsyncThunk<
 
     const result = data as {
       success: boolean;
-      merged_counts: Record<string, number>;
+      records_updated: Record<string, number>;
       primary_client: Record<string, unknown>;
     };
 
@@ -238,7 +238,7 @@ export const mergeClientsInSupabase = createAsyncThunk<
         secondaryClientId,
         options,
         mergedBy,
-        mergedCounts: result.merged_counts,
+        recordsUpdated: result.records_updated,
       },
       oldData: secondaryClient ? {
         firstName: secondaryClient.firstName,
@@ -255,7 +255,7 @@ export const mergeClientsInSupabase = createAsyncThunk<
     return {
       primaryClient: updatedPrimary,
       secondaryClientId,
-      summary: result.merged_counts || {},
+      summary: result.records_updated || {},
     };
   }
 );

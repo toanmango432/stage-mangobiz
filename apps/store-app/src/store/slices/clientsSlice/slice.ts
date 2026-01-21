@@ -9,6 +9,7 @@ import {
   updateClientInSupabase,
   deleteClientInSupabase,
   mergeClientsInSupabase,
+  checkPatchTestRequired,
   fetchClients,
   searchClients,
   fetchClientStats,
@@ -460,6 +461,23 @@ export const clientsSlice = createSlice({
       .addCase(mergeClientsInSupabase.rejected, (state, action) => {
         state.saving = false;
         state.error = action.error.message || 'Failed to merge clients';
+      });
+
+    // Check patch test required (validation thunk)
+    // Note: This thunk is primarily used for immediate validation feedback.
+    // The component awaits the result directly. These handlers provide
+    // loading state tracking if needed for UI indicators.
+    builder
+      .addCase(checkPatchTestRequired.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(checkPatchTestRequired.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(checkPatchTestRequired.rejected, (state) => {
+        state.loading = false;
+        // Error is handled by the component directly via the rejected promise
+        // No need to set state.error as this would override other error messages
       });
 
     // ==================== LOYALTY THUNKS REDUCERS ====================
