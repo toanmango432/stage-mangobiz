@@ -17,6 +17,7 @@ import { WalletSection } from './sections/WalletSection';
 import { MembershipSection } from './sections/MembershipSection';
 import { ClientExportModal, ClientImportModal, exportClients } from './components/ClientDataExportImport';
 import { BulkActionsToolbar } from './components/BulkActionsToolbar';
+import { MergeClientsModal } from './MergeClientsModal';
 import type { AppDispatch } from '../../store';
 import {
   fetchClientsFromSupabase,
@@ -164,6 +165,7 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
   const [pendingUpdates, setPendingUpdates] = useState<Partial<EnhancedClient>>({});
   const [showExportModal, setShowExportModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showMergeModal, setShowMergeModal] = useState(false);
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
 
   // Convert clients to EnhancedClient format for UI
@@ -366,6 +368,15 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
     alert('SMS feature coming soon!');
   }, [selectedClientIds]);
 
+  const handleMergeComplete = useCallback((mergedClientId: string) => {
+    // Select the merged client after successful merge
+    const client = clients.find(c => c.id === mergedClientId);
+    if (client) {
+      dispatch(selectClient(client));
+    }
+    setShowMergeModal(false);
+  }, [dispatch, clients]);
+
   // Default tags available for bulk actions
   const availableTags = [
     { id: 'vip', name: 'VIP', color: '#8B5CF6' },
@@ -513,13 +524,23 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">
-                    {selectedClient.visitSummary.totalVisits} visits
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    ${selectedClient.visitSummary.totalSpent.toFixed(2)}
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">
+                      {selectedClient.visitSummary.totalVisits} visits
+                    </p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      ${selectedClient.visitSummary.totalSpent.toFixed(2)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowMergeModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <MergeIcon className="w-4 h-4" />
+                    Merge
+                  </Button>
                 </div>
               </div>
 
@@ -654,6 +675,14 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
         />
       )}
 
+      {/* Merge Clients Modal */}
+      <MergeClientsModal
+        isOpen={showMergeModal}
+        onClose={() => setShowMergeModal(false)}
+        primaryClientId={selectedClientFromStore?.id}
+        onMergeComplete={handleMergeComplete}
+      />
+
       {/* Bulk Actions Toolbar */}
       <BulkActionsToolbar
         selectedCount={selectedClientIds.length}
@@ -744,6 +773,12 @@ const ExportIcon: React.FC<{ className?: string }> = ({ className }) => (
 const ImportIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  </svg>
+);
+
+const MergeIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
   </svg>
 );
 
