@@ -14,6 +14,8 @@ import authReducer, {
   setStorePolicy,
   updateDeviceMode,
   clearDevice,
+  forceLogout,
+  clearForceLogoutReason,
   selectIsAuthenticated,
   selectCurrentUser,
   selectSalonId,
@@ -23,8 +25,11 @@ import authReducer, {
   selectDeviceMode,
   selectIsOfflineEnabled,
   selectDeviceId,
+  selectForceLogoutReason,
+  selectForceLogoutMessage,
 } from '../authSlice';
 import type { DevicePolicy, AuthDeviceState } from '@/types/device';
+import type { ForceLogoutReason } from '@/types/memberAuth';
 
 // Create a test store
 function createTestStore() {
@@ -340,6 +345,171 @@ describe('authSlice', () => {
 
       it('selectDeviceId should return null', () => {
         expect(selectDeviceId(store.getState() as any)).toBeNull();
+      });
+    });
+  });
+
+  describe('forceLogout', () => {
+    beforeEach(() => {
+      // Set up authenticated state before each test
+      store.dispatch(
+        setAuth({
+          user: { id: 'user-1', name: 'Test User', email: 'test@test.com', role: 'admin' },
+          storeId: 'salon-1',
+          token: 'test-token',
+        })
+      );
+      store.dispatch(
+        setDevice({
+          id: 'device-1',
+          mode: 'offline-enabled',
+          offlineModeEnabled: true,
+          registeredAt: new Date().toISOString(),
+        })
+      );
+    });
+
+    it('should set forceLogoutReason correctly', () => {
+      store.dispatch(
+        forceLogout({
+          reason: 'account_deactivated',
+          message: 'Your account has been deactivated.',
+        })
+      );
+
+      const state = store.getState().auth;
+      expect(state.forceLogoutReason).toBe('account_deactivated');
+    });
+
+    it('should set forceLogoutMessage correctly', () => {
+      const message = 'Your session has expired due to offline grace period.';
+      store.dispatch(
+        forceLogout({
+          reason: 'offline_grace_expired',
+          message,
+        })
+      );
+
+      const state = store.getState().auth;
+      expect(state.forceLogoutMessage).toBe(message);
+    });
+
+    it('should clear auth state on forceLogout', () => {
+      store.dispatch(
+        forceLogout({
+          reason: 'password_changed',
+          message: 'Your password has been changed.',
+        })
+      );
+
+      const state = store.getState().auth;
+
+      // Auth state should be cleared
+      expect(state.isAuthenticated).toBe(false);
+      expect(state.user).toBeNull();
+      expect(state.storeId).toBeNull();
+      expect(state.token).toBeNull();
+      expect(state.device).toBeNull();
+      expect(state.storePolicy).toBeNull();
+      expect(state.status).toBe('not_logged_in');
+      expect(state.store).toBeNull();
+      expect(state.member).toBeNull();
+    });
+
+    it('selectForceLogoutReason selector should return correct value', () => {
+      store.dispatch(
+        forceLogout({
+          reason: 'session_revoked',
+          message: 'Session revoked by admin.',
+        })
+      );
+
+      expect(selectForceLogoutReason(store.getState() as any)).toBe('session_revoked');
+    });
+
+    it('selectForceLogoutMessage selector should return correct value', () => {
+      const message = 'You have been logged out for security reasons.';
+      store.dispatch(
+        forceLogout({
+          reason: 'account_deactivated',
+          message,
+        })
+      );
+
+      expect(selectForceLogoutMessage(store.getState() as any)).toBe(message);
+    });
+
+    describe('all ForceLogoutReason values', () => {
+      const testCases: { reason: ForceLogoutReason; message: string }[] = [
+        {
+          reason: 'offline_grace_expired',
+          message: 'Your offline grace period has expired. Please connect to the internet.',
+        },
+        {
+          reason: 'account_deactivated',
+          message: 'Your account has been deactivated by an administrator.',
+        },
+        {
+          reason: 'password_changed',
+          message: 'Your password has been changed. Please log in again.',
+        },
+        {
+          reason: 'session_revoked',
+          message: 'Your session has been revoked. Please log in again.',
+        },
+      ];
+
+      testCases.forEach(({ reason, message }) => {
+        it(`should handle ForceLogoutReason '${reason}'`, () => {
+          store.dispatch(forceLogout({ reason, message }));
+
+          const state = store.getState().auth;
+          expect(state.forceLogoutReason).toBe(reason);
+          expect(state.forceLogoutMessage).toBe(message);
+          expect(state.isAuthenticated).toBe(false);
+        });
+      });
+    });
+
+    describe('clearForceLogoutReason', () => {
+      it('should clear forceLogoutReason and forceLogoutMessage', () => {
+        // First trigger a force logout
+        store.dispatch(
+          forceLogout({
+            reason: 'account_deactivated',
+            message: 'Account deactivated.',
+          })
+        );
+
+        // Verify it was set
+        expect(store.getState().auth.forceLogoutReason).toBe('account_deactivated');
+        expect(store.getState().auth.forceLogoutMessage).toBe('Account deactivated.');
+
+        // Clear it
+        store.dispatch(clearForceLogoutReason());
+
+        // Verify it was cleared
+        const state = store.getState().auth;
+        expect(state.forceLogoutReason).toBeNull();
+        expect(state.forceLogoutMessage).toBeNull();
+      });
+
+      it('should not affect other auth state when clearing', () => {
+        // Force logout and then clear reason
+        store.dispatch(
+          forceLogout({
+            reason: 'password_changed',
+            message: 'Password changed.',
+          })
+        );
+        store.dispatch(clearForceLogoutReason());
+
+        const state = store.getState().auth;
+
+        // Auth state should remain logged out (forceLogout cleared it)
+        expect(state.isAuthenticated).toBe(false);
+        expect(state.user).toBeNull();
+        expect(state.status).toBe('not_logged_in');
       });
     });
   });
