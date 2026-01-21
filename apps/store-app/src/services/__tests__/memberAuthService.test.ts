@@ -7,6 +7,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { memberAuthService } from '../memberAuthService';
+import { supabase } from '../supabase/client';
+import { SecureStorage } from '@/utils/secureStorage';
 
 // Mock localStorage
 const mockLocalStorage = (() => {
@@ -380,6 +382,306 @@ describe('memberAuthService', () => {
       const result = memberAuthService.getFailedAttempts('member-test');
 
       expect(result).toBe(3);
+    });
+  });
+
+  describe('loginWithPassword', () => {
+    // Cast to any to access mock methods - the actual mocks are set up via vi.mock
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockSupabase = supabase as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockSecureStorage = SecureStorage as any;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockLocalStorage.clear();
+    });
+
+    it('should return MemberAuthSession on successful login', async () => {
+      // Mock Supabase auth response
+      const mockAuthUser = {
+        id: 'auth-user-123',
+        email: 'test@example.com',
+      };
+
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: mockAuthUser, session: {} },
+        error: null,
+      });
+
+      // Mock member lookup
+      const mockMember = {
+        id: 'member-123',
+        auth_user_id: 'auth-user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'staff',
+        status: 'active',
+        store_ids: ['store-1', 'store-2'],
+        permissions: { canViewReports: true },
+        pin_hash: null,
+        default_store_id: 'store-1',
+      };
+
+      // Create a chainable mock
+      const chainableMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockMember, error: null }),
+        update: vi.fn().mockReturnThis(),
+      };
+
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      const result = await memberAuthService.loginWithPassword(
+        'test@example.com',
+        'password123'
+      );
+
+      expect(result).toBeDefined();
+      expect(result.memberId).toBe('member-123');
+      expect(result.email).toBe('test@example.com');
+      expect(result.name).toBe('Test User');
+      expect(result.role).toBe('staff');
+      expect(result.authUserId).toBe('auth-user-123');
+    });
+
+    it('should contain correct fields in MemberAuthSession', async () => {
+      const mockAuthUser = {
+        id: 'auth-user-456',
+        email: 'manager@example.com',
+      };
+
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: mockAuthUser, session: {} },
+        error: null,
+      });
+
+      const mockMember = {
+        id: 'member-456',
+        auth_user_id: 'auth-user-456',
+        email: 'manager@example.com',
+        name: 'Manager User',
+        role: 'manager',
+        status: 'active',
+        store_ids: ['store-1'],
+        permissions: { canManageStaff: true, canViewReports: true },
+        pin_hash: null,
+        default_store_id: 'store-1',
+      };
+
+      const chainableMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockMember, error: null }),
+        update: vi.fn().mockReturnThis(),
+      };
+
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      const result = await memberAuthService.loginWithPassword(
+        'manager@example.com',
+        'password123'
+      );
+
+      // Verify all required fields
+      expect(result.memberId).toBe('member-456');
+      expect(result.authUserId).toBe('auth-user-456');
+      expect(result.email).toBe('manager@example.com');
+      expect(result.name).toBe('Manager User');
+      expect(result.role).toBe('manager');
+      expect(result.storeIds).toEqual(['store-1']);
+      expect(result.permissions).toEqual({ canManageStaff: true, canViewReports: true });
+      expect(result.defaultStoreId).toBe('store-1');
+      expect(result.lastOnlineAuth).toBeInstanceOf(Date);
+      expect(result.sessionCreatedAt).toBeInstanceOf(Date);
+    });
+
+    it('should update last_online_auth in database', async () => {
+      const mockAuthUser = {
+        id: 'auth-user-789',
+        email: 'user@example.com',
+      };
+
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: mockAuthUser, session: {} },
+        error: null,
+      });
+
+      const mockMember = {
+        id: 'member-789',
+        auth_user_id: 'auth-user-789',
+        email: 'user@example.com',
+        name: 'Regular User',
+        role: 'staff',
+        status: 'active',
+        store_ids: ['store-1'],
+        permissions: {},
+        pin_hash: null,
+        default_store_id: null,
+      };
+
+      // Track if update was called
+      const updateMock = vi.fn().mockReturnThis();
+      const chainableMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockMember, error: null }),
+        update: updateMock,
+      };
+
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      await memberAuthService.loginWithPassword('user@example.com', 'password123');
+
+      // Verify update was called (for last_online_auth)
+      expect(mockSupabase.from).toHaveBeenCalledWith('members');
+      expect(updateMock).toHaveBeenCalled();
+      // The first call is the select for member lookup
+      // The second call with update is for last_online_auth
+    });
+
+    it('should store PIN hash in SecureStorage when member has PIN', async () => {
+      const mockAuthUser = {
+        id: 'auth-user-pin',
+        email: 'pinuser@example.com',
+      };
+
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: mockAuthUser, session: {} },
+        error: null,
+      });
+
+      const pinHash = '$2a$12$samplehash123456789';
+      const mockMember = {
+        id: 'member-pin',
+        auth_user_id: 'auth-user-pin',
+        email: 'pinuser@example.com',
+        name: 'PIN User',
+        role: 'staff',
+        status: 'active',
+        store_ids: ['store-1'],
+        permissions: {},
+        pin_hash: pinHash,
+        default_store_id: null,
+      };
+
+      const chainableMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockMember, error: null }),
+        update: vi.fn().mockReturnThis(),
+      };
+
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      // Mock SecureStorage.get to return the stored hash (verification step)
+      mockSecureStorage.get.mockResolvedValue(pinHash);
+
+      await memberAuthService.loginWithPassword('pinuser@example.com', 'password123');
+
+      // Verify PIN hash was stored in SecureStorage
+      expect(mockSecureStorage.set).toHaveBeenCalledWith(
+        `pin_hash_member-pin`,
+        pinHash
+      );
+
+      // Verify storage verification was performed
+      expect(mockSecureStorage.get).toHaveBeenCalledWith(`pin_hash_member-pin`);
+    });
+
+    it('should not store PIN hash when member has no PIN', async () => {
+      const mockAuthUser = {
+        id: 'auth-user-nopin',
+        email: 'nopin@example.com',
+      };
+
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: mockAuthUser, session: {} },
+        error: null,
+      });
+
+      const mockMember = {
+        id: 'member-nopin',
+        auth_user_id: 'auth-user-nopin',
+        email: 'nopin@example.com',
+        name: 'No PIN User',
+        role: 'staff',
+        status: 'active',
+        store_ids: ['store-1'],
+        permissions: {},
+        pin_hash: null, // No PIN configured
+        default_store_id: null,
+      };
+
+      const chainableMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockMember, error: null }),
+        update: vi.fn().mockReturnThis(),
+      };
+
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      // Clear any previous calls
+      vi.clearAllMocks();
+
+      await memberAuthService.loginWithPassword('nopin@example.com', 'password123');
+
+      // Verify PIN hash was NOT stored in SecureStorage
+      expect(mockSecureStorage.set).not.toHaveBeenCalled();
+    });
+
+    it('should cache member session for offline access', async () => {
+      const mockAuthUser = {
+        id: 'auth-user-cache',
+        email: 'cache@example.com',
+      };
+
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: mockAuthUser, session: {} },
+        error: null,
+      });
+
+      const mockMember = {
+        id: 'member-cache',
+        auth_user_id: 'auth-user-cache',
+        email: 'cache@example.com',
+        name: 'Cache User',
+        role: 'staff',
+        status: 'active',
+        store_ids: ['store-1'],
+        permissions: {},
+        pin_hash: null,
+        default_store_id: null,
+      };
+
+      const chainableMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockMember, error: null }),
+        update: vi.fn().mockReturnThis(),
+      };
+
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      await memberAuthService.loginWithPassword('cache@example.com', 'password123');
+
+      // Verify session was cached in localStorage
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'member_auth_session',
+        expect.any(String)
+      );
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'member_auth_session_timestamp',
+        expect.any(String)
+      );
+
+      // Verify cached members list was updated
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'cached_members_list',
+        expect.any(String)
+      );
     });
   });
 
