@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { BookingFormData } from '@/types/booking';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -6,18 +6,36 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Sparkles } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Sparkles, AlertCircle } from 'lucide-react';
+import { getStoreId } from '@/hooks/useStore';
+
+// Edge Function URL for eligibility check
+const ELIGIBILITY_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-booking-eligibility`;
+
+interface EligibilityResult {
+  eligible: boolean;
+  message?: string;
+}
 
 interface GuestVsMemberProps {
   formData: Partial<BookingFormData>;
   updateFormData: (data: Partial<BookingFormData>) => void;
   user: any;
+  onEligibilityChange?: (isEligible: boolean) => void;
 }
 
-export const GuestVsMember = ({ formData, updateFormData, user }: GuestVsMemberProps) => {
+export const GuestVsMember = ({ formData, updateFormData, user, onEligibilityChange }: GuestVsMemberProps) => {
   const [bookingAs, setBookingAs] = useState<'guest' | 'member'>(user ? 'member' : 'guest');
+  const [eligibilityError, setEligibilityError] = useState<string | null>(null);
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
 
   const handleClientChange = (field: keyof BookingFormData['client'], value: string) => {
+    // Clear eligibility error when user starts typing
+    if (eligibilityError) {
+      setEligibilityError(null);
+      onEligibilityChange?.(true);
+    }
     updateFormData({
       client: {
         ...formData.client,
@@ -25,6 +43,54 @@ export const GuestVsMember = ({ formData, updateFormData, user }: GuestVsMemberP
       } as BookingFormData['client'],
     });
   };
+
+  /**
+   * Check booking eligibility via Edge Function
+   * Called on blur from email or phone fields
+   */
+  const checkEligibility = useCallback(async () => {
+    const email = formData.client?.email?.trim();
+    const phone = formData.client?.phone?.trim();
+
+    // Need at least email or phone to check
+    if (!email && !phone) {
+      return;
+    }
+
+    setIsCheckingEligibility(true);
+    setEligibilityError(null);
+
+    try {
+      const storeId = getStoreId();
+      const response = await fetch(ELIGIBILITY_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email || undefined,
+          phone: phone || undefined,
+          storeId,
+        }),
+      });
+
+      const result: EligibilityResult = await response.json();
+
+      if (!result.eligible) {
+        // Generic message - never reveal blocking reason
+        const errorMessage = result.message || 'Unable to complete booking. Please call the salon.';
+        setEligibilityError(errorMessage);
+        onEligibilityChange?.(false);
+      } else {
+        setEligibilityError(null);
+        onEligibilityChange?.(true);
+      }
+    } catch {
+      // On network error, allow booking (fail open)
+      setEligibilityError(null);
+      onEligibilityChange?.(true);
+    } finally {
+      setIsCheckingEligibility(false);
+    }
+  }, [formData.client?.email, formData.client?.phone, onEligibilityChange]);
 
   if (user && bookingAs === 'member') {
     return (
@@ -83,6 +149,14 @@ export const GuestVsMember = ({ formData, updateFormData, user }: GuestVsMemberP
         </RadioGroup>
       )}
 
+      {/* Eligibility Error Banner */}
+      {eligibilityError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{eligibilityError}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="space-y-4">
         <div>
           <Label htmlFor="name">Full Name *</Label>
@@ -104,8 +178,10 @@ export const GuestVsMember = ({ formData, updateFormData, user }: GuestVsMemberP
             placeholder="john@example.com"
             value={formData.client?.email || ''}
             onChange={(e) => handleClientChange('email', e.target.value)}
+            onBlur={checkEligibility}
             className="mt-2"
             required
+            disabled={isCheckingEligibility}
           />
           <p className="text-xs text-muted-foreground mt-1">
             For confirmation and updates
@@ -120,8 +196,10 @@ export const GuestVsMember = ({ formData, updateFormData, user }: GuestVsMemberP
             placeholder="(555) 123-4567"
             value={formData.client?.phone || ''}
             onChange={(e) => handleClientChange('phone', e.target.value)}
+            onBlur={checkEligibility}
             className="mt-2"
             required
+            disabled={isCheckingEligibility}
           />
           <p className="text-xs text-muted-foreground mt-1">
             For appointment reminders

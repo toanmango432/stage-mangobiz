@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BookingFormData } from '@/types/booking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,11 +13,13 @@ interface DetailsStepProps {
 
 export const DetailsStep = ({ formData, updateFormData, onContinue }: DetailsStepProps) => {
   const { user } = useAuth();
+  const [isEligible, setIsEligible] = useState(true);
 
   const canContinue = !!(
     formData.client?.name &&
     formData.client?.email &&
-    formData.client?.phone
+    formData.client?.phone &&
+    isEligible
   );
 
   return (
@@ -27,6 +30,7 @@ export const DetailsStep = ({ formData, updateFormData, onContinue }: DetailsSte
           formData={formData}
           updateFormData={updateFormData}
           user={user}
+          onEligibilityChange={setIsEligible}
         />
       </Card>
 
