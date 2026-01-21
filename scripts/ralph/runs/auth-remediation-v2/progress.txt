@@ -381,3 +381,33 @@ Commit: f57a83a
 **Next story suggestion:** US-015 (Add unit tests for setPin function) - continues testing work on same file, no dependencies
 
 ---
+
+## 2026-01-20 - US-015: Add unit tests for setPin function
+Commit: 6ddaa97
+
+**Why this story?** Highest priority (15) among remaining stories with `passes: false` and no unmet dependencies. Previous iterations (US-011 through US-014) worked on the same test file, so the code structure is fresh in context. Progress log explicitly suggested this story.
+
+**Changes:**
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:1272-1476`: Added describe block 'setPin' with 9 tests:
+  - `should hash and store valid PIN (4 digits)` - Tests complete flow: bcrypt hash, Supabase update, SecureStorage set and verification
+  - `should hash and store valid PIN (6 digits)` - Verifies 6-digit PIN accepted
+  - `should throw validation error for 3-digit PIN (too short)` - Tests PIN_FORMAT_REGEX minimum
+  - `should throw validation error for 7-digit PIN (too long)` - Tests PIN_FORMAT_REGEX maximum
+  - `should throw validation error for PIN with letters` - Tests digit-only requirement
+  - `should throw error when database update fails` - Verifies error message and no SecureStorage call
+  - `should throw error when SecureStorage verification fails` - Tests hash mismatch detection
+  - `should validate PIN format for special characters` - Tests 5 invalid formats (punctuation, spaces, empty)
+  - `should use bcrypt cost factor 12 for hashing` - Verifies BCRYPT_COST_FACTOR is used correctly
+
+**Learnings:**
+- setPin function has a verification step that re-reads the hash from SecureStorage after storing it
+- Database update happens before SecureStorage write - if DB fails, SecureStorage is not modified
+- PIN validation regex is /^\d{4,6}$/ which rejects any non-digit characters
+- Test count increased from 60 to 69 (9 new tests)
+- 21 pre-existing test failures in other files are unrelated to this change
+
+**Patterns to sync:** None - follows documented testing patterns
+
+**Next story suggestion:** US-016 (Add unit tests for background validation) - continues testing work on same file, no dependencies
+
+---
