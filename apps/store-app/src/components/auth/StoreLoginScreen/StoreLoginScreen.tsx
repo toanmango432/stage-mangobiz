@@ -14,6 +14,7 @@ import { storeAuthManager } from '../../../services/storeAuthManager';
 import { PinSetupModal } from '../PinSetupModal';
 import { ForgotPasswordModal } from '../ForgotPasswordModal';
 import { BiometricEnrollmentModal } from '../BiometricEnrollmentModal';
+import { TOTPVerificationModal } from '../TOTPVerificationModal';
 import { LoginForm } from './LoginForm';
 import { MemberLoginForm } from './MemberLoginForm';
 import { PinScreen } from './PinScreen';
@@ -61,6 +62,8 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     // Biometric enrollment state
     showBiometricEnrollment,
     biometricEnrollmentMember,
+    // TOTP verification state
+    showTotpVerification,
 
     // Actions
     loadMembers,
@@ -82,6 +85,8 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     handleLoginModeChange,
     handleShowMemberPasswordToggle,
     handlePinKeyDown,
+    handleTotpVerificationSuccess,
+    handleTotpVerificationCancel,
   } = useLoginState({ onLoggedIn });
 
   // Load members when store is logged in
@@ -365,6 +370,14 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
         memberName={biometricEnrollmentMember?.memberName || ''}
         biometricType={biometricType}
         platformName={biometricPlatformName}
+      />
+
+      {/* TOTP Verification Modal */}
+      <TOTPVerificationModal
+        isOpen={showTotpVerification}
+        onClose={handleTotpVerificationCancel}
+        onSuccess={handleTotpVerificationSuccess}
+        onCancel={handleTotpVerificationCancel}
       />
     </div>
   );

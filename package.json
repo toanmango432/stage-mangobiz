@@ -5,7 +5,11 @@
   "private": true,
   "packageManager": "pnpm@10.27.0",
   "pnpm": {
-    "onlyBuiltDependencies": ["electron", "esbuild", "electron-winstaller"]
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "electron-winstaller"
+    ]
   },
   "engines": {
     "node": ">=18.0.0",
@@ -29,8 +33,11 @@
     "create-test-users": "npx ts-node scripts/auth-migration/create-test-users.ts"
   },
   "devDependencies": {
-    "turbo": "^2.5.4",
+    "@changesets/cli": "^2.28.1",
     "prettier": "^3.5.3",
-    "@changesets/cli": "^2.28.1"
+    "turbo": "^2.5.4"
+  },
+  "dependencies": {
+    "input-otp": "^1.4.2"
   }
 }

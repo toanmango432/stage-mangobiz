@@ -21,6 +21,7 @@ import {
 import { setStoreTimezone } from '../../../../utils/dateUtils';
 import { hasSkippedPinSetup } from '../../pinSetupUtils';
 import { hasDismissedBiometricEnrollment } from '../../BiometricEnrollmentModal';
+import { totpService } from '../../../../services/totpService';
 import { auditLogger } from '../../../../services/audit/auditLogger';
 import { AUTH_TIMEOUTS } from '../../constants';
 import type { MemberAuthSession } from '../../../../types/memberAuth';
@@ -30,6 +31,27 @@ import type { LoginMode, PinSetupMemberInfo } from '../types';
 interface BiometricEnrollmentInfo {
   memberId: string;
   memberName: string;
+}
+
+/** Info for pending TOTP login */
+interface PendingTotpLogin {
+  memberSession: MemberSession;
+  primaryStore: {
+    storeId: string;
+    storeName: string;
+    storeLoginId: string;
+    tenantId: string;
+    tier: string;
+    timezone?: string;
+  };
+  allStores: Array<{
+    storeId: string;
+    storeName: string;
+    storeLoginId: string;
+    tenantId: string;
+    tier: string;
+    timezone?: string;
+  }>;
 }
 
 interface UseLoginStateProps {
@@ -84,6 +106,10 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
   // Biometric enrollment modal state
   const [showBiometricEnrollment, setShowBiometricEnrollment] = useState(false);
   const [biometricEnrollmentMember, setBiometricEnrollmentMember] = useState<BiometricEnrollmentInfo | null>(null);
+
+  // TOTP verification modal state
+  const [showTotpVerification, setShowTotpVerification] = useState(false);
+  const [pendingTotpLogin, setPendingTotpLogin] = useState<PendingTotpLogin | null>(null);
 
   // Track if we're in a login attempt to prevent error from being cleared
   const isLoginAttemptRef = useRef(false);
@@ -242,6 +268,67 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     }
   }, [storeId, password, dispatch, onLoggedIn]);
 
+  // Helper to complete member login (after password and optional TOTP verification)
+  const completeMemberLogin = useCallback(
+    async (
+      memberSessionData: MemberSession,
+      primaryStore: PendingTotpLogin['primaryStore'],
+      allStores: PendingTotpLogin['allStores']
+    ) => {
+      const firstName = memberSessionData.firstName;
+
+      setSuccess(`Welcome, ${firstName || memberSessionData.memberName}!`);
+
+      // Dispatch Redux actions
+      dispatch(
+        setStoreSession({
+          storeId: primaryStore.storeId,
+          storeName: primaryStore.storeName,
+          storeLoginId: primaryStore.storeLoginId,
+          tenantId: primaryStore.tenantId,
+          tier: primaryStore.tier,
+        })
+      );
+
+      dispatch(setMemberSession(memberSessionData));
+
+      if (allStores.length > 0) {
+        dispatch(setAvailableStores(allStores));
+      }
+
+      dispatch(setAuthStatus('active'));
+
+      // Start grace period checker for offline access
+      memberAuthService.startGraceChecker();
+
+      // Check if user has PIN set up
+      const hasPin = await memberAuthService.hasPin(memberSessionData.memberId);
+      const hasSkipped = hasSkippedPinSetup(memberSessionData.memberId);
+
+      if (!hasPin && !hasSkipped) {
+        setPinSetupMember({ memberId: memberSessionData.memberId, name: firstName || memberSessionData.memberName });
+        setShowPinSetupModal(true);
+      } else {
+        // Check if we should prompt for biometric enrollment
+        const shouldPromptBiometric =
+          biometricCapability?.available &&
+          !(await biometricService.hasCredential(memberSessionData.memberId)) &&
+          !hasDismissedBiometricEnrollment(memberSessionData.memberId);
+
+        if (shouldPromptBiometric) {
+          setBiometricEnrollmentMember({
+            memberId: memberSessionData.memberId,
+            memberName: firstName || memberSessionData.memberName,
+          });
+          setShowBiometricEnrollment(true);
+        } else {
+          onLoggedIn();
+        }
+      }
+    },
+    [dispatch, biometricCapability, onLoggedIn]
+  );
+
   // Handle member email/password login (uses Supabase Auth)
   const handleMemberLogin = useCallback(async () => {
     if (!memberEmail.trim()) {
@@ -343,54 +430,23 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         permissions: authSession.permissions,
       };
 
-      setSuccess(`Welcome, ${firstName || memberSessionData.memberName}!`);
+      // 8. Check if TOTP verification is required
+      const totpRequired = await totpService.isVerificationRequired();
 
-      // 8. Dispatch Redux actions
-      dispatch(
-        setStoreSession({
-          storeId: primaryStore.storeId,
-          storeName: primaryStore.storeName,
-          storeLoginId: primaryStore.storeLoginId,
-          tenantId: primaryStore.tenantId,
-          tier: primaryStore.tier,
-        })
-      );
-
-      dispatch(setMemberSession(memberSessionData));
-
-      if (allStores.length > 0) {
-        dispatch(setAvailableStores(allStores));
+      if (totpRequired) {
+        // Store the pending login info and show TOTP modal
+        setPendingTotpLogin({
+          memberSession: memberSessionData,
+          primaryStore,
+          allStores,
+        });
+        setShowTotpVerification(true);
+        setIsLoading(false);
+        return;
       }
 
-      dispatch(setAuthStatus('active'));
-
-      // 9. Start grace period checker for offline access
-      memberAuthService.startGraceChecker();
-
-      // 10. Check if user has PIN set up
-      const hasPin = await memberAuthService.hasPin(authSession.memberId);
-      const hasSkipped = hasSkippedPinSetup(authSession.memberId);
-
-      if (!hasPin && !hasSkipped) {
-        setPinSetupMember({ memberId: authSession.memberId, name: firstName || authSession.name });
-        setShowPinSetupModal(true);
-      } else {
-        // 11. Check if we should prompt for biometric enrollment
-        const shouldPromptBiometric =
-          biometricCapability?.available &&
-          !(await biometricService.hasCredential(authSession.memberId)) &&
-          !hasDismissedBiometricEnrollment(authSession.memberId);
-
-        if (shouldPromptBiometric) {
-          setBiometricEnrollmentMember({
-            memberId: authSession.memberId,
-            memberName: firstName || authSession.name,
-          });
-          setShowBiometricEnrollment(true);
-        } else {
-          onLoggedIn();
-        }
-      }
+      // 9. Complete the login (no TOTP required)
+      await completeMemberLogin(memberSessionData, primaryStore, allStores);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error
@@ -414,7 +470,7 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [memberEmail, memberPassword, isOnline, dispatch, onLoggedIn]);
+  }, [memberEmail, memberPassword, isOnline, completeMemberLogin]);
 
   // Handle PIN setup completion
   const handlePinSetupComplete = useCallback(async () => {
@@ -482,6 +538,30 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     setBiometricEnrollmentMember(null);
     onLoggedIn();
   }, [onLoggedIn]);
+
+  // Handle TOTP verification success
+  const handleTotpVerificationSuccess = useCallback(async () => {
+    if (!pendingTotpLogin) return;
+
+    setShowTotpVerification(false);
+
+    // Complete the login with the stored session data
+    await completeMemberLogin(
+      pendingTotpLogin.memberSession,
+      pendingTotpLogin.primaryStore,
+      pendingTotpLogin.allStores
+    );
+
+    setPendingTotpLogin(null);
+  }, [pendingTotpLogin, completeMemberLogin]);
+
+  // Handle TOTP verification cancel (return to login)
+  const handleTotpVerificationCancel = useCallback(() => {
+    setShowTotpVerification(false);
+    setPendingTotpLogin(null);
+    setError('Login cancelled');
+    isLoginAttemptRef.current = false;
+  }, []);
 
   // Handle forgot password
   const handleForgotPassword = useCallback(() => {
@@ -866,6 +946,8 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     // Biometric enrollment state
     showBiometricEnrollment,
     biometricEnrollmentMember,
+    // TOTP verification state
+    showTotpVerification,
 
     // Actions
     loadMembers,
@@ -878,6 +960,8 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     handleBiometricLogin,
     handleBiometricEnrollmentComplete,
     handleBiometricEnrollmentClose,
+    handleTotpVerificationSuccess,
+    handleTotpVerificationCancel,
     handlePinLogin,
     handlePinChange,
     handlePinKeyPress,
