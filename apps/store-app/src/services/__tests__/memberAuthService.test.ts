@@ -1073,6 +1073,200 @@ describe('memberAuthService', () => {
       // Verify bcrypt.compare was called with PIN and hash
       expect(mockBcrypt.compare).toHaveBeenCalledWith('4567', pinHash);
     });
+
+    // ==================== FAILURE CASES ====================
+
+    it('should throw error when member not found in cache', async () => {
+      // No members in cache
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([]));
+
+      await expect(
+        memberAuthService.loginWithPin('nonexistent-member', '1234')
+      ).rejects.toThrow('Member not found in cache. Please login online first.');
+
+      // Should not even attempt to check PIN
+      expect(mockSecureStorage.get).not.toHaveBeenCalled();
+      expect(mockBcrypt.compare).not.toHaveBeenCalled();
+    });
+
+    it('should check lockout before PIN validation (fail fast)', async () => {
+      const cachedMember = {
+        memberId: 'member-lockout-001',
+        authUserId: 'auth-lockout-001',
+        email: 'lockout@example.com',
+        name: 'Lockout Test User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      // Set up lockout for 10 minutes from now
+      const lockoutTime = Date.now() + 10 * 60 * 1000;
+      mockLocalStorage.setItem('pin_lockout_member-lockout-001', lockoutTime.toString());
+
+      await expect(
+        memberAuthService.loginWithPin('member-lockout-001', '1234')
+      ).rejects.toThrow(/PIN locked\. Try again in \d+ minutes\./);
+
+      // Should NOT check PIN hash - lockout check should fail fast
+      expect(mockSecureStorage.get).not.toHaveBeenCalled();
+      expect(mockBcrypt.compare).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when grace period expired', async () => {
+      // Set lastOnlineAuth to 15 days ago (exceeds 14-day grace period)
+      const fifteenDaysAgo = new Date();
+      fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+
+      const cachedMember = {
+        memberId: 'member-grace-001',
+        authUserId: 'auth-grace-001',
+        email: 'expired@example.com',
+        name: 'Expired Grace User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: fifteenDaysAgo.toISOString(),
+        sessionCreatedAt: fifteenDaysAgo.toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      await expect(
+        memberAuthService.loginWithPin('member-grace-001', '1234')
+      ).rejects.toThrow('Offline access expired. Please login online to continue.');
+
+      // Should not check PIN - grace period check should fail first
+      expect(mockSecureStorage.get).not.toHaveBeenCalled();
+      expect(mockBcrypt.compare).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when PIN not configured', async () => {
+      const cachedMember = {
+        memberId: 'member-nopin-001',
+        authUserId: 'auth-nopin-001',
+        email: 'nopin@example.com',
+        name: 'No PIN User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      // SecureStorage returns null (no PIN configured)
+      mockSecureStorage.get.mockResolvedValue(null);
+      mockOnLine = false;
+
+      await expect(
+        memberAuthService.loginWithPin('member-nopin-001', '1234')
+      ).rejects.toThrow('PIN not configured. Please login online to set up your PIN.');
+
+      // SecureStorage was checked, but bcrypt should not be called
+      expect(mockSecureStorage.get).toHaveBeenCalledWith('pin_hash_member-nopin-001');
+      expect(mockBcrypt.compare).not.toHaveBeenCalled();
+    });
+
+    it('should increment failed attempts on wrong PIN', async () => {
+      const cachedMember = {
+        memberId: 'member-wrong-pin-001',
+        authUserId: 'auth-wrong-pin-001',
+        email: 'wrongpin@example.com',
+        name: 'Wrong PIN User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      mockSecureStorage.get.mockResolvedValue('$2a$12$hash');
+      mockBcrypt.compare.mockResolvedValue(false); // Wrong PIN
+      mockOnLine = false;
+
+      // First attempt
+      await expect(
+        memberAuthService.loginWithPin('member-wrong-pin-001', '9999')
+      ).rejects.toThrow('Invalid PIN. 4 attempts remaining.');
+
+      expect(memberAuthService.getFailedAttempts('member-wrong-pin-001')).toBe(1);
+
+      // Second attempt
+      await expect(
+        memberAuthService.loginWithPin('member-wrong-pin-001', '8888')
+      ).rejects.toThrow('Invalid PIN. 3 attempts remaining.');
+
+      expect(memberAuthService.getFailedAttempts('member-wrong-pin-001')).toBe(2);
+    });
+
+    it('should lock PIN after max failed attempts', async () => {
+      const cachedMember = {
+        memberId: 'member-max-attempts-001',
+        authUserId: 'auth-max-attempts-001',
+        email: 'maxattempts@example.com',
+        name: 'Max Attempts User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      // Pre-set 4 failed attempts (one away from lockout)
+      mockLocalStorage.setItem('pin_attempts_member-max-attempts-001', '4');
+
+      mockSecureStorage.get.mockResolvedValue('$2a$12$hash');
+      mockBcrypt.compare.mockResolvedValue(false); // Wrong PIN
+      mockOnLine = false;
+
+      // 5th failed attempt should trigger lockout
+      await expect(
+        memberAuthService.loginWithPin('member-max-attempts-001', '0000')
+      ).rejects.toThrow('PIN locked for 15 minutes.');
+
+      // Verify lockout is now active
+      const lockoutInfo = memberAuthService.checkPinLockout('member-max-attempts-001');
+      expect(lockoutInfo.isLocked).toBe(true);
+      expect(lockoutInfo.remainingMinutes).toBeGreaterThanOrEqual(14);
+    });
+
+    it('should throw timeout error on bcrypt timeout', async () => {
+      const cachedMember = {
+        memberId: 'member-timeout-001',
+        authUserId: 'auth-timeout-001',
+        email: 'timeout@example.com',
+        name: 'Timeout Test User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      mockSecureStorage.get.mockResolvedValue('$2a$12$hash');
+      // Simulate bcrypt timeout by rejecting with the timeout error
+      // This tests the behavior when withTimeout() rejects due to BCRYPT_TIMEOUT_MS
+      mockBcrypt.compare.mockImplementation(
+        () => Promise.reject(new Error('PIN validation timeout'))
+      );
+      mockOnLine = false;
+
+      await expect(
+        memberAuthService.loginWithPin('member-timeout-001', '1234')
+      ).rejects.toThrow('PIN validation timeout');
+    });
   });
 
   describe('concurrent PIN attempts - race condition scenarios', () => {
