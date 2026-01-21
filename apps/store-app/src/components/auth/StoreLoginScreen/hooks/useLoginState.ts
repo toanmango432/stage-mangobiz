@@ -18,7 +18,7 @@ import {
   setAvailableStores,
 } from '../../../../store/slices/authSlice';
 import { setStoreTimezone } from '../../../../utils/dateUtils';
-import { hasSkippedPinSetup } from '../../PinSetupModal';
+import { hasSkippedPinSetup } from '../../pinSetupUtils';
 import { auditLogger } from '../../../../services/audit/auditLogger';
 import { AUTH_TIMEOUTS } from '../../constants';
 import type { MemberAuthSession } from '../../../../types/memberAuth';

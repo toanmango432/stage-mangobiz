@@ -26,3 +26,11 @@ export { SignatureDisplay } from './SignatureDisplay';
 export type { SignatureDisplayProps } from './SignatureDisplay';
 
 export { HelpRequestNotification } from './HelpRequestNotification';
+
+export {
+  PermissionGuardedButton,
+  useDeletePermission,
+  useRefundPermission,
+} from './PermissionGuardedButton';
+
+export { ConfirmDialog } from './ConfirmDialog';

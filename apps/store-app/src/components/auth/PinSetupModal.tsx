@@ -34,8 +34,9 @@ import {
 import { Button } from '@/components/ui/Button';
 import { PinInput } from './PinInput';
 import { memberAuthService } from '@/services/memberAuthService';
-import { AUTH_MESSAGES, AUTH_TIMEOUTS, AUTH_STORAGE_KEYS } from './constants';
+import { AUTH_MESSAGES, AUTH_TIMEOUTS } from './constants';
 import { auditLogger } from '@/services/audit/auditLogger';
+import { setSkipPreference, clearSkipPreference } from './pinSetupUtils';
 
 /** Props for PinSetupModal component */
 export interface PinSetupModalProps {
@@ -53,23 +54,6 @@ export interface PinSetupModalProps {
   memberName: string;
   /** Whether PIN setup is required (default: false) */
   isRequired?: boolean;
-}
-
-/** Get the localStorage key for a member's skip preference */
-function getSkipPreferenceKey(memberId: string): string {
-  return `${AUTH_STORAGE_KEYS.PIN_SETUP_SKIPPED_PREFIX}${memberId}`;
-}
-
-/** Check if a member has previously skipped PIN setup */
-export function hasSkippedPinSetup(memberId: string): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(getSkipPreferenceKey(memberId)) === 'true';
-}
-
-/** Clear the skip preference for a member (for when they set up PIN) */
-export function clearSkipPreference(memberId: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(getSkipPreferenceKey(memberId));
 }
 
 type Step = 'enter' | 'confirm' | 'success';
@@ -189,9 +173,7 @@ export function PinSetupModal({
 
   // Handle skip
   const handleSkip = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(getSkipPreferenceKey(memberId), 'true');
-    }
+    setSkipPreference(memberId);
     onSkip?.();
     onClose();
   }, [memberId, onSkip, onClose]);

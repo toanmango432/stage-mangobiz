@@ -15,7 +15,7 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
-import { useSupabaseSync } from '@/providers/SupabaseSyncProvider';
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 
 interface SyncStatusIndicatorProps {
   /** Show detailed popup on click */

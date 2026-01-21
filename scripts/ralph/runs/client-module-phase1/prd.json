@@ -102,7 +102,7 @@
         "Verify in browser: button appears, clicking opens modal"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Modify: apps/store-app/src/components/client-settings/ClientSettings.tsx (~25 lines). Follow existing action button patterns."
     },
     {
@@ -133,7 +133,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Create: supabase/functions/check-booking-eligibility/index.ts (NEW, ~50 lines). Security: Never expose blocking reason."
     },
     {

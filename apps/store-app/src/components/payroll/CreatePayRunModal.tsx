@@ -24,6 +24,7 @@ import { selectAllStaff as selectStaffMembers } from '../../store/slices/staffSl
 import { selectMemberId } from '../../store/slices/authSlice';
 import type { PayPeriodType } from '../../types/payroll';
 import { getPayPeriodDates, formatPayPeriod } from '../../utils/payrollCalculation';
+import { deviceManager } from '../../services/deviceManager';
 
 // ============================================
 // TYPES
@@ -271,7 +272,7 @@ export const CreatePayRunModal: React.FC<CreatePayRunModalProps> = ({
         },
         context: {
           userId: currentUserId || 'system',
-          deviceId: 'device-web',
+          deviceId: deviceManager.getDeviceId(),
           storeId,
         },
       })).unwrap();

@@ -23,10 +23,11 @@ import {
   Trash2,
   Loader2
 } from 'lucide-react';
-import { useMemberAuth } from '@/providers/AuthProvider';
+import { useMemberAuth } from '@/hooks/useMemberAuth';
 import { selectMember } from '@/store/slices/authSlice';
 import { memberAuthService } from '@/services/memberAuthService';
-import { PinSetupModal, clearSkipPreference } from '@/components/auth/PinSetupModal';
+import { PinSetupModal } from '@/components/auth/PinSetupModal';
+import { clearSkipPreference } from '@/components/auth/pinSetupUtils';
 import { PinVerificationModal } from '@/components/auth/PinVerificationModal';
 import {
   selectAccountSettings,

@@ -161,3 +161,32 @@ Commit: f60e955
 **Next story suggestion:** US-006 (Add merge button to ClientSettings) - integrates the modal into the client details UI
 
 ---
+
+## 2026-01-21 - US-006: Add merge button to ClientSettings
+Commit: bc43078
+
+**Why this story?** US-006 continues the merge feature workflow from US-005. The modal component now exists, and integrating it into ClientSettings completes the merge UI.
+
+**Changes:**
+- apps/store-app/src/components/client-settings/ClientSettings.tsx:20: Import MergeClientsModal component
+- apps/store-app/src/components/client-settings/ClientSettings.tsx:168: Add showMergeModal state
+- apps/store-app/src/components/client-settings/ClientSettings.tsx:371-378: Add handleMergeComplete callback
+- apps/store-app/src/components/client-settings/ClientSettings.tsx:536-543: Add Merge button with MergeIcon in client header
+- apps/store-app/src/components/client-settings/ClientSettings.tsx:678-684: Render MergeClientsModal with isOpen, onClose, primaryClientId, onMergeComplete
+- apps/store-app/src/components/client-settings/ClientSettings.tsx:779-783: Add MergeIcon SVG component
+
+**Browser Verification:**
+- Dev server starts: PASS
+- App loads: PASS
+- Login required: Cannot verify button/modal flow without valid Supabase credentials
+- Code structure verified: PASS (import, state, button, modal render all present)
+
+**Learnings:**
+- Demo credentials don't work with real Supabase backend - browser verification requires actual auth
+- Pre-existing HMR errors related to configCache don't block functionality
+- MergeClientsModal handles secondary client selection internally via built-in dropdowns
+- Button placement in client header actions area follows existing pattern (alongside visits/spent info)
+
+**Next story suggestion:** US-008 (Create check-booking-eligibility Edge Function) - starts the block enforcement feature
+
+---

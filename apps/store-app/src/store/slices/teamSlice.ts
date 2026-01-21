@@ -1,22 +1,58 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+/**
+ * Team Redux Slice
+ *
+ * Manages team member state with optimistic updates, offline support,
+ * and sync tracking for the Team Settings module.
+ *
+ * Thunks are extracted to team/teamThunks.ts for file size management.
+ */
+
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
 import type {
   TeamMemberSettings,
   TeamMemberProfile,
   ServicePricing,
   WorkingHoursSettings,
+  TimeOffRequest,
+  ScheduleOverride,
   RolePermissions,
   CommissionSettings,
   PayrollSettings,
   OnlineBookingSettings,
   NotificationPreferences,
   PerformanceGoals,
-  TimeOffRequest,
-  ScheduleOverride,
   TeamSettingsSection,
   StaffRole,
 } from '../../components/team-settings/types';
-import { SyncContext, getDefaultSyncContext } from '../utils/syncContext';
+
+// Import thunks from extracted file
+import {
+  fetchTeamMembers,
+  fetchTeamMember,
+  saveTeamMember,
+  archiveTeamMember,
+  restoreTeamMember,
+  deleteTeamMember,
+  saveTimeOffRequest,
+  deleteTimeOffRequest,
+  saveScheduleOverride,
+  deleteScheduleOverride,
+} from './team/teamThunks';
+
+// Re-export thunks for consumers
+export {
+  fetchTeamMembers,
+  fetchTeamMember,
+  saveTeamMember,
+  archiveTeamMember,
+  restoreTeamMember,
+  deleteTeamMember,
+  saveTimeOffRequest,
+  deleteTimeOffRequest,
+  saveScheduleOverride,
+  deleteScheduleOverride,
+};
 
 // ============================================
 // STATE TYPES
@@ -36,39 +72,26 @@ export interface TeamUIState {
 }
 
 export interface TeamSyncState {
+  syncStatus: 'idle' | 'syncing' | 'error';
   lastSyncAt: string | null;
   pendingChanges: number;
-  syncStatus: 'idle' | 'syncing' | 'error';
-  syncError: string | null;
 }
 
-/**
- * Tracks a pending optimistic operation for rollback capability.
- */
 export interface PendingOperation {
-  type: 'create' | 'update' | 'delete' | 'archive' | 'restore';
+  type: 'create' | 'update' | 'delete';
   entityId: string;
   previousState?: TeamMemberSettings;
   timestamp: number;
 }
 
 export interface TeamState {
-  // Data (normalized by member ID)
   members: Record<string, TeamMemberSettings>;
-  memberIds: string[]; // For ordering
-
-  // Loading states
+  memberIds: string[];
   loading: boolean;
   loadingMemberId: string | null;
   error: string | null;
-
-  // Pending operations for optimistic updates
   pendingOperations: Record<string, PendingOperation>;
-
-  // UI State
   ui: TeamUIState;
-
-  // Sync State
   sync: TeamSyncState;
 }
 
@@ -90,10 +113,9 @@ const initialUIState: TeamUIState = {
 };
 
 const initialSyncState: TeamSyncState = {
+  syncStatus: 'idle',
   lastSyncAt: null,
   pendingChanges: 0,
-  syncStatus: 'idle',
-  syncError: null,
 };
 
 const initialState: TeamState = {
@@ -106,302 +128,6 @@ const initialState: TeamState = {
   ui: initialUIState,
   sync: initialSyncState,
 };
-
-// ============================================
-// ASYNC THUNKS
-// All mutation thunks now require SyncContext
-// ============================================
-
-// Fetch all team members
-// Priority: Supabase (source of truth) -> IndexedDB (offline fallback)
-export const fetchTeamMembers = createAsyncThunk(
-  'team/fetchAll',
-  async (storeId: string | undefined, { rejectWithValue }) => {
-    const effectiveStoreId = storeId || 'default-store';
-
-    try {
-      // Try Supabase first (source of truth for online operations)
-      const { fetchSupabaseMembers } = await import('../../services/supabase/memberService');
-      const supabaseMembers = await fetchSupabaseMembers(effectiveStoreId);
-
-      if (supabaseMembers && supabaseMembers.length > 0) {
-        console.log('[teamSlice] Fetched', supabaseMembers.length, 'members from Supabase');
-
-        // Sync to IndexedDB for offline access
-        try {
-          const { teamDB } = await import('../../db/teamOperations');
-          for (const member of supabaseMembers) {
-            await teamDB.upsertMember(member, 'system', 'system');
-          }
-          console.log('[teamSlice] Synced members to IndexedDB');
-        } catch (syncError) {
-          console.warn('[teamSlice] Failed to sync to IndexedDB:', syncError);
-          // Continue - Supabase data is still valid
-        }
-
-        return supabaseMembers;
-      }
-
-      // Fallback to IndexedDB if Supabase returns empty (might be offline)
-      console.log('[teamSlice] No Supabase data, falling back to IndexedDB');
-      const { teamDB } = await import('../../db/teamOperations');
-      const members = await teamDB.getAllMembers(effectiveStoreId);
-      return members;
-    } catch (error) {
-      // If Supabase fails, try IndexedDB as offline fallback
-      console.warn('[teamSlice] Supabase failed, trying IndexedDB:', error);
-      try {
-        const { teamDB } = await import('../../db/teamOperations');
-        const members = await teamDB.getAllMembers(effectiveStoreId);
-        if (members && members.length > 0) {
-          console.log('[teamSlice] Using IndexedDB fallback:', members.length, 'members');
-          return members;
-        }
-      } catch (indexedDBError) {
-        console.error('[teamSlice] IndexedDB also failed:', indexedDBError);
-      }
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch team members');
-    }
-  }
-);
-
-// Fetch single team member with all related data
-export const fetchTeamMember = createAsyncThunk(
-  'team/fetchOne',
-  async (memberId: string, { rejectWithValue }) => {
-    try {
-      const { teamDB } = await import('../../db/teamOperations');
-      const member = await teamDB.getActiveMemberById(memberId);
-      if (!member) {
-        return rejectWithValue('Team member not found');
-      }
-      return member;
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch team member');
-    }
-  }
-);
-
-// Optimistic update action creators (defined before thunk to avoid circular reference)
-// These are dispatched within the thunk for optimistic updates
-const optimisticActions = {
-  updateMemberOptimistic: (member: TeamMemberSettings) => ({
-    type: 'team/updateMemberOptimistic' as const,
-    payload: member,
-  }),
-  setPendingOperation: (data: { entityId: string; operation: PendingOperation }) => ({
-    type: 'team/setPendingOperation' as const,
-    payload: data,
-  }),
-  clearPendingOperation: (entityId: string) => ({
-    type: 'team/clearPendingOperation' as const,
-    payload: entityId,
-  }),
-  removeMemberOptimistic: (id: string) => ({
-    type: 'team/removeMember' as const,
-    payload: id,
-  }),
-};
-
-// Save team member (create or update) with optimistic updates
-export const saveTeamMember = createAsyncThunk(
-  'team/save',
-  async (
-    { member, context }: { member: TeamMemberSettings; context?: SyncContext },
-    { dispatch, getState, rejectWithValue }
-  ) => {
-    const state = getState() as RootState;
-    const existingMember = state.team.members[member.id];
-    const isUpdate = !!existingMember;
-
-    // 1. Store previous state for potential rollback
-    if (isUpdate) {
-      dispatch(optimisticActions.setPendingOperation({
-        entityId: member.id,
-        operation: {
-          type: 'update',
-          entityId: member.id,
-          previousState: existingMember,
-          timestamp: Date.now(),
-        },
-      }));
-    } else {
-      dispatch(optimisticActions.setPendingOperation({
-        entityId: member.id,
-        operation: {
-          type: 'create',
-          entityId: member.id,
-          timestamp: Date.now(),
-        },
-      }));
-    }
-
-    // 2. Optimistically update the UI immediately
-    dispatch(optimisticActions.updateMemberOptimistic(member));
-
-    try {
-      const { teamDB } = await import('../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      const existing = await teamDB.getMemberById(member.id);
-
-      let savedMember: TeamMemberSettings;
-
-      if (existing) {
-        savedMember = await teamDB.updateMember(member.id, member, ctx.userId, ctx.deviceId);
-      } else {
-        // Ensure required sync fields are set for new members
-        const newMember: TeamMemberSettings = {
-          ...member,
-          tenantId: member.tenantId || ctx.tenantId || 'default-tenant',
-          storeId: member.storeId || ctx.storeId || 'default-store',
-        };
-        await teamDB.createMember(newMember, ctx.userId, ctx.deviceId);
-        savedMember = (await teamDB.getMemberById(member.id))!;
-      }
-
-      // 3. Clear pending operation on success
-      dispatch(optimisticActions.clearPendingOperation(member.id));
-
-      return savedMember;
-    } catch (error) {
-      // 4. Rollback on failure
-      if (existingMember) {
-        dispatch(optimisticActions.updateMemberOptimistic(existingMember));
-      } else {
-        dispatch(optimisticActions.removeMemberOptimistic(member.id));
-      }
-      dispatch(optimisticActions.clearPendingOperation(member.id));
-
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to save team member');
-    }
-  }
-);
-
-// Archive team member (sets isActive = false)
-export const archiveTeamMember = createAsyncThunk(
-  'team/archive',
-  async (
-    { memberId, context }: { memberId: string; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
-    try {
-      const { teamDB } = await import('../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      const updated = await teamDB.archiveMember(memberId, ctx.userId, ctx.deviceId);
-      return updated;
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to archive team member');
-    }
-  }
-);
-
-// Restore archived team member
-export const restoreTeamMember = createAsyncThunk(
-  'team/restore',
-  async (
-    { memberId, context }: { memberId: string; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
-    try {
-      const { teamDB } = await import('../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      const updated = await teamDB.restoreMember(memberId, ctx.userId, ctx.deviceId);
-      return updated;
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to restore team member');
-    }
-  }
-);
-
-// Soft delete team member (tombstone pattern)
-export const deleteTeamMember = createAsyncThunk(
-  'team/delete',
-  async (
-    { memberId, context }: { memberId: string; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
-    try {
-      const { teamDB } = await import('../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      await teamDB.softDeleteMember(memberId, ctx.userId, ctx.deviceId);
-      return memberId;
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete team member');
-    }
-  }
-);
-
-// Save time off request
-export const saveTimeOffRequest = createAsyncThunk(
-  'team/saveTimeOff',
-  async (
-    { memberId, request, context }: { memberId: string; request: TimeOffRequest; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
-    try {
-      const { teamDB } = await import('../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      await teamDB.saveTimeOffRequest(memberId, request, ctx.userId, ctx.deviceId);
-      return { memberId, request };
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to save time off request');
-    }
-  }
-);
-
-// Delete time off request
-export const deleteTimeOffRequest = createAsyncThunk(
-  'team/deleteTimeOff',
-  async (
-    { memberId, requestId, context }: { memberId: string; requestId: string; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
-    try {
-      const { teamDB } = await import('../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      await teamDB.deleteTimeOffRequest(memberId, requestId, ctx.userId, ctx.deviceId);
-      return { memberId, requestId };
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete time off request');
-    }
-  }
-);
-
-// Save schedule override
-export const saveScheduleOverride = createAsyncThunk(
-  'team/saveOverride',
-  async (
-    { memberId, override, context }: { memberId: string; override: ScheduleOverride; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
-    try {
-      const { teamDB } = await import('../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      await teamDB.saveScheduleOverride(memberId, override, ctx.userId, ctx.deviceId);
-      return { memberId, override };
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to save schedule override');
-    }
-  }
-);
-
-// Delete schedule override
-export const deleteScheduleOverride = createAsyncThunk(
-  'team/deleteOverride',
-  async (
-    { memberId, overrideId, context }: { memberId: string; overrideId: string; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
-    try {
-      const { teamDB } = await import('../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      await teamDB.deleteScheduleOverride(memberId, overrideId, ctx.userId, ctx.deviceId);
-      return { memberId, overrideId };
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete schedule override');
-    }
-  }
-);
 
 // ============================================
 // SLICE
@@ -429,7 +155,10 @@ const teamSlice = createSlice({
       }
     },
 
-    updateMember: (state, action: PayloadAction<{ id: string; updates: Partial<TeamMemberSettings> }>) => {
+    updateMember: (
+      state,
+      action: PayloadAction<{ id: string; updates: Partial<TeamMemberSettings> }>
+    ) => {
       const { id, updates } = action.payload;
       if (state.members[id]) {
         state.members[id] = {
@@ -450,7 +179,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Profile updates ----
-    updateMemberProfile: (state, action: PayloadAction<{ id: string; profile: Partial<TeamMemberProfile> }>) => {
+    updateMemberProfile: (
+      state,
+      action: PayloadAction<{ id: string; profile: Partial<TeamMemberProfile> }>
+    ) => {
       const { id, profile } = action.payload;
       if (state.members[id]) {
         state.members[id].profile = {
@@ -463,7 +195,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Services updates ----
-    updateMemberServices: (state, action: PayloadAction<{ id: string; services: ServicePricing[] }>) => {
+    updateMemberServices: (
+      state,
+      action: PayloadAction<{ id: string; services: ServicePricing[] }>
+    ) => {
       const { id, services } = action.payload;
       if (state.members[id]) {
         state.members[id].services = services;
@@ -473,7 +208,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Schedule updates ----
-    updateMemberSchedule: (state, action: PayloadAction<{ id: string; workingHours: WorkingHoursSettings }>) => {
+    updateMemberSchedule: (
+      state,
+      action: PayloadAction<{ id: string; workingHours: WorkingHoursSettings }>
+    ) => {
       const { id, workingHours } = action.payload;
       if (state.members[id]) {
         state.members[id].workingHours = workingHours;
@@ -483,7 +221,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Permissions updates ----
-    updateMemberPermissions: (state, action: PayloadAction<{ id: string; permissions: RolePermissions }>) => {
+    updateMemberPermissions: (
+      state,
+      action: PayloadAction<{ id: string; permissions: RolePermissions }>
+    ) => {
       const { id, permissions } = action.payload;
       if (state.members[id]) {
         state.members[id].permissions = permissions;
@@ -493,7 +234,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Commission updates ----
-    updateMemberCommission: (state, action: PayloadAction<{ id: string; commission: CommissionSettings }>) => {
+    updateMemberCommission: (
+      state,
+      action: PayloadAction<{ id: string; commission: CommissionSettings }>
+    ) => {
       const { id, commission } = action.payload;
       if (state.members[id]) {
         state.members[id].commission = commission;
@@ -503,7 +247,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Payroll updates ----
-    updateMemberPayroll: (state, action: PayloadAction<{ id: string; payroll: PayrollSettings }>) => {
+    updateMemberPayroll: (
+      state,
+      action: PayloadAction<{ id: string; payroll: PayrollSettings }>
+    ) => {
       const { id, payroll } = action.payload;
       if (state.members[id]) {
         state.members[id].payroll = payroll;
@@ -513,7 +260,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Online booking updates ----
-    updateMemberOnlineBooking: (state, action: PayloadAction<{ id: string; onlineBooking: OnlineBookingSettings }>) => {
+    updateMemberOnlineBooking: (
+      state,
+      action: PayloadAction<{ id: string; onlineBooking: OnlineBookingSettings }>
+    ) => {
       const { id, onlineBooking } = action.payload;
       if (state.members[id]) {
         state.members[id].onlineBooking = onlineBooking;
@@ -523,7 +273,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Notifications updates ----
-    updateMemberNotifications: (state, action: PayloadAction<{ id: string; notifications: NotificationPreferences }>) => {
+    updateMemberNotifications: (
+      state,
+      action: PayloadAction<{ id: string; notifications: NotificationPreferences }>
+    ) => {
       const { id, notifications } = action.payload;
       if (state.members[id]) {
         state.members[id].notifications = notifications;
@@ -533,7 +286,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Performance goals updates ----
-    updateMemberPerformanceGoals: (state, action: PayloadAction<{ id: string; goals: PerformanceGoals }>) => {
+    updateMemberPerformanceGoals: (
+      state,
+      action: PayloadAction<{ id: string; goals: PerformanceGoals }>
+    ) => {
       const { id, goals } = action.payload;
       if (state.members[id]) {
         state.members[id].performanceGoals = goals;
@@ -543,7 +299,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Time off request updates (local) ----
-    addTimeOffRequest: (state, action: PayloadAction<{ memberId: string; request: TimeOffRequest }>) => {
+    addTimeOffRequest: (
+      state,
+      action: PayloadAction<{ memberId: string; request: TimeOffRequest }>
+    ) => {
       const { memberId, request } = action.payload;
       if (state.members[memberId]) {
         state.members[memberId].workingHours.timeOffRequests.push(request);
@@ -552,7 +311,10 @@ const teamSlice = createSlice({
       }
     },
 
-    updateTimeOffRequest: (state, action: PayloadAction<{ memberId: string; request: TimeOffRequest }>) => {
+    updateTimeOffRequest: (
+      state,
+      action: PayloadAction<{ memberId: string; request: TimeOffRequest }>
+    ) => {
       const { memberId, request } = action.payload;
       if (state.members[memberId]) {
         const requests = state.members[memberId].workingHours.timeOffRequests;
@@ -565,7 +327,10 @@ const teamSlice = createSlice({
       }
     },
 
-    removeTimeOffRequest: (state, action: PayloadAction<{ memberId: string; requestId: string }>) => {
+    removeTimeOffRequest: (
+      state,
+      action: PayloadAction<{ memberId: string; requestId: string }>
+    ) => {
       const { memberId, requestId } = action.payload;
       if (state.members[memberId]) {
         state.members[memberId].workingHours.timeOffRequests =
@@ -576,7 +341,10 @@ const teamSlice = createSlice({
     },
 
     // ---- Schedule override updates (local) ----
-    addScheduleOverride: (state, action: PayloadAction<{ memberId: string; override: ScheduleOverride }>) => {
+    addScheduleOverride: (
+      state,
+      action: PayloadAction<{ memberId: string; override: ScheduleOverride }>
+    ) => {
       const { memberId, override } = action.payload;
       if (state.members[memberId]) {
         state.members[memberId].workingHours.scheduleOverrides.push(override);
@@ -585,7 +353,10 @@ const teamSlice = createSlice({
       }
     },
 
-    updateScheduleOverride: (state, action: PayloadAction<{ memberId: string; override: ScheduleOverride }>) => {
+    updateScheduleOverride: (
+      state,
+      action: PayloadAction<{ memberId: string; override: ScheduleOverride }>
+    ) => {
       const { memberId, override } = action.payload;
       if (state.members[memberId]) {
         const overrides = state.members[memberId].workingHours.scheduleOverrides;
@@ -598,7 +369,10 @@ const teamSlice = createSlice({
       }
     },
 
-    removeScheduleOverride: (state, action: PayloadAction<{ memberId: string; overrideId: string }>) => {
+    removeScheduleOverride: (
+      state,
+      action: PayloadAction<{ memberId: string; overrideId: string }>
+    ) => {
       const { memberId, overrideId } = action.payload;
       if (state.members[memberId]) {
         state.members[memberId].workingHours.scheduleOverrides =
@@ -626,7 +400,10 @@ const teamSlice = createSlice({
       state.ui.filterRole = action.payload;
     },
 
-    setFilterStatus: (state, action: PayloadAction<'all' | 'active' | 'inactive' | 'archived'>) => {
+    setFilterStatus: (
+      state,
+      action: PayloadAction<'all' | 'active' | 'inactive' | 'archived'>
+    ) => {
       state.ui.filterStatus = action.payload;
     },
 
@@ -664,7 +441,10 @@ const teamSlice = createSlice({
       }
     },
 
-    setPendingOperation: (state, action: PayloadAction<{ entityId: string; operation: PendingOperation }>) => {
+    setPendingOperation: (
+      state,
+      action: PayloadAction<{ entityId: string; operation: PendingOperation }>
+    ) => {
       const { entityId, operation } = action.payload;
       state.pendingOperations[entityId] = operation;
     },
@@ -836,7 +616,9 @@ const teamSlice = createSlice({
         const { memberId, overrideId } = action.payload;
         if (state.members[memberId]) {
           state.members[memberId].workingHours.scheduleOverrides =
-            state.members[memberId].workingHours.scheduleOverrides.filter((o) => o.id !== overrideId);
+            state.members[memberId].workingHours.scheduleOverrides.filter(
+              (o) => o.id !== overrideId
+            );
         }
       });
   },
@@ -909,7 +691,10 @@ export const selectIsMemberPending = (state: RootState, memberId: string): boole
 };
 
 // Get pending operation for a specific member
-export const selectMemberPendingOperation = (state: RootState, memberId: string): PendingOperation | undefined => {
+export const selectMemberPendingOperation = (
+  state: RootState,
+  memberId: string
+): PendingOperation | undefined => {
   return state.team.pendingOperations[memberId];
 };
 
@@ -926,7 +711,10 @@ export const selectArchivedTeamMembers = (state: RootState): TeamMemberSettings[
   return selectAllTeamMembers(state).filter((member) => !member.isActive);
 };
 
-export const selectTeamMemberById = (state: RootState, memberId: string): TeamMemberSettings | undefined => {
+export const selectTeamMemberById = (
+  state: RootState,
+  memberId: string
+): TeamMemberSettings | undefined => {
   return state.team.members[memberId];
 };
 
@@ -943,11 +731,12 @@ export const selectFilteredTeamMembers = (state: RootState): TeamMemberSettings[
   // Filter by search query
   if (searchQuery) {
     const query = searchQuery.toLowerCase();
-    members = members.filter((member) =>
-      member.profile.firstName.toLowerCase().includes(query) ||
-      member.profile.lastName.toLowerCase().includes(query) ||
-      member.profile.displayName.toLowerCase().includes(query) ||
-      member.profile.email.toLowerCase().includes(query)
+    members = members.filter(
+      (member) =>
+        member.profile.firstName.toLowerCase().includes(query) ||
+        member.profile.lastName.toLowerCase().includes(query) ||
+        member.profile.displayName.toLowerCase().includes(query) ||
+        member.profile.email.toLowerCase().includes(query)
     );
   }
 
@@ -986,7 +775,10 @@ export const selectFilteredTeamMembers = (state: RootState): TeamMemberSettings[
 };
 
 // Permission-related selectors
-export const selectMemberPermissions = (state: RootState, memberId: string): RolePermissions | undefined => {
+export const selectMemberPermissions = (
+  state: RootState,
+  memberId: string
+): RolePermissions | undefined => {
   return state.team.members[memberId]?.permissions;
 };
 
@@ -994,27 +786,45 @@ export const selectMemberServices = (state: RootState, memberId: string): Servic
   return state.team.members[memberId]?.services || [];
 };
 
-export const selectMemberSchedule = (state: RootState, memberId: string): WorkingHoursSettings | undefined => {
+export const selectMemberSchedule = (
+  state: RootState,
+  memberId: string
+): WorkingHoursSettings | undefined => {
   return state.team.members[memberId]?.workingHours;
 };
 
-export const selectMemberTimeOffRequests = (state: RootState, memberId: string): TimeOffRequest[] => {
+export const selectMemberTimeOffRequests = (
+  state: RootState,
+  memberId: string
+): TimeOffRequest[] => {
   return state.team.members[memberId]?.workingHours.timeOffRequests || [];
 };
 
-export const selectMemberScheduleOverrides = (state: RootState, memberId: string): ScheduleOverride[] => {
+export const selectMemberScheduleOverrides = (
+  state: RootState,
+  memberId: string
+): ScheduleOverride[] => {
   return state.team.members[memberId]?.workingHours.scheduleOverrides || [];
 };
 
-export const selectMemberCommission = (state: RootState, memberId: string): CommissionSettings | undefined => {
+export const selectMemberCommission = (
+  state: RootState,
+  memberId: string
+): CommissionSettings | undefined => {
   return state.team.members[memberId]?.commission;
 };
 
-export const selectMemberOnlineBooking = (state: RootState, memberId: string): OnlineBookingSettings | undefined => {
+export const selectMemberOnlineBooking = (
+  state: RootState,
+  memberId: string
+): OnlineBookingSettings | undefined => {
   return state.team.members[memberId]?.onlineBooking;
 };
 
-export const selectMemberNotifications = (state: RootState, memberId: string): NotificationPreferences | undefined => {
+export const selectMemberNotifications = (
+  state: RootState,
+  memberId: string
+): NotificationPreferences | undefined => {
   return state.team.members[memberId]?.notifications;
 };
 

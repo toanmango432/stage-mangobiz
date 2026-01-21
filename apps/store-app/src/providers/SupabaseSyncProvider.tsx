@@ -7,7 +7,7 @@
  * - Handles real-time updates from Supabase
  */
 
-import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
+import { createContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
 import { supabaseSyncService, type SyncState, type SyncableEntity } from '@/services/supabase';
 import { storeAuthManager } from '@/services/storeAuthManager';
@@ -54,7 +54,8 @@ const defaultSyncState: SyncState = {
   error: null,
 };
 
-const SupabaseSyncContext = createContext<SupabaseSyncContextValue>({
+// Export context for external hook
+export const SupabaseSyncContext = createContext<SupabaseSyncContextValue>({
   syncState: defaultSyncState,
   isSyncing: false,
   isOnline: true,
@@ -384,17 +385,6 @@ export function SupabaseSyncProvider({
   );
 }
 
-// ==================== HOOK ====================
-
-/**
- * Hook to access sync state and controls
- */
-export function useSupabaseSync() {
-  const context = useContext(SupabaseSyncContext);
-  if (!context) {
-    throw new Error('useSupabaseSync must be used within a SupabaseSyncProvider');
-  }
-  return context;
-}
+// Hook moved to @/hooks/useSupabaseSync.ts for HMR compatibility
 
 export default SupabaseSyncProvider;

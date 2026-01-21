@@ -13,7 +13,6 @@
 
 import {
   createContext,
-  useContext,
   useEffect,
   useState,
   useCallback,
@@ -58,22 +57,11 @@ interface AuthContextValue {
   refreshSession: () => void;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+// Export context and type for external hook
+export const AuthContext = createContext<AuthContextValue | null>(null);
+export type { AuthContextValue };
 
-// ==================== HOOK ====================
-
-/**
- * Hook to access member auth context
- *
- * @throws Error if used outside AuthProvider
- */
-export function useMemberAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useMemberAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+// Hook moved to @/hooks/useMemberAuth.ts for HMR compatibility
 
 // ==================== PROVIDER ====================
 
