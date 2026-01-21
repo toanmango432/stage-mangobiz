@@ -56,6 +56,29 @@ export const BCRYPT_TIMEOUT_MS = 5000;
  */
 const graceCheckIntervals = new Map<string, ReturnType<typeof setInterval>>();
 
+/**
+ * AbortController for background validation
+ *
+ * Used to cancel ongoing background validation when:
+ * - A new validation starts (prevents stale results)
+ * - User logs out (cleanup)
+ */
+let backgroundValidationController: AbortController | null = null;
+
+/**
+ * Cancel any ongoing background validation
+ *
+ * Should be called:
+ * - Before starting a new background validation
+ * - On logout to cleanup pending operations
+ */
+export function cancelBackgroundValidation(): void {
+  if (backgroundValidationController) {
+    backgroundValidationController.abort();
+    backgroundValidationController = null;
+  }
+}
+
 // ==================== TIMEOUT HELPERS ====================
 
 /**
@@ -1006,17 +1029,29 @@ function updateLastOnlineAuthInBackground(memberId: string): void {
  *
  * If validation fails, dispatches forceLogout with appropriate reason.
  * Network errors are caught silently (don't logout on network failure).
+ * Uses AbortController to allow cancellation on logout or new validation.
  *
  * @param member - Member session to validate
  */
 async function validateSessionInBackground(member: MemberAuthSession): Promise<void> {
+  // Cancel any previous validation before starting new one
+  cancelBackgroundValidation();
+
+  // Create new abort controller for this validation
+  backgroundValidationController = new AbortController();
+  const signal = backgroundValidationController.signal;
+
   try {
     // 1. Check if member is still active in database
     const { data: memberData, error: memberError } = await supabase
       .from('members')
       .select('id, status, password_changed_at')
       .eq('id', member.memberId)
+      .abortSignal(signal)
       .single();
+
+    // Check if aborted after async operation
+    if (signal.aborted) return;
 
     if (memberError) {
       // Network error or member not found - don't logout, just log
@@ -1035,6 +1070,7 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
 
     // Member deactivated
     if (memberData.status !== 'active') {
+      if (signal.aborted) return;
       store.dispatch(forceLogout({
         reason: 'account_deactivated',
         message: 'Your account has been deactivated. Please contact your administrator.',
@@ -1047,6 +1083,7 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
     if (memberData.password_changed_at) {
       const passwordChangedAt = new Date(memberData.password_changed_at);
       if (passwordChangedAt > member.sessionCreatedAt) {
+        if (signal.aborted) return;
         store.dispatch(forceLogout({
           reason: 'password_changed',
           message: 'Your password was changed. Please log in again.',
@@ -1056,13 +1093,20 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
       }
     }
 
+    // Check if aborted before next database call
+    if (signal.aborted) return;
+
     // 3. Check for session revocations
     const { data: revocations, error: revocationError } = await supabase
       .from('member_session_revocations')
       .select('id, revoke_all_before')
       .eq('member_id', member.memberId)
       .order('revoked_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .abortSignal(signal);
+
+    // Check if aborted after async operation
+    if (signal.aborted) return;
 
     if (revocationError) {
       // Network error - don't logout, just log
@@ -1083,6 +1127,7 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
     if (revocations && revocations.length > 0) {
       const revokeAllBefore = new Date(revocations[0].revoke_all_before);
       if (member.sessionCreatedAt < revokeAllBefore) {
+        if (signal.aborted) return;
         store.dispatch(forceLogout({
           reason: 'session_revoked',
           message: 'Your session was revoked by an administrator. Please log in again.',
@@ -1092,6 +1137,9 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
       }
     }
 
+    // Check if aborted before cache update
+    if (signal.aborted) return;
+
     // 4. Session is valid - update lastOnlineAuth in cache
     const now = new Date();
     const updatedMember: MemberAuthSession = {
@@ -1100,7 +1148,7 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
     };
     cacheMemberSession(updatedMember);
 
-    // Also update timestamp in database (non-blocking)
+    // Also update timestamp in database (non-blocking, no abort check needed)
     supabase
       .from('members')
       .update({ last_online_auth: now.toISOString() })
@@ -1233,6 +1281,7 @@ export const memberAuthService = {
 
   // Background validation
   validateSessionInBackground,
+  cancelBackgroundValidation,
 
   // Constants
   PIN_MAX_ATTEMPTS,
