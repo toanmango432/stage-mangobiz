@@ -1,0 +1,551 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/auth-remediation-v2",
+  "description": "Auth Migration Remediation v2 - Fix logout function, create test users, fix security vulnerabilities, code quality issues, and add comprehensive test coverage. Based on ultrathink review findings.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fix logout function not working",
+      "description": "As a user, I need the logout function to work so I can sign out of the app.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts",
+        "apps/store-app/src/services/storeAuthManager.ts",
+        "apps/store-app/src/store/slices/authSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "Identify why logout is not working (debug the current implementation)",
+        "Fix the logout() function in memberAuthService.ts",
+        "Ensure Supabase auth.signOut() is called",
+        "Ensure grace checker is stopped on logout",
+        "Ensure background validation is cancelled on logout",
+        "Ensure Redux auth state is cleared",
+        "Ensure localStorage/SecureStorage session data is cleared",
+        "Test logout manually - user should be returned to login screen",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "category": "bug-fix",
+      "complexity": 2,
+      "notes": "The logout function exists but is not working. Debug by checking: 1) Is logout() being called? 2) Is Supabase signOut succeeding? 3) Is Redux state being cleared? 4) Is navigation happening? Check storeAuthManager.logout() and memberAuthService.logout() implementations."
+    },
+    {
+      "id": "US-002",
+      "title": "Create 10 new test users in existing stores",
+      "description": "As a developer, I need test users to replace those consumed during Ralph testing.",
+      "files": [
+        "scripts/auth-migration/create-test-users.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create script scripts/auth-migration/create-test-users.ts",
+        "Script creates 10 new members with Supabase Auth accounts",
+        "Users have emails like testuser1@mangobiz.com through testuser10@mangobiz.com",
+        "Users have temporary passwords (logged to console for testing)",
+        "Users are assigned to existing stores in the database",
+        "Users have varied roles: 2 owners, 3 managers, 5 staff",
+        "Script can be run with: npx ts-node scripts/auth-migration/create-test-users.ts",
+        "Script outputs summary of created users",
+        "All 10 users can log in to the app"
+      ],
+      "priority": 2,
+      "passes": true,
+      "category": "tooling",
+      "complexity": 2,
+      "notes": "Use Supabase Admin API to create auth users. Follow pattern from migrate-members-to-supabase-auth.ts for creating users. Assign users to stores that already exist in the database. Generate temporary passwords using the existing generateTemporaryPassword() from utils.ts."
+    },
+    {
+      "id": "US-003",
+      "title": "Replace console.error with auditLogger in useLoginState hook",
+      "description": "As a developer, I need security-relevant errors properly logged for audit trails.",
+      "files": [
+        "apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts"
+      ],
+      "acceptanceCriteria": [
+        "Import auditLogger from '@/services/audit/auditLogger'",
+        "Replace console.error at line ~85 (Failed to load members) with auditLogger.log",
+        "Replace console.error at line ~150 (Login exception) with auditLogger.log",
+        "Replace console.error at line ~298 (Member login exception) with auditLogger.log",
+        "Replace console.error at line ~363 (PIN login exception) with auditLogger.log",
+        "Each log includes: action, entityType: 'auth', severity: 'error', errorMessage, metadata",
+        "No remaining console.error calls in file",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "category": "code-quality",
+      "complexity": 1,
+      "notes": "auditLogger is already used in memberAuthService.ts - follow that pattern. Include relevant context like email (masked), loginMode, etc."
+    },
+    {
+      "id": "US-004",
+      "title": "Replace console.error with auditLogger in useSwitchUser hook",
+      "description": "As a developer, I need switch user errors properly logged.",
+      "files": [
+        "apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts"
+      ],
+      "acceptanceCriteria": [
+        "Import auditLogger from '@/services/audit/auditLogger'",
+        "Replace console.error at line ~110 (Failed to fetch members) with auditLogger.log",
+        "Replace console.error at line ~209 (Password verification failed) with auditLogger.log",
+        "Replace console.error at line ~263 (PIN verification failed) with auditLogger.log",
+        "Replace console.error at line ~320 (PIN verification failed) with auditLogger.log",
+        "Each log includes proper context: action, entityType, severity, metadata",
+        "No remaining console.error calls in file",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "category": "code-quality",
+      "complexity": 1,
+      "notes": "5 occurrences total. Follow auditLogger pattern from memberAuthService.ts."
+    },
+    {
+      "id": "US-005",
+      "title": "Replace console.error with auditLogger in PinSetupModal",
+      "description": "As a developer, I need PIN setup failures properly logged.",
+      "files": [
+        "apps/store-app/src/components/auth/PinSetupModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Import auditLogger from '@/services/audit/auditLogger'",
+        "Replace console.error at line ~163 (Failed to set PIN) with auditLogger.log",
+        "Log includes: action: 'pin_setup_failed', entityType: 'auth', severity: 'error'",
+        "No remaining console.error calls in file",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "category": "code-quality",
+      "complexity": 1,
+      "notes": "Only 1 occurrence. Include memberId in metadata (do NOT include PIN value)."
+    },
+    {
+      "id": "US-006",
+      "title": "Consolidate PIN constants to single source of truth",
+      "description": "As a developer, I need PIN-related constants in one place.",
+      "files": [
+        "apps/store-app/src/components/auth/constants.ts",
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Move PIN_MAX_ATTEMPTS, PIN_LOCKOUT_MINUTES from memberAuthService.ts to constants.ts AUTH_VALIDATION",
+        "Export AUTH_VALIDATION.PIN_MAX_ATTEMPTS = 5",
+        "Export AUTH_VALIDATION.PIN_LOCKOUT_MINUTES = 15",
+        "Update memberAuthService.ts to import from constants.ts",
+        "Remove duplicate definitions from memberAuthService.ts",
+        "No duplicate PIN constants across files",
+        "pnpm run typecheck passes",
+        "pnpm test -- memberAuthService passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "category": "code-quality",
+      "complexity": 1,
+      "notes": "constants.ts already has AUTH_VALIDATION - add PIN constants there. memberAuthService.ts should import them."
+    },
+    {
+      "id": "US-007",
+      "title": "Use AUTH_TIMEOUTS constants in useLoginState hook",
+      "description": "As a developer, I need hardcoded timeouts replaced with constants.",
+      "files": [
+        "apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts",
+        "apps/store-app/src/components/auth/constants.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add AUTH_TIMEOUTS.PIN_AUTO_SUBMIT_DELAY_MS = 100 to constants.ts if not exists",
+        "Import AUTH_TIMEOUTS in useLoginState.ts",
+        "Replace setTimeout 100ms at line ~381 with AUTH_TIMEOUTS.PIN_AUTO_SUBMIT_DELAY_MS",
+        "No hardcoded timeout numbers in useLoginState.ts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "category": "code-quality",
+      "complexity": 1,
+      "notes": "Check if AUTH_TIMEOUTS.PIN_AUTO_SUBMIT_DELAY_MS already exists, add if not."
+    },
+    {
+      "id": "US-008",
+      "title": "Use AUTH_TIMEOUTS constants in useSwitchUser hook",
+      "description": "As a developer, I need hardcoded timeouts replaced with constants.",
+      "files": [
+        "apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts",
+        "apps/store-app/src/components/auth/constants.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS = 1000 to constants.ts if not exists",
+        "Import AUTH_TIMEOUTS in useSwitchUser.ts",
+        "Replace setTimeout 1000ms at lines ~194, ~249, ~306 with AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS",
+        "No hardcoded timeout numbers in useSwitchUser.ts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "category": "code-quality",
+      "complexity": 1,
+      "notes": "3 occurrences of 1000ms timeout for success display."
+    },
+    {
+      "id": "US-009",
+      "title": "Extract PIN verification success handler in useSwitchUser",
+      "description": "As a developer, I need DRY code for PIN verification success.",
+      "files": [
+        "apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create helper function handlePinAuthSuccess(authSession, dispatch, callbacks)",
+        "Function handles: name parsing, setMemberSession dispatch, success timeout, callbacks",
+        "Replace duplicated code at lines ~221-271, ~276-330 with helper call",
+        "Reduce code duplication by at least 50 lines",
+        "No functional change - same behavior",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "category": "code-quality",
+      "complexity": 2,
+      "dependencies": ["US-008"],
+      "notes": "The name parsing (split(' ')) and dispatch logic is duplicated 3 times. Extract to reusable helper."
+    },
+    {
+      "id": "US-010",
+      "title": "Add AbortController to fetchMembers in useSwitchUser",
+      "description": "As a developer, I need proper cleanup to prevent memory leaks.",
+      "files": [
+        "apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add AbortController ref for fetchMembers async operation",
+        "Cancel previous fetch when starting new one",
+        "Cancel fetch on component unmount via useEffect cleanup",
+        "Check mounted/aborted state before setState calls",
+        "No memory leak warnings in React strict mode",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "category": "code-quality",
+      "complexity": 2,
+      "notes": "Follow pattern from memberAuthService.ts backgroundValidationController. Add cleanup in useEffect return function."
+    },
+    {
+      "id": "US-011",
+      "title": "Add unit tests for loginWithPassword success flow",
+      "description": "As a developer, I need the core login function tested.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add describe block 'loginWithPassword'",
+        "Test: successful login returns MemberAuthSession",
+        "Test: session contains correct fields (memberId, email, name, role)",
+        "Test: last_online_auth is updated in database",
+        "Test: PIN hash is stored in SecureStorage when member has PIN",
+        "Mock Supabase auth.signInWithPassword",
+        "Mock Supabase from('members').select()",
+        "All new tests pass: pnpm test -- memberAuthService"
+      ],
+      "priority": 11,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "notes": "Follow existing mock patterns in the test file. Use vi.mock for Supabase client."
+    },
+    {
+      "id": "US-012",
+      "title": "Add unit tests for loginWithPassword failure cases",
+      "description": "As a developer, I need login failure scenarios tested.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Test: invalid credentials throws error with message",
+        "Test: empty email throws validation error",
+        "Test: empty password throws validation error",
+        "Test: member not found (no profile) throws error",
+        "Test: deactivated member throws error",
+        "Test: timeout throws 'Authentication timeout' error",
+        "All new tests pass: pnpm test -- memberAuthService"
+      ],
+      "priority": 12,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "dependencies": ["US-011"],
+      "notes": "Test AUTH_TIMEOUT_MS = 30000 by mocking Promise.race timeout. Use fake timers if needed."
+    },
+    {
+      "id": "US-013",
+      "title": "Add unit tests for loginWithPin success flow",
+      "description": "As a developer, I need PIN login tested.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add describe block 'loginWithPin'",
+        "Test: successful PIN login returns MemberAuthSession",
+        "Test: failed attempts are cleared on success",
+        "Test: background validation is triggered when online",
+        "Mock SecureStorage.get for PIN hash",
+        "Mock bcrypt.compare",
+        "All new tests pass: pnpm test -- memberAuthService"
+      ],
+      "priority": 13,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "notes": "Must mock navigator.onLine to test background validation trigger."
+    },
+    {
+      "id": "US-014",
+      "title": "Add unit tests for loginWithPin failure cases",
+      "description": "As a developer, I need PIN login failures tested.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Test: wrong PIN increments failed attempts",
+        "Test: member not found in cache throws error",
+        "Test: lockout check fails fast before PIN validation",
+        "Test: grace period expired throws error",
+        "Test: PIN not configured throws error",
+        "Test: bcrypt timeout throws 'PIN validation timeout'",
+        "All new tests pass: pnpm test -- memberAuthService"
+      ],
+      "priority": 14,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "dependencies": ["US-013"],
+      "notes": "Test BCRYPT_TIMEOUT_MS = 5000 timeout behavior."
+    },
+    {
+      "id": "US-015",
+      "title": "Add unit tests for setPin function",
+      "description": "As a developer, I need PIN setup tested.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add describe block 'setPin'",
+        "Test: valid PIN (4-6 digits) is hashed and stored",
+        "Test: invalid PIN format (3 digits) throws validation error",
+        "Test: invalid PIN format (7 digits) throws validation error",
+        "Test: invalid PIN format (letters) throws validation error",
+        "Test: database update failure throws error",
+        "Test: SecureStorage verification failure throws error",
+        "All new tests pass: pnpm test -- memberAuthService"
+      ],
+      "priority": 15,
+      "passes": false,
+      "category": "testing",
+      "complexity": 2,
+      "notes": "Test isValidPinFormat regex: /^\\d{4,6}$/. Verify bcrypt cost factor 12 is used."
+    },
+    {
+      "id": "US-016",
+      "title": "Add unit tests for background validation",
+      "description": "As a developer, I need background validation logic tested.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add describe block 'validateSessionInBackground'",
+        "Test: active member passes validation (no logout)",
+        "Test: deactivated member triggers forceLogout with reason 'account_deactivated'",
+        "Test: password changed after session triggers forceLogout with reason 'password_changed'",
+        "Test: session revoked triggers forceLogout with reason 'session_revoked'",
+        "Test: network error does NOT trigger logout (silent handling)",
+        "Test: AbortController cancellation stops validation",
+        "Mock Redux store.dispatch for forceLogout",
+        "All new tests pass: pnpm test -- memberAuthService"
+      ],
+      "priority": 16,
+      "passes": false,
+      "category": "testing",
+      "complexity": 4,
+      "notes": "This is critical security testing. Must verify forceLogout dispatch with correct reason for each scenario."
+    },
+    {
+      "id": "US-017",
+      "title": "Add unit tests for grace checker lifecycle",
+      "description": "As a developer, I need grace checker properly tested.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add describe block 'grace checker'",
+        "Test: startGraceChecker creates interval",
+        "Test: startGraceChecker is idempotent (second call doesn't create duplicate)",
+        "Test: stopGraceChecker clears interval",
+        "Test: stopAllGraceCheckers clears all intervals",
+        "Test: grace expiry while offline triggers forceLogout",
+        "Use vi.useFakeTimers() for interval testing",
+        "All new tests pass: pnpm test -- memberAuthService"
+      ],
+      "priority": 17,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "notes": "Use vi.advanceTimersByTime() to test interval behavior. Mock navigator.onLine."
+    },
+    {
+      "id": "US-018",
+      "title": "Add Agent-Browser E2E test for email/password login",
+      "description": "As a developer, I need login flow tested with Agent-Browser.",
+      "files": [
+        "apps/store-app/e2e/auth-agent-browser.spec.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create new test file using Agent-Browser instead of Playwright",
+        "Test: login form displays email and password fields",
+        "Test: Sign In button enabled when credentials entered",
+        "Test: error displayed for invalid credentials",
+        "Test: loading state shown during login",
+        "Use agent-browser commands: open, snapshot, fill, click",
+        "Tests run with: pnpm test:e2e:agent-browser",
+        "All tests pass"
+      ],
+      "priority": 18,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "notes": "Agent-Browser commands: 'agent-browser open <url>', 'agent-browser snapshot -i' for interactive elements, 'agent-browser click @e1', 'agent-browser fill @e2 \"text\"'. Create npm script for running these tests."
+    },
+    {
+      "id": "US-019",
+      "title": "Add Agent-Browser E2E test for PIN setup flow",
+      "description": "As a developer, I need PIN setup tested with Agent-Browser.",
+      "files": [
+        "apps/store-app/e2e/auth-agent-browser.spec.ts"
+      ],
+      "acceptanceCriteria": [
+        "Test: PIN setup modal appears after first login",
+        "Test: can enter 4-digit PIN using PIN input",
+        "Test: can skip PIN setup",
+        "Test: error shown when PINs don't match",
+        "Test: success message after PIN set",
+        "Use agent-browser snapshot to find PIN input elements",
+        "All tests pass"
+      ],
+      "priority": 19,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "dependencies": ["US-018"],
+      "notes": "PIN input uses hidden input with visual dots - may need to use agent-browser fill on the actual input element."
+    },
+    {
+      "id": "US-020",
+      "title": "Add Agent-Browser E2E test for staff switching",
+      "description": "As a developer, I need staff switching tested with Agent-Browser.",
+      "files": [
+        "apps/store-app/e2e/auth-agent-browser.spec.ts"
+      ],
+      "acceptanceCriteria": [
+        "Test: switch user modal shows list of staff members",
+        "Test: selecting member shows PIN verification",
+        "Test: correct PIN allows switch",
+        "Test: wrong PIN shows error message",
+        "Test: locked member shows lockout status",
+        "Use agent-browser to navigate through switch flow",
+        "All tests pass"
+      ],
+      "priority": 20,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "dependencies": ["US-019"],
+      "notes": "This tests the SwitchUserModal component flow. Previously skipped in Playwright due to navigation issues."
+    },
+    {
+      "id": "US-021",
+      "title": "Add Agent-Browser E2E test for offline grace period",
+      "description": "As a developer, I need offline grace period UI tested.",
+      "files": [
+        "apps/store-app/e2e/auth-agent-browser.spec.ts"
+      ],
+      "acceptanceCriteria": [
+        "Test: warning shown when grace period < 5 days",
+        "Test: critical warning when grace period < 2 days",
+        "Test: offline indicator visible when disconnected",
+        "Mock navigator.onLine for offline simulation",
+        "Use agent-browser snapshot to verify warning elements",
+        "All tests pass"
+      ],
+      "priority": 21,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "dependencies": ["US-018"],
+      "notes": "OfflineGraceIndicator component displays warnings. May need to mock lastOnlineAuth in localStorage to simulate low grace period."
+    },
+    {
+      "id": "US-022",
+      "title": "Document web platform security limitations",
+      "description": "As a developer, I need clear documentation about web security.",
+      "files": [
+        "apps/store-app/README.md",
+        "docs/AUTH_MIGRATION_PLAN.md"
+      ],
+      "acceptanceCriteria": [
+        "Add 'Security Considerations' section to store-app README",
+        "Document that web platform uses base64 encoding (not encryption) for SecureStorage",
+        "Document that lockout state can be cleared via browser tools",
+        "Recommend native platforms (iOS/Android/Electron) for production POS",
+        "Add warning banner to AUTH_MIGRATION_PLAN.md about web limitations",
+        "No code changes required",
+        "Documentation is clear and actionable"
+      ],
+      "priority": 22,
+      "passes": false,
+      "category": "documentation",
+      "complexity": 1,
+      "notes": "This documents known limitations until proper Web Crypto API implementation (future work)."
+    },
+    {
+      "id": "US-023",
+      "title": "Add forceLogout tests to authSlice",
+      "description": "As a developer, I need Redux forceLogout action tested.",
+      "files": [
+        "apps/store-app/src/store/slices/__tests__/authSlice.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Test: forceLogout sets forceLogoutReason correctly",
+        "Test: forceLogout sets forceLogoutMessage correctly",
+        "Test: forceLogout clears auth state",
+        "Test: selectForceLogoutReason selector returns correct value",
+        "Test: selectForceLogoutMessage selector returns correct value",
+        "Test all ForceLogoutReason values: 'offline_grace_expired', 'account_deactivated', 'password_changed', 'session_revoked'",
+        "All tests pass: pnpm test -- authSlice"
+      ],
+      "priority": 23,
+      "passes": false,
+      "category": "testing",
+      "complexity": 2,
+      "notes": "forceLogout action was added in original migration but not tested."
+    },
+    {
+      "id": "US-024",
+      "title": "Create npm script for Agent-Browser E2E tests",
+      "description": "As a developer, I need easy way to run Agent-Browser tests.",
+      "files": [
+        "apps/store-app/package.json"
+      ],
+      "acceptanceCriteria": [
+        "Add script 'test:e2e:agent-browser' to package.json",
+        "Script runs Agent-Browser test suite",
+        "Script starts dev server if not running",
+        "Script outputs clear pass/fail results",
+        "Document usage in README",
+        "Script works: pnpm test:e2e:agent-browser"
+      ],
+      "priority": 24,
+      "passes": false,
+      "category": "tooling",
+      "complexity": 2,
+      "dependencies": ["US-018"],
+      "notes": "Agent-Browser may need wrapper script to coordinate with dev server. Check existing test:e2e script for patterns."
+    }
+  ]
+}

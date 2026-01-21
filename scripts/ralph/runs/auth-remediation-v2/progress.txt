@@ -1,0 +1,78 @@
+# Auth Remediation v2 Progress Log
+
+## Codebase Patterns
+
+### Agent-Browser Testing Pattern
+- Use `agent-browser open <url>` to navigate
+- Use `agent-browser snapshot -i` to get interactive elements with refs (@e1, @e2, etc.)
+- Use `agent-browser click @e1` to click elements by ref
+- Use `agent-browser fill @e2 "text"` to fill inputs
+- Tests should be in `apps/store-app/e2e/auth-agent-browser.spec.ts`
+
+### Logging Pattern
+- Security errors: Use `auditLogger.log({ action, entityType: 'auth', severity: 'error', errorMessage, metadata })`
+- General errors: Use `logger.error()` from `@/utils/logger`
+- Never use `console.error` in production code
+
+### Constants Pattern
+- All auth timeouts in `AUTH_TIMEOUTS` object in `constants.ts`
+- All auth messages in `AUTH_MESSAGES` object in `constants.ts`
+- All PIN validation values in `AUTH_VALIDATION` object in `constants.ts`
+- Import from `@/components/auth/constants`
+
+---
+
+## Progress Log
+
+## 2026-01-20 - US-001: Fix logout function not working
+Commit: 62f6207
+
+**Why this story?** Highest priority (1), critical bug fix affecting user experience, no dependencies.
+
+**Changes:**
+- `apps/store-app/src/services/memberAuthService.ts:1193-1225`: Added `cancelBackgroundValidation()` call as first step in logout(), updated JSDoc to reflect 4-step cleanup process
+
+**Browser Verification:**
+- Component renders: PASS
+- Visual criteria met: PASS (user returned to login screen after logout)
+- Accessibility OK: PASS
+
+**Learnings:**
+- The logout function was missing cancelBackgroundValidation() which could cause memory leaks
+- storeAuthManager.logoutStore() calls memberAuthService.logout() which handles Supabase signOut
+- The page reload after logout in More.tsx clears Redux state, but useLoginState.ts explicitly dispatches clearAllAuth
+- Pre-existing typecheck failure in @mango/supabase package unrelated to auth code
+
+**Patterns to sync:** None - existing patterns cover this case
+
+**Next story suggestion:** US-002 (Create test users) or US-003-005 (console.error replacements) as they have no dependencies
+
+---
+
+## 2026-01-20 - US-002: Create 10 new test users in existing stores
+Commit: 8bce973
+
+**Why this story?** Next highest priority (2) with no dependencies, standalone tooling task.
+
+**Changes:**
+- `scripts/auth-migration/create-test-users.ts (NEW)`: Created script to generate 10 test users with Supabase Auth accounts
+
+**Script Features:**
+- Creates 10 members: 2 owners, 3 managers, 5 staff
+- Emails: testuser1@mangobiz.com through testuser10@mangobiz.com
+- Uses Supabase Admin API for auth user creation
+- Generates secure temporary passwords using existing generateTemporaryPassword()
+- All users get default PIN "1234" for easy testing
+- Round-robin assignment to available stores
+- Outputs summary table with credentials
+
+**Learnings:**
+- Standalone scripts in scripts/ don't compile with monorepo typecheck (expected - they use npx ts-node at runtime)
+- Pre-existing @mango/supabase typecheck failures unrelated to this change
+- Store-app typecheck passes
+
+**Patterns to sync:** None - follows existing migrate-members-to-supabase-auth.ts pattern
+
+**Next story suggestion:** US-003-005 (console.error → auditLogger replacements) as they are simple complexity-1 tasks with no dependencies
+
+---

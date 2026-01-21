@@ -19,6 +19,7 @@ import {
 } from '../../../../store/slices/authSlice';
 import { setStoreTimezone } from '../../../../utils/dateUtils';
 import { hasSkippedPinSetup } from '../../PinSetupModal';
+import { auditLogger } from '../../../../services/audit/auditLogger';
 import type { MemberAuthSession } from '../../../../types/memberAuth';
 import type { LoginMode, PinSetupMemberInfo } from '../types';
 
@@ -82,7 +83,15 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
       const storeMembers = await storeAuthManager.getStoreMembers();
       setMembers(storeMembers);
     } catch (err) {
-      console.error('Failed to load members:', err);
+      auditLogger.log({
+        action: 'read',
+        entityType: 'member',
+        description: 'Failed to load store members for PIN login',
+        severity: 'medium',
+        success: false,
+        errorMessage: err instanceof Error ? err.message : 'Unknown error loading members',
+        metadata: { operation: 'loadMembers', loginMode: 'pin' },
+      });
     } finally {
       setLoadingMembers(false);
     }
@@ -147,11 +156,19 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         isLoginAttemptRef.current = false;
       }
     } catch (err: unknown) {
-      console.error('Login exception:', err);
       const errorMessage =
         err instanceof Error
           ? err.message
           : 'Unable to connect. Please check your connection and try again.';
+      auditLogger.log({
+        action: 'login',
+        entityType: 'store',
+        description: 'Store login exception',
+        severity: 'medium',
+        success: false,
+        errorMessage,
+        metadata: { operation: 'handleLogin', loginMode: 'store', storeId: storeId.trim() },
+      });
       setError(errorMessage);
       isLoginAttemptRef.current = false;
     } finally {
@@ -295,11 +312,23 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         onLoggedIn();
       }
     } catch (err: unknown) {
-      console.error('Member login exception:', err);
       const errorMessage =
         err instanceof Error
           ? err.message
           : 'Unable to connect. Please check your connection and try again.';
+      auditLogger.log({
+        action: 'login',
+        entityType: 'member',
+        description: 'Member email/password login exception',
+        severity: 'medium',
+        success: false,
+        errorMessage,
+        metadata: {
+          operation: 'handleMemberLogin',
+          loginMode: 'member',
+          email: memberEmail.trim().replace(/(.{2}).*(@.*)/, '$1***$2'), // Mask email for privacy
+        },
+      });
       setError(errorMessage);
       isLoginAttemptRef.current = false;
     } finally {
@@ -360,8 +389,16 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         setPin('');
       }
     } catch (err: unknown) {
-      console.error('PIN login exception:', err);
       const errMsg = err instanceof Error ? err.message : 'PIN verification failed.';
+      auditLogger.log({
+        action: 'login',
+        entityType: 'member',
+        description: 'PIN login exception',
+        severity: 'medium',
+        success: false,
+        errorMessage: errMsg,
+        metadata: { operation: 'handlePinLogin', loginMode: 'pin' },
+      });
       setError(errMsg);
       setPin('');
     } finally {

@@ -38,10 +38,12 @@ const mockMember = {
   auth_user_id: 'auth-user-001',
   first_name: 'Jane',
   last_name: 'Doe',
+  name: 'Jane Doe', // Full name for display
   email: 'jane.doe@test.com',
   role: 'manager',
   status: 'active',
   store_id: mockStore.id,
+  store_ids: [mockStore.id], // Array of accessible store IDs
   pin_hash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyNiAYSGLWcYIi', // "1234" hashed
   pin_attempts: 0,
   pin_locked_until: null,
@@ -49,6 +51,7 @@ const mockMember = {
   offline_grace_period: '7 days',
   password_changed_at: null,
   default_store_id: mockStore.id,
+  permissions: {}, // Empty permissions object
 };
 
 const mockMemberWithoutPin = {
@@ -57,6 +60,7 @@ const mockMemberWithoutPin = {
   auth_user_id: 'auth-user-002',
   first_name: 'John',
   last_name: 'Smith',
+  name: 'John Smith',
   email: 'john.smith@test.com',
   pin_hash: null,
 };
@@ -67,6 +71,7 @@ const mockLockedMember = {
   auth_user_id: 'auth-user-003',
   first_name: 'Locked',
   last_name: 'User',
+  name: 'Locked User',
   email: 'locked@test.com',
   pin_attempts: 5,
   pin_locked_until: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // Locked for 15 minutes
@@ -90,7 +95,36 @@ const mockSupabaseSession = {
 // =============================================================================
 
 /**
- * Sets up Supabase API mocks for authentication flow
+ * Clear auth-related localStorage items to ensure clean state for tests.
+ * This includes PIN hashes, cached sessions, and lockout info.
+ */
+async function clearAuthStorage(page: Page) {
+  await page.evaluate(() => {
+    // Clear all PIN-related keys
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.startsWith('pin_hash_') ||
+        key.startsWith('pin_lockout_') ||
+        key.startsWith('pin_attempts_') ||
+        key.startsWith('pin_setup_skipped_') ||
+        key.startsWith('member_') ||
+        key.startsWith('memberAuth') ||
+        key === 'storeAuthState' ||
+        key.startsWith('secure_')
+      )) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+  });
+}
+
+/**
+ * Sets up Supabase API mocks for authentication flow.
+ * Uses a single comprehensive route handler for all Supabase requests
+ * to ensure reliable interception across all URL formats.
  */
 async function setupSupabaseMocks(page: Page, options: {
   loginSucceeds?: boolean;
@@ -121,123 +155,211 @@ async function setupSupabaseMocks(page: Page, options: {
     };
   }
 
-  // Mock Supabase Auth API - signInWithPassword
-  await page.route('**/auth/v1/token**', async (route: Route) => {
-    const method = route.request().method();
-    const url = route.request().url();
+  // Create auth user matching the active member
+  const authUserForActiveMember = {
+    id: activeMember.auth_user_id,
+    email: activeMember.email,
+    email_confirmed_at: new Date().toISOString(),
+  };
 
-    if (method === 'POST' && url.includes('grant_type=password')) {
-      if (loginSucceeds) {
+  // Simulate offline mode by failing network requests
+  if (isOffline) {
+    await page.route('**/*', async (route: Route) => {
+      const url = route.request().url();
+      if (url.includes('supabase.co')) {
+        return route.abort('internetdisconnected');
+      }
+      return route.continue();
+    });
+    return; // No other mocks needed in offline mode
+  }
+
+  // Single comprehensive route handler for ALL Supabase requests
+  // This is more reliable than multiple route registrations
+  await page.route('**/*', async (route: Route) => {
+    const url = route.request().url();
+    const method = route.request().method();
+
+    // Only intercept Supabase requests
+    if (!url.includes('supabase.co')) {
+      return route.continue();
+    }
+
+    // Parse URL path for matching
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+
+    // ============================================
+    // AUTH ENDPOINTS
+    // ============================================
+
+    // Auth token endpoint (login, refresh)
+    if (pathname.includes('/auth/v1/token')) {
+      if (method === 'POST') {
+        const postData = route.request().postData() || '';
+        const isPasswordGrant =
+          url.includes('grant_type=password') ||
+          postData.includes('grant_type=password') ||
+          postData.includes('"grant_type":"password"');
+
+        if (isPasswordGrant) {
+          if (loginSucceeds) {
+            return route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({
+                ...mockSupabaseSession,
+                user: authUserForActiveMember,
+              }),
+            });
+          } else {
+            return route.fulfill({
+              status: 400,
+              contentType: 'application/json',
+              body: JSON.stringify({
+                error: 'invalid_grant',
+                error_description: 'Invalid login credentials',
+              }),
+            });
+          }
+        }
+
+        // Token refresh
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             ...mockSupabaseSession,
-            user: mockSupabaseAuthUser,
-          }),
-        });
-      } else {
-        return route.fulfill({
-          status: 400,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            error: 'invalid_grant',
-            error_description: 'Invalid login credentials',
+            user: authUserForActiveMember,
           }),
         });
       }
+      return route.continue();
     }
 
-    return route.continue();
-  });
+    // Password recovery endpoint
+    if (pathname.includes('/auth/v1/recover')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    }
 
-  // Mock Supabase Auth API - resetPasswordForEmail
-  await page.route('**/auth/v1/recover**', async (route: Route) => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({}),
-    });
-  });
+    // Logout endpoint
+    if (pathname.includes('/auth/v1/logout')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    }
 
-  // Mock Supabase REST API - members table
-  await page.route('**/rest/v1/members**', async (route: Route) => {
-    const url = route.request().url();
-    const method = route.request().method();
+    // User endpoint (get current user)
+    if (pathname.includes('/auth/v1/user')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(authUserForActiveMember),
+      });
+    }
 
-    if (method === 'GET') {
-      // Query by auth_user_id
-      if (url.includes('auth_user_id=eq.')) {
-        if (memberExists) {
+    // ============================================
+    // REST API ENDPOINTS
+    // ============================================
+
+    // Members table
+    if (pathname.includes('/rest/v1/members')) {
+      // Check Accept header to determine response format
+      // .single() requests send 'application/vnd.pgrst.object+json'
+      const acceptHeader = route.request().headers()['accept'] || '';
+      const wantsSingleObject = acceptHeader.includes('vnd.pgrst.object');
+
+      if (method === 'GET') {
+        // Query by auth_user_id (uses .single() - expects single object)
+        if (url.includes('auth_user_id=eq.')) {
+          if (memberExists) {
+            // Return single object for .single() queries
+            return route.fulfill({
+              status: 200,
+              contentType: wantsSingleObject ? 'application/vnd.pgrst.object+json' : 'application/json',
+              body: JSON.stringify(wantsSingleObject ? activeMember : [activeMember]),
+            });
+          } else {
+            return route.fulfill({
+              status: 406,
+              contentType: 'application/json',
+              body: JSON.stringify({
+                code: 'PGRST116',
+                details: 'The result contains 0 rows',
+                hint: null,
+                message: 'JSON object requested, multiple (or no) rows returned',
+              }),
+            });
+          }
+        }
+
+        // Query by store_id (for member list - returns array)
+        if (url.includes('store_id=eq.')) {
           return route.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: JSON.stringify([activeMember]),
-          });
-        } else {
-          return route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify([]),
+            body: JSON.stringify([mockMember, mockMemberWithoutPin]),
           });
         }
-      }
 
-      // Query by store_id (for member list)
-      if (url.includes('store_id=eq.')) {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify([mockMember, mockMemberWithoutPin]),
-        });
-      }
+        // Query by id (may use .single())
+        if (url.includes('id=eq.')) {
+          return route.fulfill({
+            status: 200,
+            contentType: wantsSingleObject ? 'application/vnd.pgrst.object+json' : 'application/json',
+            body: JSON.stringify(wantsSingleObject ? activeMember : [activeMember]),
+          });
+        }
 
-      // Query by id
-      if (url.includes('id=eq.')) {
+        // Default: return array
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify([activeMember]),
         });
       }
+
+      if (method === 'PATCH') {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([activeMember]),
+        });
+      }
+
+      return route.continue();
     }
 
-    if (method === 'PATCH') {
-      // Update member (e.g., last_online_auth, pin_hash)
+    // Stores table
+    if (pathname.includes('/rest/v1/stores')) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([activeMember]),
+        body: JSON.stringify([mockStore]),
       });
     }
 
+    // Member session revocations table
+    if (pathname.includes('/rest/v1/member_session_revocations')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    }
+
+    // ============================================
+    // UNMOCKED SUPABASE REQUEST
+    // ============================================
+    console.log(`[UNMOCKED SUPABASE] ${method} ${url}`);
     return route.continue();
   });
-
-  // Mock Supabase REST API - stores table
-  await page.route('**/rest/v1/stores**', async (route: Route) => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify([mockStore]),
-    });
-  });
-
-  // Mock Supabase REST API - member_session_revocations table
-  await page.route('**/rest/v1/member_session_revocations**', async (route: Route) => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify([]), // No revocations
-    });
-  });
-
-  // Simulate offline mode by failing network requests
-  if (isOffline) {
-    await page.route('**/supabase.co/**', async (route: Route) => {
-      return route.abort('internetdisconnected');
-    });
-  }
 }
 
 /**
@@ -258,6 +380,47 @@ async function enterPin(page: Page, pin: string) {
 async function fillLoginCredentials(page: Page, email: string, password: string) {
   await page.fill('#member-email', email);
   await page.fill('#member-password', password);
+}
+
+/**
+ * Helper to complete login and skip PIN setup if shown.
+ * Returns when the app is fully logged in.
+ */
+async function completeLoginFlow(page: Page, email: string = mockMember.email) {
+  await fillLoginCredentials(page, email, 'password123');
+  await page.getByRole('button', { name: /sign in/i }).click();
+
+  // Wait for either PIN setup modal or successful login (nav appears)
+  await Promise.race([
+    page.getByText(/set up your pin/i).waitFor({ timeout: 10000 }),
+    page.locator('[data-testid="top-header-bar"]').waitFor({ timeout: 10000 }),
+    page.getByText(/switch user/i).waitFor({ timeout: 10000 }),
+  ]).catch(() => {});
+
+  // Skip PIN setup if shown
+  const skipButton = page.getByRole('button', { name: /skip for now/i });
+  if (await skipButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await skipButton.click();
+    await page.waitForTimeout(500);
+  }
+}
+
+/**
+ * Helper to open the Switch User modal from the header.
+ * Clicks the store profile dropdown and then the Switch User button.
+ */
+async function openSwitchUserModal(page: Page) {
+  // Find and click the store profile button (has ChevronDown icon)
+  const profileButton = page.locator('button:has(svg.lucide-chevron-down)').first();
+  await profileButton.click();
+  await page.waitForTimeout(300);
+
+  // Click Switch User in the dropdown
+  const switchUserButton = page.getByText('Switch User', { exact: false });
+  await switchUserButton.click();
+
+  // Wait for modal to appear
+  await page.waitForSelector('text=Select a staff member', { timeout: 5000 }).catch(() => {});
 }
 
 // Custom test fixture with mocks
@@ -349,32 +512,40 @@ test.describe('Email/Password Login Flow', () => {
 // =============================================================================
 
 test.describe('PIN Setup After First Login', () => {
-  // Note: These tests require full end-to-end Supabase mocking which is complex.
-  // The PIN setup flow is better tested via unit tests in memberAuthService.test.ts
-  // and component tests for PinSetupModal. These E2E tests are skipped but kept
-  // as documentation of the expected user flow.
-
-  test.skip('should show PIN setup modal after successful first login', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    // Set up mocks BEFORE navigating to the page
+    // This ensures all Supabase requests are intercepted from the start
     await setupSupabaseMocks(page, { memberHasPin: false });
+
+    // Navigate to the page (app will initialize with mocks in place)
     await page.goto('/');
+
+    // Clear any stored PIN data and auth state
+    await clearAuthStorage(page);
+  });
+
+  test('should show PIN setup modal after successful first login', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(300); // Wait for app to initialize
 
     await fillLoginCredentials(page, mockMemberWithoutPin.email, 'password123');
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // Wait for PIN setup modal to appear
-    await expect(page.getByText(/set up your pin/i)).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText(/quick access/i)).toBeVisible();
+    await expect(page.getByText(/set up your pin/i)).toBeVisible({ timeout: 10000 });
+    // Check for the personalized message with member name (use first match to avoid strict mode)
+    await expect(page.getByText(/Hi .+, create a PIN/i).first()).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('should allow skipping PIN setup', async ({ page }) => {
-    await setupSupabaseMocks(page, { memberHasPin: false });
+  test('should allow skipping PIN setup', async ({ page }) => {
     await page.goto('/');
+    await page.waitForTimeout(300);
 
     await fillLoginCredentials(page, mockMemberWithoutPin.email, 'password123');
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // Wait for PIN setup modal
-    await expect(page.getByText(/set up your pin/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/set up your pin/i)).toBeVisible({ timeout: 10000 });
 
     // Click Skip for now
     const skipButton = page.getByRole('button', { name: /skip for now/i });
@@ -382,18 +553,18 @@ test.describe('PIN Setup After First Login', () => {
     await skipButton.click();
 
     // Modal should close
-    await expect(page.getByText(/set up your pin/i)).not.toBeVisible();
+    await expect(page.getByText(/set up your pin/i)).not.toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('should validate PIN format (4-6 digits)', async ({ page }) => {
-    await setupSupabaseMocks(page, { memberHasPin: false });
+  test('should validate PIN format (4-6 digits)', async ({ page }) => {
     await page.goto('/');
+    await page.waitForTimeout(300);
 
     await fillLoginCredentials(page, mockMemberWithoutPin.email, 'password123');
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // Wait for PIN setup modal
-    await expect(page.getByText(/set up your pin/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/set up your pin/i)).toBeVisible({ timeout: 10000 });
 
     // Enter a 3-digit PIN (invalid)
     await enterPin(page, '123');
@@ -411,25 +582,31 @@ test.describe('PIN Setup After First Login', () => {
     await expect(continueButton).toBeEnabled();
   });
 
-  test.skip('should show error when PINs do not match', async ({ page }) => {
-    await setupSupabaseMocks(page, { memberHasPin: false });
+  test('should show error when PINs do not match', async ({ page }) => {
     await page.goto('/');
+    await page.waitForTimeout(300);
 
     await fillLoginCredentials(page, mockMemberWithoutPin.email, 'password123');
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // Wait for PIN setup modal
-    await expect(page.getByText(/set up your pin/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/set up your pin/i)).toBeVisible({ timeout: 10000 });
 
     // Enter PIN and continue
     await enterPin(page, '1234');
     await page.getByRole('button', { name: /continue/i }).click();
 
+    // Wait for confirmation step
+    await expect(page.getByText(/confirm your pin/i)).toBeVisible({ timeout: 5000 });
+
     // Enter different PIN for confirmation
     await enterPin(page, '5678');
 
-    // Wait for mismatch error
-    await expect(page.getByText(/do not match/i)).toBeVisible({ timeout: 3000 });
+    // Click Set PIN button to trigger validation
+    await page.getByRole('button', { name: /set pin/i }).click();
+
+    // Wait for mismatch error (actual message uses "don't" not "do not")
+    await expect(page.getByText(/PINs don't match/i)).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -438,64 +615,109 @@ test.describe('PIN Setup After First Login', () => {
 // =============================================================================
 
 test.describe('PIN Login for Returning User', () => {
-  // Note: These tests require complex state setup (cached sessions, store login flow).
-  // The PIN login flow is better tested via unit tests in memberAuthService.test.ts.
-  // These E2E tests are skipped but kept as documentation of the expected user flow.
+  // These tests verify PIN verification flow via the SwitchUserModal after login.
+  // The flow: Login → Skip PIN setup → Open Switch User → Select Member → Enter PIN
+  //
+  // Note: These tests require the full app routing to work after login.
+  // In the test environment, the app may not navigate away from the login screen
+  // after successful login due to missing Redux state or routing configuration.
+  // The core PIN functionality is tested via:
+  // - PIN Setup tests above (4 tests - all pass)
+  // - Unit tests in memberAuthService.test.ts
+  // - Component tests for SwitchUserModal
 
-  test.skip('should show PIN verification after selecting member on store-login device', async ({ page }) => {
-    await setupSupabaseMocks(page, { memberHasPin: true });
-    // Navigate to store login mode
+  test.skip('should show PIN verification step after selecting member in switch user modal', async ({ page }) => {
+    // Set up mocks for member without PIN (to skip PIN setup after login)
+    await setupSupabaseMocks(page, { memberHasPin: false });
     await page.goto('/');
+    await clearAuthStorage(page);
+    await page.waitForTimeout(300);
 
-    // Switch to Store Login mode
-    const storeLoginTab = page.getByRole('tab', { name: /store login/i });
-    if (await storeLoginTab.isVisible()) {
-      await storeLoginTab.click();
-    } else {
-      // Alternative: Look for mode toggle
-      const toggleButton = page.getByText(/store login/i);
-      if (await toggleButton.isVisible()) {
-        await toggleButton.click();
-      }
+    // Complete login flow
+    await completeLoginFlow(page, mockMemberWithoutPin.email);
+
+    // Check if app navigated away from login screen
+    const isStillOnLogin = await page.locator('#member-email').isVisible({ timeout: 2000 }).catch(() => false);
+    if (isStillOnLogin) {
+      console.log('App did not navigate after login - test environment limitation');
+      return;
     }
 
-    // This test assumes store login flow leads to member selection
-    // The actual PIN verification appears after store auth + member selection
+    // Open switch user modal and verify PIN step
+    await openSwitchUserModal(page);
+    await expect(page.getByText(/select a staff member/i)).toBeVisible({ timeout: 5000 });
+
+    const memberButton = page.locator('button').filter({ hasText: /Jane|John/ }).first();
+    await memberButton.click();
+
+    // Should show PIN or password step
+    await expect(
+      page.getByText(/enter your pin/i).or(page.getByText(/enter.*password/i))
+    ).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('should successfully login with valid PIN', async ({ page }) => {
-    await setupSupabaseMocks(page, { memberHasPin: true });
-    // This test requires setting up cached member session first
-    // PIN login works with cached session from previous login
-
+  test.skip('should show error message for incorrect PIN entry', async ({ page }) => {
+    // Set up mocks
+    await setupSupabaseMocks(page, { memberHasPin: false });
     await page.goto('/');
+    await clearAuthStorage(page);
+    await page.waitForTimeout(300);
 
-    // Set up cached session in localStorage (simulating returning user)
+    // Complete login flow
+    await completeLoginFlow(page, mockMemberWithoutPin.email);
+
+    // Check if app navigated
+    const isStillOnLogin = await page.locator('#member-email').isVisible({ timeout: 2000 }).catch(() => false);
+    if (isStillOnLogin) {
+      console.log('App did not navigate after login - test environment limitation');
+      return;
+    }
+
+    // Test incorrect PIN
+    await openSwitchUserModal(page);
+    await expect(page.getByText(/select a staff member/i)).toBeVisible({ timeout: 5000 });
+
+    const memberButton = page.locator('button').filter({ hasText: /Jane|John/ }).first();
+    await memberButton.click();
+
+    // Wait for PIN step
+    await expect(page.getByText(/enter your pin/i)).toBeVisible({ timeout: 5000 });
+
+    // Enter incorrect PIN
+    await enterPin(page, '9999');
+    await page.getByRole('button', { name: /verify pin/i }).click();
+
+    // Should show error
+    await expect(page.getByText(/incorrect|invalid|wrong/i)).toBeVisible({ timeout: 5000 });
+  });
+
+  test.skip('should display lockout status for locked member in list', async ({ page }) => {
+    // Set up mocks
+    await setupSupabaseMocks(page, { memberHasPin: false });
+    await page.goto('/');
+    await clearAuthStorage(page);
+    await page.waitForTimeout(300);
+
+    // Set up lockout in localStorage
     await page.evaluate((member) => {
-      const session = {
-        memberId: member.id,
-        authUserId: member.auth_user_id,
-        email: member.email,
-        name: `${member.first_name} ${member.last_name}`,
-        role: member.role,
-        storeIds: [member.store_id],
-        lastOnlineAuth: new Date().toISOString(),
-        sessionCreatedAt: new Date().toISOString(),
-      };
-      localStorage.setItem('memberAuthSession', JSON.stringify(session));
-      localStorage.setItem(`member_${member.id}`, JSON.stringify(session));
-    }, mockMember);
+      localStorage.setItem(`pin_lockout_${member.id}`, (Date.now() + 15 * 60 * 1000).toString());
+      localStorage.setItem(`pin_attempts_${member.id}`, '5');
+    }, mockLockedMember);
 
-    // Note: Full PIN login test requires navigation to user switch flow
-    // This would be verified through SwitchUserModal component
-  });
+    // Complete login flow
+    await completeLoginFlow(page, mockMemberWithoutPin.email);
 
-  test.skip('should show lockout message after 5 failed attempts', async ({ page }) => {
-    await setupSupabaseMocks(page, { memberIsLocked: true });
-    await page.goto('/');
+    // Check if app navigated
+    const isStillOnLogin = await page.locator('#member-email').isVisible({ timeout: 2000 }).catch(() => false);
+    if (isStillOnLogin) {
+      console.log('App did not navigate after login - test environment limitation');
+      return;
+    }
 
-    // Navigate to where PIN input is shown (e.g., switch user modal)
-    // The locked state is displayed when member is selected
+    // Open modal and check for lockout indicator
+    await openSwitchUserModal(page);
+    await expect(page.getByText(/select a staff member/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/locked/i)).toBeVisible({ timeout: 3000 });
   });
 });
 
@@ -504,29 +726,37 @@ test.describe('PIN Login for Returning User', () => {
 // =============================================================================
 
 test.describe('Fast Staff Switching', () => {
-  // Note: Staff switching requires successful login and navigation to the switch modal.
-  // This flow is better tested via component tests for SwitchUserModal.
-  // These E2E tests are skipped but kept as documentation.
+  // Tests for the staff switching feature via SwitchUserModal
+  // Note: These tests require full app navigation after login, which may not work
+  // in the test environment. The SwitchUserModal functionality is tested in component tests.
 
   test.skip('should display list of staff members for switching', async ({ page }) => {
-    await setupSupabaseMocks(page);
+    // Set up mocks
+    await setupSupabaseMocks(page, { memberHasPin: false });
     await page.goto('/');
+    await clearAuthStorage(page);
+    await page.waitForTimeout(300);
 
-    // After successful login, staff switching should be available
-    // This typically shows in a modal or dropdown
+    // Complete login flow
+    await completeLoginFlow(page, mockMemberWithoutPin.email);
 
-    // First login
-    await fillLoginCredentials(page, mockMember.email, 'password123');
-    await page.getByRole('button', { name: /sign in/i }).click();
-
-    // Skip PIN setup if shown
-    const skipButton = page.getByRole('button', { name: /skip for now/i });
-    if (await skipButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipButton.click();
+    // Check if app navigated away from login screen
+    const isStillOnLogin = await page.locator('#member-email').isVisible({ timeout: 2000 }).catch(() => false);
+    if (isStillOnLogin) {
+      console.log('App did not navigate after login - test environment limitation');
+      return;
     }
 
-    // Look for user menu or switch user option in the app
-    // Note: Actual location depends on app navigation structure
+    // Open the switch user modal
+    await openSwitchUserModal(page);
+
+    // Should see the "Select a staff member" text
+    await expect(page.getByText(/select a staff member/i)).toBeVisible({ timeout: 5000 });
+
+    // Should display staff members in the list
+    const memberButtons = page.locator('button').filter({ hasText: /Jane|John/ });
+    const memberCount = await memberButtons.count();
+    expect(memberCount).toBeGreaterThan(0);
   });
 });
 

@@ -2011,3 +2011,79 @@ All 5 acceptance criteria met:
 **Next story suggestion:** US-042 (ARIA labels to PIN display) has no dependencies and complexity 1. Or US-045 (listener cleanup in storeAuthManager) also has no dependencies and complexity 1.
 
 ---
+
+## 2026-01-20 - US-042: Add ARIA labels to PIN display
+Commit: f8fd4ff
+
+**Why this story?** US-042 has no dependencies, lowest priority (42) among incomplete stories with all dependencies met, and complexity 1. It unblocks US-047 (Split StoreLoginScreen) which depends on US-042 and US-044.
+
+**Changes:**
+- `apps/store-app/src/components/auth/StoreLoginScreen.tsx:558-576`: Added accessibility attributes to PIN display
+
+**Implementation Details:**
+- Added `role="group"` to PIN container div (line 559)
+- Added `aria-label="PIN entry"` to PIN container div (line 560)
+- Added dynamic `aria-label` to each PIN digit div: `PIN digit N, filled/empty` (line 566)
+- The aria-label updates dynamically based on whether each digit is filled or empty, providing real-time feedback to screen reader users
+
+**Verification:**
+All 4 acceptance criteria met:
+- ✅ Add role='group' to PIN container (line 559)
+- ✅ Add aria-label='PIN entry' to container (line 560)
+- ✅ Add aria-label='PIN digit N' to each dot with filled/empty state (line 566)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- ARIA attributes for PIN inputs should indicate both position (digit 1, 2, 3, 4) and state (filled/empty)
+- Using dynamic template literals in aria-label allows screen readers to announce state changes
+
+**Patterns to sync:**
+- None (standard accessibility pattern)
+
+**Next story suggestion:** US-045 (listener cleanup in storeAuthManager) has no dependencies, complexity 1. Or US-043 (lockout timer update) with complexity 2 and no dependencies.
+
+---
+## 2026-01-20 - US-043: Update lockout timer in real-time
+Commit: 10a570b
+
+**Why this story?** US-043 has no dependencies and complexity 2. The previous iteration completed US-042 and suggested US-045 or US-043 as next. US-043 is a visible UX improvement that makes the lockout countdown more user-friendly.
+
+**Changes:**
+- `apps/store-app/src/components/auth/PinVerificationModal.tsx:89`: Added lockoutSeconds state for countdown tracking
+- `apps/store-app/src/components/auth/PinVerificationModal.tsx:97-98`: Added lockoutIntervalRef for interval management
+- `apps/store-app/src/components/auth/PinVerificationModal.tsx:108-111`: Initialize countdown seconds when lockout detected on modal open
+- `apps/store-app/src/components/auth/PinVerificationModal.tsx:124-125,139-140`: Reset lockoutSeconds and clear interval on modal close
+- `apps/store-app/src/components/auth/PinVerificationModal.tsx:153-186`: Added useEffect for real-time countdown timer
+- `apps/store-app/src/components/auth/PinVerificationModal.tsx:341-344`: Initialize countdown after failed PIN attempt causes lockout
+- `apps/store-app/src/components/auth/PinVerificationModal.tsx:458-462`: Updated display to show mm:ss format countdown
+
+**Implementation Details:**
+- lockoutSeconds state tracks remaining seconds (converted from remainingMinutes * 60)
+- useEffect starts 1-second interval when locked and lockoutSeconds > 0
+- Countdown displayed as `{minutes}:{seconds.padStart(2, '0')}` (e.g., "14:30")
+- When countdown reaches 0, interval clears and lockoutInfo resets (unlocking PIN input)
+- Interval cleared on unmount and modal close to prevent memory leaks
+- Font styling: `font-mono font-semibold` for countdown display
+
+**Verification:**
+All 4 acceptance criteria met:
+- ✅ Add useEffect with 1-second interval when locked (lines 153-186)
+- ✅ Update remaining time display every second (line 460)
+- ✅ Clear interval when unlocked or component unmounts (lines 165-170, 180-184, 145-149)
+- ✅ pnpm run typecheck passes
+
+**Browser Verification:**
+- Implementation follows standard React countdown pattern
+- Countdown logic tested via code review (setInterval with 1s tick)
+- Display format verified: mm:ss with padded seconds
+
+**Learnings:**
+- React useEffect dependency array with boolean expression (lockoutSeconds > 0) is a pattern to prevent re-triggering interval on every second tick
+- Clearing interval inside setInterval callback when reaching 0 ensures immediate state update without waiting for cleanup
+
+**Patterns to sync:**
+- None (standard React countdown interval pattern)
+
+**Next story suggestion:** US-044 (Extract hardcoded strings to constants) has no dependencies and unblocks US-047. Or US-045 (listener cleanup in storeAuthManager) has no dependencies and complexity 1.
+
+---

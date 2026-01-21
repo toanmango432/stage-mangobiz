@@ -1,6 +1,6 @@
 #!/bin/bash
 # Ralph Wiggum - Autonomous AI Agent Loop for Claude Code
-# Version: 2.1.0
+# Version: 2.3.0
 #
 # Usage: ./ralph.sh [max_iterations] [run_name]
 #
@@ -18,8 +18,8 @@
 # Run directories: scripts/ralph/runs/<run_name>/
 # Each run is isolated to prevent accidental modifications by other agents.
 
-RALPH_VERSION="2.2.0"
-RALPH_TEMPLATE_DATE="2026-01-15"
+RALPH_VERSION="2.3.0"
+RALPH_TEMPLATE_DATE="2026-01-20"
 
 # Strict mode: exit on error, undefined vars, pipe failures
 set -euo pipefail
