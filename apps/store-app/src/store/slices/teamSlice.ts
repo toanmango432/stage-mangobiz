@@ -8,7 +8,6 @@
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { RootState } from '../index';
 import type {
   TeamMemberSettings,
   TeamMemberProfile,
@@ -54,9 +53,7 @@ export {
   deleteScheduleOverride,
 };
 
-// ============================================
-// STATE TYPES
-// ============================================
+// --- STATE TYPES ---
 
 export interface TeamUIState {
   selectedMemberId: string | null;
@@ -95,9 +92,7 @@ export interface TeamState {
   sync: TeamSyncState;
 }
 
-// ============================================
-// INITIAL STATE
-// ============================================
+// --- INITIAL STATE ---
 
 const initialUIState: TeamUIState = {
   selectedMemberId: null,
@@ -129,9 +124,7 @@ const initialState: TeamState = {
   sync: initialSyncState,
 };
 
-// ============================================
-// SLICE
-// ============================================
+// --- SLICE ---
 
 const teamSlice = createSlice({
   name: 'team',
@@ -624,9 +617,7 @@ const teamSlice = createSlice({
   },
 });
 
-// ============================================
-// ACTIONS EXPORT
-// ============================================
+// --- ACTIONS EXPORT ---
 
 export const {
   setMembers,
@@ -671,188 +662,35 @@ export const {
   setLastSyncAt,
 } = teamSlice.actions;
 
-// ============================================
-// SELECTORS
-// ============================================
+// --- SELECTORS (re-exported from team/teamSelectors.ts) ---
 
-// Basic selectors
-export const selectTeamState = (state: RootState) => state.team;
-export const selectTeamMembers = (state: RootState) => state.team.members;
-export const selectTeamMemberIds = (state: RootState) => state.team.memberIds;
-export const selectTeamLoading = (state: RootState) => state.team.loading;
-export const selectTeamError = (state: RootState) => state.team.error;
-export const selectTeamUI = (state: RootState) => state.team.ui;
-export const selectTeamSync = (state: RootState) => state.team.sync;
-export const selectPendingOperations = (state: RootState) => state.team.pendingOperations;
-
-// Check if a specific member has a pending operation
-export const selectIsMemberPending = (state: RootState, memberId: string): boolean => {
-  return !!state.team.pendingOperations[memberId];
-};
-
-// Get pending operation for a specific member
-export const selectMemberPendingOperation = (
-  state: RootState,
-  memberId: string
-): PendingOperation | undefined => {
-  return state.team.pendingOperations[memberId];
-};
-
-// Derived selectors
-export const selectAllTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  return state.team.memberIds.map((id) => state.team.members[id]).filter(Boolean);
-};
-
-export const selectActiveTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  return selectAllTeamMembers(state).filter((member) => member.isActive);
-};
-
-export const selectArchivedTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  return selectAllTeamMembers(state).filter((member) => !member.isActive);
-};
-
-export const selectTeamMemberById = (
-  state: RootState,
-  memberId: string
-): TeamMemberSettings | undefined => {
-  return state.team.members[memberId];
-};
-
-export const selectSelectedTeamMember = (state: RootState): TeamMemberSettings | null => {
-  const selectedId = state.team.ui.selectedMemberId;
-  return selectedId ? state.team.members[selectedId] || null : null;
-};
-
-// Filtered selectors based on UI state
-export const selectFilteredTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  const { searchQuery, filterRole, filterStatus, sortBy, sortOrder } = state.team.ui;
-  let members = selectAllTeamMembers(state);
-
-  // Filter by search query
-  if (searchQuery) {
-    const query = searchQuery.toLowerCase();
-    members = members.filter(
-      (member) =>
-        member.profile.firstName.toLowerCase().includes(query) ||
-        member.profile.lastName.toLowerCase().includes(query) ||
-        member.profile.displayName.toLowerCase().includes(query) ||
-        member.profile.email.toLowerCase().includes(query)
-    );
-  }
-
-  // Filter by role
-  if (filterRole !== 'all') {
-    members = members.filter((member) => member.permissions.role === filterRole);
-  }
-
-  // Filter by status
-  if (filterStatus === 'active') {
-    members = members.filter((member) => member.isActive);
-  } else if (filterStatus === 'inactive' || filterStatus === 'archived') {
-    members = members.filter((member) => !member.isActive);
-  }
-
-  // Sort
-  members.sort((a, b) => {
-    let comparison = 0;
-    switch (sortBy) {
-      case 'name':
-        comparison = a.profile.firstName.localeCompare(b.profile.firstName);
-        break;
-      case 'role':
-        comparison = a.permissions.role.localeCompare(b.permissions.role);
-        break;
-      case 'hireDate':
-        comparison = (a.profile.hireDate || '').localeCompare(b.profile.hireDate || '');
-        break;
-      default:
-        comparison = 0;
-    }
-    return sortOrder === 'asc' ? comparison : -comparison;
-  });
-
-  return members;
-};
-
-// Permission-related selectors
-export const selectMemberPermissions = (
-  state: RootState,
-  memberId: string
-): RolePermissions | undefined => {
-  return state.team.members[memberId]?.permissions;
-};
-
-export const selectMemberServices = (state: RootState, memberId: string): ServicePricing[] => {
-  return state.team.members[memberId]?.services || [];
-};
-
-export const selectMemberSchedule = (
-  state: RootState,
-  memberId: string
-): WorkingHoursSettings | undefined => {
-  return state.team.members[memberId]?.workingHours;
-};
-
-export const selectMemberTimeOffRequests = (
-  state: RootState,
-  memberId: string
-): TimeOffRequest[] => {
-  return state.team.members[memberId]?.workingHours.timeOffRequests || [];
-};
-
-export const selectMemberScheduleOverrides = (
-  state: RootState,
-  memberId: string
-): ScheduleOverride[] => {
-  return state.team.members[memberId]?.workingHours.scheduleOverrides || [];
-};
-
-export const selectMemberCommission = (
-  state: RootState,
-  memberId: string
-): CommissionSettings | undefined => {
-  return state.team.members[memberId]?.commission;
-};
-
-export const selectMemberOnlineBooking = (
-  state: RootState,
-  memberId: string
-): OnlineBookingSettings | undefined => {
-  return state.team.members[memberId]?.onlineBooking;
-};
-
-export const selectMemberNotifications = (
-  state: RootState,
-  memberId: string
-): NotificationPreferences | undefined => {
-  return state.team.members[memberId]?.notifications;
-};
-
-// Bookable members (for online booking)
-export const selectBookableTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  return selectActiveTeamMembers(state).filter((member) => member.onlineBooking.isBookableOnline);
-};
-
-// Team stats
-export const selectTeamStats = (state: RootState) => {
-  const members = selectAllTeamMembers(state);
-  const active = members.filter((m) => m.isActive);
-  const bookable = members.filter((m) => m.onlineBooking.isBookableOnline);
-
-  // Count by role
-  const roleCount: Record<string, number> = {};
-  active.forEach((member) => {
-    const role = member.permissions.role;
-    roleCount[role] = (roleCount[role] || 0) + 1;
-  });
-
-  return {
-    total: members.length,
-    active: active.length,
-    archived: members.length - active.length,
-    bookable: bookable.length,
-    byRole: roleCount,
-  };
-};
+export {
+  selectTeamState,
+  selectTeamMembers,
+  selectTeamMemberIds,
+  selectTeamLoading,
+  selectTeamError,
+  selectTeamUI,
+  selectTeamSync,
+  selectPendingOperations,
+  selectIsMemberPending,
+  selectMemberPendingOperation,
+  selectAllTeamMembers,
+  selectActiveTeamMembers,
+  selectArchivedTeamMembers,
+  selectTeamMemberById,
+  selectSelectedTeamMember,
+  selectFilteredTeamMembers,
+  selectMemberPermissions,
+  selectMemberServices,
+  selectMemberSchedule,
+  selectMemberTimeOffRequests,
+  selectMemberScheduleOverrides,
+  selectMemberCommission,
+  selectMemberOnlineBooking,
+  selectMemberNotifications,
+  selectBookableTeamMembers,
+  selectTeamStats,
+} from './team/teamSelectors';
 
 export default teamSlice.reducer;
