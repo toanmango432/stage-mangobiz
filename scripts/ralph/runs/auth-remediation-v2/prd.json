@@ -246,7 +246,7 @@
         "All new tests pass: pnpm test -- memberAuthService"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 3,
       "notes": "Follow existing mock patterns in the test file. Use vi.mock for Supabase client."

@@ -269,3 +269,30 @@ Commit: 5265b0f
 **Next story suggestion:** US-011 (Add unit tests for loginWithPassword success flow) - testing stories have complexity 3 and no dependencies, logical to start testing work
 
 ---
+
+## 2026-01-20 - US-011: Add unit tests for loginWithPassword success flow
+Commit: 142c0c4
+
+**Why this story?** Highest priority (11) among remaining stories with `passes: false` and no unmet dependencies. Progress log explicitly suggested this story as the next logical step to start testing work.
+
+**Changes:**
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:8-10`: Added imports for supabase and SecureStorage to access mocked modules
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:388-630`: Added describe block 'loginWithPassword' with 6 tests covering:
+  - Successful login returns MemberAuthSession
+  - Session contains all correct fields (memberId, authUserId, email, name, role, storeIds, permissions, defaultStoreId, lastOnlineAuth, sessionCreatedAt)
+  - last_online_auth is updated in database via supabase.from('members').update()
+  - PIN hash is stored in SecureStorage when member has PIN (plus verification step)
+  - PIN hash is NOT stored when member has no PIN
+  - Member session is cached in localStorage for offline access (member_auth_session, member_auth_session_timestamp, cached_members_list)
+
+**Learnings:**
+- Use `as any` cast to access mock methods on imported modules - vitest mocks are hoisted but TypeScript doesn't know about the mock structure
+- Chainable mock pattern works well for Supabase queries: `{ select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({...}) }`
+- 21 pre-existing test failures in other files are unrelated to this change
+- Test file went from 34 tests to 40 tests (6 new tests added)
+
+**Patterns to sync:** None - follows documented testing pattern in progress.txt
+
+**Next story suggestion:** US-012 (Add unit tests for loginWithPassword failure cases) - depends on US-011 (now complete), continues same test file
+
+---
