@@ -292,8 +292,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": "Modify: apps/store-app/src/components/Book/BookingForm.tsx (~15 lines)."
+      "passes": true,
+      "notes": "Modify: apps/store-app/src/components/Book/BookingForm.tsx (~15 lines). NOTE: Already implemented in US-016's handlePatchTestOverride function in NewAppointmentModal.v2.tsx."
     },
     {
       "id": "US-019",

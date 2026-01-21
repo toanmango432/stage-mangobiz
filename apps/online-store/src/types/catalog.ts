@@ -27,6 +27,7 @@ export interface Service {
   }>;
   tags: string[];
   requiresDeposit: boolean;
+  requiresPatchTest?: boolean; // Services like hair coloring may require patch test
   depositAmount?: number;
   bufferTimeBefore: number;
   bufferTimeAfter: number;

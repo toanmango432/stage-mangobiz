@@ -1,15 +1,28 @@
 import { BookingFormData } from '@/types/booking';
+import { Service } from '@/types/catalog';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, User, Mail, Phone, Shield, Edit } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Calendar, Clock, User, Mail, Phone, Shield, Edit, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { getStoreId } from '@/hooks/useStore';
+
+// Edge Function URL for booking validation
+const VALIDATE_BOOKING_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-booking`;
+
+interface ValidationResult {
+  valid: boolean;
+  reason?: 'client_blocked' | 'patch_test_required' | 'patch_test_expired';
+  message?: string;
+  canOverride?: boolean;
+}
 
 interface ReviewStepProps {
   formData: Partial<BookingFormData>;
@@ -20,6 +33,84 @@ interface ReviewStepProps {
 export const ReviewStep = ({ formData, updateFormData, goToStep }: ReviewStepProps) => {
   const navigate = useNavigate();
   const [agreedToPolicies, setAgreedToPolicies] = useState(formData.agreedToPolicies || false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [patchTestError, setPatchTestError] = useState<string | null>(null);
+  const [hasValidatedPatchTest, setHasValidatedPatchTest] = useState(false);
+
+  // Check if selected service requires patch test
+  const serviceRequiresPatchTest = (formData.service as Service)?.requiresPatchTest === true;
+
+  /**
+   * Validate patch test requirement before booking
+   * Called when component mounts or client info changes
+   */
+  const validatePatchTest = useCallback(async () => {
+    // Skip validation if service doesn't require patch test
+    if (!serviceRequiresPatchTest) {
+      setPatchTestError(null);
+      setHasValidatedPatchTest(true);
+      return;
+    }
+
+    // Need client email or phone to validate
+    const email = formData.client?.email?.trim();
+    const phone = formData.client?.phone?.trim();
+
+    if (!email && !phone) {
+      setPatchTestError('Please provide your contact information to verify patch test status.');
+      return;
+    }
+
+    setIsValidating(true);
+    setPatchTestError(null);
+
+    try {
+      const storeId = getStoreId();
+      const response = await fetch(VALIDATE_BOOKING_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: undefined, // Online store doesn't have clientId, uses email/phone lookup
+          email: email || undefined,
+          phone: phone || undefined,
+          serviceId: formData.service?.id,
+          appointmentDate: formData.date,
+          storeId,
+        }),
+      });
+
+      const result: ValidationResult = await response.json();
+
+      if (!result.valid && (result.reason === 'patch_test_required' || result.reason === 'patch_test_expired')) {
+        // For online booking, we can't override - they need to visit the salon
+        setPatchTestError(
+          'This service requires a patch test. Please visit the salon first for your patch test before booking this service online.'
+        );
+      } else if (!result.valid && result.reason === 'client_blocked') {
+        // Blocked client - generic message
+        setPatchTestError('Unable to complete booking. Please call the salon.');
+      } else {
+        // Valid - client has valid patch test
+        setPatchTestError(null);
+      }
+      setHasValidatedPatchTest(true);
+    } catch {
+      // On network error, allow booking but show warning
+      setPatchTestError(null);
+      setHasValidatedPatchTest(true);
+    } finally {
+      setIsValidating(false);
+    }
+  }, [serviceRequiresPatchTest, formData.client?.email, formData.client?.phone, formData.service?.id, formData.date]);
+
+  // Validate patch test when component mounts or when client info changes
+  useEffect(() => {
+    if (serviceRequiresPatchTest) {
+      validatePatchTest();
+    } else {
+      setHasValidatedPatchTest(true);
+    }
+  }, [validatePatchTest, serviceRequiresPatchTest]);
 
   const calculateTotal = () => {
     let subtotal = formData.service?.price || 0;
@@ -49,6 +140,16 @@ export const ReviewStep = ({ formData, updateFormData, goToStep }: ReviewStepPro
   };
 
   const handleConfirm = () => {
+    // Block booking if patch test validation failed
+    if (patchTestError) {
+      toast({
+        title: "Patch Test Required",
+        description: "Please visit the salon for a patch test before booking this service online.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!agreedToPolicies) {
       toast({
         title: "Agreement Required",
@@ -74,6 +175,26 @@ export const ReviewStep = ({ formData, updateFormData, goToStep }: ReviewStepPro
 
   return (
     <div className="space-y-6">
+      {/* Patch Test Validation Status */}
+      {serviceRequiresPatchTest && isValidating && (
+        <Alert className="bg-blue-50 border-blue-200">
+          <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+          <AlertDescription className="text-blue-800">
+            Verifying patch test status...
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Patch Test Error Banner */}
+      {patchTestError && !isValidating && (
+        <Alert className="bg-red-50 border-red-200">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            {patchTestError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold">Review Your Booking</h3>
@@ -234,9 +355,16 @@ export const ReviewStep = ({ formData, updateFormData, goToStep }: ReviewStepPro
         size="lg"
         className="w-full"
         onClick={handleConfirm}
-        disabled={!agreedToPolicies}
+        disabled={!agreedToPolicies || isValidating || !!patchTestError}
       >
-        Confirm Booking
+        {isValidating ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Validating...
+          </>
+        ) : (
+          'Confirm Booking'
+        )}
       </Button>
     </div>
   );

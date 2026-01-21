@@ -2,12 +2,14 @@ import { BookingFormData, AddOn } from '@/types/booking';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X, Users, Clock, DollarSign } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Plus, X, Users, Clock, DollarSign, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { ServicePickerModal } from './ServicePickerModal';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
+import type { Service } from '@/types/catalog';
 
 interface ServiceSelectionStepProps {
   formData: Partial<BookingFormData>;
@@ -94,6 +96,18 @@ export const ServiceSelectionStep = ({ formData, updateFormData, onContinue }: S
             </Button>
           </div>
         </Card>
+      )}
+
+      {/* Patch Test Warning Banner */}
+      {formData.service && (formData.service as Service).requiresPatchTest && (
+        <Alert className="bg-amber-50 border-amber-200">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <strong>Patch Test Required:</strong> This service requires a patch test.
+            If you haven't had a patch test at our salon in the past 6 months,
+            please visit us first. We'll verify your patch test status when you check in.
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Add More Services */}
