@@ -11,6 +11,7 @@ import { selectStoreId, selectMember, setMemberSession, clearMemberSession } fro
 import { authService, type MemberSession } from '../../../../services/supabase/authService';
 import { memberAuthService } from '../../../../services/memberAuthService';
 import { auditLogger } from '../../../../services/audit/auditLogger';
+import { AUTH_TIMEOUTS } from '../../constants';
 import type { LoginContext } from '@/types/memberAuth';
 import type { MemberRole } from '../../../../services/supabase/types';
 import type { Step, DisplayMember } from '../types';
@@ -61,7 +62,7 @@ export function useSwitchUser({
   // Focus password input when step changes to 'password'
   useEffect(() => {
     if (step === 'password' && passwordInputRef.current) {
-      setTimeout(() => passwordInputRef.current?.focus(), 100);
+      setTimeout(() => passwordInputRef.current?.focus(), AUTH_TIMEOUTS.INPUT_FOCUS_DELAY_MS);
     }
   }, [step]);
 
@@ -217,7 +218,7 @@ export function useSwitchUser({
         };
         onSuccess?.(memberSession);
         onClose();
-      }, 1000);
+      }, AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid password';
       auditLogger.log({
@@ -285,7 +286,7 @@ export function useSwitchUser({
         };
         onSuccess?.(memberSession);
         onClose();
-      }, 1000);
+      }, AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid PIN';
       auditLogger.log({
@@ -353,7 +354,7 @@ export function useSwitchUser({
           };
           onSuccess?.(memberSession);
           onClose();
-        }, 1000);
+        }, AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Invalid PIN';
         auditLogger.log({

@@ -16,6 +16,8 @@ export const AUTH_TIMEOUTS = {
   VERIFICATION_SUCCESS_MS: 800,
   /** Delay before auto-submitting PIN */
   PIN_AUTO_SUBMIT_DELAY_MS: 100,
+  /** Delay before focusing input after step change */
+  INPUT_FOCUS_DELAY_MS: 100,
   /** Card reader input timeout - keys faster than this are likely card reader */
   CARD_INPUT_TIMEOUT_MS: 100,
   /** Timeout for card reader buffer processing */
