@@ -5,6 +5,8 @@
  * @see docs/architecture/DATA_STORAGE_STRATEGY.md
  */
 
+import { deviceManager } from '../../services/deviceManager';
+
 /**
  * Context required for sync operations.
  * Must be provided for all create/update/delete operations.
@@ -27,7 +29,7 @@ export interface SyncContext {
 export function getDefaultSyncContext(): SyncContext & { storeId: string } {
   return {
     userId: 'system',
-    deviceId: 'device-web',
+    deviceId: deviceManager.getDeviceId(),
     storeId: 'default-store',
     tenantId: 'default-tenant',
   };
@@ -46,7 +48,7 @@ export function createSyncContext(
 ): SyncContext {
   return {
     userId: auth.userId || 'system',
-    deviceId: device.deviceId || 'device-web',
+    deviceId: device.deviceId || deviceManager.getDeviceId(),
     storeId: auth.storeId,
     tenantId: auth.tenantId,
   };
