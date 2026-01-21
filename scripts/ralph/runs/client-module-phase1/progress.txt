@@ -139,3 +139,25 @@ Commit: b0fdc1f
 **Next story suggestion:** US-005 (Activate MergeClientsModal component) - the thunk and types are now complete
 
 ---
+
+## 2026-01-21 - US-005: Activate MergeClientsModal component
+Commit: f60e955
+
+**Why this story?** US-005 is the natural next step after US-004. The thunk now exists, so the modal can be restored from .bak and connected to the working thunk.
+
+**Changes:**
+- apps/store-app/src/components/client-settings/MergeClientsModal.tsx (renamed from .bak): Restored merge modal component
+  - Added `selectMemberId` import from `@/store/slices/authSlice` for `mergedBy` parameter
+  - Changed `mergeLoyaltyPoints` to `mergeLoyalty` to match MergeClientOptions type
+  - Fixed thunk call to use `options: mergeOptions` and `mergedBy: currentMemberId`
+  - Added `currentMemberId` selector and guard in handleMerge
+
+**Learnings:**
+- The .bak file had outdated type names (`mergeLoyaltyPoints` instead of `mergeLoyalty`)
+- MergeClientParams requires `options` wrapper around merge options, not direct fields
+- `selectMemberId` from authSlice provides the current logged-in staff ID for auditing
+- Pre-existing TypeScript error in AccountLicensingSettings.tsx (useMemberAuth import) - NOT related to this story
+
+**Next story suggestion:** US-006 (Add merge button to ClientSettings) - integrates the modal into the client details UI
+
+---

@@ -85,7 +85,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/client-settings/MergeClientsModal.tsx.bak (389 lines). Full UI already implemented."
     },
     {
