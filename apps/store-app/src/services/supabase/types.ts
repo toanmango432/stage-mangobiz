@@ -188,6 +188,10 @@ export interface Database {
           visit_summary: Json;
           tags: Json;
           notes: Json;
+          // Merge tracking columns (migration 031)
+          merged_into_id: string | null;
+          merged_at: string | null;
+          merged_by: string | null;
           sync_status: string;
           sync_version: number;
           created_at: string;
@@ -207,6 +211,10 @@ export interface Database {
           visit_summary?: Json;
           tags?: Json;
           notes?: Json;
+          // Merge tracking columns (migration 031)
+          merged_into_id?: string | null;
+          merged_at?: string | null;
+          merged_by?: string | null;
           sync_status?: string;
           sync_version?: number;
           created_at?: string;
@@ -948,6 +956,47 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['client_gift_cards']['Insert']>;
       };
+
+      // Portfolio Items (migration 001)
+      portfolio_items: {
+        Row: {
+          id: string;
+          store_id: string;
+          staff_id: string;
+          image_url: string;
+          before_image_url: string | null;
+          title: string | null;
+          description: string | null;
+          service_name: string | null;
+          tags: string[];
+          is_featured: boolean;
+          is_before_after: boolean;
+          likes_count: number;
+          created_at: string;
+          updated_at: string;
+          sync_status: string;
+          sync_version: number;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          staff_id: string;
+          image_url: string;
+          before_image_url?: string | null;
+          title?: string | null;
+          description?: string | null;
+          service_name?: string | null;
+          tags?: string[];
+          is_featured?: boolean;
+          is_before_after?: boolean;
+          likes_count?: number;
+          created_at?: string;
+          updated_at?: string;
+          sync_status?: string;
+          sync_version?: number;
+        };
+        Update: Partial<Database['public']['Tables']['portfolio_items']['Insert']>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -1128,3 +1177,8 @@ export type GiftCardTransactionUpdate = Database['public']['Tables']['gift_card_
 export type ClientGiftCardRow = Database['public']['Tables']['client_gift_cards']['Row'];
 export type ClientGiftCardInsert = Database['public']['Tables']['client_gift_cards']['Insert'];
 export type ClientGiftCardUpdate = Database['public']['Tables']['client_gift_cards']['Update'];
+
+// Portfolio Item types
+export type PortfolioItemRow = Database['public']['Tables']['portfolio_items']['Row'];
+export type PortfolioItemInsert = Database['public']['Tables']['portfolio_items']['Insert'];
+export type PortfolioItemUpdate = Database['public']['Tables']['portfolio_items']['Update'];
