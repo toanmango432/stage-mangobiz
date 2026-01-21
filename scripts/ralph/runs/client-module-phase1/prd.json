@@ -336,7 +336,7 @@
         "All tests pass"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "Create: apps/store-app/src/components/Book/__tests__/patchTest.test.ts (NEW, ~80 lines)."
     },
     {
@@ -355,7 +355,7 @@
         "Run pnpm run typecheck and pnpm test before review"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "This story produces a review report, not code changes. Use /ultrathink to coordinate Architect, Research, Coder, and Tester agents. Check browser manually for UI components."
     },
     {

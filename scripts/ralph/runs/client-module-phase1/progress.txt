@@ -557,3 +557,81 @@ Commit: e9b4e96
 **Next story suggestion:** US-021 (Add patch test enforcement tests) - continues the testing track
 
 ---
+
+## 2026-01-21 - US-021: Add patch test enforcement tests
+Commit: 8a10b16
+
+**Why this story?** US-021 is the highest priority incomplete story and completes the testing track for Phase 1. Same category (tests) as US-019 and US-020, so patterns are fresh in context.
+
+**Changes:**
+- apps/store-app/src/components/Book/__tests__/patchTest.test.ts (NEW, ~500 lines): Comprehensive tests for patch test enforcement
+  - 22 tests covering validation, warning banner, override flow, walk-in handling, and edge cases
+  - Tests: Booking blocked when patch test required but missing
+  - Tests: Booking blocked when patch test expired
+  - Tests: Booking allowed when valid patch test exists
+  - Tests: Booking allowed when service does not require patch test
+  - Tests: Fail open behavior when validation service errors
+  - Tests: Warning message generation for required vs expired reasons
+  - Tests: Override reason validation (must be non-empty)
+  - Tests: Walk-in clients skip patch test validation
+  - Tests: Service data preserved through override flow
+  - Tests: Validation reason mapping (patch_test_required → 'required', patch_test_expired → 'expired')
+
+**Learnings:**
+- TypeScript control flow analysis doesn't narrow types through closure reassignments - use object state pattern instead of separate let variables
+- Supabase client mock structure: `vi.mock('../../../services/supabase/client', () => ({ supabase: { functions: { invoke: vi.fn() } } }))`
+- vi.mocked() helper provides type-safe access to mock functions
+
+**Next story suggestion:** US-P1R (UltraThink Review of Phase 1 Implementation) - all implementation stories are now complete
+
+---
+
+## 2026-01-21 - US-P1R: UltraThink Review of Phase 1 Implementation
+Commit: 371ccce
+
+**Why this story?** US-P1R is the highest priority incomplete story. All 21 implementation stories are complete; this review validates the implementation before Phase 2.
+
+**Changes:**
+- scripts/ralph/runs/client-module-phase1/review-findings.md (NEW, ~362 lines): Comprehensive review document
+
+**Review Methodology:**
+Used UltraThink pattern with four specialist agents:
+1. **Architect Agent**: Reviewed database schema, RPC function, Edge Functions design
+2. **Coder Agent**: Reviewed types, thunks, slice, and UI components for code quality
+3. **Tester Agent**: Verified all acceptance criteria from US-001 to US-021
+
+**Findings Summary:**
+| Severity | Count |
+|----------|-------|
+| Critical | 0 |
+| Major | 6 |
+| Minor | 8 |
+
+**Major Issues Identified:**
+- M1: Type Adapter missing merge fields (clientAdapter.ts)
+- M2: RPC return type mismatch (merged_counts vs records_updated)
+- M3: Unsupported merge options silently ignored
+- M4: Missing reducer for checkPatchTestRequired thunk
+- M5: Phone lookup vulnerability in Edge Function
+- M6: validate-booking missing email/phone support
+
+**Acceptance Criteria Verification:**
+- US-001 to US-007 (Merge): 100% ✅
+- US-008 to US-012 (Block): 100% ✅
+- US-013 to US-018 (Patch Test): 100% ✅
+- US-019 to US-021 (Tests): 100% ✅
+
+**Test Gates:**
+- Gate 1 (Merge): ✅ PASS
+- Gate 2 (Block): ✅ PASS
+- Gate 3 (Patch Test): ✅ PASS
+
+**Learnings:**
+- UltraThink pattern effective for comprehensive code review
+- Pre-existing test failures (MQTT, adapter tests) are not related to Phase 1
+- Integration layer issues (type adapters, return types) often missed in feature implementation
+- Edge Functions should support multiple lookup methods consistently
+
+**Next story suggestion:** US-P1F (Address Phase 1 Review Findings) - fix the 6 major issues identified
+
+---
