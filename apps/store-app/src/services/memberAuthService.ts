@@ -1190,21 +1190,25 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
  * Logout the current member
  *
  * This function:
- * 1. Stops the grace period checker
- * 2. Clears cached member session
- * 3. Signs out of Supabase Auth
+ * 1. Cancels any ongoing background validation
+ * 2. Stops the grace period checker
+ * 3. Clears cached member session
+ * 4. Signs out of Supabase Auth
  *
  * Note: This does NOT dispatch forceLogout action.
  * For that, use the forceLogout action directly with a reason.
  */
 async function logout(): Promise<void> {
-  // 1. Stop grace checker
+  // 1. Cancel any ongoing background validation
+  cancelBackgroundValidation();
+
+  // 2. Stop grace checker
   stopGraceChecker();
 
-  // 2. Clear cached session
+  // 3. Clear cached session
   clearCachedMemberSession();
 
-  // 3. Sign out of Supabase Auth
+  // 4. Sign out of Supabase Auth
   const { error } = await supabase.auth.signOut();
   if (error) {
     auditLogger.log({
