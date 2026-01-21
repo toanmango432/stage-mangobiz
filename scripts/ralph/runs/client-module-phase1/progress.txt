@@ -504,3 +504,28 @@ Commit: 9f6e27a
 **Next story suggestion:** US-019 (Add merge functionality tests) - starts the testing track for Phase 1
 
 ---
+
+## 2026-01-21 - US-019: Add merge functionality tests
+Commit: 2755b38
+
+**Why this story?** US-019 is the highest priority incomplete story and begins the testing track for Phase 1. Tests for the merge functionality should be written now that all merge features (US-001 through US-007) are complete.
+
+**Changes:**
+- apps/store-app/src/store/slices/clientsSlice/__tests__/merge.test.ts (NEW, ~650 lines): Comprehensive tests for merge functionality
+  - 14 tests covering thunk dispatch, Redux state updates, error handling, and type validation
+  - Mocks Supabase RPC calls and dataService for isolated unit testing
+  - Tests: thunk dispatches with valid params, RPC error handling, success:false handling
+  - Tests: primary client updated in state, secondary client removed from state, total decremented
+  - Tests: error state set on failure, saving flag during operation
+  - Tests: MergeClientOptions validation (all true, all false, mixed)
+  - Tests: MergeClientParams structure validation
+
+**Learnings:**
+- ThunkDispatch typing requires explicit generic types when using configureStore for tests
+- Use `as unknown as { error: { message: string } }` for asserting rejected thunk payloads
+- Vitest mock functions (vi.fn()) need to be cleared in beforeEach to avoid test pollution
+- Pre-existing test failures continue (padCheckoutFlow, teamStaffAdapter, ServiceQuickPreview) - NOT related to this story
+
+**Next story suggestion:** US-020 (Add block enforcement tests) - continues the testing track
+
+---

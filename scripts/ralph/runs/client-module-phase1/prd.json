@@ -307,7 +307,7 @@
         "All tests pass"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "Create: apps/store-app/src/store/slices/clientsSlice/__tests__/merge.test.ts (NEW, ~100 lines). Mock Supabase RPC."
     },
     {
