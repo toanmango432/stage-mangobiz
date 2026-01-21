@@ -7,6 +7,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './schema';
+import { createBaseSyncableDefaults } from '../types/common';
 import type {
   ServiceCategory,
   CreateCategoryInput,
@@ -63,9 +64,7 @@ export const serviceCategoriesDB = {
     }));
   },
 
-  async create(input: CreateCategoryInput, userId: string, storeId: string): Promise<ServiceCategory> {
-    const now = new Date().toISOString();
-
+  async create(input: CreateCategoryInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<ServiceCategory> {
     // Get next display order
     const maxOrder = await db.serviceCategories
       .where('storeId')
@@ -73,16 +72,13 @@ export const serviceCategoriesDB = {
       .toArray()
       .then(cats => Math.max(0, ...cats.map(c => c.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const category: ServiceCategory = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      createdBy: userId,
-      lastModifiedBy: userId,
-      syncStatus: 'local',
     };
 
     await db.serviceCategories.add(category);

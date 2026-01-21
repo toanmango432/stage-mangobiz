@@ -14,8 +14,37 @@ import type {
   AddOnOption,
   CatalogSettings,
 } from '../types';
+import type { SyncStatus, VectorClock } from '../types/common';
 
 const DEFAULT_SALON_ID = 'default-salon'; // Default salon ID for fallback
+const DEFAULT_TENANT_ID = 'default-tenant'; // Default tenant ID for fallback
+const DEFAULT_DEVICE_ID = 'seed-device'; // Device ID for seeded data
+
+/**
+ * Creates sync-related fields for seeded data
+ * Uses 'synced' status since seed data doesn't need to be synced upstream
+ */
+function createSeedSyncFields(storeId: string, tenantId: string = DEFAULT_TENANT_ID): {
+  tenantId: string;
+  syncStatus: SyncStatus;
+  version: number;
+  vectorClock: VectorClock;
+  lastSyncedVersion: number;
+  createdByDevice: string;
+  lastModifiedByDevice: string;
+  isDeleted: boolean;
+} {
+  return {
+    tenantId,
+    syncStatus: 'synced' as SyncStatus,
+    version: 1,
+    vectorClock: { [DEFAULT_DEVICE_ID]: 1 },
+    lastSyncedVersion: 1,
+    createdByDevice: DEFAULT_DEVICE_ID,
+    lastModifiedByDevice: DEFAULT_DEVICE_ID,
+    isDeleted: false,
+  };
+}
 
 // Category Color Palette (Fresha-inspired)
 const CATEGORY_COLORS = [
@@ -46,12 +75,14 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   await db.catalogSettings.clear();
 
   const now = new Date().toISOString();
+  const syncFields = createSeedSyncFields(storeId);
 
   // ==================== CATEGORIES ====================
   const categories: ServiceCategory[] = [
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       name: 'Hair Services',
       description: 'Haircuts, styling, and treatments',
       color: CATEGORY_COLORS[0],
@@ -62,11 +93,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       name: 'Hair Color',
       description: 'Coloring, highlights, and balayage',
       color: CATEGORY_COLORS[1],
@@ -77,11 +108,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       name: 'Nail Services',
       description: 'Manicures, pedicures, and nail art',
       color: CATEGORY_COLORS[2],
@@ -92,11 +123,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       name: 'Spa & Massage',
       description: 'Relaxation and therapeutic treatments',
       color: CATEGORY_COLORS[3],
@@ -107,11 +138,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       name: 'Facial & Skincare',
       description: 'Facials, peels, and skin treatments',
       color: CATEGORY_COLORS[4],
@@ -122,11 +153,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       name: 'Waxing',
       description: 'Body and facial waxing services',
       color: CATEGORY_COLORS[5],
@@ -137,11 +168,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       name: 'Makeup',
       description: 'Professional makeup services',
       color: CATEGORY_COLORS[6],
@@ -152,11 +183,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       name: 'Lashes & Brows',
       description: 'Eyelash extensions and brow services',
       color: CATEGORY_COLORS[7],
@@ -167,7 +198,6 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
   ];
 
@@ -761,6 +791,9 @@ export async function migrateServicesToCatalog(storeId: string): Promise<{
   // First, create categories from unique category names
   const uniqueCategories = [...new Set(legacyServices.map(s => s.category).filter(Boolean))];
 
+  const migrationSyncFields = createSeedSyncFields(storeId);
+  migrationSyncFields.syncStatus = 'local'; // Migration data needs to be synced
+
   for (let i = 0; i < uniqueCategories.length; i++) {
     const catName = uniqueCategories[i];
     const categoryId = uuidv4();
@@ -769,6 +802,7 @@ export async function migrateServicesToCatalog(storeId: string): Promise<{
     const category: ServiceCategory = {
       id: categoryId,
       storeId,
+      ...migrationSyncFields,
       name: catName,
       description: '',
       color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
@@ -778,7 +812,6 @@ export async function migrateServicesToCatalog(storeId: string): Promise<{
       updatedAt: now,
       createdBy: 'migration',
       lastModifiedBy: 'migration',
-      syncStatus: 'local',
     };
 
     await db.serviceCategories.add(category);

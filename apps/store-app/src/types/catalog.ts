@@ -8,7 +8,7 @@
  * See: docs/PRD-Catalog-Module.md
  */
 
-import { SyncStatus } from './common';
+import { SyncStatus, BaseSyncableEntity } from './common';
 
 // ============================================
 // ENUMS & CONSTANTS
@@ -24,10 +24,13 @@ export type BundleBookingMode = 'single-session' | 'multiple-visits';
 // SERVICE CATEGORY
 // ============================================
 
-export interface ServiceCategory {
-  id: string;
-  storeId: string;
-
+/**
+ * ServiceCategory - Represents a service category in the catalog
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface ServiceCategory extends BaseSyncableEntity {
   // Core fields
   name: string;
   description?: string;
@@ -41,19 +44,32 @@ export interface ServiceCategory {
 
   // Online Booking (MNU-P1-006)
   showOnlineBooking?: boolean;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
-
-  // Audit
-  createdBy?: string;
-  lastModifiedBy?: string;
 }
 
+/**
+ * Input type for creating a new ServiceCategory
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateCategoryInput = Omit<ServiceCategory,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
