@@ -1,9 +1,23 @@
 # Authentication Migration Plan: Supabase Auth for Members
 
-**Version:** 1.0  
-**Date:** January 20, 2026  
-**Status:** Approved for Implementation  
+**Version:** 1.0
+**Date:** January 20, 2026
+**Status:** Approved for Implementation
 **Owner:** Engineering Team
+
+---
+
+> ⚠️ **WEB PLATFORM SECURITY NOTICE**
+>
+> The web browser platform has security limitations that make it unsuitable for production POS deployment:
+>
+> 1. **SecureStorage uses base64 encoding (not encryption)** - PIN hashes can be read via browser DevTools
+> 2. **Lockout state can be cleared** - Attackers can bypass PIN rate limiting via localStorage
+> 3. **Session data accessible** - Cached credentials visible in browser storage
+>
+> **Recommendation:** Deploy production POS on native platforms (iOS/Android/Electron) which use hardware-backed secure storage (Keychain, Android Keystore).
+>
+> See [apps/store-app/README.md](/apps/store-app/README.md) for detailed security considerations.
 
 ---
 
