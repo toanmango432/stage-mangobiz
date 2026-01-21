@@ -361,7 +361,7 @@
         "All new tests pass: pnpm test -- memberAuthService"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 4,
       "notes": "This is critical security testing. Must verify forceLogout dispatch with correct reason for each scenario."

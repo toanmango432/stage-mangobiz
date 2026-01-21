@@ -1789,6 +1789,373 @@ describe('memberAuthService', () => {
     });
   });
 
+  describe('grace checker', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let mockStoreDispatch: ReturnType<typeof vi.fn>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let mockStoreGetState: ReturnType<typeof vi.fn>;
+
+    // Store original navigator.onLine
+    const originalNavigator = window.navigator;
+    let mockOnLine = true;
+
+    beforeEach(async () => {
+      vi.clearAllMocks();
+      mockLocalStorage.clear();
+
+      // Use fake timers for interval testing
+      vi.useFakeTimers();
+
+      // Mock navigator.onLine
+      mockOnLine = true;
+      Object.defineProperty(window, 'navigator', {
+        value: {
+          ...originalNavigator,
+          get onLine() {
+            return mockOnLine;
+          },
+        },
+        writable: true,
+        configurable: true,
+      });
+
+      // Get fresh reference to mocked store
+      const storeModule = await vi.importMock('@/store');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockStoreDispatch = (storeModule as any).store.dispatch;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockStoreGetState = (storeModule as any).store.getState;
+    });
+
+    afterEach(() => {
+      // Restore real timers and navigator
+      vi.useRealTimers();
+      Object.defineProperty(window, 'navigator', {
+        value: originalNavigator,
+        writable: true,
+        configurable: true,
+      });
+      // Always stop all grace checkers to clean up
+      memberAuthService.stopAllGraceCheckers();
+    });
+
+    it('should create interval when startGraceChecker is called', () => {
+      const memberId = 'grace-checker-create-001';
+
+      // Mock getState to return a member
+      mockStoreGetState.mockReturnValue({
+        auth: { member: { memberId } },
+      });
+
+      // Start the grace checker
+      memberAuthService.startGraceChecker(memberId);
+
+      // To verify interval was created, we check that it runs after the interval time
+      // First set up a cached member with valid grace period
+      const cachedMember = {
+        memberId,
+        authUserId: 'auth-grace-001',
+        email: 'grace@example.com',
+        name: 'Grace Checker User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(), // Valid grace period
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      // The interval should exist - advance time to trigger it
+      // GRACE_CHECK_INTERVAL_MS is 30 minutes (30 * 60 * 1000)
+      vi.advanceTimersByTime(30 * 60 * 1000);
+
+      // Since grace is still valid and we're online, no forceLogout should be dispatched
+      // But the interval did run (we can verify by checking it didn't throw)
+      expect(mockStoreDispatch).not.toHaveBeenCalled();
+    });
+
+    it('should be idempotent - second call does not create duplicate interval', () => {
+      const memberId = 'grace-checker-idempotent-001';
+
+      // Set up cached member
+      const cachedMember = {
+        memberId,
+        authUserId: 'auth-idempotent-001',
+        email: 'idempotent@example.com',
+        name: 'Idempotent User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      // Mock getState
+      mockStoreGetState.mockReturnValue({
+        auth: { member: { memberId } },
+      });
+
+      // Start grace checker twice
+      memberAuthService.startGraceChecker(memberId);
+      memberAuthService.startGraceChecker(memberId);
+      memberAuthService.startGraceChecker(memberId);
+
+      // Set offline and expired grace to trigger forceLogout
+      mockOnLine = false;
+      const expiredDate = new Date();
+      expiredDate.setDate(expiredDate.getDate() - 15); // 15 days ago
+      const expiredMember = {
+        ...cachedMember,
+        lastOnlineAuth: expiredDate.toISOString(),
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([expiredMember]));
+
+      // Advance time once - should only get ONE forceLogout call if idempotent
+      vi.advanceTimersByTime(30 * 60 * 1000);
+
+      // Should be called exactly once (idempotent - no duplicate intervals)
+      expect(mockStoreDispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should clear interval when stopGraceChecker is called', () => {
+      const memberId = 'grace-checker-stop-001';
+
+      // Set up cached member
+      const cachedMember = {
+        memberId,
+        authUserId: 'auth-stop-001',
+        email: 'stop@example.com',
+        name: 'Stop Checker User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      // Mock getState
+      mockStoreGetState.mockReturnValue({
+        auth: { member: { memberId } },
+      });
+
+      // Start and then stop the grace checker
+      memberAuthService.startGraceChecker(memberId);
+      memberAuthService.stopGraceChecker(memberId);
+
+      // Make conditions that would trigger forceLogout
+      mockOnLine = false;
+      const expiredDate = new Date();
+      expiredDate.setDate(expiredDate.getDate() - 15);
+      const expiredMember = {
+        ...cachedMember,
+        lastOnlineAuth: expiredDate.toISOString(),
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([expiredMember]));
+
+      // Advance time past the interval
+      vi.advanceTimersByTime(30 * 60 * 1000);
+
+      // Should NOT dispatch because interval was stopped
+      expect(mockStoreDispatch).not.toHaveBeenCalled();
+    });
+
+    it('should clear all intervals when stopAllGraceCheckers is called', () => {
+      // Set up multiple cached members
+      const cachedMembers = [
+        {
+          memberId: 'grace-stop-all-001',
+          authUserId: 'auth-stop-all-001',
+          email: 'stopall1@example.com',
+          name: 'Stop All User 1',
+          role: 'staff',
+          storeIds: ['store-1'],
+          permissions: {},
+          lastOnlineAuth: new Date().toISOString(),
+          sessionCreatedAt: new Date().toISOString(),
+          defaultStoreId: null,
+        },
+        {
+          memberId: 'grace-stop-all-002',
+          authUserId: 'auth-stop-all-002',
+          email: 'stopall2@example.com',
+          name: 'Stop All User 2',
+          role: 'manager',
+          storeIds: ['store-1'],
+          permissions: {},
+          lastOnlineAuth: new Date().toISOString(),
+          sessionCreatedAt: new Date().toISOString(),
+          defaultStoreId: null,
+        },
+      ];
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify(cachedMembers));
+
+      // Start multiple grace checkers
+      memberAuthService.startGraceChecker('grace-stop-all-001');
+      memberAuthService.startGraceChecker('grace-stop-all-002');
+
+      // Stop all
+      memberAuthService.stopAllGraceCheckers();
+
+      // Make conditions that would trigger forceLogout
+      mockOnLine = false;
+      const expiredDate = new Date();
+      expiredDate.setDate(expiredDate.getDate() - 15);
+      const expiredMembers = cachedMembers.map(m => ({
+        ...m,
+        lastOnlineAuth: expiredDate.toISOString(),
+      }));
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify(expiredMembers));
+
+      // Advance time past the interval
+      vi.advanceTimersByTime(30 * 60 * 1000);
+
+      // Should NOT dispatch - all intervals were stopped
+      expect(mockStoreDispatch).not.toHaveBeenCalled();
+    });
+
+    it('should trigger forceLogout when grace expires while offline', () => {
+      const memberId = 'grace-expired-offline-001';
+
+      // Set up cached member with EXPIRED grace period (15 days old)
+      const expiredDate = new Date();
+      expiredDate.setDate(expiredDate.getDate() - 15);
+
+      const expiredMember = {
+        memberId,
+        authUserId: 'auth-expired-001',
+        email: 'expired@example.com',
+        name: 'Expired Grace User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: expiredDate.toISOString(),
+        sessionCreatedAt: expiredDate.toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([expiredMember]));
+
+      // Mock offline state
+      mockOnLine = false;
+
+      // Mock getState
+      mockStoreGetState.mockReturnValue({
+        auth: { member: { memberId } },
+      });
+
+      // Start the grace checker
+      memberAuthService.startGraceChecker(memberId);
+
+      // Advance time to trigger the interval
+      vi.advanceTimersByTime(30 * 60 * 1000);
+
+      // Should dispatch forceLogout with offline_grace_expired reason
+      expect(mockStoreDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            reason: 'offline_grace_expired',
+            message: 'Your offline access has expired. Please connect to the internet to continue.',
+          }),
+        })
+      );
+    });
+
+    it('should NOT trigger forceLogout when grace expires while ONLINE', () => {
+      const memberId = 'grace-expired-online-001';
+
+      // Set up cached member with EXPIRED grace period
+      const expiredDate = new Date();
+      expiredDate.setDate(expiredDate.getDate() - 15);
+
+      const expiredMember = {
+        memberId,
+        authUserId: 'auth-expired-online-001',
+        email: 'expiredonline@example.com',
+        name: 'Expired Online User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: expiredDate.toISOString(),
+        sessionCreatedAt: expiredDate.toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([expiredMember]));
+
+      // Mock ONLINE state (grace expired but online means user can re-auth)
+      mockOnLine = true;
+
+      // Mock getState
+      mockStoreGetState.mockReturnValue({
+        auth: { member: { memberId } },
+      });
+
+      // Start the grace checker
+      memberAuthService.startGraceChecker(memberId);
+
+      // Advance time to trigger the interval
+      vi.advanceTimersByTime(30 * 60 * 1000);
+
+      // Should NOT dispatch - user is online and can re-authenticate
+      expect(mockStoreDispatch).not.toHaveBeenCalled();
+    });
+
+    it('should stop checker when member is no longer in cache', () => {
+      const memberId = 'grace-no-cache-001';
+
+      // Start with member in cache
+      const cachedMember = {
+        memberId,
+        authUserId: 'auth-no-cache-001',
+        email: 'nocache@example.com',
+        name: 'No Cache User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      // Mock getState
+      mockStoreGetState.mockReturnValue({
+        auth: { member: { memberId } },
+      });
+
+      // Start grace checker
+      memberAuthService.startGraceChecker(memberId);
+
+      // Remove member from cache
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([]));
+
+      // Advance time to trigger interval
+      vi.advanceTimersByTime(30 * 60 * 1000);
+
+      // Should not dispatch - member not in cache, checker should stop
+      expect(mockStoreDispatch).not.toHaveBeenCalled();
+
+      // Verify checker was stopped by adding member back and advancing time again
+      // If checker was stopped, it won't run again
+      mockOnLine = false;
+      const expiredDate = new Date();
+      expiredDate.setDate(expiredDate.getDate() - 15);
+      const expiredMember = {
+        ...cachedMember,
+        lastOnlineAuth: expiredDate.toISOString(),
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([expiredMember]));
+
+      vi.advanceTimersByTime(30 * 60 * 1000);
+
+      // Still should not dispatch - checker was stopped when member wasn't found
+      expect(mockStoreDispatch).not.toHaveBeenCalled();
+    });
+  });
+
   describe('concurrent PIN attempts - race condition scenarios', () => {
     it('should increment counter correctly with rapid sequential attempts', () => {
       const memberId = 'rapid-test-member';

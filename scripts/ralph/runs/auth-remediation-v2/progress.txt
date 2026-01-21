@@ -411,3 +411,33 @@ Commit: 6ddaa97
 **Next story suggestion:** US-016 (Add unit tests for background validation) - continues testing work on same file, no dependencies
 
 ---
+
+## 2026-01-20 - US-016: Add unit tests for background validation
+Commit: 5f21ec8
+
+**Why this story?** Highest priority (16) among remaining stories with `passes: false` and no unmet dependencies. Previous iterations (US-011 through US-015) worked on the same test file, so the code structure is extremely fresh in context. Progress log explicitly suggested this story.
+
+**Changes:**
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:1480-1696`: Added describe block 'validateSessionInBackground' with 6 tests:
+  - `should pass validation for active member without logging out` - Tests valid session with active member status, mocks both members and member_session_revocations queries
+  - `should trigger forceLogout with account_deactivated for inactive member` - Verifies forceLogout dispatch with 'account_deactivated' reason when member status is 'inactive'
+  - `should trigger forceLogout with password_changed when password changed after session` - Tests password_changed_at after sessionCreatedAt triggers forceLogout with 'password_changed' reason
+  - `should trigger forceLogout with session_revoked when session was revoked` - Tests revoke_all_before after sessionCreatedAt triggers forceLogout with 'session_revoked' reason
+  - `should NOT trigger logout on network error (silent handling)` - Verifies network errors are caught silently and don't trigger forceLogout
+  - `should stop validation when AbortController cancels` - Tests that cancelBackgroundValidation() prevents dispatch
+
+**Learnings:**
+- validateSessionInBackground uses AbortController pattern for cancellation - the signal is passed to Supabase queries via `.abortSignal(signal)`
+- Function checks abort status after each async operation to prevent stale state updates
+- Network errors are handled silently (logged via auditLogger but no logout) - this is intentional for resilience
+- Password change detection compares password_changed_at timestamp against sessionCreatedAt
+- Session revocation checks member_session_revocations table for revoke_all_before timestamp
+- Need to use `vi.importMock('@/store')` to get fresh reference to mocked store dispatch in tests
+- Test count increased from 69 to 75 (6 new tests)
+- 22 pre-existing test failures in other files are unrelated to this change
+
+**Patterns to sync:** None - follows documented testing patterns
+
+**Next story suggestion:** US-017 (Add unit tests for grace checker lifecycle) - continues testing work on same file, no dependencies
+
+---
