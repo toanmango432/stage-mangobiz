@@ -353,3 +353,31 @@ Commit: 0d184a5
 **Next story suggestion:** US-014 (Add unit tests for loginWithPin failure cases) - depends on US-013 (now complete), continues same test file
 
 ---
+
+## 2026-01-20 - US-014: Add unit tests for loginWithPin failure cases
+Commit: f57a83a
+
+**Why this story?** Highest priority (14) among remaining stories with `passes: false`, dependency US-013 was just completed, and the memberAuthService.test.ts code structure is fresh from previous iterations (US-011, US-012, US-013).
+
+**Changes:**
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:1075-1183`: Added 7 new tests for loginWithPin failure scenarios:
+  - `should throw error when member not found in cache` - Verifies error message and no PIN/bcrypt calls made
+  - `should check lockout before PIN validation (fail fast)` - Verifies lockout check runs before SecureStorage/bcrypt
+  - `should throw error when grace period expired` - Tests 14-day grace period expiry with 15-day-old session
+  - `should throw error when PIN not configured` - Tests SecureStorage returning null
+  - `should increment failed attempts on wrong PIN` - Verifies attempt counter increments and remaining attempts message
+  - `should lock PIN after max failed attempts` - Pre-sets 4 attempts, verifies 5th triggers lockout
+  - `should throw timeout error on bcrypt timeout` - Simulates BCRYPT_TIMEOUT_MS timeout scenario
+
+**Learnings:**
+- Grace period is 14 days (OFFLINE_GRACE_DAYS), need to set lastOnlineAuth to 15+ days ago to trigger expiry
+- Lockout check happens BEFORE SecureStorage PIN hash lookup - this is important fail-fast behavior
+- Wrong PIN error message includes remaining attempts count for user feedback
+- Test count increased from 53 to 60 (7 new tests)
+- 21 pre-existing test failures in other files are unrelated to this change
+
+**Patterns to sync:** None - follows documented testing patterns
+
+**Next story suggestion:** US-015 (Add unit tests for setPin function) - continues testing work on same file, no dependencies
+
+---
