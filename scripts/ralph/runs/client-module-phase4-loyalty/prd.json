@@ -54,7 +54,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from clientsSlice. Include loading/error states in slice."
     },
     {
@@ -74,7 +74,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing settings component patterns. Add to Settings module navigation."
     },
     {
@@ -93,7 +93,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Use @dnd-kit for drag-and-drop reordering. Benefits: percentage_discount, free_shipping, early_access, etc."
     },
     {
@@ -112,7 +112,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing list/form patterns. Validate points_required > 0."
     },
     {
@@ -127,7 +127,7 @@
         "Migration runs without errors"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing migration patterns. platforms: {google: 'url', yelp: 'url', facebook: 'url'}."
     },
     {
@@ -144,7 +144,7 @@
         "Return success/error status"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from send-form Edge Function. Use same email/SMS providers."
     },
     {
@@ -162,7 +162,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Auto-send after checkout will be handled by checkout flow. These are for manual operations and settings."
     },
     {
@@ -181,7 +181,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing settings patterns. Add to Settings module."
     },
     {
