@@ -585,7 +585,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "notes": "5 skeleton variants for different section card types."
     },
     {

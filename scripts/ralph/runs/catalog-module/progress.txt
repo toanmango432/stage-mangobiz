@@ -121,9 +121,9 @@ export const entityTable = {
 - [x] 3 issues found: P2-1 (missing bookingSequencesService), P2-2 (incomplete restore), P2-3 (direct DB calls)
 
 **Fix Story (US-P2F):**
-- [ ] All Phase 2 Review Issues resolved (3 issues pending)
+- [x] All Phase 2 Review Issues resolved (3/3 issues verified fixed) ✓
 
-- Status: Review Complete, Fix Required (10/11 stories complete, awaiting US-P2F)
+- Status: ✅ PHASE 2 COMPLETE (11/11 stories pass)
 
 ### Phase 3: UI Components (US-031 to US-054 + US-P3R + US-P3F) - 26 stories
 **Implementation Stories (24):**
@@ -216,7 +216,7 @@ export const entityTable = {
 **Test Results:** 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
 **TypeScript:** `pnpm run typecheck` passes ✓
 
-#### ISSUE P2-1: Missing bookingSequencesService in catalogDataService.ts [CRITICAL]
+#### ISSUE P2-1: Missing bookingSequencesService in catalogDataService.ts [CRITICAL] - [RESOLVED]
 **Location:** `apps/store-app/src/services/domain/catalogDataService.ts`
 **Problem:** No `bookingSequencesService` export exists. The useCatalog hook (lines 1139-1188) directly calls `bookingSequencesDB` (IndexedDB) instead of routing through catalogDataService.
 **Impact:** Booking sequences won't sync to Supabase when VITE_USE_SUPABASE=true. Breaks the three-tier routing architecture (SQLite → Supabase → Dexie).
@@ -225,7 +225,7 @@ export const entityTable = {
 - Full CRUD: getAll, getById, create, update, delete, enable, disable, updateServiceOrder
 - getUpdatedSince for sync support
 
-#### ISSUE P2-2: Incomplete product restore in catalogDataService.ts [HIGH]
+#### ISSUE P2-2: Incomplete product restore in catalogDataService.ts [HIGH] - [RESOLVED]
 **Location:** `apps/store-app/src/services/domain/catalogDataService.ts:1858-1867`
 **Problem:** The `productsService.restore()` fallback path (Dexie) only sets `isActive: true`. It's missing:
 - `isDeleted: false`
@@ -235,7 +235,7 @@ export const entityTable = {
 **Impact:** Restored products may not sync properly; potential version conflicts.
 **Fix Required:** Update fallback path to call `productsDB.restore()` from catalogDatabase.ts which has the complete implementation with all sync metadata.
 
-#### ISSUE P2-3: useCatalog directly calls bookingSequencesDB [HIGH]
+#### ISSUE P2-3: useCatalog directly calls bookingSequencesDB [HIGH] - [RESOLVED]
 **Location:** `apps/store-app/src/hooks/useCatalog.ts:1139-1188`
 **Problem:** All booking sequence operations (create, update, delete, enable, disable, updateServiceOrder) call `bookingSequencesDB.*` directly instead of routing through `catalogDataService.bookingSequencesService.*`.
 **Impact:** Violates data layer architecture. Bypasses Supabase routing.
@@ -248,7 +248,7 @@ export const entityTable = {
 - All catalog services filter by storeId to prevent cross-store data leakage
 - Type adapters used correctly for snake_case ↔ camelCase conversion
 
-**Phase 2 Verdict:** 3 issues found. Phase cannot be marked complete until US-P2F resolves them.
+**Phase 2 Verdict:** All 3 issues resolved by US-P2F. Phase 2 is now COMPLETE.
 
 ### Phase 3 Review Issues
 <!-- US-P3R will document issues here -->
@@ -1962,5 +1962,104 @@ Commit: 413d338
 - preventDefault on AlertDialogAction click prevents auto-close before async operation completes
 
 **Next story suggestion:** US-032 (Create skeleton loader components for menu-settings) - Same folder, continues Phase 3 UI work
+
+---
+
+## 2026-01-22 - US-032: Create skeleton loader components for menu-settings
+Commit: 753140b
+
+**Why this story?** First incomplete story in Phase 3 (priority 32). US-031 (ConfirmDialog) was just completed, same folder structure (menu-settings/components), continues UI component work.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/components/skeletons/` (NEW DIRECTORY):
+   - Created skeletons folder to organize loading state components
+
+2. `ServiceCardSkeleton.tsx` (NEW):
+   - Matches layout of service cards in ServicesSection.tsx grid view
+   - Skeleton for icon, name, description, duration/price, and tags
+
+3. `CategoryCardSkeleton.tsx` (NEW):
+   - Matches layout of category cards in CategoriesSection.tsx
+   - Skeleton for drag handle, icon, name, description, service count, color badge, menu
+
+4. `PackageCardSkeleton.tsx` (NEW):
+   - Matches layout of package cards in PackagesSection.tsx
+   - Skeleton for savings banner, icon, name, services list, pricing
+
+5. `ProductCardSkeleton.tsx` (NEW):
+   - Matches layout of product cards in ProductsSection.tsx
+   - Skeleton for name, SKU, brand, pricing, margin, tags
+
+6. `TableRowSkeleton.tsx` (NEW):
+   - Flexible skeleton for list/table views
+   - Configurable columns prop (default: 5)
+   - First column has icon + text, others are simple text
+
+7. `skeletons/index.ts` (NEW):
+   - Barrel export for all skeleton components
+
+8. `components/index.ts` (NEW):
+   - Created barrel export for all menu-settings components
+   - Exports ConfirmDialog, StaffAssignmentEditor, and all skeletons
+
+**Acceptance Criteria Verification:**
+- ✅ Created ServiceCardSkeleton.tsx
+- ✅ Created CategoryCardSkeleton.tsx
+- ✅ Created PackageCardSkeleton.tsx
+- ✅ Created ProductCardSkeleton.tsx
+- ✅ Created TableRowSkeleton.tsx
+- ✅ Uses Skeleton component from @/components/ui/skeleton
+- ✅ Export from components/index.ts
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- Skeleton components should match the exact layout of their corresponding cards for smooth transitions
+- Creating a barrel export (index.ts) for the components folder makes imports cleaner
+- TableRowSkeleton with configurable columns is reusable across different list/table views
+
+**Next story suggestion:** US-033 (Create ErrorState and EmptyState components) - Same folder, continues Phase 3 UI component work
+
+---
+
+## 2026-01-22 - US-P2F: FIX - Address Phase 2 Review Issues
+Commit: (verification only, no code changes needed)
+
+**Why this story?** US-P2F depends on US-P2R (which passes). This is the final Phase 2 story to mark all review issues as resolved.
+
+**Analysis:**
+All three issues identified in US-P2R were already fixed in previous iterations:
+
+1. **ISSUE P2-1 (bookingSequencesService)** - ALREADY FIXED
+   - `bookingSequencesService` exists in `catalogDataService.ts` lines 1906-2052
+   - Full Supabase routing with adapters
+   - Full CRUD: getAll, getById, getEnabled, create, update, delete, enable, disable, updateServiceOrder
+   - getUpdatedSince for sync support
+
+2. **ISSUE P2-2 (product restore)** - ALREADY FIXED
+   - `productsService.restore()` on line 1879 calls `productsDB.restore(id, effectiveUserId, effectiveDeviceId)`
+   - `productsDB.restore()` in catalogDatabase.ts (lines 958-980) has full implementation:
+     - Sets isActive=true, isDeleted=false
+     - Increments version
+     - Updates vectorClock with deviceId
+     - Sets lastModifiedBy, lastModifiedByDevice
+     - Sets syncStatus='local'
+
+3. **ISSUE P2-3 (useCatalog routing)** - ALREADY FIXED
+   - useCatalog.ts line 23 imports `bookingSequencesService`
+   - Lines 1142, 1150, 1159, 1169, 1177, 1185 all use `bookingSequencesService.*` methods
+   - Note: Live query (line 333) still uses `bookingSequencesDB.getAll()` - this is expected for real-time updates from local storage
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module) ✓
+
+**Learnings:**
+- Issues identified during review may have been fixed in concurrent iterations before the FIX story runs
+- Always verify current state before making changes
+- Live queries (useLiveQuery) should read from local storage for real-time updates - service routing applies to write operations
+
+**PHASE 2 FULLY COMPLETE.**
+
+**Next story suggestion:** US-033 (Create ErrorState and EmptyState components) - First incomplete Phase 3 story
 
 ---
