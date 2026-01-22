@@ -85,7 +85,8 @@ export const entityTable = {
 - [x] US-014: serviceVariantAdapter.ts and servicePackageAdapter.ts created ✓
 - [x] US-015: addOnGroupAdapter.ts and addOnOptionAdapter.ts created ✓
 - [x] US-016: Remaining adapters (staffServiceAssignment, catalogSettings, bookingSequence, product, giftCardDenomination, giftCardSettings) ✓
-- [ ] All table operations created and exported (US-017 to US-021)
+- [x] US-017: serviceCategoriesTable.ts created ✓
+- [ ] US-018 to US-021: Remaining table operations
 - [x] `pnpm run typecheck` passes ✓
 
 **Review Story (US-P1R):**
@@ -96,7 +97,7 @@ export const entityTable = {
 **Fix Story (US-P1F):**
 - [ ] All Phase 1 Review Issues resolved
 
-- Status: In Progress (16/23 complete)
+- Status: In Progress (17/23 complete)
 
 ### Phase 2: Data Layer (US-022 to US-030 + US-P2R + US-P2F) - 11 stories
 **Implementation Stories (9):**
@@ -988,5 +989,44 @@ Commit: 77579fd
 - None new - all adapters follow Pattern #6 (Supabase Type Convention) and Pattern #8 (JSONB Type Cast)
 
 **Next story suggestion:** US-017 (Create serviceCategoriesTable.ts) - Next phase: Supabase CRUD operations for tables
+
+---
+
+## 2026-01-21 - US-017: Create serviceCategoriesTable.ts
+Commit: bbc0869
+
+**Why this story?** Highest priority incomplete story (priority 17) with no dependencies. Continues logical progression: types → migration → Supabase types → adapters → **table operations**.
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/tables/serviceCategoriesTable.ts` (NEW):
+   - Created `getByStoreId(storeId, includeInactive?)`: Get all categories for a store with optional inactive filter
+   - Created `getById(id)`: Get single category with is_deleted check
+   - Created `getByParentId(parentCategoryId)`: Get child categories of a parent
+   - Created `getRootCategories(storeId)`: Get categories without a parent
+   - Created `search(storeId, query)`: Search categories by name with sanitized input
+   - Created `create(category)`: Insert new category
+   - Created `update(id, updates)`: Update category with auto-updated timestamp
+   - Created `delete(id, userId, deviceId)`: Soft delete with 30-day tombstone
+   - Created `hardDelete(id)`: Permanent delete for cleanup
+   - Created `getUpdatedSince(storeId, since)`: Get categories updated after timestamp for sync
+   - Created `upsertMany(categories)`: Bulk upsert for sync
+   - Created `updateDisplayOrder(updates)`: Batch reorder categories
+   - Created `getOnlineBookingCategories(storeId)`: Get categories visible for online booking
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- Supabase table operations follow consistent pattern from clientsTable.ts
+- Soft delete pattern uses tombstone_expires_at (30 days) for eventual cleanup
+- PostgREST error code PGRST116 indicates "no rows found" - handle gracefully in getById
+- Query builder can be conditionally modified (`if (!includeInactive) query = query.eq(...)`)
+- Batch updates in Supabase require Promise.all with individual update calls
+
+**Patterns to sync:**
+- Pattern #9: Soft Delete with Tombstone - Use is_deleted, deleted_at, deleted_by, deleted_by_device, tombstone_expires_at for audit trail and eventual cleanup
+
+**Next story suggestion:** US-018 (Create menuServicesTable.ts) - Same folder, continues table operations work
 
 ---

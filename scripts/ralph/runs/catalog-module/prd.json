@@ -336,7 +336,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from clientsTable.ts. Use soft delete with tombstone."
     },
     {

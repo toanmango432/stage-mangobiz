@@ -281,3 +281,33 @@ const result = await withTimeout(
 );
 ```
 **Why:** Prevents UI hangs during slow network conditions. Separating createTimeoutPromise allows reuse for different timeout scenarios (auth, bcrypt, etc.).
+
+## From ralph/catalog-module (2026-01-21)
+
+### Soft Delete with Tombstone Pattern
+For audit trail and eventual cleanup, implement soft delete with full metadata:
+```typescript
+async delete(id: string, userId: string, deviceId: string): Promise<void> {
+  const tombstoneExpiresAt = new Date();
+  tombstoneExpiresAt.setDate(tombstoneExpiresAt.getDate() + 30); // 30-day tombstone
+
+  const { error } = await supabase
+    .from('table_name')
+    .update({
+      is_deleted: true,
+      deleted_at: new Date().toISOString(),
+      deleted_by: userId,
+      deleted_by_device: deviceId,
+      tombstone_expires_at: tombstoneExpiresAt.toISOString(),
+      sync_status: 'pending',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+```
+**Why:** Soft delete with tombstone enables:
+1. Audit trail (who/when/what device)
+2. Sync propagation (deleted records sync to other devices)
+3. Eventual cleanup (scheduled job can hard-delete expired tombstones)
