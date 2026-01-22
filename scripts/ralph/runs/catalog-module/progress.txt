@@ -1,0 +1,338 @@
+# Catalog Module Implementation Progress
+
+## Run Info
+- Branch: ralph/catalog-module
+- Started: 2026-01-21
+- PRD: 88 user stories across 6 phases (includes Review + Fix stories)
+
+## Phase-by-Phase Execution
+
+To run a specific phase only, use:
+```bash
+./scripts/ralph/ralph.sh <iterations> catalog-module --phase <N>
+```
+
+Example: `./scripts/ralph/ralph.sh 30 catalog-module --phase 1`
+
+## Codebase Patterns
+
+### Catalog Module Architecture
+- Types: `apps/store-app/src/types/catalog.ts`
+- IndexedDB: `apps/store-app/src/db/catalogDatabase.ts`
+- Data Service: `apps/store-app/src/services/domain/catalogDataService.ts`
+- Primary Hook: `apps/store-app/src/hooks/useCatalog.ts`
+- UI Components: `apps/store-app/src/components/menu-settings/`
+
+### Supabase Patterns
+- Adapters: `apps/store-app/src/services/supabase/adapters/` - snake_case ↔ camelCase
+- Tables: `apps/store-app/src/services/supabase/tables/` - CRUD operations
+- Follow existing patterns from `clientAdapter.ts` and `clientsTable.ts`
+
+### Type Extension Pattern
+```typescript
+import { BaseSyncableEntity } from './common';
+
+export interface CatalogEntity extends BaseSyncableEntity {
+  // Business fields here
+}
+```
+
+### Adapter Pattern
+```typescript
+export function toAppType(row: SupabaseRow): AppType {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    storeId: row.store_id,
+    // ... map all fields
+  };
+}
+```
+
+### Table Operation Pattern
+```typescript
+export const entityTable = {
+  async getByStoreId(storeId: string): Promise<Row[]> {
+    const { data, error } = await supabase
+      .from('table_name')
+      .select('*')
+      .eq('store_id', storeId)
+      .eq('is_deleted', false);
+    if (error) throw error;
+    return data || [];
+  },
+  // ... other CRUD methods
+};
+```
+
+## Phase Checkpoints
+
+### Phase 1: Backend Foundation (US-001 to US-021 + US-P1R + US-P1F) - 23 stories
+**Implementation Stories (21):**
+- [x] US-001: ServiceCategory extends BaseSyncableEntity ✓
+- [x] US-002: MenuService extends BaseSyncableEntity ✓
+- [ ] All remaining catalog types extend BaseSyncableEntity
+- [ ] Supabase migration creates 12 tables
+- [ ] All adapters created and exported
+- [ ] All table operations created and exported
+- [ ] `pnpm run typecheck` passes
+
+**Review Story (US-P1R):**
+- [ ] Explore agent analyzes all Phase 1 files
+- [ ] Plan agent verifies architectural decisions
+- [ ] Document issues in 'Phase 1 Review Issues' section below
+
+**Fix Story (US-P1F):**
+- [ ] All Phase 1 Review Issues resolved
+
+- Status: In Progress (2/23 complete)
+
+### Phase 2: Data Layer (US-022 to US-030 + US-P2R + US-P2F) - 11 stories
+**Implementation Stories (9):**
+- [ ] Booking sequence CRUD in IndexedDB
+- [ ] Product restore method
+- [ ] getByBarcode fixed for multi-tenant
+- [ ] Supabase routing in catalogDataService
+- [ ] `pnpm test --run` passes
+
+**Review Story (US-P2R):**
+- [ ] Security check: multi-tenant isolation verified
+- [ ] Document issues in 'Phase 2 Review Issues' section below
+
+**Fix Story (US-P2F):**
+- [ ] All Phase 2 Review Issues resolved
+
+- Status: Not started
+
+### Phase 3: UI Components (US-031 to US-054 + US-P3R + US-P3F) - 26 stories
+**Implementation Stories (24):**
+- [ ] ConfirmDialog component replaces all browser confirm()
+- [ ] Skeleton loaders in all sections
+- [ ] Keyboard drag-drop where applicable
+- [ ] Zod validation in ServiceModal
+- [ ] Staff assignments load in ServiceModal
+- [ ] More Options button works
+
+**Review Story (US-P3R):**
+- [ ] Browser verification via Playwright MCP
+- [ ] No browser confirm() or alert() calls remain
+- [ ] Document issues in 'Phase 3 Review Issues' section below
+
+**Fix Story (US-P3F):**
+- [ ] All Phase 3 Review Issues resolved
+
+- Status: Not started
+
+### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
+**Implementation Stories (9):**
+- [ ] VariantSelector component
+- [ ] AddOnSelector component
+- [ ] ServiceGrid shows variant/add-on flow
+- [ ] useBookingServices hook
+- [ ] Availability badges in booking
+- [ ] turnWeight in smartAutoAssign
+
+**Review Story (US-P4R):**
+- [ ] Full checkout flow tested in browser
+- [ ] Variant → Add-on → Price calculation verified
+- [ ] Document issues in 'Phase 4 Review Issues' section below
+
+**Fix Story (US-P4F):**
+- [ ] All Phase 4 Review Issues resolved
+
+- Status: Not started
+
+### Phase 5: Module Integrations (US-064 to US-072 + US-P5R + US-P5F) - 11 stories
+**Implementation Stories (9):**
+- [ ] Add-ons displayed in tickets
+- [ ] Staff override duration in timer
+- [ ] catalogSyncService created for Online Store
+- [ ] Mock data replaced with real sync
+- [ ] showPriceOnline respected
+- [ ] Commission calculation implemented
+- [ ] Rebook reminder service created
+
+**Review Story (US-P5R):**
+- [ ] Mock data completely removed from Online Store
+- [ ] Commission calculation verified
+- [ ] Document issues in 'Phase 5 Review Issues' section below
+
+**Fix Story (US-P5F):**
+- [ ] All Phase 5 Review Issues resolved
+
+- Status: Not started
+
+### Phase 6: Testing (US-073 to US-076 + US-P6R + US-P6F) - 6 stories
+**Implementation Stories (4):**
+- [ ] Adapter unit tests (90% coverage)
+- [ ] Table operation tests (85% coverage)
+- [ ] Integration tests for checkout flow
+- [ ] E2E test for checkout flow
+
+**Review Story (US-P6R) - FINAL REVIEW:**
+- [ ] All tests pass
+- [ ] Entire catalog module scanned for issues
+- [ ] No TODO comments, console.log, or 'as any' casts
+- [ ] Document issues in 'Phase 6 Review Issues' section below
+
+**Fix Story (US-P6F) - FINAL FIX:**
+- [ ] All Phase 6 Review Issues resolved
+- [ ] CATALOG MODULE COMPLETE
+
+- Status: Not started
+
+---
+
+## Phase Review Issues
+
+### Phase 1 Review Issues
+<!-- US-P1R will document issues here -->
+<!-- US-P1F will mark issues as [RESOLVED] -->
+
+### Phase 2 Review Issues
+<!-- US-P2R will document issues here -->
+<!-- US-P2F will mark issues as [RESOLVED] -->
+
+### Phase 3 Review Issues
+<!-- US-P3R will document issues here -->
+<!-- US-P3F will mark issues as [RESOLVED] -->
+
+### Phase 4 Review Issues
+<!-- US-P4R will document issues here -->
+<!-- US-P4F will mark issues as [RESOLVED] -->
+
+### Phase 5 Review Issues
+<!-- US-P5R will document issues here -->
+<!-- US-P5F will mark issues as [RESOLVED] -->
+
+### Phase 6 Review Issues
+<!-- US-P6R will document issues here -->
+<!-- US-P6F will mark issues as [RESOLVED] -->
+
+---
+
+## Iteration Log
+
+## 2026-01-21 - US-001: Extend ServiceCategory with BaseSyncableEntity
+Commit: 7c06f4b
+
+**Why this story?** First story (priority 1), no dependencies, forms foundation for Phase 1 type system.
+
+**Changes:**
+1. `apps/store-app/src/types/catalog.ts`:
+   - ServiceCategory now extends BaseSyncableEntity (line 33)
+   - Updated CreateCategoryInput to omit all BaseSyncableEntity fields (lines 53-73)
+
+2. `apps/store-app/src/db/catalogDatabase.ts`:
+   - Added import for createBaseSyncableDefaults from types/common
+   - Updated serviceCategoriesDB.create() to use createBaseSyncableDefaults helper
+   - Added tenantId and deviceId parameters to create function
+
+3. `apps/store-app/src/db/catalogSeed.ts`:
+   - Added createSeedSyncFields() helper function for seed data
+   - Updated all 8 category definitions to spread syncFields
+   - Updated migration function to include sync fields
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test` runs (pre-existing failures not related to catalog module)
+
+**Learnings:**
+- When extending types with BaseSyncableEntity, must update all code paths that create those entities
+- Seed data uses 'synced' status since it doesn't need to sync upstream
+- Migration data uses 'local' status since it needs to sync to Supabase
+- Pre-existing TypeScript errors exist in portfolioAdapter.ts, portfolioTable.ts, portfolioSlice.ts (untracked files, not catalog module related)
+
+**Next story suggestion:** US-002 (Extend MenuService with BaseSyncableEntity) - same file, same pattern, builds on this work
+
+---
+
+## 2026-01-21 - US-002: Extend MenuService with BaseSyncableEntity
+Commit: 1e10dca
+
+**Why this story?** Second story (priority 2), no dependencies, same file as US-001 (catalog.ts is fresh in context), builds directly on the type extension pattern.
+
+**Changes:**
+1. `apps/store-app/src/types/catalog.ts`:
+   - MenuService now extends BaseSyncableEntity (line 116)
+   - Added variantCount: number field to track variant count
+   - Removed duplicate sync fields (createdAt, updatedAt, syncStatus, createdBy, lastModifiedBy) that are now inherited from BaseSyncableEntity
+   - Updated CreateMenuServiceInput to omit all BaseSyncableEntity fields
+   - Status field already used ServiceStatus union type ('active' | 'inactive' | 'archived') - verified
+   - archivedAt and archivedBy fields already present - verified
+
+2. `apps/store-app/src/db/catalogDatabase.ts`:
+   - Updated menuServicesDB.create() to use createBaseSyncableDefaults helper
+   - Added tenantId and deviceId parameters to create function signature
+   - Added variantCount defaulting to 0
+
+3. `apps/store-app/src/db/catalogSeed.ts`:
+   - Updated all 11 MenuService seed definitions to spread syncFields
+   - Added variantCount: N to all services (N = number of variants, or 0 for no variants)
+   - Updated migration function MenuService creation to include migrationSyncFields and variantCount
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- Tests run with pre-existing failures not related to catalog module
+
+**Learnings:**
+- MenuService status field already used ServiceStatus union type - no change needed
+- archivedAt and archivedBy fields were already present - no change needed
+- When extending with BaseSyncableEntity, must remove duplicate fields that were previously inline
+- Seed data with variants needs accurate variantCount (e.g., womensHaircut has 3 variants → variantCount: 3)
+
+**Next story suggestion:** US-003 (Extend ServiceVariant and ServicePackage with sync fields) - same file, continues type extension pattern
+
+---
+
+## 2026-01-21 - US-003: Extend ServiceVariant and ServicePackage with sync fields
+Commit: 3eb3323
+
+**Why this story?** Highest priority story (priority 3) with passes: false. Same file as US-001/US-002, continues the type extension pattern with code fresh in context.
+
+**Changes:**
+1. `apps/store-app/src/types/catalog.ts`:
+   - ServiceVariant now extends BaseSyncableEntity (removed duplicate id, storeId, createdAt, updatedAt, syncStatus fields)
+   - ServicePackage now extends BaseSyncableEntity (removed duplicate fields including createdBy, lastModifiedBy)
+   - Updated CreateVariantInput to omit all BaseSyncableEntity fields
+   - Updated CreatePackageInput to omit all BaseSyncableEntity fields
+
+2. `apps/store-app/src/db/catalogDatabase.ts`:
+   - Updated serviceVariantsDB.create() to use createBaseSyncableDefaults with userId, deviceId, tenantId, storeId params
+   - Updated serviceVariantsDB.update() to include userId for audit trail
+   - Updated serviceVariantsDB.setDefault() to include userId for audit trail
+   - Updated servicePackagesDB.create() to use createBaseSyncableDefaults
+
+3. `apps/store-app/src/db/catalogSeed.ts`:
+   - Added createSeedVariant() helper function with all sync fields
+   - Added createSeedPackage() helper function with all sync fields
+   - Updated all variant push statements to use createSeedVariant()
+   - Updated all package definitions to use createSeedPackage()
+
+4. `apps/store-app/src/hooks/useCatalog.ts`:
+   - Updated serviceVariantsDB.create() calls to include userId parameter
+   - Updated serviceVariantsDB.update() calls to include userId parameter
+
+5. `apps/store-app/src/services/domain/catalogDataService.ts`:
+   - Updated serviceVariantsService.create() to pass userId to Dexie API
+   - Updated serviceVariantsService.update() to pass userId to Dexie API
+
+6. `apps/store-app/src/store/slices/catalogSlice.ts`:
+   - Updated createVariant thunk to include userId in parameters
+   - Updated updateVariant thunk to include userId in parameters
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- When extending types with BaseSyncableEntity, must update ALL callers to include new required parameters (userId, tenantId, deviceId)
+- Seed data helper functions make type-safe seeding much cleaner
+- The serviceVariantsDB and servicePackagesDB create() functions now have consistent signatures with menuServicesDB
+
+**Patterns to sync:**
+- Pattern #1: Seed Helper Functions - Create helper functions for seeding entities with full sync fields instead of inline object literals
+
+**Next story suggestion:** US-004 (Extend AddOnGroup and AddOnOption with sync fields) - same file, same pattern, continues type extension work
+
+---

@@ -509,7 +509,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
               isDefault: v.isDefault || false,
               displayOrder: variants.indexOf(v),
               isActive: true,
-            }, storeId);
+            }, userId, storeId);
           }
         }
 
@@ -555,7 +555,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
                 extraTime: v.processingTime,
                 isDefault: v.isDefault,
                 displayOrder: i,
-              });
+              }, userId);
             } else {
               // Create new
               await serviceVariantsDB.create({
@@ -567,7 +567,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
                 isDefault: v.isDefault || false,
                 displayOrder: i,
                 isActive: true,
-              }, storeId);
+              }, userId, storeId);
             }
           }
         }

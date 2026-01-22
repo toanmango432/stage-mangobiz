@@ -225,20 +225,18 @@ export const serviceVariantsService = {
     return serviceVariantsDB.getById(id);
   },
 
-  async create(input: unknown, _userId: string, storeId: string) {
+  async create(input: unknown, userId: string, storeId: string) {
     if (USE_SQLITE) {
       return sqliteServiceVariantsDB.create(input);
     }
-    // Dexie API: create(input, storeId) - no userId
-    return serviceVariantsDB.create(input as Parameters<typeof serviceVariantsDB.create>[0], storeId);
+    return serviceVariantsDB.create(input as Parameters<typeof serviceVariantsDB.create>[0], userId, storeId);
   },
 
-  async update(id: string, updates: unknown, _userId: string) {
+  async update(id: string, updates: unknown, userId: string) {
     if (USE_SQLITE) {
       return sqliteServiceVariantsDB.update(id, updates);
     }
-    // Dexie API: update(id, updates) - no userId
-    return serviceVariantsDB.update(id, updates as Partial<unknown>);
+    return serviceVariantsDB.update(id, updates as Partial<unknown>, userId);
   },
 
   async delete(id: string) {

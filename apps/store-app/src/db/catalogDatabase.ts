@@ -272,9 +272,7 @@ export const serviceVariantsDB = {
     return await db.serviceVariants.get(id);
   },
 
-  async create(input: CreateVariantInput, storeId: string): Promise<ServiceVariant> {
-    const now = new Date().toISOString();
-
+  async create(input: CreateVariantInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<ServiceVariant> {
     // Get next display order
     const maxOrder = await db.serviceVariants
       .where('serviceId')
@@ -282,21 +280,20 @@ export const serviceVariantsDB = {
       .toArray()
       .then(vars => Math.max(0, ...vars.map(v => v.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const variant: ServiceVariant = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     await db.serviceVariants.add(variant);
     return variant;
   },
 
-  async update(id: string, updates: Partial<ServiceVariant>): Promise<ServiceVariant | undefined> {
+  async update(id: string, updates: Partial<ServiceVariant>, userId: string): Promise<ServiceVariant | undefined> {
     const variant = await db.serviceVariants.get(id);
     if (!variant) return undefined;
 
@@ -304,6 +301,7 @@ export const serviceVariantsDB = {
       ...variant,
       ...updates,
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
       syncStatus: 'local',
     };
 
@@ -315,7 +313,7 @@ export const serviceVariantsDB = {
     await db.serviceVariants.delete(id);
   },
 
-  async setDefault(serviceId: string, variantId: string): Promise<void> {
+  async setDefault(serviceId: string, variantId: string, userId: string): Promise<void> {
     await db.transaction('rw', db.serviceVariants, async () => {
       // Remove default from all variants of this service
       const variants = await db.serviceVariants.where('serviceId').equals(serviceId).toArray();
@@ -323,6 +321,7 @@ export const serviceVariantsDB = {
         await db.serviceVariants.update(v.id, {
           isDefault: v.id === variantId,
           updatedAt: new Date().toISOString(),
+          lastModifiedBy: userId,
           syncStatus: 'local',
         });
       }
@@ -349,25 +348,20 @@ export const servicePackagesDB = {
     return await db.servicePackages.get(id);
   },
 
-  async create(input: CreatePackageInput, userId: string, storeId: string): Promise<ServicePackage> {
-    const now = new Date().toISOString();
-
+  async create(input: CreatePackageInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<ServicePackage> {
     const maxOrder = await db.servicePackages
       .where('storeId')
       .equals(storeId)
       .toArray()
       .then(pkgs => Math.max(0, ...pkgs.map(p => p.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const pkg: ServicePackage = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      createdBy: userId,
-      lastModifiedBy: userId,
-      syncStatus: 'local',
     };
 
     await db.servicePackages.add(pkg);

@@ -76,9 +76,13 @@ export type CreateCategoryInput = Omit<ServiceCategory,
 // SERVICE VARIANT
 // ============================================
 
-export interface ServiceVariant {
-  id: string;
-  storeId: string;
+/**
+ * ServiceVariant - Represents a variant of a service (e.g., "Short Hair", "Long Hair")
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface ServiceVariant extends BaseSyncableEntity {
   serviceId: string;
 
   // Core fields
@@ -93,15 +97,32 @@ export interface ServiceVariant {
   isDefault: boolean;
   displayOrder: number;
   isActive: boolean;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new ServiceVariant
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateVariantInput = Omit<ServiceVariant,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
@@ -227,10 +248,13 @@ export type CreateMenuServiceInput = Omit<MenuService,
 // SERVICE PACKAGE / BUNDLE
 // ============================================
 
-export interface ServicePackage {
-  id: string;
-  storeId: string;
-
+/**
+ * ServicePackage - Represents a bundled package of services
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface ServicePackage extends BaseSyncableEntity {
   // Core fields
   name: string;
   description?: string;
@@ -265,15 +289,6 @@ export interface ServicePackage {
   // Visual
   color?: string;
   images?: string[];
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
-
-  // Audit
-  createdBy?: string;
-  lastModifiedBy?: string;
 }
 
 export interface PackageServiceItem {
@@ -285,8 +300,30 @@ export interface PackageServiceItem {
   originalPrice: number;
 }
 
+/**
+ * Input type for creating a new ServicePackage
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreatePackageInput = Omit<ServicePackage,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================

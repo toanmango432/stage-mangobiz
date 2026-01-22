@@ -1,0 +1,1563 @@
+{
+  "project": "Mango POS Offline V2",
+  "branchName": "ralph/catalog-module",
+  "description": "Complete Catalog Module Implementation - Addresses 121+ gaps across backend/data layer, UI components, and module integrations. Organized in 6 phases for phase-by-phase execution.",
+  "phases": {
+    "1": {
+      "name": "Backend Foundation",
+      "stories": "US-001 to US-021, US-P1R, US-P1F",
+      "count": 23,
+      "checkpoint": "Types extend BaseSyncableEntity, Supabase migration creates 12 tables, all adapters and table operations created. REVIEW + FIX completes phase."
+    },
+    "2": {
+      "name": "Data Layer",
+      "stories": "US-022 to US-030, US-P2R, US-P2F",
+      "count": 11,
+      "checkpoint": "Booking sequence CRUD works, getByBarcode has storeId filter, Supabase routing in catalogDataService. REVIEW + FIX completes phase."
+    },
+    "3": {
+      "name": "UI Components",
+      "stories": "US-031 to US-054, US-P3R, US-P3F",
+      "count": 26,
+      "checkpoint": "ConfirmDialog replaces all browser confirm(), skeleton loaders in all sections, Zod validation in modals. REVIEW + FIX completes phase."
+    },
+    "4": {
+      "name": "Checkout & Booking",
+      "stories": "US-055 to US-063, US-P4R, US-P4F",
+      "count": 11,
+      "checkpoint": "VariantSelector and AddOnSelector work in checkout, availability badges in booking, turnWeight in auto-assign. REVIEW + FIX completes phase."
+    },
+    "5": {
+      "name": "Module Integrations",
+      "stories": "US-064 to US-072, US-P5R, US-P5F",
+      "count": 11,
+      "checkpoint": "Add-ons display in tickets, Online Store uses real catalog sync, commission calculated at checkout. REVIEW + FIX completes phase."
+    },
+    "6": {
+      "name": "Testing",
+      "stories": "US-073 to US-076, US-P6R, US-P6F",
+      "count": 6,
+      "checkpoint": "Adapter tests 90% coverage, table tests 85% coverage, E2E checkout flow passes. FINAL REVIEW + FIX completes module."
+    }
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "phase": 1,
+      "title": "Extend ServiceCategory with BaseSyncableEntity",
+      "description": "As a developer, I need ServiceCategory to include sync metadata fields so it can sync between IndexedDB and Supabase.",
+      "acceptanceCriteria": [
+        "ServiceCategory interface extends BaseSyncableEntity from types/common.ts",
+        "Add tenantId, version, vectorClock, lastSyncedVersion fields",
+        "Add isDeleted, deletedAt, deletedBy, tombstoneExpiresAt fields",
+        "Add createdByDevice, lastModifiedByDevice fields",
+        "Keep all existing business fields (name, description, color, etc.)",
+        "No 'as any' type casts",
+        "pnpm run typecheck passes for store-app"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "File: apps/store-app/src/types/catalog.ts. Import BaseSyncableEntity from ./common. Follow pattern from existing syncable types like Client."
+    },
+    {
+      "id": "US-002",
+      "phase": 1,
+      "title": "Extend MenuService with BaseSyncableEntity",
+      "description": "As a developer, I need MenuService to include sync metadata so services can sync between devices.",
+      "acceptanceCriteria": [
+        "MenuService interface extends BaseSyncableEntity",
+        "Add variantCount: number field to track variant count",
+        "Keep all existing fields (name, price, duration, etc.)",
+        "Update status field to use union type: 'active' | 'inactive' | 'archived'",
+        "Ensure archivedAt, archivedBy fields are present",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "MenuService is the largest type. Be careful not to lose existing fields. See existing MenuService for all business fields."
+    },
+    {
+      "id": "US-003",
+      "phase": 1,
+      "title": "Extend ServiceVariant and ServicePackage with sync fields",
+      "description": "As a developer, I need variant and package types to support multi-device sync.",
+      "acceptanceCriteria": [
+        "ServiceVariant extends BaseSyncableEntity",
+        "ServicePackage extends BaseSyncableEntity",
+        "Both keep all existing business fields",
+        "Remove duplicate sync fields if already present (prevent duplication from BaseSyncableEntity)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "File: apps/store-app/src/types/catalog.ts. These are smaller types, should be straightforward."
+    },
+    {
+      "id": "US-004",
+      "phase": 1,
+      "title": "Extend AddOnGroup and AddOnOption with sync fields",
+      "description": "As a developer, I need add-on types to support multi-device sync.",
+      "acceptanceCriteria": [
+        "AddOnGroup extends BaseSyncableEntity",
+        "AddOnOption extends BaseSyncableEntity",
+        "Both keep all existing fields (name, price, applicability, etc.)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "File: apps/store-app/src/types/catalog.ts. AddOnGroup has applicability fields - keep those."
+    },
+    {
+      "id": "US-005",
+      "phase": 1,
+      "title": "Extend remaining catalog types with sync fields",
+      "description": "As a developer, I need all catalog types to support sync.",
+      "acceptanceCriteria": [
+        "StaffServiceAssignment extends BaseSyncableEntity",
+        "CatalogSettings extends BaseSyncableEntity",
+        "BookingSequence extends BaseSyncableEntity",
+        "GiftCardDenomination extends BaseSyncableEntity",
+        "GiftCardSettings extends BaseSyncableEntity",
+        "All keep existing business fields",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "File: apps/store-app/src/types/catalog.ts. Complete type system foundation - all types now have sync support."
+    },
+    {
+      "id": "US-006",
+      "phase": 1,
+      "title": "Create Supabase migration for service_categories table",
+      "description": "As a developer, I need the service_categories table in Supabase for cloud sync.",
+      "acceptanceCriteria": [
+        "Create migration file: supabase/migrations/031_create_catalog_tables.sql",
+        "Create service_categories table with all fields from ServiceCategory type",
+        "Use snake_case column names (tenant_id, store_id, etc.)",
+        "Add sync metadata columns (sync_status, version, vector_clock JSONB)",
+        "Add soft delete columns (is_deleted, deleted_at, tombstone_expires_at)",
+        "Add RLS policy for store_id isolation",
+        "Add index on [store_id, is_deleted]"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Follow Supabase migration pattern from existing migrations. RLS policy ensures multi-tenant isolation."
+    },
+    {
+      "id": "US-007",
+      "phase": 1,
+      "title": "Add menu_services and service_variants tables to migration",
+      "description": "As a developer, I need service and variant tables in Supabase.",
+      "acceptanceCriteria": [
+        "Add menu_services table with all MenuService fields",
+        "Add service_variants table with all ServiceVariant fields",
+        "menu_services has foreign key to service_categories(id)",
+        "service_variants has foreign key to menu_services(id)",
+        "Both tables have sync metadata columns",
+        "Both tables have RLS policies",
+        "Add indexes for common queries"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "File: supabase/migrations/031_create_catalog_tables.sql. Append to existing migration."
+    },
+    {
+      "id": "US-008",
+      "phase": 1,
+      "title": "Add service_packages table to migration",
+      "description": "As a developer, I need packages table in Supabase.",
+      "acceptanceCriteria": [
+        "Add service_packages table with all ServicePackage fields",
+        "Store services array as JSONB column",
+        "Add sync metadata columns",
+        "Add RLS policy",
+        "Add store_id index"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "PackageServiceItem[] stored as JSONB - Supabase handles JSON well."
+    },
+    {
+      "id": "US-009",
+      "phase": 1,
+      "title": "Add add_on_groups and add_on_options tables to migration",
+      "description": "As a developer, I need add-on tables in Supabase.",
+      "acceptanceCriteria": [
+        "Add add_on_groups table with all AddOnGroup fields",
+        "Add add_on_options table with all AddOnOption fields",
+        "add_on_options has foreign key to add_on_groups(id)",
+        "Store applicable_category_ids and applicable_service_ids as TEXT[] arrays",
+        "Both tables have sync metadata and RLS"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Arrays in Postgres: use TEXT[] type for UUID arrays."
+    },
+    {
+      "id": "US-010",
+      "phase": 1,
+      "title": "Add remaining catalog tables to migration",
+      "description": "As a developer, I need all catalog tables in Supabase.",
+      "acceptanceCriteria": [
+        "Add staff_service_assignments table",
+        "Add catalog_settings table (one per store)",
+        "Add booking_sequences table",
+        "Add products table with all Product fields",
+        "Add gift_card_denominations table",
+        "Add gift_card_settings table",
+        "All tables have sync metadata and RLS policies"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Complete the migration file. Verify all 12 tables are created."
+    },
+    {
+      "id": "US-011",
+      "phase": 1,
+      "title": "Add catalog table types to Supabase types.ts",
+      "description": "As a developer, I need TypeScript types for Supabase catalog tables.",
+      "acceptanceCriteria": [
+        "Add ServiceCategoryRow type to Database['public']['Tables']",
+        "Add MenuServiceRow type",
+        "Add ServiceVariantRow type",
+        "Add ServicePackageRow type",
+        "Add AddOnGroupRow, AddOnOptionRow types",
+        "Add StaffServiceAssignmentRow type",
+        "Add CatalogSettingsRow type",
+        "Add ProductRow type",
+        "Add GiftCardDenominationRow, GiftCardSettingsRow types",
+        "Include Row, Insert, Update variants for each",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "File: apps/store-app/src/services/supabase/types.ts. Follow existing pattern from clients table."
+    },
+    {
+      "id": "US-012",
+      "phase": 1,
+      "title": "Create serviceCategoryAdapter.ts",
+      "description": "As a developer, I need type adapters to convert between Supabase and app types.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/services/supabase/adapters/serviceCategoryAdapter.ts",
+        "Export toServiceCategory(row: ServiceCategoryRow): ServiceCategory",
+        "Export toServiceCategoryInsert(category, storeId, tenantId): ServiceCategoryInsert",
+        "Export toServiceCategoryUpdate(updates): ServiceCategoryUpdate",
+        "Export toServiceCategories(rows): ServiceCategory[]",
+        "Handle snake_case to camelCase conversion",
+        "Handle optional fields (null -> undefined)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Follow pattern from clientAdapter.ts. Handle vectorClock JSON parsing."
+    },
+    {
+      "id": "US-013",
+      "phase": 1,
+      "title": "Create menuServiceAdapter.ts",
+      "description": "As a developer, I need adapter for MenuService type conversion.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/services/supabase/adapters/menuServiceAdapter.ts",
+        "Export toMenuService, toMenuServiceInsert, toMenuServiceUpdate, toMenuServices",
+        "Handle all MenuService fields (many fields)",
+        "Handle price as Decimal -> number conversion",
+        "Handle tags TEXT[] -> string[] conversion",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "MenuService has ~40 fields. Map each one carefully."
+    },
+    {
+      "id": "US-014",
+      "phase": 1,
+      "title": "Create serviceVariantAdapter.ts and servicePackageAdapter.ts",
+      "description": "As a developer, I need adapters for variant and package types.",
+      "acceptanceCriteria": [
+        "Create serviceVariantAdapter.ts with toServiceVariant, toServiceVariants, etc.",
+        "Create servicePackageAdapter.ts with toServicePackage, etc.",
+        "Handle services JSONB -> PackageServiceItem[] for packages",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Variants are simple. Packages need JSONB parsing for services array."
+    },
+    {
+      "id": "US-015",
+      "phase": 1,
+      "title": "Create addOnGroupAdapter.ts and addOnOptionAdapter.ts",
+      "description": "As a developer, I need adapters for add-on types.",
+      "acceptanceCriteria": [
+        "Create addOnGroupAdapter.ts",
+        "Create addOnOptionAdapter.ts",
+        "Handle TEXT[] -> string[] for applicable_category_ids, applicable_service_ids",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "Arrays in Postgres come back as string[] - direct mapping."
+    },
+    {
+      "id": "US-016",
+      "phase": 1,
+      "title": "Create remaining catalog adapters",
+      "description": "As a developer, I need adapters for all catalog types.",
+      "acceptanceCriteria": [
+        "Create staffServiceAssignmentAdapter.ts",
+        "Create catalogSettingsAdapter.ts",
+        "Create bookingSequenceAdapter.ts",
+        "Create productAdapter.ts",
+        "Create giftCardDenominationAdapter.ts",
+        "Create giftCardSettingsAdapter.ts",
+        "Update adapters/index.ts to export all new adapters",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Complete all adapters. Export from index.ts for easy imports."
+    },
+    {
+      "id": "US-017",
+      "phase": 1,
+      "title": "Create serviceCategoriesTable.ts",
+      "description": "As a developer, I need Supabase CRUD operations for categories.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/services/supabase/tables/serviceCategoriesTable.ts",
+        "Export serviceCategoriesTable object with methods:",
+        "- getByStoreId(storeId, includeInactive?)",
+        "- getById(id)",
+        "- create(category)",
+        "- update(id, updates)",
+        "- delete(id, userId, deviceId) - soft delete",
+        "- getUpdatedSince(storeId, since: Date)",
+        "- upsertMany(categories)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Follow pattern from clientsTable.ts. Use soft delete with tombstone."
+    },
+    {
+      "id": "US-018",
+      "phase": 1,
+      "title": "Create menuServicesTable.ts",
+      "description": "As a developer, I need Supabase CRUD for menu services.",
+      "acceptanceCriteria": [
+        "Create menuServicesTable.ts",
+        "Include: getByStoreId, getById, getByCategoryId",
+        "Include: create, update, delete",
+        "Include: archive(id), restore(id)",
+        "Include: search(storeId, query, limit)",
+        "Include: getUpdatedSince, upsertMany",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "Services need archive/restore and search functionality."
+    },
+    {
+      "id": "US-019",
+      "phase": 1,
+      "title": "Create serviceVariantsTable.ts and servicePackagesTable.ts",
+      "description": "As a developer, I need Supabase CRUD for variants and packages.",
+      "acceptanceCriteria": [
+        "Create serviceVariantsTable.ts with CRUD + getByServiceId",
+        "Create servicePackagesTable.ts with CRUD",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "Straightforward CRUD. Variants filtered by serviceId."
+    },
+    {
+      "id": "US-020",
+      "phase": 1,
+      "title": "Create addOnGroupsTable.ts and addOnOptionsTable.ts",
+      "description": "As a developer, I need Supabase CRUD for add-ons.",
+      "acceptanceCriteria": [
+        "Create addOnGroupsTable.ts with CRUD + getForService(serviceId, categoryId)",
+        "Create addOnOptionsTable.ts with CRUD + getByGroupId",
+        "getForService filters by applicable_service_ids or applicable_category_ids",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "getForService is key for checkout integration - filter by applicability."
+    },
+    {
+      "id": "US-021",
+      "phase": 1,
+      "title": "Create remaining catalog table operations",
+      "description": "As a developer, I need Supabase CRUD for all catalog tables.",
+      "acceptanceCriteria": [
+        "Create staffServiceAssignmentsTable.ts with CRUD + getByStaffId + getByServiceId",
+        "Create catalogSettingsTable.ts with get/update only (one per store)",
+        "Create bookingSequencesTable.ts with CRUD",
+        "Create productsTable.ts with CRUD + archive + search + getByBarcode + getBySku",
+        "Create giftCardDenominationsTable.ts with CRUD",
+        "Create giftCardSettingsTable.ts with get/update",
+        "Update tables/index.ts to export all",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "PHASE 1 COMPLETE - Backend foundation ready. Verify: pnpm run typecheck"
+    },
+    {
+      "id": "US-022",
+      "phase": 2,
+      "title": "Add booking sequence CRUD to catalogDatabase.ts",
+      "description": "As a developer, I need IndexedDB operations for booking sequences.",
+      "acceptanceCriteria": [
+        "Add bookingSequencesDB object to catalogDatabase.ts",
+        "Include: getByStore, getById, create, update, delete",
+        "Use same pattern as other catalog operations",
+        "Ensure userId, deviceId passed for audit trail",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "File: apps/store-app/src/db/catalogDatabase.ts. BookingSequence type already exists."
+    },
+    {
+      "id": "US-023",
+      "phase": 2,
+      "title": "Add product restore method to catalogDatabase.ts",
+      "description": "As a developer, I need to restore archived products.",
+      "acceptanceCriteria": [
+        "Add restore(id, userId, deviceId) method to productsDB",
+        "Restore sets isActive=true, isDeleted=false",
+        "Increments version, updates vectorClock",
+        "Sets syncStatus to 'local'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "Products have archive but no restore currently."
+    },
+    {
+      "id": "US-024",
+      "phase": 2,
+      "title": "Fix getByBarcode multi-tenant isolation in catalogDataService.ts",
+      "description": "As a developer, I need getByBarcode to filter by storeId to prevent data leakage.",
+      "acceptanceCriteria": [
+        "Update productsService.getByBarcode(storeId, barcode) signature",
+        "SQLite path: add storeId filter to query",
+        "Supabase path: add storeId filter to query",
+        "All callers updated to pass storeId",
+        "No products returned from other stores",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "File: apps/store-app/src/services/domain/catalogDataService.ts. CRITICAL security fix."
+    },
+    {
+      "id": "US-025",
+      "phase": 2,
+      "title": "Add Supabase routing to catalogDataService.ts",
+      "description": "As a developer, I need catalogDataService to route to Supabase when online.",
+      "acceptanceCriteria": [
+        "Add shouldUseSupabase() check alongside existing shouldUseSQLite()",
+        "For serviceCategoriesService: add Supabase path using serviceCategoriesTable + adapters",
+        "Follow pattern: if (USE_SUPABASE) { const rows = await table.getX(); return toAppTypes(rows); }",
+        "Start with categories service only in this story",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": "Add Supabase routing incrementally. This story does categories only."
+    },
+    {
+      "id": "US-026",
+      "phase": 2,
+      "title": "Add Supabase routing for menu services in catalogDataService.ts",
+      "description": "As a developer, I need menuServicesService to route to Supabase.",
+      "acceptanceCriteria": [
+        "Add Supabase path to menuServicesService methods",
+        "Include: getAll, getById, getByCategoryId, create, update, delete, archive, restore, search",
+        "Use menuServicesTable and menuServiceAdapter",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": "Follow same pattern as categories. Services have more methods."
+    },
+    {
+      "id": "US-027",
+      "phase": 2,
+      "title": "Add Supabase routing for remaining services in catalogDataService.ts",
+      "description": "As a developer, I need all catalog services to route to Supabase.",
+      "acceptanceCriteria": [
+        "Add Supabase paths to serviceVariantsService",
+        "Add Supabase paths to servicePackagesService",
+        "Add Supabase paths to addOnGroupsService, addOnOptionsService",
+        "Add Supabase paths to staffServiceAssignmentsService",
+        "Add Supabase paths to catalogSettingsService",
+        "Add Supabase paths to productsService",
+        "Add Supabase paths to giftCardDenominationsService, giftCardSettingsService",
+        "Remove 'as unknown' type casts - use proper types from adapters",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": "Complete Supabase routing - data layer fully functional with Supabase support."
+    },
+    {
+      "id": "US-028",
+      "phase": 2,
+      "title": "Add booking sequence CRUD to useCatalog hook",
+      "description": "As a developer, I need useCatalog to expose booking sequence operations.",
+      "acceptanceCriteria": [
+        "Add bookingSequences live query to useCatalog hook",
+        "Add createBookingSequence, updateBookingSequence, deleteBookingSequence actions",
+        "Actions use catalogDataService.bookingSequencesService",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": "File: apps/store-app/src/hooks/useCatalog.ts. Follow pattern from other CRUD operations."
+    },
+    {
+      "id": "US-029",
+      "phase": 2,
+      "title": "Fix tenantId handling in useCatalog hook",
+      "description": "As a developer, I need proper tenantId handling for multi-tenant support.",
+      "acceptanceCriteria": [
+        "Add tenantId to UseCatalogOptions interface (required)",
+        "Remove storeId fallback: tenantId = storeId (line ~917)",
+        "Pass tenantId to all create operations",
+        "Update hook signature to require tenantId",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": "tenantId should come from auth context, not default to storeId."
+    },
+    {
+      "id": "US-030",
+      "phase": 2,
+      "title": "Add product restore to useCatalog hook",
+      "description": "As a developer, I need to restore archived products via useCatalog.",
+      "acceptanceCriteria": [
+        "Add restoreProduct(id) action to useCatalog",
+        "Uses catalogDataService.productsService.restore (created in US-023)",
+        "Show success/error toast",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": "PHASE 2 COMPLETE - Data layer fixes done. Verify: pnpm test --run"
+    },
+    {
+      "id": "US-031",
+      "phase": 3,
+      "title": "Create ConfirmDialog shared component",
+      "description": "As a user, I want accessible confirmation dialogs instead of browser confirm().",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/menu-settings/components/ConfirmDialog.tsx",
+        "Use AlertDialog from @radix-ui/react-alert-dialog",
+        "Props: open, onOpenChange, title, description, confirmLabel, cancelLabel, variant, onConfirm, isLoading",
+        "variant='destructive' uses red colors for delete actions",
+        "Accessible: proper ARIA, focus management",
+        "Keyboard: Escape closes, Enter confirms",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": "This replaces all browser confirm() calls in menu-settings."
+    },
+    {
+      "id": "US-032",
+      "phase": 3,
+      "title": "Create skeleton loader components for menu-settings",
+      "description": "As a user, I want skeleton loaders during data loading.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/menu-settings/components/skeletons/ServiceCardSkeleton.tsx",
+        "Create CategoryCardSkeleton.tsx",
+        "Create PackageCardSkeleton.tsx",
+        "Create ProductCardSkeleton.tsx",
+        "Create TableRowSkeleton.tsx",
+        "Use Skeleton component from @/components/ui/skeleton",
+        "Export from components/index.ts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": "5 skeleton variants for different section card types."
+    },
+    {
+      "id": "US-033",
+      "phase": 3,
+      "title": "Create ErrorState and EmptyState components",
+      "description": "As a user, I want clear error and empty states with retry options.",
+      "acceptanceCriteria": [
+        "Create ErrorState.tsx with title, message, onRetry props",
+        "Create EmptyState.tsx with title, description, actionLabel, onAction props",
+        "Use consistent styling with existing UI components",
+        "Export from components/index.ts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": "Simple presentational components."
+    },
+    {
+      "id": "US-034",
+      "phase": 3,
+      "title": "Create useKeyboardDragDrop hook",
+      "description": "As a user with accessibility needs, I want keyboard-accessible drag and drop.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/menu-settings/hooks/useKeyboardDragDrop.ts",
+        "Wrap @dnd-kit with keyboard announcements",
+        "Support Arrow Up/Down for reordering",
+        "Support Enter to confirm, Escape to cancel",
+        "Include aria-live announcements for screen readers",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": "UI infrastructure for accessible drag-drop."
+    },
+    {
+      "id": "US-035",
+      "phase": 3,
+      "title": "Replace browser confirm() in CategoriesSection",
+      "description": "As a user, I want accessible confirmation dialogs in categories management.",
+      "acceptanceCriteria": [
+        "Replace confirm() call with ConfirmDialog component",
+        "Add deleteDialogOpen state and selectedCategoryToDelete state",
+        "Show ConfirmDialog when user clicks delete",
+        "Use destructive variant for delete confirmation",
+        "No browser confirm() or alert() calls remain",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/sections/CategoriesSection.tsx"
+    },
+    {
+      "id": "US-036",
+      "phase": 3,
+      "title": "Add skeleton loader to CategoriesSection",
+      "description": "As a user, I want to see loading state while categories load.",
+      "acceptanceCriteria": [
+        "Import CategoryCardSkeleton from shared components",
+        "Show skeleton grid when isLoading is true",
+        "Show 4-6 skeleton cards during loading",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": "Use the skeleton component created in US-032."
+    },
+    {
+      "id": "US-037",
+      "phase": 3,
+      "title": "Add keyboard drag-drop to CategoriesSection",
+      "description": "As a user, I want to reorder categories with keyboard.",
+      "acceptanceCriteria": [
+        "Use useKeyboardDragDrop hook from US-034",
+        "Add aria-label to drag handles",
+        "Support Arrow keys for reordering when focused on drag handle",
+        "Announce reorder changes to screen readers",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": "Enhance existing DndContext with keyboard support."
+    },
+    {
+      "id": "US-038",
+      "phase": 3,
+      "title": "Replace browser confirm() in ServicesSection",
+      "description": "As a user, I want accessible confirmation dialogs in services management.",
+      "acceptanceCriteria": [
+        "Replace confirm() call with ConfirmDialog",
+        "Add necessary state for dialog management",
+        "No browser confirm() calls remain",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx"
+    },
+    {
+      "id": "US-039",
+      "phase": 3,
+      "title": "Add skeleton loaders to ServicesSection",
+      "description": "As a user, I want to see loading state while services load.",
+      "acceptanceCriteria": [
+        "Import ServiceCardSkeleton",
+        "Show skeleton grid/list/compact based on current viewMode",
+        "Show 6-8 skeletons during loading",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": "ServicesSection has 3 view modes - show appropriate skeletons for each."
+    },
+    {
+      "id": "US-040",
+      "phase": 3,
+      "title": "Extract ServiceActionsDropdown component",
+      "description": "As a developer, I want DRY code - extract duplicated dropdown logic.",
+      "acceptanceCriteria": [
+        "Create ServicesSection/components/ServiceActionsDropdown.tsx",
+        "Move duplicated dropdown logic from grid and list views",
+        "Props: service, onEdit, onDuplicate, onArchive, onDelete",
+        "Use DropdownMenu from @/components/ui/dropdown-menu",
+        "Replace both inline dropdowns with new component",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": "Grid and list views have nearly identical dropdown code - consolidate."
+    },
+    {
+      "id": "US-041",
+      "phase": 3,
+      "title": "Replace browser confirm() in PackagesSection",
+      "description": "As a user, I want accessible confirmation in packages management.",
+      "acceptanceCriteria": [
+        "Replace confirm() with ConfirmDialog",
+        "Add skeleton loader during loading",
+        "No browser confirm() calls remain",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/sections/PackagesSection.tsx"
+    },
+    {
+      "id": "US-042",
+      "phase": 3,
+      "title": "Replace browser confirm() in ProductsSection",
+      "description": "As a user, I want accessible confirmation in products management.",
+      "acceptanceCriteria": [
+        "Replace confirm() with ConfirmDialog",
+        "Add skeleton loader during loading",
+        "No browser confirm() calls remain",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/sections/ProductsSection.tsx"
+    },
+    {
+      "id": "US-043",
+      "phase": 3,
+      "title": "Add barcode display and low stock indicator to ProductsSection",
+      "description": "As a user, I want to see product barcodes and low stock warnings.",
+      "acceptanceCriteria": [
+        "Display barcode field in product list/grid view",
+        "Add low stock badge when quantity < minStockLevel",
+        "Badge shows red warning icon and 'Low Stock' text",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 43,
+      "passes": false,
+      "notes": "minStockLevel exists in Product type. Check against current stock."
+    },
+    {
+      "id": "US-044",
+      "phase": 3,
+      "title": "Replace browser confirm() in AddOnsSection",
+      "description": "As a user, I want accessible confirmation in add-ons management.",
+      "acceptanceCriteria": [
+        "Replace confirm() with ConfirmDialog",
+        "Add skeleton loader during loading",
+        "Extend search to include nested option names within groups",
+        "No browser confirm() calls remain",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 44,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/sections/AddOnsSection.tsx"
+    },
+    {
+      "id": "US-045",
+      "phase": 3,
+      "title": "Fix batch save error handling in StaffPermissionsSection",
+      "description": "As a user, I want to see which staff members failed to save.",
+      "acceptanceCriteria": [
+        "Wrap each member save in try-catch",
+        "Track failed member IDs in state",
+        "Show error indicator on failed member rows",
+        "Show summary of failures after batch save",
+        "Add loading indicator per member during save",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 45,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/sections/StaffPermissionsSection.tsx"
+    },
+    {
+      "id": "US-046",
+      "phase": 3,
+      "title": "Add validation to MenuGeneralSettingsSection",
+      "description": "As a user, I want validation on settings inputs.",
+      "acceptanceCriteria": [
+        "Add validation: taxRate must be 0-100",
+        "Add validation: depositPercentage must be 5-100",
+        "Show inline error messages for invalid values",
+        "Add save status indicator (Saving.../Saved/Error)",
+        "Add debounced auto-save with indicator",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 46,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/sections/MenuGeneralSettingsSection.tsx"
+    },
+    {
+      "id": "US-047",
+      "phase": 3,
+      "title": "Fix GiftCardsSection to load defaults from CatalogSettings",
+      "description": "As a user, I want gift card defaults from store settings, not hardcoded.",
+      "acceptanceCriteria": [
+        "Remove hardcoded default values",
+        "Load defaults from catalog.settings via useCatalog",
+        "Add active/inactive badge to denomination list",
+        "Replace browser confirm() with ConfirmDialog",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 47,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/sections/GiftCardsSection.tsx"
+    },
+    {
+      "id": "US-048",
+      "phase": 3,
+      "title": "Add keyboard drag-drop to BookingSequenceSection",
+      "description": "As a user, I want to reorder booking sequence with keyboard.",
+      "acceptanceCriteria": [
+        "Use useKeyboardDragDrop hook",
+        "Add aria-label to drag handles",
+        "Add error state display when filter fails",
+        "Add ARIA announcements for drag operations",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 48,
+      "passes": false,
+      "notes": "Section component accessibility improvements."
+    },
+    {
+      "id": "US-049",
+      "phase": 3,
+      "title": "Add Zod validation to ServiceModal",
+      "description": "As a user, I want form validation in the service modal.",
+      "acceptanceCriteria": [
+        "Create Zod schema for service form validation",
+        "Validate: name required, price >= 0, duration >= 5",
+        "Validate: advanceBookingDaysMax >= advanceBookingDaysMin",
+        "Show field-level error messages under inputs",
+        "Disable save button when form is invalid",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 49,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/modals/ServiceModal.tsx"
+    },
+    {
+      "id": "US-050",
+      "phase": 3,
+      "title": "Load staff assignments in ServiceModal",
+      "description": "As a user, I want to see and edit staff assignments in service modal.",
+      "acceptanceCriteria": [
+        "Load existing staff assignments via useCatalog",
+        "Display staff assignment checkboxes in modal",
+        "Save staff assignments when service is saved",
+        "Remove TODO comment about populating staff assignments",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 50,
+      "passes": false,
+      "notes": "Currently staffAssignments is set to empty array and never populated."
+    },
+    {
+      "id": "US-051",
+      "phase": 3,
+      "title": "Add validation to PackageModal",
+      "description": "As a user, I want form validation in the package modal.",
+      "acceptanceCriteria": [
+        "Validate: discount percentage 0-100, fixed discount <= original price",
+        "Filter out non-existent services from selection",
+        "Show warning for packages with orphaned service references",
+        "Check for duplicate package name before save",
+        "Show field-level error messages",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 51,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/modals/PackageModal.tsx"
+    },
+    {
+      "id": "US-052",
+      "phase": 3,
+      "title": "Add validation to ProductModal",
+      "description": "As a user, I want form validation in the product modal.",
+      "acceptanceCriteria": [
+        "Show warning when retailPrice <= costPrice (negative margin)",
+        "Add async barcode uniqueness check on blur",
+        "Add async SKU uniqueness check on blur",
+        "Show field-level error messages",
+        "Show loading spinner during uniqueness checks",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 52,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/modals/ProductModal.tsx"
+    },
+    {
+      "id": "US-053",
+      "phase": 3,
+      "title": "Fix MenuSettings More Options button",
+      "description": "As a user, I want the More Options button to work.",
+      "acceptanceCriteria": [
+        "Create MoreOptionsDropdown component with menu items:",
+        "- Import catalog (from JSON/CSV)",
+        "- Export catalog (to JSON/CSV)",
+        "- Bulk edit mode toggle",
+        "- Print menu",
+        "Wire button to open dropdown",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 53,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/menu-settings/MenuSettings.tsx line ~409"
+    },
+    {
+      "id": "US-054",
+      "phase": 3,
+      "title": "Replace generic loading in MenuSettings with per-section skeletons",
+      "description": "As a user, I want section-appropriate loading states.",
+      "acceptanceCriteria": [
+        "Pass isLoading to each section component",
+        "Each section renders its own skeleton internally",
+        "Remove generic 'Loading...' text from MenuSettings",
+        "Add ErrorState with retry button when error occurs",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 54,
+      "passes": false,
+      "notes": "PHASE 3 COMPLETE - UI components fixed. Verify in browser: no confirm() dialogs, skeletons work."
+    },
+    {
+      "id": "US-055",
+      "phase": 4,
+      "title": "Create VariantSelector component for checkout",
+      "description": "As a user, I want to select service variants at checkout.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/checkout/VariantSelector.tsx",
+        "Props: service (MenuServiceWithEmbeddedVariants), onSelect(variantId, price, duration)",
+        "Show variant options with name, price, duration",
+        "Pre-select default variant",
+        "Highlight selected variant",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 55,
+      "passes": false,
+      "notes": "Only shown when service.hasVariants is true."
+    },
+    {
+      "id": "US-056",
+      "phase": 4,
+      "title": "Create AddOnSelector component for checkout",
+      "description": "As a user, I want to select add-ons at checkout.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/checkout/AddOnSelector.tsx",
+        "Props: serviceId, categoryId, onAddOnsChange(selectedAddOns[])",
+        "Load applicable add-on groups via useCatalog or direct service call",
+        "Filter groups by applicableToAll OR applicableServiceIds/CategoryIds",
+        "Enforce minSelections/maxSelections per group",
+        "Show required groups prominently",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 56,
+      "passes": false,
+      "notes": "Complex component - filter by applicability, enforce selection rules."
+    },
+    {
+      "id": "US-057",
+      "phase": 4,
+      "title": "Update useCheckoutServices to load variants and add-ons",
+      "description": "As a developer, I need checkout services hook to include variants and add-ons.",
+      "acceptanceCriteria": [
+        "Load service variants along with services",
+        "Load applicable add-on groups for each service",
+        "Apply staff price/duration overrides when staff is selected",
+        "Return services with embedded variants (MenuServiceWithEmbeddedVariants[])",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 57,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/checkout/hooks/useCheckoutServices.ts"
+    },
+    {
+      "id": "US-058",
+      "phase": 4,
+      "title": "Integrate VariantSelector into ServiceGrid",
+      "description": "As a user, I want variant selection flow in checkout.",
+      "acceptanceCriteria": [
+        "When service with variants is clicked, show VariantSelector",
+        "After variant selected, proceed to AddOnSelector",
+        "Update onAddServices callback to include variant and add-on selections",
+        "Verify in browser: click service → select variant → select add-ons → added to ticket",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 58,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/checkout/ServiceGrid.tsx"
+    },
+    {
+      "id": "US-059",
+      "phase": 4,
+      "title": "Integrate AddOnSelector into ServiceGrid",
+      "description": "As a user, I want add-on selection after service/variant selection.",
+      "acceptanceCriteria": [
+        "Show AddOnSelector after variant selection (or directly after service if no variants)",
+        "Selected add-ons added to ticket line item",
+        "Add-on prices added to service total",
+        "Add-on durations added to service duration",
+        "Verify in browser: complete add-on selection flow",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 59,
+      "passes": false,
+      "notes": "Checkout variant/add-on integration complete."
+    },
+    {
+      "id": "US-060",
+      "phase": 4,
+      "title": "Create useBookingServices hook",
+      "description": "As a developer, I need a hook for booking-specific service filtering.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/hooks/useBookingServices.ts",
+        "Filter services by bookingAvailability (online/in-store/both/disabled)",
+        "Validate advance booking window (advanceBookingDaysMin/Max)",
+        "Check patch test requirements against client history",
+        "Return: services, isValidForOnlineBooking(serviceId, date), requiresPatchTest(serviceId, clientId)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 60,
+      "passes": false,
+      "notes": "This enforces booking business rules."
+    },
+    {
+      "id": "US-061",
+      "phase": 4,
+      "title": "Add variant selector to booking ServiceCatalog",
+      "description": "As a user, I want to select variants when booking appointments.",
+      "acceptanceCriteria": [
+        "Import VariantSelector component (reuse from checkout)",
+        "Show variant options inline with service selection",
+        "Selected variant determines appointment duration and price",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 61,
+      "passes": false,
+      "notes": "Reuse VariantSelector from checkout module."
+    },
+    {
+      "id": "US-062",
+      "phase": 4,
+      "title": "Add availability badges and disable unavailable services in booking",
+      "description": "As a user, I want to see which services are available for booking.",
+      "acceptanceCriteria": [
+        "Show 'Online Only' badge for services with bookingAvailability='online'",
+        "Show 'In-Store Only' badge for bookingAvailability='in-store'",
+        "Disable services with bookingAvailability='disabled'",
+        "Show 'Requires Patch Test' warning for services with requiresPatchTest=true",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 62,
+      "passes": false,
+      "notes": "Visual indicators help users understand service availability."
+    },
+    {
+      "id": "US-063",
+      "phase": 4,
+      "title": "Add turnWeight to smartAutoAssign algorithm",
+      "description": "As a developer, I need fair walk-in distribution using turn weight.",
+      "acceptanceCriteria": [
+        "Update smartAutoAssign.ts to read turnWeight from service",
+        "Factor turnWeight (0.0-5.0) into staff scoring",
+        "Higher turnWeight = more complex service = more points toward rotation",
+        "Default turnWeight to 1.0 if not set",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 63,
+      "passes": false,
+      "notes": "File: apps/store-app/src/utils/smartAutoAssign.ts. PHASE 4 COMPLETE - Checkout & Booking integration done."
+    },
+    {
+      "id": "US-064",
+      "phase": 5,
+      "title": "Display add-ons in ticket ServiceLineItem",
+      "description": "As a user, I want to see selected add-ons on the ticket.",
+      "acceptanceCriteria": [
+        "Show selected add-ons under service name in ServiceLineItem",
+        "Display add-on name and price for each",
+        "Add-on prices included in line item total",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 64,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/tickets/ServiceLineItem.tsx or similar"
+    },
+    {
+      "id": "US-065",
+      "phase": 5,
+      "title": "Use staff override duration in ticket timer",
+      "description": "As a user, I want ticket timer to use staff-specific duration.",
+      "acceptanceCriteria": [
+        "Check StaffServiceAssignment for customDuration",
+        "If customDuration exists, use it instead of service.duration",
+        "Timer shows expected end time based on correct duration",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 65,
+      "passes": false,
+      "notes": "Tickets integration complete."
+    },
+    {
+      "id": "US-066",
+      "phase": 5,
+      "title": "Create catalogSyncService for Online Store",
+      "description": "As a developer, I need real catalog data in online store.",
+      "acceptanceCriteria": [
+        "Create apps/online-store/src/lib/services/catalogSyncService.ts",
+        "Fetch catalog from Supabase using RLS",
+        "Filter services by onlineBookingEnabled=true",
+        "Cache in localStorage with 5-minute TTL",
+        "Export: syncFromSupabase, getServices, getAddOnGroups, getCachedServices",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 66,
+      "passes": false,
+      "notes": "Online Store currently uses mock data - replace with real sync."
+    },
+    {
+      "id": "US-067",
+      "phase": 5,
+      "title": "Replace mock services in bookingDataService",
+      "description": "As a user, I want real services in online booking.",
+      "acceptanceCriteria": [
+        "Update apps/online-store/src/lib/services/bookingDataService.ts",
+        "Replace generateMockServices() with catalogSyncService.getCachedServices()",
+        "Remove hardcoded staff data",
+        "Trigger sync on first load",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 67,
+      "passes": false,
+      "notes": "bookingDataService currently generates fake data."
+    },
+    {
+      "id": "US-068",
+      "phase": 5,
+      "title": "Update Online Store ServiceMenuGridMobile to respect showPriceOnline",
+      "description": "As a store owner, I want to control price visibility online.",
+      "acceptanceCriteria": [
+        "Check service.showPriceOnline before displaying price",
+        "Show 'Price on request' when showPriceOnline is false",
+        "Add variant display if service has variants",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 68,
+      "passes": false,
+      "notes": "File: apps/online-store/src/components/booking/ServiceMenuGridMobile.tsx"
+    },
+    {
+      "id": "US-069",
+      "phase": 5,
+      "title": "Create AddOnsSelector for Online Store",
+      "description": "As a customer, I want to select add-ons when booking online.",
+      "acceptanceCriteria": [
+        "Create apps/online-store/src/components/booking/AddOnsSelector.tsx",
+        "Mobile-optimized UI (touch-friendly, full-width)",
+        "Similar functionality to checkout AddOnSelector",
+        "Enforce selection rules (min/max per group)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 69,
+      "passes": false,
+      "notes": "Online Store integration complete."
+    },
+    {
+      "id": "US-070",
+      "phase": 5,
+      "title": "Implement commission calculation in checkout",
+      "description": "As a salon owner, I want commissions calculated per service.",
+      "acceptanceCriteria": [
+        "Read commissionRate from MenuService",
+        "Check StaffServiceAssignment for customCommissionRate override",
+        "Calculate commission per service line item",
+        "Store commission amount in transaction record",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 70,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/checkout/PaymentModal/PaymentModal.tsx"
+    },
+    {
+      "id": "US-071",
+      "phase": 5,
+      "title": "Display commission breakdown in payment summary",
+      "description": "As a staff member, I want to see my commission at checkout.",
+      "acceptanceCriteria": [
+        "Add commission line to payment summary",
+        "Show total commission for all services",
+        "Break down by staff if multiple staff involved",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 71,
+      "passes": false,
+      "notes": "Display in PaymentSummary component."
+    },
+    {
+      "id": "US-072",
+      "phase": 5,
+      "title": "Create rebookReminderService",
+      "description": "As a salon owner, I want rebook suggestions for clients.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/services/rebookReminderService.ts",
+        "Read rebookReminderDays from completed service",
+        "Calculate recommended next booking date",
+        "Store suggestion in client history",
+        "Export: calculateRebookDate(service, completedAt), storeRebookSuggestion(clientId, suggestion)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 72,
+      "passes": false,
+      "notes": "PHASE 5 COMPLETE - All module integrations done."
+    },
+    {
+      "id": "US-073",
+      "phase": 6,
+      "title": "Add unit tests for catalog adapters",
+      "description": "As a developer, I want tests for type conversion functions.",
+      "acceptanceCriteria": [
+        "Create adapters/__tests__/serviceCategoryAdapter.test.ts",
+        "Create adapters/__tests__/menuServiceAdapter.test.ts",
+        "Test toXxx and toXxxInsert functions for each adapter",
+        "Test null/undefined field handling",
+        "Test snake_case to camelCase conversion",
+        "All tests pass: pnpm test adapters",
+        "90% coverage on adapter files"
+      ],
+      "priority": 73,
+      "passes": false,
+      "notes": "Focus on adapter functions since they handle critical type conversion."
+    },
+    {
+      "id": "US-074",
+      "phase": 6,
+      "title": "Add unit tests for catalog table operations",
+      "description": "As a developer, I want tests for Supabase CRUD operations.",
+      "acceptanceCriteria": [
+        "Create tables/__tests__/serviceCategoriesTable.test.ts",
+        "Create tables/__tests__/menuServicesTable.test.ts",
+        "Mock Supabase client",
+        "Test CRUD operations",
+        "Test error handling",
+        "All tests pass: pnpm test tables",
+        "85% coverage on table files"
+      ],
+      "priority": 74,
+      "passes": false,
+      "notes": "Use Supabase mock pattern from existing tests."
+    },
+    {
+      "id": "US-075",
+      "phase": 6,
+      "title": "Add integration tests for checkout catalog flow",
+      "description": "As a developer, I want tests for checkout variant/add-on selection.",
+      "acceptanceCriteria": [
+        "Create __tests__/checkout-catalog-flow.test.tsx",
+        "Test: select service with variants → variant selector shows",
+        "Test: select variant → add-on selector shows",
+        "Test: complete selection → correct items added to ticket",
+        "All tests pass: pnpm test checkout"
+      ],
+      "priority": 75,
+      "passes": false,
+      "notes": "Integration test using Redux Provider wrapper."
+    },
+    {
+      "id": "US-076",
+      "phase": 6,
+      "title": "Add E2E test for catalog-checkout flow",
+      "description": "As a developer, I want E2E test for the full checkout flow.",
+      "acceptanceCriteria": [
+        "Create e2e/catalog-checkout-flow.spec.ts",
+        "Test: navigate to checkout → add service with variants → select variant → add add-ons → complete payment",
+        "Use Playwright MCP for browser verification",
+        "Test passes: pnpm run test:e2e"
+      ],
+      "priority": 76,
+      "passes": false,
+      "notes": "PHASE 6 COMPLETE - All testing done. Full catalog module implementation complete."
+    },
+    {
+      "id": "US-P1R",
+      "phase": 1,
+      "title": "REVIEW: Phase 1 Backend Foundation",
+      "description": "Use Ultra Thinking Mode and best agents to comprehensively review all Phase 1 implementation.",
+      "acceptanceCriteria": [
+        "Launch Explore agent to analyze all files created/modified in Phase 1",
+        "Launch Plan agent to verify architectural decisions align with codebase patterns",
+        "Review all type definitions in catalog.ts for correctness and completeness",
+        "Review Supabase migration for proper RLS policies and indexes",
+        "Review all adapters for correct snake_case ↔ camelCase conversion",
+        "Review all table operations for proper error handling and tenant isolation",
+        "Verify pnpm run typecheck passes with no warnings",
+        "Document any issues found in progress.txt under 'Phase 1 Review Issues' section",
+        "If NO issues found, mark this story as passes: true",
+        "If issues found, list them clearly for US-P1F to address"
+      ],
+      "priority": 1001,
+      "passes": false,
+      "notes": "CRITICAL: Use Task tool with subagent_type=Explore and subagent_type=Plan for thorough analysis. This is a review-only story - do NOT make code changes. Document findings for US-P1F."
+    },
+    {
+      "id": "US-P1F",
+      "phase": 1,
+      "title": "FIX: Address Phase 1 Review Issues",
+      "description": "Fix all issues identified in the Phase 1 review (US-P1R).",
+      "acceptanceCriteria": [
+        "Read progress.txt to find 'Phase 1 Review Issues' section",
+        "If no issues were documented, mark this story as passes: true immediately",
+        "For each documented issue, implement the fix",
+        "Verify pnpm run typecheck passes after all fixes",
+        "Update progress.txt to mark each issue as resolved",
+        "PHASE 1 FULLY COMPLETE after this story passes"
+      ],
+      "priority": 1002,
+      "passes": false,
+      "dependencies": [
+        "US-P1R"
+      ],
+      "notes": "Only implement fixes for issues documented in US-P1R. If US-P1R found no issues, this story passes automatically."
+    },
+    {
+      "id": "US-P2R",
+      "phase": 2,
+      "title": "REVIEW: Phase 2 Data Layer",
+      "description": "Use Ultra Thinking Mode and best agents to comprehensively review all Phase 2 implementation.",
+      "acceptanceCriteria": [
+        "Launch Explore agent to analyze catalogDatabase.ts changes",
+        "Launch Explore agent to analyze catalogDataService.ts Supabase routing",
+        "Launch Plan agent to verify data flow patterns are correct",
+        "Verify booking sequence CRUD operations work correctly",
+        "Verify getByBarcode has proper storeId filter (security check)",
+        "Verify Supabase routing works for all catalog services",
+        "Verify useCatalog hook exposes all new operations",
+        "Run pnpm test --run and document any failures",
+        "Document any issues found in progress.txt under 'Phase 2 Review Issues' section",
+        "If NO issues found, mark this story as passes: true"
+      ],
+      "priority": 2001,
+      "passes": false,
+      "notes": "CRITICAL: Use Task tool with subagent_type=Explore for thorough analysis. Security-critical: verify multi-tenant isolation in all queries."
+    },
+    {
+      "id": "US-P2F",
+      "phase": 2,
+      "title": "FIX: Address Phase 2 Review Issues",
+      "description": "Fix all issues identified in the Phase 2 review (US-P2R).",
+      "acceptanceCriteria": [
+        "Read progress.txt to find 'Phase 2 Review Issues' section",
+        "If no issues were documented, mark this story as passes: true immediately",
+        "For each documented issue, implement the fix",
+        "Verify pnpm test --run passes after all fixes",
+        "Update progress.txt to mark each issue as resolved",
+        "PHASE 2 FULLY COMPLETE after this story passes"
+      ],
+      "priority": 2002,
+      "passes": false,
+      "dependencies": [
+        "US-P2R"
+      ],
+      "notes": "Only implement fixes for issues documented in US-P2R. If US-P2R found no issues, this story passes automatically."
+    },
+    {
+      "id": "US-P3R",
+      "phase": 3,
+      "title": "REVIEW: Phase 3 UI Components",
+      "description": "Use Ultra Thinking Mode and best agents to comprehensively review all Phase 3 UI implementation.",
+      "acceptanceCriteria": [
+        "Launch Explore agent to analyze all menu-settings component changes",
+        "Launch Plan agent to verify UI patterns are consistent",
+        "Verify ConfirmDialog properly replaces all browser confirm() calls",
+        "Verify skeleton loaders render correctly in all sections",
+        "Verify Zod validation works in ServiceModal, PackageModal, ProductModal",
+        "Verify staff assignments load and save correctly in ServiceModal",
+        "Use Playwright MCP to visually verify components in browser",
+        "Run pnpm run typecheck and document any failures",
+        "Document any issues found in progress.txt under 'Phase 3 Review Issues' section",
+        "If NO issues found, mark this story as passes: true"
+      ],
+      "priority": 3001,
+      "passes": false,
+      "notes": "CRITICAL: Use browser verification via Playwright MCP. Ensure no browser confirm() or alert() calls remain."
+    },
+    {
+      "id": "US-P3F",
+      "phase": 3,
+      "title": "FIX: Address Phase 3 Review Issues",
+      "description": "Fix all issues identified in the Phase 3 review (US-P3R).",
+      "acceptanceCriteria": [
+        "Read progress.txt to find 'Phase 3 Review Issues' section",
+        "If no issues were documented, mark this story as passes: true immediately",
+        "For each documented issue, implement the fix",
+        "Verify fixes in browser using Playwright MCP",
+        "Verify pnpm run typecheck passes after all fixes",
+        "Update progress.txt to mark each issue as resolved",
+        "PHASE 3 FULLY COMPLETE after this story passes"
+      ],
+      "priority": 3002,
+      "passes": false,
+      "dependencies": [
+        "US-P3R"
+      ],
+      "notes": "Only implement fixes for issues documented in US-P3R. If US-P3R found no issues, this story passes automatically."
+    },
+    {
+      "id": "US-P4R",
+      "phase": 4,
+      "title": "REVIEW: Phase 4 Checkout & Booking",
+      "description": "Use Ultra Thinking Mode and best agents to comprehensively review all Phase 4 integration.",
+      "acceptanceCriteria": [
+        "Launch Explore agent to analyze VariantSelector and AddOnSelector components",
+        "Launch Explore agent to analyze useCheckoutServices and useBookingServices hooks",
+        "Launch Plan agent to verify checkout flow architecture",
+        "Verify variant selection flow works end-to-end in checkout",
+        "Verify add-on selection with min/max enforcement works",
+        "Verify staff price/duration overrides are applied correctly",
+        "Verify availability badges show correctly in booking",
+        "Verify turnWeight is used in smartAutoAssign",
+        "Use Playwright MCP to test full checkout flow in browser",
+        "Document any issues found in progress.txt under 'Phase 4 Review Issues' section",
+        "If NO issues found, mark this story as passes: true"
+      ],
+      "priority": 4001,
+      "passes": false,
+      "notes": "CRITICAL: Full end-to-end browser testing required. Test: select service → variant → add-ons → verify correct price/duration."
+    },
+    {
+      "id": "US-P4F",
+      "phase": 4,
+      "title": "FIX: Address Phase 4 Review Issues",
+      "description": "Fix all issues identified in the Phase 4 review (US-P4R).",
+      "acceptanceCriteria": [
+        "Read progress.txt to find 'Phase 4 Review Issues' section",
+        "If no issues were documented, mark this story as passes: true immediately",
+        "For each documented issue, implement the fix",
+        "Verify fixes in browser using Playwright MCP",
+        "Verify pnpm run typecheck passes after all fixes",
+        "Update progress.txt to mark each issue as resolved",
+        "PHASE 4 FULLY COMPLETE after this story passes"
+      ],
+      "priority": 4002,
+      "passes": false,
+      "dependencies": [
+        "US-P4R"
+      ],
+      "notes": "Only implement fixes for issues documented in US-P4R. If US-P4R found no issues, this story passes automatically."
+    },
+    {
+      "id": "US-P5R",
+      "phase": 5,
+      "title": "REVIEW: Phase 5 Module Integrations",
+      "description": "Use Ultra Thinking Mode and best agents to comprehensively review all Phase 5 integrations.",
+      "acceptanceCriteria": [
+        "Launch Explore agent to analyze tickets integration (add-ons display, staff duration)",
+        "Launch Explore agent to analyze Online Store catalog sync",
+        "Launch Explore agent to analyze commission calculation",
+        "Launch Plan agent to verify integration patterns",
+        "Verify add-ons display correctly in ticket ServiceLineItem",
+        "Verify staff override duration is used in ticket timer",
+        "Verify Online Store uses real catalog data (not mock)",
+        "Verify showPriceOnline setting is respected",
+        "Verify commission is calculated and stored correctly",
+        "Verify rebookReminderService calculates dates correctly",
+        "Use Playwright MCP to verify in browser where applicable",
+        "Document any issues found in progress.txt under 'Phase 5 Review Issues' section",
+        "If NO issues found, mark this story as passes: true"
+      ],
+      "priority": 5001,
+      "passes": false,
+      "notes": "CRITICAL: Verify mock data is completely removed from Online Store. Commission calculation must be accurate."
+    },
+    {
+      "id": "US-P5F",
+      "phase": 5,
+      "title": "FIX: Address Phase 5 Review Issues",
+      "description": "Fix all issues identified in the Phase 5 review (US-P5R).",
+      "acceptanceCriteria": [
+        "Read progress.txt to find 'Phase 5 Review Issues' section",
+        "If no issues were documented, mark this story as passes: true immediately",
+        "For each documented issue, implement the fix",
+        "Verify fixes in browser using Playwright MCP where applicable",
+        "Verify pnpm run typecheck passes after all fixes",
+        "Update progress.txt to mark each issue as resolved",
+        "PHASE 5 FULLY COMPLETE after this story passes"
+      ],
+      "priority": 5002,
+      "passes": false,
+      "dependencies": [
+        "US-P5R"
+      ],
+      "notes": "Only implement fixes for issues documented in US-P5R. If US-P5R found no issues, this story passes automatically."
+    },
+    {
+      "id": "US-P6R",
+      "phase": 6,
+      "title": "REVIEW: Phase 6 Testing & Final Review",
+      "description": "Use Ultra Thinking Mode and best agents to comprehensively review all tests and the complete catalog module.",
+      "acceptanceCriteria": [
+        "Launch Explore agent to analyze all test files created",
+        "Launch Plan agent to verify test coverage strategy",
+        "Verify adapter tests achieve 90% coverage",
+        "Verify table operation tests achieve 85% coverage",
+        "Verify integration tests cover variant/add-on flows",
+        "Verify E2E test covers full checkout journey",
+        "Run pnpm test --run and verify all tests pass",
+        "Run pnpm run test:e2e and verify E2E tests pass",
+        "FINAL REVIEW: Launch Explore agent to scan entire catalog module for any remaining issues",
+        "Check for any TODO comments, console.log statements, or 'as any' casts",
+        "Document any issues found in progress.txt under 'Phase 6 Review Issues' section",
+        "If NO issues found, mark this story as passes: true"
+      ],
+      "priority": 6001,
+      "passes": false,
+      "notes": "FINAL REVIEW: This is the last quality gate. Ensure the entire catalog module is production-ready."
+    },
+    {
+      "id": "US-P6F",
+      "phase": 6,
+      "title": "FIX: Address Phase 6 Review Issues & Final Cleanup",
+      "description": "Fix all issues identified in the Phase 6 review (US-P6R) and perform final cleanup.",
+      "acceptanceCriteria": [
+        "Read progress.txt to find 'Phase 6 Review Issues' section",
+        "If no issues were documented, mark this story as passes: true immediately",
+        "For each documented issue, implement the fix",
+        "Remove any remaining TODO comments",
+        "Remove any console.log statements not needed for production",
+        "Fix any remaining 'as any' type casts",
+        "Verify all tests pass: pnpm test --run && pnpm run test:e2e",
+        "Update progress.txt to mark each issue as resolved",
+        "CATALOG MODULE FULLY COMPLETE after this story passes"
+      ],
+      "priority": 6002,
+      "passes": false,
+      "dependencies": [
+        "US-P6R"
+      ],
+      "notes": "FINAL STORY: Only implement fixes for issues documented in US-P6R. Catalog module is complete when this passes."
+    }
+  ]
+}

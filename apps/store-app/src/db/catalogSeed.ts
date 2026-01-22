@@ -10,6 +10,8 @@ import type {
   MenuService,
   ServiceVariant,
   ServicePackage,
+  PackageServiceItem,
+  BundleBookingMode,
   AddOnGroup,
   AddOnOption,
   CatalogSettings,
@@ -41,6 +43,96 @@ function createSeedSyncFields(storeId: string, tenantId: string = DEFAULT_TENANT
     vectorClock: { [DEFAULT_DEVICE_ID]: 1 },
     lastSyncedVersion: 1,
     createdByDevice: DEFAULT_DEVICE_ID,
+    lastModifiedByDevice: DEFAULT_DEVICE_ID,
+    isDeleted: false,
+  };
+}
+
+/**
+ * Creates a ServiceVariant with all sync fields
+ */
+function createSeedVariant(
+  storeId: string,
+  serviceId: string,
+  name: string,
+  duration: number,
+  price: number,
+  isDefault: boolean,
+  displayOrder: number,
+  now: string,
+  tenantId: string = DEFAULT_TENANT_ID
+): ServiceVariant {
+  return {
+    id: uuidv4(),
+    storeId,
+    tenantId,
+    serviceId,
+    name,
+    duration,
+    price,
+    isDefault,
+    displayOrder,
+    isActive: true,
+    syncStatus: 'synced' as SyncStatus,
+    version: 1,
+    vectorClock: { [DEFAULT_DEVICE_ID]: 1 },
+    lastSyncedVersion: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: 'system',
+    createdByDevice: DEFAULT_DEVICE_ID,
+    lastModifiedBy: 'system',
+    lastModifiedByDevice: DEFAULT_DEVICE_ID,
+    isDeleted: false,
+  };
+}
+
+/**
+ * Creates a ServicePackage with all sync fields
+ */
+function createSeedPackage(
+  storeId: string,
+  name: string,
+  description: string,
+  services: PackageServiceItem[],
+  originalPrice: number,
+  packagePrice: number,
+  discountType: 'fixed' | 'percentage',
+  discountValue: number,
+  bookingMode: BundleBookingMode,
+  displayOrder: number,
+  color: string,
+  now: string,
+  validityDays?: number,
+  tenantId: string = DEFAULT_TENANT_ID
+): ServicePackage {
+  return {
+    id: uuidv4(),
+    storeId,
+    tenantId,
+    name,
+    description,
+    services,
+    originalPrice,
+    packagePrice,
+    discountType,
+    discountValue,
+    bookingMode,
+    validityDays,
+    bookingAvailability: 'both',
+    onlineBookingEnabled: true,
+    isActive: true,
+    displayOrder,
+    color,
+    syncStatus: 'synced' as SyncStatus,
+    version: 1,
+    vectorClock: { [DEFAULT_DEVICE_ID]: 1 },
+    lastSyncedVersion: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: 'system',
+    createdByDevice: DEFAULT_DEVICE_ID,
+    lastModifiedBy: 'system',
     lastModifiedByDevice: DEFAULT_DEVICE_ID,
     isDeleted: false,
   };
@@ -241,9 +333,9 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   services.push(womensHaircut);
 
   variants.push(
-    { id: uuidv4(), storeId, serviceId: womensHaircut.id, name: 'Short Hair', duration: 45, price: 65, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, serviceId: womensHaircut.id, name: 'Medium Hair', duration: 60, price: 75, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, serviceId: womensHaircut.id, name: 'Long Hair', duration: 75, price: 85, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    createSeedVariant(storeId, womensHaircut.id, 'Short Hair', 45, 65, true, 1, now),
+    createSeedVariant(storeId, womensHaircut.id, 'Medium Hair', 60, 75, false, 2, now),
+    createSeedVariant(storeId, womensHaircut.id, 'Long Hair', 75, 85, false, 3, now),
   );
 
   // Men's Haircut - no variants
@@ -304,9 +396,9 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   services.push(blowout);
 
   variants.push(
-    { id: uuidv4(), storeId, serviceId: blowout.id, name: 'Short/Medium', duration: 45, price: 45, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, serviceId: blowout.id, name: 'Long Hair', duration: 60, price: 55, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, serviceId: blowout.id, name: 'Extra Long', duration: 75, price: 65, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    createSeedVariant(storeId, blowout.id, 'Short/Medium', 45, 45, true, 1, now),
+    createSeedVariant(storeId, blowout.id, 'Long Hair', 60, 55, false, 2, now),
+    createSeedVariant(storeId, blowout.id, 'Extra Long', 75, 65, false, 3, now),
   );
 
   // Deep Conditioning
@@ -374,9 +466,9 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   services.push(fullColor);
 
   variants.push(
-    { id: uuidv4(), storeId, serviceId: fullColor.id, name: 'Short Hair', duration: 90, price: 95, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, serviceId: fullColor.id, name: 'Medium Hair', duration: 105, price: 115, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, serviceId: fullColor.id, name: 'Long Hair', duration: 120, price: 135, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    createSeedVariant(storeId, fullColor.id, 'Short Hair', 90, 95, true, 1, now),
+    createSeedVariant(storeId, fullColor.id, 'Medium Hair', 105, 115, false, 2, now),
+    createSeedVariant(storeId, fullColor.id, 'Long Hair', 120, 135, false, 3, now),
   );
 
   // Nail Services (Category 2)
@@ -496,9 +588,9 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   services.push(swedishMassage);
 
   variants.push(
-    { id: uuidv4(), storeId, serviceId: swedishMassage.id, name: '60 Minutes', duration: 60, price: 85, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, serviceId: swedishMassage.id, name: '90 Minutes', duration: 90, price: 125, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, serviceId: swedishMassage.id, name: '120 Minutes', duration: 120, price: 165, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    createSeedVariant(storeId, swedishMassage.id, '60 Minutes', 60, 85, true, 1, now),
+    createSeedVariant(storeId, swedishMassage.id, '90 Minutes', 90, 125, false, 2, now),
+    createSeedVariant(storeId, swedishMassage.id, '120 Minutes', 120, 165, false, 3, now),
   );
 
   // Facial (Category 4)
@@ -568,58 +660,42 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
 
   // ==================== PACKAGES ====================
   const packages: ServicePackage[] = [
-    {
-      id: uuidv4(),
+    createSeedPackage(
       storeId,
-      name: 'Bridal Beauty Package',
-      description: 'Complete bridal preparation including hair, makeup, and nails',
-      services: [
+      'Bridal Beauty Package',
+      'Complete bridal preparation including hair, makeup, and nails',
+      [
         { serviceId: services[0].id, serviceName: "Women's Haircut", quantity: 1, originalPrice: 75 },
         { serviceId: services[2].id, serviceName: 'Blowout & Style', quantity: 1, originalPrice: 55 },
         { serviceId: services[6].id, serviceName: 'Gel Manicure', quantity: 1, originalPrice: 45 },
       ],
-      originalPrice: 175,
-      packagePrice: 149,
-      discountType: 'fixed',
-      discountValue: 26,
-      bookingMode: 'single-session',
-      bookingAvailability: 'both',
-      onlineBookingEnabled: true,
-      isActive: true,
-      displayOrder: 1,
-      color: '#EC4899',
-      createdAt: now,
-      updatedAt: now,
-      createdBy: 'system',
-      lastModifiedBy: 'system',
-      syncStatus: 'synced',
-    },
-    {
-      id: uuidv4(),
+      175,
+      149,
+      'fixed',
+      26,
+      'single-session',
+      1,
+      '#EC4899',
+      now
+    ),
+    createSeedPackage(
       storeId,
-      name: 'Spa Day Escape',
-      description: 'Ultimate relaxation with massage and facial',
-      services: [
+      'Spa Day Escape',
+      'Ultimate relaxation with massage and facial',
+      [
         { serviceId: services[8].id, serviceName: 'Swedish Massage', quantity: 1, originalPrice: 125 },
         { serviceId: services[10].id, serviceName: 'Signature Facial', quantity: 1, originalPrice: 125 },
       ],
-      originalPrice: 250,
-      packagePrice: 215,
-      discountType: 'percentage',
-      discountValue: 14,
-      bookingMode: 'single-session',
-      validityDays: 90,
-      bookingAvailability: 'both',
-      onlineBookingEnabled: true,
-      isActive: true,
-      displayOrder: 2,
-      color: '#14B8A6',
-      createdAt: now,
-      updatedAt: now,
-      createdBy: 'system',
-      lastModifiedBy: 'system',
-      syncStatus: 'synced',
-    },
+      250,
+      215,
+      'percentage',
+      14,
+      'single-session',
+      2,
+      '#14B8A6',
+      now,
+      90
+    ),
   ];
 
   await db.servicePackages.bulkAdd(packages);

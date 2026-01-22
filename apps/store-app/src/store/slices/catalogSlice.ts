@@ -196,15 +196,15 @@ export const fetchVariants = createAsyncThunk(
 
 export const createVariant = createAsyncThunk(
   'catalog/createVariant',
-  async ({ input, storeId }: { input: CreateVariantInput; storeId: string }) => {
-    return await serviceVariantsDB.create(input, storeId);
+  async ({ input, userId, storeId }: { input: CreateVariantInput; userId: string; storeId: string }) => {
+    return await serviceVariantsDB.create(input, userId, storeId);
   }
 );
 
 export const updateVariant = createAsyncThunk(
   'catalog/updateVariant',
-  async ({ id, updates }: { id: string; updates: Partial<ServiceVariant> }) => {
-    return await serviceVariantsDB.update(id, updates);
+  async ({ id, updates, userId }: { id: string; updates: Partial<ServiceVariant>; userId: string }) => {
+    return await serviceVariantsDB.update(id, updates, userId);
   }
 );
 
