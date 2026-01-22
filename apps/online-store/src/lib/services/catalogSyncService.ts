@@ -101,7 +101,7 @@ function toOnlineService(row: any): Service {
     duration: row.duration || 30,
     basePrice: row.base_price || 0,
     price: row.base_price || 0, // For booking flow compatibility
-    showOnline: row.show_price_online !== false, // Default to true if not set
+    showPriceOnline: row.show_price_online !== false, // Default to true if not set
     image: row.image_url || undefined,
     gallery: row.gallery_urls ? (Array.isArray(row.gallery_urls) ? row.gallery_urls : []) : undefined,
     addOns: [], // TODO: Load from add_on_groups/add_on_options

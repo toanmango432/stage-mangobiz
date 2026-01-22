@@ -9,7 +9,7 @@ import { StaffSelector } from '@/components/booking/v2/StaffSelector';
 import { Calendar7Day } from '@/components/booking/v2/Calendar7Day';
 import { GroupedTimeSlots } from '@/components/booking/v2/GroupedTimeSlots';
 import { PasswordlessLoginModal } from '@/components/auth/PasswordlessLoginModal';
-import { generateMockServices } from '@/lib/mockData';
+import { getServices } from '@/lib/services/catalogSyncService';
 import { cn } from '@/lib/utils';
 
 const BookingFlow = () => {
@@ -67,24 +67,32 @@ const BookingFlow = () => {
     
     // Fallback: URL param lookup
     if (serviceId && !formData.service) {
-      const stored = localStorage.getItem("catalog_services");
-      const services = stored ? JSON.parse(stored) : generateMockServices();
-      const service = services.find(s => s.id === serviceId);
-      if (service) {
-        const validatedService = {
-          id: service.id,
-          name: service.name,
-          description: service.description,
-          duration: service.duration,
-          price: service.basePrice,
-        };
-        serviceDataRef.current = validatedService;
-        updateFormData({ service: validatedService });
-        setIsInitialized(true);
-      } else {
-        // Service not found - redirect
-        navigate('/book', { replace: true });
-      }
+      const loadServiceById = async () => {
+        try {
+          const storeId = import.meta.env.VITE_STORE_ID || 'demo-store';
+          const services = await getServices(storeId);
+          const service = services.find(s => s.id === serviceId);
+          if (service) {
+            const validatedService = {
+              id: service.id,
+              name: service.name,
+              description: service.description || '',
+              duration: service.duration || 30,
+              price: service.price || service.basePrice || 0,
+            };
+            serviceDataRef.current = validatedService;
+            updateFormData({ service: validatedService });
+            setIsInitialized(true);
+          } else {
+            // Service not found - redirect
+            navigate('/book', { replace: true });
+          }
+        } catch (error) {
+          console.error('[BookingFlow] Failed to load service:', error);
+          navigate('/book', { replace: true });
+        }
+      };
+      loadServiceById();
     }
   }, [isInitialized, serviceId, formData.service, location.state, updateFormData, navigate]);
 
