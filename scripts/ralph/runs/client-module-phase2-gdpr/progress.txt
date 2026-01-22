@@ -402,3 +402,93 @@
 
 ---
 
+### Iteration 9 - US-011: Add ConsentManagement to ProfileSection
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/components/client-settings/sections/ProfileSection.tsx`
+
+**Changes Made:**
+1. Added imports:
+   - `useMemo` from React
+   - `Client` type from `@/types`
+   - `ConsentManagement` component from `@/components/clients/ConsentManagement`
+
+2. Added type conversion logic:
+   - Created `clientForConsent` using useMemo to convert EnhancedClient to Client
+   - Maps contact.phone and contact.email to top-level fields
+   - Passes communicationPreferences directly
+   - Only includes fields needed by ConsentManagement
+
+3. Added consent change handler:
+   - `handleConsentChange` receives Client updates
+   - Maps communicationPreferences back to EnhancedClient format
+   - Calls parent `onChange` handler
+
+4. Added ConsentManagement section:
+   - Placed after "Client Status" card, before "Block Client Modal"
+   - Passes `clientForConsent` and `handleConsentChange` as props
+   - Component renders its own card styling (no wrapper needed)
+
+**Implementation Details:**
+- EnhancedClient and Client types have different structures (EnhancedClient has nested contact object)
+- useMemo prevents unnecessary re-renders when client object changes
+- ConsentManagement is self-contained with its own card/section styling
+- No Collapsible needed - component has its own header
+
+**Learnings:**
+- Type conversion between similar interfaces is cleaner with useMemo
+- ConsentManagement already handles its own Card styling
+- Only need to forward communicationPreferences updates (other fields handled by other sections)
+
+---
+
+### Iteration 10 - US-012: Add Data Requests tab to ClientSettings
+**Date:** 2026-01-22
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/components/client-settings/ClientSettings.tsx`
+- `apps/store-app/src/components/client-settings/types.ts`
+
+**Changes Made:**
+1. Added 'data-requests' to ClientSettingsSection type union
+
+2. Added imports to ClientSettings.tsx:
+   - DataRequestsPanel from clients folder
+   - DataDeletionRequestModal for deletion flow
+   - selectMemberRole, selectStoreId from authSlice
+
+3. Added role-based access control:
+   - canAccessDataRequests computed from memberRole
+   - Tab only visible to 'owner', 'manager', or 'admin' roles
+
+4. Added Data Requests tab to section navigation:
+   - Uses useMemo to conditionally include tab based on role
+   - DataRequestIcon for visual identification
+
+5. Added DataRequestsPanel to section content:
+   - Renders when activeSection === 'data-requests'
+   - Passes storeId and onProcessDeletion callback
+
+6. Integrated DataDeletionRequestModal:
+   - State: showDeletionModal, deletionRequest
+   - Triggered by onProcessDeletion callback from panel
+   - Finds client from clients list by ID
+   - Refreshes client list after successful deletion
+
+**Implementation Details:**
+- Used useMemo for sectionNav to avoid recreating array on every render
+- DataRequestIcon uses document-text SVG pattern (matches DocumentTextIcon in DataRequestsPanel)
+- Modal lookup for client uses `clients.find(c => c.id === deletionRequest.clientId)`
+- Pre-existing @mango/types errors are unrelated to this implementation
+
+**Learnings:**
+- Role-based access uses selectMemberRole from authSlice
+- Data Requests tab pattern: conditionally add to sectionNav array
+- When DataRequestsPanel triggers deletion, it delegates to parent for modal handling
+- Client lookup from Redux state is efficient for small-to-medium client lists
+
+---
+
