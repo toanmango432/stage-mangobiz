@@ -517,6 +517,32 @@ export interface CatalogSettings extends BaseSyncableEntity {
   bookingSequenceEnabled: boolean;
 }
 
+/**
+ * Input type for creating new CatalogSettings
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
+export type CreateCatalogSettingsInput = Omit<CatalogSettings,
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
+>;
+
 // ============================================
 // BOOKING SEQUENCE
 // ============================================
@@ -964,3 +990,29 @@ export interface GiftCardSettings extends BaseSyncableEntity {
   onlineEnabled: boolean;
   emailDeliveryEnabled: boolean;
 }
+
+/**
+ * Input type for creating new GiftCardSettings
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
+export type CreateGiftCardSettingsInput = Omit<GiftCardSettings,
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
+>;
