@@ -10,6 +10,7 @@ import { selectActivePadTransaction, clearPadTransaction } from '@/store/slices/
 import { dataService } from '@/services/dataService';
 import { getMangoPadService } from '@/services/mangoPadService';
 import { isMqttEnabled } from '@/services/mqtt/featureFlags';
+import { supabase } from '@/services/supabase/client';
 import type { TicketService } from '../ServiceList';
 import type { Client } from '../ClientSelector';
 
@@ -53,6 +54,66 @@ interface RefundData {
   reason: string;
   refundMethod: string;
   serviceIds: string[];
+}
+
+/**
+ * Schedule review request after checkout completion.
+ * This is a fire-and-forget operation that doesn't block the checkout flow.
+ */
+async function scheduleReviewRequest(clientId: string, ticketId: string): Promise<void> {
+  try {
+    // Fetch review settings to check if automation is enabled
+    const { data: settings, error: settingsError } = await supabase
+      .from('review_settings')
+      .select('*')
+      .single();
+
+    if (settingsError) {
+      console.log('📧 Review automation not configured, skipping review request');
+      return;
+    }
+
+    if (!settings || !settings.enabled) {
+      console.log('📧 Review automation disabled, skipping review request');
+      return;
+    }
+
+    // Calculate delay in milliseconds
+    const delayHours = settings.delay_hours || 24;
+    const delayMs = delayHours * 60 * 60 * 1000;
+
+    console.log(`📧 Scheduling review request for client ${clientId}, ticket ${ticketId} in ${delayHours} hours`);
+
+    // Schedule the review request using setTimeout
+    // In production, this would be better handled by a background job queue
+    setTimeout(async () => {
+      try {
+        console.log(`📧 Sending review request for client ${clientId}, ticket ${ticketId}`);
+
+        // Call the Edge Function to send review request
+        const { data, error } = await supabase.functions.invoke('send-review-request', {
+          body: {
+            clientId,
+            appointmentId: ticketId,
+            storeId: settings.store_id,
+          },
+        });
+
+        if (error) {
+          console.error('❌ Failed to send review request:', error);
+        } else {
+          console.log('✅ Review request sent successfully:', data);
+        }
+      } catch (error) {
+        console.error('❌ Error sending review request:', error);
+      }
+    }, delayMs);
+
+    console.log(`✅ Review request scheduled for ${new Date(Date.now() + delayMs).toISOString()}`);
+  } catch (error) {
+    console.error('❌ Error scheduling review request:', error);
+    throw error;
+  }
 }
 
 /**
@@ -254,6 +315,14 @@ export function useTicketPayment({
         description: `Successfully processed payment of $${total.toFixed(2)}. Ticket closed.`,
         duration: 3000,
       });
+
+      // Schedule review request if enabled (fire-and-forget, don't block checkout)
+      if (selectedClient?.id && effectiveTicketId) {
+        scheduleReviewRequest(selectedClient.id, effectiveTicketId).catch(error => {
+          console.error('❌ Failed to schedule review request:', error);
+          // Don't show error to user - this is background operation
+        });
+      }
     } catch (error) {
       console.error('❌ Error completing ticket:', error);
 
