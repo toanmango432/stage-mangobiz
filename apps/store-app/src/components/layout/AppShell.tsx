@@ -5,6 +5,7 @@ import { selectAllStaff } from '../../store/slices/uiStaffSlice';
 import { useAuditContext } from '../../services/audit/auditLogger';
 import type { StaffMember } from '../checkout/ServiceList';
 import { ConnectSDKProvider } from '../../providers/ConnectSDKProvider';
+import { AIAssistantPanel } from '../integrations/AIAssistantPanel';
 
 // Lazy load ALL modules to reduce initial bundle size
 // Core modules (frequently used but still lazy for faster initial load)
@@ -481,6 +482,9 @@ function AppShellContent() {
 
       {/* Help Request Notifications - Persistent until acknowledged */}
       <HelpRequestNotification />
+
+      {/* AI Assistant Panel - Floating button/panel powered by Mango Connect SDK */}
+      <AIAssistantPanel />
     </div>
   );
 }

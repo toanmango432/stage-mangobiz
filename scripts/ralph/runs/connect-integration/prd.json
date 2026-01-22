@@ -170,7 +170,7 @@
       "notes": "Simple context consumer hook following React patterns. Use useContext(ConnectSDKContext). Export from hooks index.",
       "dependencies": ["US-006"],
       "priority": 8,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-009",
@@ -193,7 +193,7 @@
       "notes": "Follow page layout pattern from existing pages. Use Tailwind classes, not inline styles. Import Button from @/components/ui/button. Import AlertCircle from lucide-react. Error state pattern: flex flex-col items-center justify-center h-full gap-4.",
       "dependencies": ["US-008"],
       "priority": 9,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-010",
@@ -216,7 +216,7 @@
       "notes": "Follow existing module lazy loading pattern in AppShell (lines 8-34). Follow nav item pattern in BottomNavBar (146 lines). Import MessageSquare from lucide-react. Use useConnectConfig() for feature check.",
       "dependencies": ["US-003", "US-008", "US-009"],
       "priority": 10,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-011",
@@ -242,7 +242,7 @@
       "notes": "Use useState for open/closed state. Use useConnectSDK() for SDK access. Use useConnectConfig() for feature check. Panel styling: bg-background border rounded-lg shadow-lg. Use z-index 50 to appear above other content.",
       "dependencies": ["US-003", "US-008"],
       "priority": 11,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-012",
