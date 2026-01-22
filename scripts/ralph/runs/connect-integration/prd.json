@@ -151,7 +151,7 @@
       "notes": "AppShell is 481 lines - add provider wrapper around line 200-220. Follow existing provider nesting pattern. Provider placement: after AuthProvider, before main content.",
       "dependencies": ["US-006"],
       "priority": 7,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-008",

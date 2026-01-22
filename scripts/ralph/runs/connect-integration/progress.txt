@@ -135,3 +135,30 @@ Commit: 6cd3f4cdea3fdde6aff767ff922319ced2c2b696
 **Next story suggestion:** US-007 (Add ConnectSDKProvider to AppShell) or US-008 (useConnectSDK hook) - both are now unblocked. US-007 adds the provider to the app, US-008 creates the consumer hook. US-007 should come first as it needs the provider in place for the hook to be testable.
 
 ---
+
+## 2026-01-21 - US-007: Add ConnectSDKProvider to AppShell
+Commit: b6e5c67
+
+**Why this story?** US-007 depends only on US-006 ✅ which was completed in the previous iteration. US-008 also depends on US-006, but US-007 should come first as the provider needs to be in AppShell before consumer hooks can be properly used in the app. Both have similar priority (7 vs 8).
+
+**Changes:**
+- apps/store-app/src/components/layout/AppShell.tsx:7: Added import for ConnectSDKProvider
+- apps/store-app/src/components/layout/AppShell.tsx:68-75: Wrapped AppShellContent with ConnectSDKProvider inside TicketPanelProvider
+
+**Implementation Details:**
+- Import uses relative path: `../../providers/ConnectSDKProvider`
+- Provider is nested inside TicketPanelProvider, wrapping AppShellContent
+- This placement ensures ConnectSDKProvider is outside Suspense boundaries (children render regardless)
+- Auth context is available via Redux selectors inside useConnectConfig and useConnectToken hooks (used by ConnectSDKProvider)
+
+**Learnings:**
+- AppShell uses composition pattern: outer AppShell function wraps with providers, inner AppShellContent handles the logic
+- Provider nesting order: TicketPanelProvider → ConnectSDKProvider → AppShellContent
+- ConnectSDKProvider doesn't need explicit auth provider wrapper since it uses Redux selectors for auth state
+
+**Pre-existing test failures documented:**
+- 21 test files failed (14 individual tests) - MQTT/integration related, not from this change (same as previous iterations)
+
+**Next story suggestion:** US-008 (useConnectSDK hook) because it depends only on US-006 ✅ which was already completed. US-008 creates the consumer hook that other components (US-009, US-010, US-011, US-013) depend on. Completing US-008 unblocks multiple stories.
+
+---
