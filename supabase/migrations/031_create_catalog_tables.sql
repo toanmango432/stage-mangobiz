@@ -435,3 +435,152 @@ CREATE TRIGGER service_variants_updated_at_trigger
 
 -- Add comment for documentation
 COMMENT ON TABLE service_variants IS 'Service variants for different pricing/duration options (e.g., Short Hair, Medium Hair, Long Hair). Each variant belongs to a parent service.';
+
+-- ============================================
+-- SERVICE PACKAGES TABLE (US-008)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS service_packages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Multi-tenant isolation
+  tenant_id UUID NOT NULL,
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  location_id UUID,
+
+  -- Core fields
+  name TEXT NOT NULL,
+  description TEXT,
+
+  -- Services included (stored as JSONB array - PackageServiceItem[])
+  -- Each item: { serviceId, serviceName, variantId, variantName, quantity, originalPrice }
+  services JSONB NOT NULL DEFAULT '[]',
+
+  -- Pricing
+  original_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  package_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  discount_type TEXT NOT NULL DEFAULT 'fixed',
+  discount_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+
+  -- Booking mode (Fresha-style)
+  booking_mode TEXT NOT NULL DEFAULT 'single-session',
+
+  -- Validity
+  validity_days INTEGER,
+  usage_limit INTEGER,
+
+  -- Booking settings
+  booking_availability TEXT NOT NULL DEFAULT 'both',
+  online_booking_enabled BOOLEAN NOT NULL DEFAULT true,
+
+  -- Staff restrictions
+  restricted_staff_ids TEXT[],
+
+  -- Status
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  display_order INTEGER NOT NULL DEFAULT 0,
+
+  -- Visual
+  color TEXT,
+  images TEXT[],
+
+  -- Sync metadata
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  version INTEGER NOT NULL DEFAULT 1,
+  vector_clock JSONB NOT NULL DEFAULT '{}',
+  last_synced_version INTEGER NOT NULL DEFAULT 0,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Audit trail
+  created_by UUID,
+  created_by_device TEXT,
+  last_modified_by UUID,
+  last_modified_by_device TEXT,
+
+  -- Soft delete (tombstone pattern)
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  deleted_by_device TEXT,
+  tombstone_expires_at TIMESTAMPTZ
+);
+
+-- Add check constraints
+ALTER TABLE service_packages ADD CONSTRAINT service_packages_sync_status_check
+CHECK (sync_status IN ('local', 'pending', 'synced', 'conflict', 'error'));
+
+ALTER TABLE service_packages ADD CONSTRAINT service_packages_discount_type_check
+CHECK (discount_type IN ('fixed', 'percentage'));
+
+ALTER TABLE service_packages ADD CONSTRAINT service_packages_booking_mode_check
+CHECK (booking_mode IN ('single-session', 'multiple-visits'));
+
+ALTER TABLE service_packages ADD CONSTRAINT service_packages_booking_availability_check
+CHECK (booking_availability IN ('online', 'in-store', 'both', 'disabled'));
+
+-- Create indexes for common queries
+CREATE INDEX idx_service_packages_store_id ON service_packages(store_id);
+CREATE INDEX idx_service_packages_store_active ON service_packages(store_id, is_deleted) WHERE is_deleted = false;
+CREATE INDEX idx_service_packages_display_order ON service_packages(store_id, display_order);
+CREATE INDEX idx_service_packages_sync ON service_packages(store_id, sync_status) WHERE sync_status != 'synced';
+CREATE INDEX idx_service_packages_updated ON service_packages(store_id, updated_at DESC);
+CREATE INDEX idx_service_packages_booking ON service_packages(store_id, online_booking_enabled) WHERE is_deleted = false AND is_active = true;
+
+-- Enable Row Level Security
+ALTER TABLE service_packages ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Store members can view own store packages"
+  ON service_packages FOR SELECT
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can insert own store packages"
+  ON service_packages FOR INSERT
+  WITH CHECK (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can update own store packages"
+  ON service_packages FOR UPDATE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can delete own store packages"
+  ON service_packages FOR DELETE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+-- Create function for auto-updating updated_at and incrementing version
+CREATE OR REPLACE FUNCTION update_service_packages_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS service_packages_updated_at_trigger ON service_packages;
+CREATE TRIGGER service_packages_updated_at_trigger
+  BEFORE UPDATE ON service_packages
+  FOR EACH ROW
+  EXECUTE FUNCTION update_service_packages_updated_at();
+
+-- Add comment for documentation
+COMMENT ON TABLE service_packages IS 'Service packages/bundles for discounted service combinations. Services array stores PackageServiceItem[] as JSONB. Supports single-session or multiple-visits booking modes.';
