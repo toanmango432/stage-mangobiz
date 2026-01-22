@@ -309,15 +309,30 @@ export const deleteAddOnOption = createAsyncThunk(
 // Settings
 export const fetchCatalogSettings = createAsyncThunk(
   'catalog/fetchSettings',
-  async (storeId: string) => {
-    return await catalogSettingsDB.getOrCreate(storeId);
+  async ({ storeId, userId, deviceId, tenantId }: {
+    storeId: string;
+    userId?: string;
+    deviceId?: string;
+    tenantId?: string;
+  }) => {
+    const effectiveUserId = userId || 'system';
+    const effectiveDeviceId = deviceId || 'web-client';
+    const effectiveTenantId = tenantId || storeId;
+    return await catalogSettingsDB.getOrCreate(storeId, effectiveUserId, effectiveDeviceId, effectiveTenantId);
   }
 );
 
 export const updateCatalogSettings = createAsyncThunk(
   'catalog/updateSettings',
-  async ({ storeId, updates }: { storeId: string; updates: Partial<CatalogSettings> }) => {
-    return await catalogSettingsDB.update(storeId, updates);
+  async ({ storeId, updates, userId, deviceId }: {
+    storeId: string;
+    updates: Partial<CatalogSettings>;
+    userId?: string;
+    deviceId?: string;
+  }) => {
+    const effectiveUserId = userId || 'system';
+    const effectiveDeviceId = deviceId || 'web-client';
+    return await catalogSettingsDB.update(storeId, updates, effectiveUserId, effectiveDeviceId);
   }
 );
 

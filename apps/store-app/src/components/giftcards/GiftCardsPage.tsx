@@ -114,17 +114,29 @@ export default function GiftCardsPage({ onBack }: GiftCardsPageProps) {
           giftCardDenominations && giftCardDenominations.length > 0
             ? Math.max(...giftCardDenominations.map((d) => d.displayOrder)) + 1
             : 0;
+        const tenantId = storeId; // TODO: Get actual tenantId from auth context
+        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
+        const userId = 'system'; // TODO: Get actual userId from auth context
 
         const denomination: GiftCardDenomination = {
           id,
           storeId,
+          tenantId,
           amount: data.amount || 50,
           label: data.label || `$${data.amount || 50} Gift Card`,
           isActive: data.isActive ?? true,
           displayOrder: data.displayOrder ?? maxOrder,
           syncStatus: 'pending',
+          version: 1,
+          vectorClock: { [deviceId]: 1 },
+          lastSyncedVersion: 0,
           createdAt: now,
           updatedAt: now,
+          createdBy: userId,
+          createdByDevice: deviceId,
+          lastModifiedBy: userId,
+          lastModifiedByDevice: deviceId,
+          isDeleted: false,
         };
         await db.giftCardDenominations.add(denomination);
         toast.success('Denomination created');
@@ -140,9 +152,22 @@ export default function GiftCardsPage({ onBack }: GiftCardsPageProps) {
   const updateDenomination = useCallback(
     async (id: string, data: Partial<GiftCardDenomination>) => {
       try {
+        const existing = await db.giftCardDenominations.get(id);
+        if (!existing) {
+          toast.error('Denomination not found');
+          return null;
+        }
+        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
+        const userId = 'system'; // TODO: Get actual userId from auth context
+        const newVersion = existing.version + 1;
+
         await db.giftCardDenominations.update(id, {
           ...data,
+          version: newVersion,
+          vectorClock: { ...existing.vectorClock, [deviceId]: newVersion },
           updatedAt: new Date().toISOString(),
+          lastModifiedBy: userId,
+          lastModifiedByDevice: deviceId,
           syncStatus: 'pending',
         });
         toast.success('Denomination updated');
@@ -174,25 +199,42 @@ export default function GiftCardsPage({ onBack }: GiftCardsPageProps) {
           .where('storeId')
           .equals(storeId)
           .first();
+        const tenantId = storeId; // TODO: Get actual tenantId from auth context
+        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
+        const userId = 'system'; // TODO: Get actual userId from auth context
 
         if (existing) {
+          const newVersion = existing.version + 1;
           await db.giftCardSettings.update(existing.id, {
             ...data,
+            version: newVersion,
+            vectorClock: { ...existing.vectorClock, [deviceId]: newVersion },
             updatedAt: now,
+            lastModifiedBy: userId,
+            lastModifiedByDevice: deviceId,
             syncStatus: 'pending',
           });
         } else {
           const settings: GiftCardSettings = {
             id: crypto.randomUUID(),
             storeId,
+            tenantId,
             allowCustomAmount: data.allowCustomAmount ?? true,
             minAmount: data.minAmount ?? 10,
             maxAmount: data.maxAmount ?? 500,
             onlineEnabled: data.onlineEnabled ?? true,
             emailDeliveryEnabled: data.emailDeliveryEnabled ?? true,
             syncStatus: 'pending',
+            version: 1,
+            vectorClock: { [deviceId]: 1 },
+            lastSyncedVersion: 0,
             createdAt: now,
             updatedAt: now,
+            createdBy: userId,
+            createdByDevice: deviceId,
+            lastModifiedBy: userId,
+            lastModifiedByDevice: deviceId,
+            isDeleted: false,
           };
           await db.giftCardSettings.add(settings);
         }

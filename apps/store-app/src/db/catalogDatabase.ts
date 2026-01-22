@@ -610,30 +610,46 @@ export const staffServiceAssignmentsDB = {
       .first();
   },
 
-  async create(input: CreateStaffAssignmentInput, storeId: string): Promise<StaffServiceAssignment> {
-    const now = new Date().toISOString();
+  async create(
+    input: CreateStaffAssignmentInput,
+    storeId: string,
+    userId: string,
+    deviceId: string,
+    tenantId: string
+  ): Promise<StaffServiceAssignment> {
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
 
     const assignment: StaffServiceAssignment = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       ...input,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     await db.staffServiceAssignments.add(assignment);
     return assignment;
   },
 
-  async update(id: string, updates: Partial<StaffServiceAssignment>): Promise<StaffServiceAssignment | undefined> {
+  async update(
+    id: string,
+    updates: Partial<StaffServiceAssignment>,
+    userId: string,
+    deviceId: string
+  ): Promise<StaffServiceAssignment | undefined> {
     const assignment = await db.staffServiceAssignments.get(id);
     if (!assignment) return undefined;
 
+    const newVersion = assignment.version + 1;
     const updated: StaffServiceAssignment = {
       ...assignment,
       ...updates,
+      version: newVersion,
+      vectorClock: {
+        ...assignment.vectorClock,
+        [deviceId]: newVersion,
+      },
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
       syncStatus: 'local',
     };
 
@@ -649,6 +665,9 @@ export const staffServiceAssignmentsDB = {
     storeId: string,
     staffId: string,
     serviceId: string,
+    userId: string,
+    deviceId: string,
+    tenantId: string,
     options?: { customPrice?: number; customDuration?: number; customCommissionRate?: number }
   ): Promise<StaffServiceAssignment> {
     // Check if already exists
@@ -656,7 +675,7 @@ export const staffServiceAssignmentsDB = {
     if (existing) {
       if (!existing.isActive) {
         // Reactivate
-        const updated = await this.update(existing.id, { isActive: true, ...options });
+        const updated = await this.update(existing.id, { isActive: true, ...options }, userId, deviceId);
         return updated!;
       }
       return existing;
@@ -667,13 +686,18 @@ export const staffServiceAssignmentsDB = {
       serviceId,
       isActive: true,
       ...options,
-    }, storeId);
+    }, storeId, userId, deviceId, tenantId);
   },
 
-  async removeStaffFromService(staffId: string, serviceId: string): Promise<void> {
+  async removeStaffFromService(
+    staffId: string,
+    serviceId: string,
+    userId: string,
+    deviceId: string
+  ): Promise<void> {
     const assignment = await this.getByStaffAndService(staffId, serviceId);
     if (assignment) {
-      await this.update(assignment.id, { isActive: false });
+      await this.update(assignment.id, { isActive: false }, userId, deviceId);
     }
   },
 };
@@ -688,16 +712,21 @@ export const catalogSettingsDB = {
       .first();
   },
 
-  async getOrCreate(storeId: string): Promise<CatalogSettings> {
+  async getOrCreate(
+    storeId: string,
+    userId: string,
+    deviceId: string,
+    tenantId: string
+  ): Promise<CatalogSettings> {
     // Check for existing settings first
     const existing = await this.get(storeId);
     if (existing) return existing;
 
-    // Create default settings
-    const now = new Date().toISOString();
+    // Create default settings with sync fields
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
     const defaults: CatalogSettings = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       defaultDuration: 60,
       defaultExtraTime: 0,
       defaultExtraTimeType: 'processing',
@@ -712,9 +741,6 @@ export const catalogSettingsDB = {
       enableVariants: true,
       allowCustomPricing: true,
       bookingSequenceEnabled: false,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     try {
@@ -730,14 +756,27 @@ export const catalogSettingsDB = {
     }
   },
 
-  async update(storeId: string, updates: Partial<CatalogSettings>): Promise<CatalogSettings | undefined> {
+  async update(
+    storeId: string,
+    updates: Partial<CatalogSettings>,
+    userId: string,
+    deviceId: string
+  ): Promise<CatalogSettings | undefined> {
     const settings = await this.get(storeId);
     if (!settings) return undefined;
 
+    const newVersion = settings.version + 1;
     const updated: CatalogSettings = {
       ...settings,
       ...updates,
+      version: newVersion,
+      vectorClock: {
+        ...settings.vectorClock,
+        [deviceId]: newVersion,
+      },
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
       syncStatus: 'local',
     };
 

@@ -436,9 +436,13 @@ export type CreateAddOnOptionInput = Omit<AddOnOption,
 // STAFF-SERVICE ASSIGNMENT
 // ============================================
 
-export interface StaffServiceAssignment {
-  id: string;
-  storeId: string;
+/**
+ * StaffServiceAssignment - Links a staff member to a service with optional overrides
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface StaffServiceAssignment extends BaseSyncableEntity {
   staffId: string;
   serviceId: string;
 
@@ -451,25 +455,45 @@ export interface StaffServiceAssignment {
 
   // Status
   isActive: boolean;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new StaffServiceAssignment
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateStaffAssignmentInput = Omit<StaffServiceAssignment,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
 // CATALOG SETTINGS
 // ============================================
 
-export interface CatalogSettings {
-  id: string;
-  storeId: string;
-
+/**
+ * CatalogSettings - Per-store catalog configuration
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface CatalogSettings extends BaseSyncableEntity {
   // Default values
   defaultDuration: number;
   defaultExtraTime: number;
@@ -491,11 +515,6 @@ export interface CatalogSettings {
   enableVariants: boolean;
   allowCustomPricing: boolean;
   bookingSequenceEnabled: boolean;
-
-  // Timestamps & Sync
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
 // ============================================
@@ -505,25 +524,42 @@ export interface CatalogSettings {
 /**
  * BookingSequence - Defines the order services should be performed
  * Used to ensure services are booked in a logical order (e.g., Cut → Color → Style)
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
  */
-export interface BookingSequence {
-  id: string;
-  storeId: string;
-
+export interface BookingSequence extends BaseSyncableEntity {
   // Ordered list of service IDs
   serviceOrder: string[];
 
   // Whether this sequence is enabled
   isEnabled: boolean;
-
-  // Timestamps & Sync
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new BookingSequence
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateBookingSequenceInput = Omit<BookingSequence,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
@@ -869,11 +905,11 @@ export function fromMenuGeneralSettings(settings: MenuGeneralSettings): Partial<
 /**
  * GiftCardDenomination - Preset gift card amounts for quick sale
  * Managed in Catalog > Gift Cards tab
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
  */
-export interface GiftCardDenomination {
-  id: string;
-  storeId: string;
-
+export interface GiftCardDenomination extends BaseSyncableEntity {
   // Core fields
   amount: number;
   label?: string;  // e.g., "$50 Gift Card", "Holiday Special"
@@ -881,24 +917,41 @@ export interface GiftCardDenomination {
   // Status
   isActive: boolean;
   displayOrder: number;
-
-  // Timestamps & Sync
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new GiftCardDenomination
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateGiftCardDenominationInput = Omit<GiftCardDenomination,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 /**
  * GiftCardSettings - Per-salon gift card configuration
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
  */
-export interface GiftCardSettings {
-  id: string;
-  storeId: string;
-
+export interface GiftCardSettings extends BaseSyncableEntity {
   // Custom amount settings
   allowCustomAmount: boolean;
   minAmount: number;
@@ -910,9 +963,4 @@ export interface GiftCardSettings {
   // Online settings
   onlineEnabled: boolean;
   emailDeliveryEnabled: boolean;
-
-  // Timestamps & Sync
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }

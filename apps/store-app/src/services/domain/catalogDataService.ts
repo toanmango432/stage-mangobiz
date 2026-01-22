@@ -401,20 +401,26 @@ export const staffServiceAssignmentsService = {
     return staffServiceAssignmentsDB.getById(id);
   },
 
-  async create(input: unknown, _userId: string, storeId: string) {
+  async create(input: unknown, userId: string, storeId: string, deviceId: string = 'web-client', tenantId?: string) {
     if (USE_SQLITE) {
       return sqliteStaffServiceAssignmentsDB.create(input);
     }
-    // Dexie API: create(input, storeId) - no userId
-    return staffServiceAssignmentsDB.create(input as Parameters<typeof staffServiceAssignmentsDB.create>[0], storeId);
+    // Dexie API: create(input, storeId, userId, deviceId, tenantId)
+    return staffServiceAssignmentsDB.create(
+      input as Parameters<typeof staffServiceAssignmentsDB.create>[0],
+      storeId,
+      userId,
+      deviceId,
+      tenantId || storeId
+    );
   },
 
-  async update(id: string, updates: unknown, _userId: string) {
+  async update(id: string, updates: unknown, userId: string, deviceId: string = 'web-client') {
     if (USE_SQLITE) {
       return sqliteStaffServiceAssignmentsDB.update(id, updates);
     }
-    // Dexie API: update(id, updates) - no userId
-    return staffServiceAssignmentsDB.update(id, updates as Partial<unknown>);
+    // Dexie API: update(id, updates, userId, deviceId)
+    return staffServiceAssignmentsDB.update(id, updates as Partial<unknown>, userId, deviceId);
   },
 
   async delete(id: string) {
@@ -436,12 +442,12 @@ export const catalogSettingsService = {
     return catalogSettingsDB.get(storeId);
   },
 
-  async set(storeId: string, settings: unknown, _userId: string) {
+  async set(storeId: string, settings: unknown, userId: string, deviceId: string = 'web-client') {
     if (USE_SQLITE) {
       return sqliteCatalogSettingsDB.set(storeId, settings);
     }
-    // Dexie API: update(storeId, updates) - no userId
-    return catalogSettingsDB.update(storeId, settings as Partial<unknown>);
+    // Dexie API: update(storeId, updates, userId, deviceId)
+    return catalogSettingsDB.update(storeId, settings as Partial<unknown>, userId, deviceId);
   },
 };
 

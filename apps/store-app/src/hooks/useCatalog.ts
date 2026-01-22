@@ -265,15 +265,17 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     if (!isValidStoreId) return;
     if (catalogSettings === undefined) {
       // Check if we need to create default settings
+      const tenantId = storeId; // TODO: Get actual tenantId from auth context
+      const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
       catalogSettingsDB.get(storeId).then(existing => {
         if (!existing) {
-          catalogSettingsDB.getOrCreate(storeId);
+          catalogSettingsDB.getOrCreate(storeId, userId, deviceId, tenantId);
         }
       }).catch(err => {
         console.warn('Failed to initialize catalog settings:', err);
       });
     }
-  }, [storeId, catalogSettings, isValidStoreId]);
+  }, [storeId, userId, catalogSettings, isValidStoreId]);
 
   // Convert to MenuGeneralSettings for UI
   const settings = useMemo((): MenuGeneralSettings | null => {
@@ -968,14 +970,15 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           enablePackages: data.enablePackages ?? settings?.enablePackages ?? true,
           enableAddOns: data.enableAddOns ?? settings?.enableAddOns ?? true,
         };
+        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
         const updates = fromMenuGeneralSettings(merged);
-        await catalogSettingsDB.update(storeId, updates);
+        await catalogSettingsDB.update(storeId, updates, userId, deviceId);
         return merged;
       },
       'Settings updated',
       'Failed to update settings'
     );
-  }, [storeId, settings, withErrorHandling]);
+  }, [storeId, userId, settings, withErrorHandling]);
 
   // ==================== GIFT CARD ACTIONS ====================
 
@@ -987,17 +990,28 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
         const maxOrder = giftCardDenominations.length > 0
           ? Math.max(...giftCardDenominations.map(d => d.displayOrder)) + 1
           : 0;
+        const tenantId = storeId; // TODO: Get actual tenantId from auth context
+        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
 
         const denomination: GiftCardDenomination = {
           id,
           storeId,
+          tenantId,
           amount: data.amount || 50,
           label: data.label,
           isActive: data.isActive ?? true,
           displayOrder: data.displayOrder ?? maxOrder,
           syncStatus: 'local',
+          version: 1,
+          vectorClock: { [deviceId]: 1 },
+          lastSyncedVersion: 0,
           createdAt: now,
           updatedAt: now,
+          createdBy: userId,
+          createdByDevice: deviceId,
+          lastModifiedBy: userId,
+          lastModifiedByDevice: deviceId,
+          isDeleted: false,
         };
         await db.giftCardDenominations.add(denomination);
         return denomination;
@@ -1005,14 +1019,24 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Denomination created',
       'Failed to create denomination'
     );
-  }, [storeId, giftCardDenominations, withErrorHandling]);
+  }, [storeId, userId, giftCardDenominations, withErrorHandling]);
 
   const updateGiftCardDenomination = useCallback(async (id: string, data: Partial<GiftCardDenomination>) => {
     return withErrorHandling(
       async () => {
+        const existing = await db.giftCardDenominations.get(id);
+        if (!existing) throw new Error('Denomination not found');
+
+        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
+        const newVersion = existing.version + 1;
+
         await db.giftCardDenominations.update(id, {
           ...data,
+          version: newVersion,
+          vectorClock: { ...existing.vectorClock, [deviceId]: newVersion },
           updatedAt: new Date().toISOString(),
+          lastModifiedBy: userId,
+          lastModifiedByDevice: deviceId,
           syncStatus: 'pending',
         });
         return await db.giftCardDenominations.get(id);
@@ -1020,7 +1044,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Denomination updated',
       'Failed to update denomination'
     );
-  }, [withErrorHandling]);
+  }, [userId, withErrorHandling]);
 
   const deleteGiftCardDenomination = useCallback(async (id: string) => {
     return withErrorHandling(
@@ -1042,12 +1066,19 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           .equals(storeId)
           .first();
         const now = new Date().toISOString();
+        const tenantId = storeId; // TODO: Get actual tenantId from auth context
+        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
 
         if (existing) {
           // Update using the actual record id
+          const newVersion = existing.version + 1;
           await db.giftCardSettings.update(existing.id, {
             ...data,
+            version: newVersion,
+            vectorClock: { ...existing.vectorClock, [deviceId]: newVersion },
             updatedAt: now,
+            lastModifiedBy: userId,
+            lastModifiedByDevice: deviceId,
             syncStatus: 'pending',
           });
         } else {
@@ -1055,14 +1086,23 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           const settings: GiftCardSettings = {
             id,
             storeId,
+            tenantId,
             allowCustomAmount: data.allowCustomAmount ?? true,
             minAmount: data.minAmount ?? 10,
             maxAmount: data.maxAmount ?? 500,
             onlineEnabled: data.onlineEnabled ?? true,
             emailDeliveryEnabled: data.emailDeliveryEnabled ?? true,
             syncStatus: 'local',
+            version: 1,
+            vectorClock: { [deviceId]: 1 },
+            lastSyncedVersion: 0,
             createdAt: now,
             updatedAt: now,
+            createdBy: userId,
+            createdByDevice: deviceId,
+            lastModifiedBy: userId,
+            lastModifiedByDevice: deviceId,
+            isDeleted: false,
           };
           await db.giftCardSettings.add(settings);
         }
@@ -1075,7 +1115,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Gift card settings updated',
       'Failed to update gift card settings'
     );
-  }, [storeId, withErrorHandling]);
+  }, [storeId, userId, withErrorHandling]);
 
   // ==================== RETURN ====================
 

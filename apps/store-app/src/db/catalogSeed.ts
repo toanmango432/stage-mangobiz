@@ -21,6 +21,7 @@ import type { SyncStatus, VectorClock } from '../types/common';
 const DEFAULT_SALON_ID = 'default-salon'; // Default salon ID for fallback
 const DEFAULT_TENANT_ID = 'default-tenant'; // Default tenant ID for fallback
 const DEFAULT_DEVICE_ID = 'seed-device'; // Device ID for seeded data
+const DEFAULT_USER_ID = 'seed-user'; // User ID for seeded data
 
 /**
  * Creates sync-related fields for seeded data
@@ -871,9 +872,15 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   console.log(`✅ Seeded ${addOnOptions.length} add-on options`);
 
   // ==================== CATALOG SETTINGS ====================
+  const settingsSyncFields = createSeedSyncFields(storeId);
   const settings: CatalogSettings = {
     id: uuidv4(),
     storeId,
+    ...settingsSyncFields,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: DEFAULT_USER_ID,
+    lastModifiedBy: DEFAULT_USER_ID,
     defaultDuration: 60,
     defaultExtraTime: 0,
     defaultExtraTimeType: 'processing',
@@ -888,9 +895,6 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     enableVariants: true,
     allowCustomPricing: true,
     bookingSequenceEnabled: false,
-    createdAt: now,
-    updatedAt: now,
-    syncStatus: 'synced',
   };
 
   await db.catalogSettings.add(settings);
