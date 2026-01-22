@@ -127,6 +127,22 @@ function toOnlineService(row: any): Service {
 }
 
 /**
+ * Validate RLS policy worked correctly (defense-in-depth)
+ * Ensures all returned records match the requested storeId
+ */
+function validateStoreIsolation(data: any[], storeId: string, context: string): void {
+  const invalidRecords = data.filter(row => row.store_id !== storeId);
+  if (invalidRecords.length > 0) {
+    console.error(`[SECURITY] RLS policy violation in ${context}`, {
+      requestedStoreId: storeId,
+      invalidRecordCount: invalidRecords.length,
+      invalidStoreIds: [...new Set(invalidRecords.map(r => r.store_id))],
+    });
+    throw new Error(`Cross-store data leakage prevented in ${context}`);
+  }
+}
+
+/**
  * Sync services from Supabase
  * Fetches only services with online_booking_enabled=true
  */
@@ -155,6 +171,9 @@ export async function syncFromSupabase(storeId: string): Promise<Service[]> {
       console.log('[CatalogSync] No online-enabled services found for store:', storeId);
       return [];
     }
+
+    // RLS Validation (defense-in-depth security)
+    validateStoreIsolation(data, storeId, 'syncFromSupabase');
 
     // Convert to Online Store Service type
     const services = data.map(toOnlineService);
@@ -252,6 +271,9 @@ export async function getAddOnGroups(storeId: string, serviceId: string, categor
       return [];
     }
 
+    // RLS Validation (defense-in-depth security)
+    validateStoreIsolation(groupsData, storeId, 'getAddOnGroups');
+
     // Filter groups by applicability
     const applicableGroups = groupsData.filter((group) => {
       if (group.applicable_to_all) return true;
@@ -279,6 +301,8 @@ export async function getAddOnGroups(storeId: string, serviceId: string, categor
       console.error('[CatalogSync] Error fetching add-on options:', optionsError);
       throw optionsError;
     }
+
+    // Note: add_on_options doesn't have store_id column, validated via parent group
 
     // Build groups with their options
     const groups: AddOnGroup[] = applicableGroups.map((group) => {
