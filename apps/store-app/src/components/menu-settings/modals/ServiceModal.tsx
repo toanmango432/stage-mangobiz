@@ -16,7 +16,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { z } from 'zod';
-import type { EmbeddedVariant, ServiceModalProps, ExtraTimeType } from '@/types/catalog';
+import type { EmbeddedVariant, ServiceModalProps, ExtraTimeType, StaffAssignmentData } from '@/types/catalog';
 import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS, EXTRA_TIME_TYPES, REBOOK_REMINDER_OPTIONS, formatDuration } from '../constants';
 import { StaffAssignmentEditor } from '../components/StaffAssignmentEditor';
 
@@ -42,20 +42,12 @@ const serviceFormSchema = z.object({
 type ServiceFormData = z.infer<typeof serviceFormSchema>;
 type ValidationErrors = Partial<Record<keyof ServiceFormData, string>>;
 
-// Staff assignment data shape (matches StaffAssignmentEditor)
-interface StaffAssignmentData {
-  staffId: string;
-  isAssigned: boolean;
-  customPrice?: number;
-  customDuration?: number;
-  customCommissionRate?: number;
-}
-
 export function ServiceModal({
   isOpen,
   onClose,
   service,
   categories,
+  initialStaffAssignments,
   onSave,
 }: ServiceModalProps) {
   // Basic Info
@@ -192,9 +184,21 @@ export function ServiceModal({
         setHasVariants(service.hasVariants || false);
         setVariants(service.variants || []);
         setAllStaffCanPerform(service.allStaffCanPerform);
-        // Note: Staff assignments would need to be loaded from useCatalog hook
-        // For now, start with empty assignments (to be populated from staffServiceAssignments)
-        setStaffAssignments([]);
+        // Load staff assignments from initialStaffAssignments prop
+        if (initialStaffAssignments && initialStaffAssignments.length > 0) {
+          const loadedAssignments: StaffAssignmentData[] = initialStaffAssignments
+            .filter(a => a.isActive)
+            .map(a => ({
+              staffId: a.staffId,
+              isAssigned: true,
+              customPrice: a.customPrice,
+              customDuration: a.customDuration,
+              customCommissionRate: a.customCommissionRate,
+            }));
+          setStaffAssignments(loadedAssignments);
+        } else {
+          setStaffAssignments([]);
+        }
         setOnlineBookingEnabled(service.onlineBookingEnabled);
         setShowPriceOnline(service.showPriceOnline);
         setRequiresDeposit(service.requiresDeposit);
@@ -237,7 +241,7 @@ export function ServiceModal({
       setActiveTab('basic');
       setValidationErrors({}); // Clear validation errors when modal opens
     }
-  }, [isOpen, service, categories]);
+  }, [isOpen, service, categories, initialStaffAssignments]);
 
   // Add variant
   const addVariant = () => {
@@ -282,6 +286,11 @@ export function ServiceModal({
   const handleSave = () => {
     if (!validateForm()) return;
 
+    // Only include staff assignments if not all staff can perform and there are assignments
+    const staffAssignmentsToSave = !allStaffCanPerform && staffAssignments.length > 0
+      ? staffAssignments
+      : undefined;
+
     onSave({
       name: name.trim(),
       description: description.trim() || undefined,
@@ -309,7 +318,7 @@ export function ServiceModal({
       advanceBookingDaysMax: onlineBookingEnabled ? advanceBookingDaysMax : undefined,
       turnWeight,
       commissionRate,
-    }, hasVariants ? variants : undefined);
+    }, hasVariants ? variants : undefined, staffAssignmentsToSave);
   };
 
   // Handle keyboard

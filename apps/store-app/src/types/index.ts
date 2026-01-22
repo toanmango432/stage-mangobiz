@@ -59,6 +59,7 @@ export {
   type ViewMode,
   type CategoryModalProps,
   type ServiceModalProps,
+  type StaffAssignmentData,
   type PackageModalProps,
   type AddOnModalProps,
   type MenuGeneralSettings,

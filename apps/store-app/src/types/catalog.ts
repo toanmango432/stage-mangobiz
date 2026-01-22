@@ -839,12 +839,30 @@ export interface CategoryModalProps {
   onSave: (category: Partial<ServiceCategory>) => Promise<void> | void;
 }
 
+/**
+ * Staff assignment data for ServiceModal
+ * Matches the shape expected by StaffAssignmentEditor
+ */
+export interface StaffAssignmentData {
+  staffId: string;
+  isAssigned: boolean;
+  customPrice?: number;
+  customDuration?: number;
+  customCommissionRate?: number;
+}
+
 export interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   service?: MenuServiceWithEmbeddedVariants;
   categories: ServiceCategory[];
-  onSave: (service: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<void> | void;
+  /** Initial staff assignments for editing (loaded from staffServiceAssignments) */
+  initialStaffAssignments?: StaffServiceAssignment[];
+  onSave: (
+    service: Partial<MenuService>,
+    variants?: EmbeddedVariant[],
+    staffAssignments?: StaffAssignmentData[]
+  ) => Promise<void> | void;
 }
 
 export interface PackageModalProps {

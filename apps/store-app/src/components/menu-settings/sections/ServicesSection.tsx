@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Plus,
   Edit3,
@@ -17,6 +17,8 @@ import type {
   CategoryWithCount,
   CatalogViewMode,
   EmbeddedVariant,
+  StaffServiceAssignment,
+  StaffAssignmentData,
 } from '@/types/catalog';
 import { formatDuration, formatPrice } from '../constants';
 import { ServiceModal } from '../modals/ServiceModal';
@@ -39,6 +41,9 @@ interface ServicesSectionProps {
   onDelete?: (id: string) => Promise<boolean | null>;
   onArchive?: (id: string) => Promise<ArchiveServiceResult | null>;
   checkServiceDependencies?: (serviceId: string) => Promise<ServiceArchiveDependencies>;
+  // Staff assignment callbacks
+  getStaffAssignments?: (serviceId: string) => Promise<StaffServiceAssignment[]>;
+  saveStaffAssignments?: (serviceId: string, assignments: StaffAssignmentData[]) => Promise<void>;
 }
 
 export function ServicesSection({
@@ -54,9 +59,12 @@ export function ServicesSection({
   onDelete,
   onArchive,
   checkServiceDependencies,
+  getStaffAssignments,
+  saveStaffAssignments,
 }: ServicesSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState<MenuServiceWithEmbeddedVariants | undefined>();
+  const [editingServiceAssignments, setEditingServiceAssignments] = useState<StaffServiceAssignment[]>([]);
 
   // Archive modal state
   const [showArchiveModal, setShowArchiveModal] = useState(false);
@@ -69,22 +77,42 @@ export function ServicesSection({
   const [selectedServiceToDelete, setSelectedServiceToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Load staff assignments when editing a service
+  useEffect(() => {
+    const loadAssignments = async () => {
+      if (editingService && getStaffAssignments) {
+        const assignments = await getStaffAssignments(editingService.id);
+        setEditingServiceAssignments(assignments);
+      } else {
+        setEditingServiceAssignments([]);
+      }
+    };
+    loadAssignments();
+  }, [editingService, getStaffAssignments]);
+
   // Get category by ID
   const getCategory = (categoryId: string) => {
     return categories.find(c => c.id === categoryId);
   };
 
   // Handle save service
-  const handleSaveService = async (serviceData: Partial<MenuService>, variants?: EmbeddedVariant[]) => {
+  const handleSaveService = async (
+    serviceData: Partial<MenuService>,
+    variants?: EmbeddedVariant[],
+    staffAssignments?: StaffAssignmentData[]
+  ) => {
+    let savedServiceId: string | undefined;
+
     if (editingService) {
       // Update existing service
       if (onUpdate) {
         await onUpdate(editingService.id, serviceData, variants);
+        savedServiceId = editingService.id;
       }
     } else {
       // Create new service
       if (onCreate) {
-        await onCreate({
+        const newService = await onCreate({
           categoryId: serviceData.categoryId || categories[0]?.id || '',
           name: serviceData.name || 'New Service',
           description: serviceData.description,
@@ -103,8 +131,15 @@ export function ServicesSection({
           showPriceOnline: serviceData.showPriceOnline ?? true,
           allowCustomDuration: serviceData.allowCustomDuration || false,
         }, variants);
+        savedServiceId = newService?.id;
       }
     }
+
+    // Save staff assignments if provided and we have a service ID
+    if (savedServiceId && staffAssignments && saveStaffAssignments) {
+      await saveStaffAssignments(savedServiceId, staffAssignments);
+    }
+
     setShowModal(false);
     setEditingService(undefined);
   };
@@ -565,9 +600,11 @@ export function ServicesSection({
         onClose={() => {
           setShowModal(false);
           setEditingService(undefined);
+          setEditingServiceAssignments([]);
         }}
         service={editingService}
         categories={categories}
+        initialStaffAssignments={editingServiceAssignments}
         onSave={handleSaveService}
       />
 
