@@ -180,3 +180,34 @@
 - Pre-existing typecheck errors in @mango/types package are unrelated to these changes
 - formsSlice is a new slice - no slice.ts needed yet (just thunks)
 
+---
+
+### Iteration 6 - US-021: Create FormDeliveryModal component
+**Date:** 2026-01-22
+**Story:** US-021 - Create FormDeliveryModal component
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/components/forms/FormDeliveryModal.tsx` with:
+  - Select form template from dropdown (fetches active templates from Supabase)
+  - Select delivery method (Email/SMS/Both) using RadioGroup
+  - Shows client contact info (email/phone) with availability badges
+  - Warning alerts when contact info missing for selected method
+  - 'Both' option sends to available channels only
+  - Send button with loading state (Loader2 spinner)
+  - Success confirmation screen with checkmark
+  - Copy Link button with clipboard integration
+  - Form link preview in code block
+  - Error handling with destructive alerts
+  - State reset on close
+
+**Files Changed:**
+- `apps/store-app/src/components/forms/FormDeliveryModal.tsx` (new)
+
+**Learnings:**
+- Import casing matters: use `@/components/ui/Select` (capital S) to match existing patterns
+- RadioGroup wrapped in custom label styling for better selection UX
+- Handle 'both' delivery method by sending to available channels only
+- Form link built from token returned by sendFormToClient thunk
+- Unused FormTemplate import removed by linter
+
