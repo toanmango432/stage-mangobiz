@@ -180,7 +180,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from client list components. Use existing fetchClientsByCustomSegment thunk."
     },
     {
