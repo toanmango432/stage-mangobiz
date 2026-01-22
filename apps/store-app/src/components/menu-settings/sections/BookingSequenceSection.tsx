@@ -7,11 +7,20 @@ import {
   ArrowRight,
   ListOrdered,
   Info,
-  ChevronDown,
-  ChevronUp,
+  AlertTriangle,
 } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { MenuServiceWithEmbeddedVariants, CategoryWithCount } from '@/types/catalog';
 import { formatDuration, formatPrice } from '../constants';
+import {
+  useKeyboardDragDrop,
+  DndContext,
+  SortableContext,
+  closestCenter,
+  KeyboardInstructions,
+  LiveAnnouncer,
+} from '../hooks/useKeyboardDragDrop';
 
 interface BookingSequenceSectionProps {
   services: MenuServiceWithEmbeddedVariants[];
@@ -20,6 +29,117 @@ interface BookingSequenceSectionProps {
   isEnabled: boolean;
   onUpdateOrder: (newOrder: string[]) => Promise<void> | void;
   onToggleEnabled: (enabled: boolean) => Promise<void> | void;
+  /** Error message when service filtering fails */
+  filterError?: string | null;
+  /** Callback to retry fetching services */
+  onRetryFilter?: () => void;
+}
+
+/**
+ * Sortable service item for keyboard-accessible drag and drop
+ */
+interface SortableServiceItemProps {
+  service: MenuServiceWithEmbeddedVariants;
+  index: number;
+  totalCount: number;
+  getCategoryName: (categoryId: string) => string;
+  getCategoryColor: (categoryId: string) => string;
+  onRemove: (serviceId: string) => void;
+  getKeyboardHandleProps: (itemId: string) => {
+    role: string;
+    tabIndex: number;
+    'aria-label': string;
+    'aria-describedby': string;
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void;
+  };
+}
+
+function SortableServiceItem({
+  service,
+  index,
+  totalCount,
+  getCategoryName,
+  getCategoryColor,
+  onRemove,
+  getKeyboardHandleProps,
+}: SortableServiceItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: service.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const keyboardHandleProps = getKeyboardHandleProps(service.id);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+        isDragging ? 'bg-indigo-50 opacity-70 shadow-lg' : ''
+      }`}
+    >
+      {/* Drag Handle - with keyboard accessibility */}
+      <div
+        {...attributes}
+        {...listeners}
+        {...keyboardHandleProps}
+        className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 rounded"
+      >
+        <GripVertical size={18} />
+      </div>
+
+      {/* Order Number */}
+      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+        <span className="text-sm font-bold text-indigo-600">{index + 1}</span>
+      </div>
+
+      {/* Service Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-gray-900">{service.name}</span>
+          <span
+            className="px-2 py-0.5 text-xs rounded-full"
+            style={{
+              backgroundColor: `${getCategoryColor(service.categoryId)}15`,
+              color: getCategoryColor(service.categoryId),
+            }}
+          >
+            {getCategoryName(service.categoryId)}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+          <span className="flex items-center gap-1">
+            <Clock size={12} />
+            {formatDuration(service.duration)}
+          </span>
+          <span>{formatPrice(service.price)}</span>
+        </div>
+      </div>
+
+      {/* Arrow */}
+      {index < totalCount - 1 && (
+        <ArrowRight size={16} className="text-gray-300 flex-shrink-0" />
+      )}
+
+      {/* Remove Button */}
+      <button
+        onClick={() => onRemove(service.id)}
+        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+        aria-label={`Remove ${service.name} from sequence`}
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
 }
 
 export function BookingSequenceSection({
@@ -29,8 +149,9 @@ export function BookingSequenceSection({
   isEnabled,
   onUpdateOrder,
   onToggleEnabled,
+  filterError,
+  onRetryFilter,
 }: BookingSequenceSectionProps) {
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [showAddServices, setShowAddServices] = useState(false);
 
   // Get ordered services
@@ -53,28 +174,27 @@ export function BookingSequenceSection({
     return categories.find(c => c.id === categoryId)?.color || '#6B7280';
   };
 
-  // Handle drag start
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
-
-  // Handle drag over
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newOrder = [...serviceOrder];
-    const [removed] = newOrder.splice(draggedIndex, 1);
-    newOrder.splice(index, 0, removed);
-
-    setDraggedIndex(index);
-    onUpdateOrder(newOrder);
-  };
-
-  // Handle drag end
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
+  // Keyboard-accessible drag and drop
+  const {
+    sensors,
+    handleDragEnd,
+    handleDragStart,
+    itemIds,
+    sortingStrategy,
+    announcements,
+    getKeyboardHandleProps,
+    instructionsId,
+    announcement,
+  } = useKeyboardDragDrop({
+    items: orderedServices,
+    getItemId: (service) => service.id,
+    onReorder: (newItems) => {
+      const newOrder = newItems.map((s) => s.id);
+      onUpdateOrder(newOrder);
+    },
+    getItemLabel: (service) => service.name,
+    disabled: !isEnabled,
+  });
 
   // Add service to sequence
   const handleAddService = (serviceId: string) => {
@@ -85,22 +205,6 @@ export function BookingSequenceSection({
   // Remove service from sequence
   const handleRemoveService = (serviceId: string) => {
     const newOrder = serviceOrder.filter(id => id !== serviceId);
-    onUpdateOrder(newOrder);
-  };
-
-  // Move service up
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return;
-    const newOrder = [...serviceOrder];
-    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
-    onUpdateOrder(newOrder);
-  };
-
-  // Move service down
-  const handleMoveDown = (index: number) => {
-    if (index === serviceOrder.length - 1) return;
-    const newOrder = [...serviceOrder];
-    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
     onUpdateOrder(newOrder);
   };
 
@@ -146,8 +250,29 @@ export function BookingSequenceSection({
           </div>
         </div>
 
+        {/* Error State */}
+        {filterError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+            <div className="flex gap-3">
+              <AlertTriangle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm text-red-800 font-medium">Failed to load services</p>
+                <p className="text-sm text-red-700 mt-1">{filterError}</p>
+                {onRetryFilter && (
+                  <button
+                    onClick={onRetryFilter}
+                    className="mt-2 text-sm text-red-700 underline hover:text-red-800 font-medium"
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Info Box */}
-        {isEnabled && (
+        {isEnabled && !filterError && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
             <div className="flex gap-3">
               <Info size={20} className="text-blue-500 flex-shrink-0 mt-0.5" />
@@ -162,169 +287,117 @@ export function BookingSequenceSection({
           </div>
         )}
 
-        {/* Sequence List */}
-        {isEnabled && (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* List Header */}
-            <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Service Order ({orderedServices.length} services)
-                </span>
-                <button
-                  onClick={() => setShowAddServices(!showAddServices)}
-                  className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-                >
-                  <Plus size={16} />
-                  Add Service
-                </button>
-              </div>
-            </div>
+        {/* Sequence List with keyboard-accessible drag and drop */}
+        {isEnabled && !filterError && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            accessibility={{ announcements }}
+          >
+            {/* Accessibility: keyboard instructions and live announcer */}
+            <KeyboardInstructions id={instructionsId} />
+            <LiveAnnouncer announcement={announcement} />
 
-            {/* Ordered Services */}
-            {orderedServices.length > 0 ? (
-              <div className="divide-y divide-gray-50">
-                {orderedServices.map((service, index) => (
-                  <div
-                    key={service.id}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    className={`px-4 py-3 flex items-center gap-3 cursor-move hover:bg-gray-50 transition-colors ${
-                      draggedIndex === index ? 'bg-indigo-50 opacity-70' : ''
-                    }`}
-                  >
-                    {/* Drag Handle */}
-                    <div className="text-gray-400 hover:text-gray-600">
-                      <GripVertical size={18} />
-                    </div>
-
-                    {/* Order Number */}
-                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-indigo-600">{index + 1}</span>
-                    </div>
-
-                    {/* Service Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{service.name}</span>
-                        <span
-                          className="px-2 py-0.5 text-xs rounded-full"
-                          style={{
-                            backgroundColor: `${getCategoryColor(service.categoryId)}15`,
-                            color: getCategoryColor(service.categoryId),
-                          }}
-                        >
-                          {getCategoryName(service.categoryId)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} />
-                          {formatDuration(service.duration)}
-                        </span>
-                        <span>{formatPrice(service.price)}</span>
-                      </div>
-                    </div>
-
-                    {/* Arrow */}
-                    {index < orderedServices.length - 1 && (
-                      <ArrowRight size={16} className="text-gray-300 flex-shrink-0" />
-                    )}
-
-                    {/* Move Buttons */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleMoveUp(index)}
-                        disabled={index === 0}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move up"
-                      >
-                        <ChevronUp size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleMoveDown(index)}
-                        disabled={index === orderedServices.length - 1}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move down"
-                      >
-                        <ChevronDown size={16} />
-                      </button>
-                    </div>
-
-                    {/* Remove Button */}
-                    <button
-                      onClick={() => handleRemoveService(service.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                      title="Remove from sequence"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="px-4 py-8 text-center">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <ListOrdered size={20} className="text-gray-400" />
-                </div>
-                <p className="text-sm text-gray-500 mb-2">No services in sequence yet</p>
-                <p className="text-xs text-gray-400">
-                  Add services to define the order they should be performed
-                </p>
-              </div>
-            )}
-
-            {/* Add Services Panel */}
-            {showAddServices && unorderedServices.length > 0 && (
-              <div className="border-t border-gray-200 bg-gray-50">
-                <div className="px-4 py-2 border-b border-gray-200">
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Available Services
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              {/* List Header */}
+              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    Service Order ({orderedServices.length} services)
                   </span>
-                </div>
-                <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                  {unorderedServices.map((service) => (
-                    <button
-                      key={service.id}
-                      onClick={() => handleAddService(service.id)}
-                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white transition-colors text-left"
-                    >
-                      <Plus size={16} className="text-indigo-500 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{service.name}</span>
-                          <span
-                            className="px-2 py-0.5 text-xs rounded-full"
-                            style={{
-                              backgroundColor: `${getCategoryColor(service.categoryId)}15`,
-                              color: getCategoryColor(service.categoryId),
-                            }}
-                          >
-                            {getCategoryName(service.categoryId)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
-                          <span>{formatDuration(service.duration)}</span>
-                          <span>{formatPrice(service.price)}</span>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                  <button
+                    onClick={() => setShowAddServices(!showAddServices)}
+                    className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    <Plus size={16} />
+                    Add Service
+                  </button>
                 </div>
               </div>
-            )}
 
-            {/* Unordered Services Info */}
-            {isEnabled && unorderedServices.length > 0 && !showAddServices && (
-              <div className="px-4 py-3 border-t border-gray-100 bg-amber-50">
-                <p className="text-xs text-amber-700">
-                  <strong>{unorderedServices.length}</strong> service{unorderedServices.length !== 1 ? 's' : ''} not in sequence will appear after ordered services.
-                </p>
-              </div>
-            )}
-          </div>
+              {/* Ordered Services with sortable context */}
+              {orderedServices.length > 0 ? (
+                <SortableContext items={itemIds} strategy={sortingStrategy}>
+                  <div className="divide-y divide-gray-50">
+                    {orderedServices.map((service, index) => (
+                      <SortableServiceItem
+                        key={service.id}
+                        service={service}
+                        index={index}
+                        totalCount={orderedServices.length}
+                        getCategoryName={getCategoryName}
+                        getCategoryColor={getCategoryColor}
+                        onRemove={handleRemoveService}
+                        getKeyboardHandleProps={getKeyboardHandleProps}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              ) : (
+                <div className="px-4 py-8 text-center">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <ListOrdered size={20} className="text-gray-400" />
+                  </div>
+                  <p className="text-sm text-gray-500 mb-2">No services in sequence yet</p>
+                  <p className="text-xs text-gray-400">
+                    Add services to define the order they should be performed
+                  </p>
+                </div>
+              )}
+
+              {/* Add Services Panel */}
+              {showAddServices && unorderedServices.length > 0 && (
+                <div className="border-t border-gray-200 bg-gray-50">
+                  <div className="px-4 py-2 border-b border-gray-200">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Available Services
+                    </span>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                    {unorderedServices.map((service) => (
+                      <button
+                        key={service.id}
+                        onClick={() => handleAddService(service.id)}
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white transition-colors text-left"
+                        aria-label={`Add ${service.name} to sequence`}
+                      >
+                        <Plus size={16} className="text-indigo-500 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900">{service.name}</span>
+                            <span
+                              className="px-2 py-0.5 text-xs rounded-full"
+                              style={{
+                                backgroundColor: `${getCategoryColor(service.categoryId)}15`,
+                                color: getCategoryColor(service.categoryId),
+                              }}
+                            >
+                              {getCategoryName(service.categoryId)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                            <span>{formatDuration(service.duration)}</span>
+                            <span>{formatPrice(service.price)}</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Unordered Services Info */}
+              {unorderedServices.length > 0 && !showAddServices && (
+                <div className="px-4 py-3 border-t border-gray-100 bg-amber-50">
+                  <p className="text-xs text-amber-700">
+                    <strong>{unorderedServices.length}</strong> service{unorderedServices.length !== 1 ? 's' : ''} not in sequence will appear after ordered services.
+                  </p>
+                </div>
+              )}
+            </div>
+          </DndContext>
         )}
 
         {/* Disabled State */}

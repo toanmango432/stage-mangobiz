@@ -808,7 +808,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 46,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/MenuGeneralSettingsSection.tsx"
     },
     {
@@ -824,7 +824,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 47,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/GiftCardsSection.tsx"
     },
     {
@@ -840,7 +840,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 48,
-      "passes": false,
+      "passes": true,
       "notes": "Section component accessibility improvements."
     },
     {

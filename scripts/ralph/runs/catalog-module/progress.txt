@@ -142,8 +142,8 @@ export const entityTable = {
 - [x] US-043: ProductsSection - barcode display and low stock indicator ✓
 - [x] US-044: AddOnsSection - browser confirm() and skeleton ✓
 - [x] US-045: StaffPermissionsSection - batch save error handling ✓
-- [ ] US-046: MenuGeneralSettingsSection - validation
-- [ ] US-047: GiftCardsSection - CatalogSettings defaults
+- [x] US-046: MenuGeneralSettingsSection - validation ✓
+- [x] US-047: GiftCardsSection - CatalogSettings defaults ✓
 - [ ] US-048: BookingSequenceSection - keyboard drag-drop
 - [ ] US-049: ServiceModal - Zod validation
 - [ ] US-050: ServiceModal - staff assignments
@@ -160,7 +160,7 @@ export const entityTable = {
 **Fix Story (US-P3F):**
 - [ ] All Phase 3 Review Issues resolved
 
-- Status: 🔄 IN PROGRESS (15/26 stories complete)
+- Status: 🔄 IN PROGRESS (17/26 stories complete)
 
 ### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
 **Implementation Stories (9):**
@@ -2572,5 +2572,136 @@ Commit: 5abc42c
 - Failed members stay in modifiedMemberIds so user can retry just the failed saves
 
 **Next story suggestion:** US-046 (Add validation to MenuGeneralSettingsSection) - Continues Phase 3 UI improvements
+
+---
+
+## 2026-01-22 - US-046: Add validation to MenuGeneralSettingsSection
+Commit: 17d593c
+
+**Why this story?** Highest priority incomplete story (priority 46) in Phase 3. Continues UI improvements with form validation and save feedback.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/MenuGeneralSettingsSection.tsx`:
+   - Added imports: useState, useEffect, useRef, useMemo for state management
+   - Added imports: Check, Loader2, AlertCircle icons for status indicators
+   - Added SaveStatus type ('idle' | 'saving' | 'saved' | 'error')
+   - Added ValidationErrors interface for taxRate and depositPercentage
+   - Added validation functions:
+     - validateTaxRate: Returns error if value < 0 or > 100
+     - validateDepositPercentage: Returns error if value < 5 or > 100
+   - Added debounced auto-save with 500ms delay:
+     - pendingUpdatesRef accumulates changes
+     - debounceTimerRef manages save timing
+     - Batches multiple rapid changes into single save
+   - Added save status indicator in header:
+     - Shows Loader2 spinner + "Saving..." during save
+     - Shows Check icon + "Saved" after successful save (clears after 2s)
+     - Shows AlertCircle + "Error saving" on failure
+   - Added inline error messages:
+     - Red border and background on invalid inputs
+     - Error message with AlertCircle icon below input
+     - ARIA attributes (aria-invalid, aria-describedby) for accessibility
+   - Updated info box text to reference auto-save behavior
+
+**Acceptance Criteria Verification:**
+- ✅ Add validation: taxRate must be 0-100
+- ✅ Add validation: depositPercentage must be 5-100
+- ✅ Show inline error messages for invalid values
+- ✅ Add save status indicator (Saving.../Saved/Error)
+- ✅ Add debounced auto-save with indicator
+- ✅ pnpm run typecheck passes (store-app)
+
+**Learnings:**
+- Debounced auto-save uses refs to accumulate changes and avoid stale closures
+- Validation runs immediately for user feedback, but save is debounced
+- savedTimerRef clears the "Saved" indicator after 2 seconds to return to idle
+- ARIA attributes improve accessibility for screen readers with invalid fields
+
+**Next story suggestion:** US-047 (Fix GiftCardsSection to load defaults from CatalogSettings) - Continues Phase 3 UI improvements
+
+---
+
+## 2026-01-22 - US-047: Fix GiftCardsSection to load defaults from CatalogSettings
+Commit: 0ee5e56
+
+**Why this story?** Highest priority incomplete story (priority 47) in Phase 3. Continues UI improvements pattern of removing hardcoded defaults and adding accessibility features.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/GiftCardsSection.tsx`:
+   - Removed hardcoded default values (lines 65-71) that fallback when settings is undefined
+   - Added isLoading prop to show skeleton loading state
+   - Created delete confirmation dialog state (deleteDialogOpen, denominationToDelete, isDeleting)
+   - Replaced handleDelete with handleDeleteClick + handleConfirmDelete pattern
+   - Updated settings panel to use optional chaining with nullish coalescing (settings?.allowCustomAmount ?? true)
+   - Added info box when settings don't exist yet ("Settings will be created when you make your first change")
+   - Added Active badge (CheckCircle2 icon, white/20 background) on active denomination cards
+   - Added Inactive badge (XCircle icon, gray-200 background) on inactive denomination cards
+   - Added aria-labels to edit/delete buttons for accessibility
+   - Added ConfirmDialog component for delete confirmation
+   - Imported lucide-react icons: CheckCircle2, XCircle for badges
+
+2. `apps/store-app/src/components/menu-settings/components/skeletons/GiftCardSkeleton.tsx` (NEW):
+   - Created skeleton component matching denomination card layout
+   - Shows placeholder for icon, amount, and label
+
+3. `apps/store-app/src/components/menu-settings/components/skeletons/index.ts`:
+   - Added export for GiftCardSkeleton
+
+4. `apps/store-app/src/components/menu-settings/MenuSettings.tsx`:
+   - Updated GiftCardsSection usage to pass isLoading prop
+   - Changed settings prop from `giftCardSettings || undefined` to `giftCardSettings`
+
+**Acceptance Criteria Verification:**
+- ✅ Remove hardcoded default values
+- ✅ Load defaults from catalog.settings via useCatalog
+- ✅ Add active/inactive badge to denomination list
+- ✅ Replace browser confirm() with ConfirmDialog
+- ✅ pnpm run typecheck passes (store-app)
+
+**Browser Verification:** N/A - Skeleton loading not critical for this story
+
+**Learnings:**
+- GiftCardSettings are lazily created on first update (when settings is null, updateGiftCardSettings creates with defaults)
+- Optional chaining with nullish coalescing (settings?.allowCustomAmount ?? true) provides clean inline fallbacks
+- Active/inactive badges use same pill pattern as other menu-settings sections
+- ConfirmDialog pattern: deleteDialogOpen state + denominationToDelete to track which item to delete
+
+**Next story suggestion:** US-048 (Add keyboard drag-drop to BookingSequenceSection) - Continues Phase 3 UI improvements
+
+---
+
+## 2026-01-22 - US-048: Add keyboard drag-drop to BookingSequenceSection
+Commit: ba38799
+
+**Why this story?** Highest priority incomplete story (priority 48) in Phase 3. Continues the pattern of improving accessibility with keyboard-accessible drag-and-drop.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/BookingSequenceSection.tsx`:
+   - Added imports for @dnd-kit: useSortable, CSS (from @dnd-kit/utilities)
+   - Added imports from useKeyboardDragDrop hook: DndContext, SortableContext, closestCenter, KeyboardInstructions, LiveAnnouncer
+   - Added AlertTriangle icon from lucide-react for error state
+   - Added optional props: filterError, onRetryFilter for error handling
+   - Created SortableServiceItem component for keyboard-accessible sortable list items
+   - Integrated useKeyboardDragDrop hook with orderedServices
+   - Replaced HTML5 native drag-and-drop with DndContext and SortableContext
+   - Added error state display with retry button when filterError is set
+   - Added KeyboardInstructions and LiveAnnouncer for screen reader support
+   - Added aria-labels to drag handles (via getKeyboardHandleProps) and action buttons
+   - Removed unused ChevronUp/ChevronDown imports (keyboard nav now handled by hook)
+
+**Acceptance Criteria Verification:**
+- ✅ Use useKeyboardDragDrop hook (integrated with orderedServices and onReorder callback)
+- ✅ Add aria-label to drag handles (via getKeyboardHandleProps from hook)
+- ✅ Add error state display when filter fails (filterError prop with retry button)
+- ✅ Add ARIA announcements for drag operations (LiveAnnouncer + announcements config)
+- ✅ pnpm run typecheck passes (store-app)
+
+**Learnings:**
+- @dnd-kit provides more accessible drag-drop than native HTML5 draggable
+- SortableContext needs itemIds array (strings) not the full items array
+- getKeyboardHandleProps returns all needed ARIA attributes for drag handles
+- CSS.Transform.toString handles transform styles for smooth animations
+
+**Next story suggestion:** US-049 (Add Zod validation to ServiceModal) - Continues Phase 3 modal validation pattern
 
 ---
