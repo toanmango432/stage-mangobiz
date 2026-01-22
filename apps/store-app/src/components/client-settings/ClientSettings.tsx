@@ -15,7 +15,8 @@ import { NotesSection } from './sections/NotesSection';
 import { LoyaltySection } from './sections/LoyaltySection';
 import { WalletSection } from './sections/WalletSection';
 import { MembershipSection } from './sections/MembershipSection';
-import { ClientExportModal, ClientImportModal, exportClients } from './components/ClientDataExportImport';
+import { ClientExportModal, exportClients } from './components/ClientDataExportImport';
+import { ImportWizard } from '../clients/ImportWizard';
 import { BulkActionsToolbar } from './components/BulkActionsToolbar';
 import { MergeClientsModal } from './MergeClientsModal';
 import { DataRequestsPanel } from '../clients/DataRequestsPanel';
@@ -293,30 +294,6 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
       console.error('Failed to save changes:', error);
     }
   }, [dispatch, selectedClientFromStore, pendingUpdates]);
-
-  const handleImportClients = useCallback(async (importedClients: Partial<Client>[]) => {
-    for (const clientData of importedClients) {
-      try {
-        // Create client data - thunk converts to Supabase format internally
-        // Note: storeId/storeId and syncStatus are set automatically by dataService
-        const newClient = {
-          firstName: clientData.firstName || '',
-          lastName: clientData.lastName || '',
-          phone: clientData.phone || '',
-          email: clientData.email,
-          birthday: clientData.birthday,
-          gender: clientData.gender,
-          isBlocked: false,
-          isVip: false,
-        } as Omit<Client, 'id' | 'createdAt' | 'updatedAt'>;
-        await dispatch(createClientInSupabase(newClient)).unwrap();
-      } catch (error) {
-        console.error('Failed to import client:', error);
-      }
-    }
-    // Refresh client list from Supabase
-    dispatch(fetchClientsFromSupabase());
-  }, [dispatch]);
 
   // Bulk action handlers
   const handleSelectAll = useCallback(() => {
@@ -698,13 +675,16 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
         />
       )}
 
-      {/* Import Modal */}
-      {showImportModal && (
-        <ClientImportModal
-          onImport={handleImportClients}
-          onClose={() => setShowImportModal(false)}
-        />
-      )}
+      {/* Import Wizard Modal */}
+      <ImportWizard
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onComplete={() => {
+          // Refresh client list from Supabase after import
+          dispatch(fetchClientsFromSupabase());
+          setShowImportModal(false);
+        }}
+      />
 
       {/* Merge Clients Modal */}
       <MergeClientsModal
