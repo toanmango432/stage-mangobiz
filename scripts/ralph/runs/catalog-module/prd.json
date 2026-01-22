@@ -696,7 +696,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 39,
-      "passes": false,
+      "passes": true,
       "notes": "ServicesSection has 3 view modes - show appropriate skeletons for each."
     },
     {
@@ -713,7 +713,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "notes": "Grid and list views have nearly identical dropdown code - consolidate."
     },
     {

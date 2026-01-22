@@ -1,21 +1,16 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Plus,
   Edit3,
-  Trash2,
-  MoreVertical,
   Clock,
   DollarSign,
   Users,
   Globe,
-  Copy,
-  EyeOff,
-  Eye,
   ChevronRight,
   Sparkles,
   Layers,
-  Archive,
 } from 'lucide-react';
+import { ServiceActionsDropdown } from './ServicesSection/components';
 import type {
   MenuService,
   MenuServiceWithEmbeddedVariants,
@@ -62,7 +57,6 @@ export function ServicesSection({
 }: ServicesSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState<MenuServiceWithEmbeddedVariants | undefined>();
-  const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
 
   // Archive modal state
   const [showArchiveModal, setShowArchiveModal] = useState(false);
@@ -116,11 +110,10 @@ export function ServicesSection({
   };
 
   // Handle opening delete confirmation dialog
-  const handleOpenDeleteDialog = (serviceId: string) => {
+  const handleOpenDeleteDialog = useCallback((serviceId: string) => {
     setSelectedServiceToDelete(serviceId);
-    setExpandedMenuId(null);
     setDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Handle confirming delete
   const handleConfirmDelete = async () => {
@@ -143,17 +136,17 @@ export function ServicesSection({
   };
 
   // Handle toggle status
-  const handleToggleStatus = async (serviceId: string) => {
+  const handleToggleStatus = useCallback(async (serviceId: string) => {
     const service = allServices.find(s => s.id === serviceId);
     if (service && onUpdate) {
       await onUpdate(serviceId, {
         status: service.status === 'active' ? 'inactive' : 'active',
       });
     }
-  };
+  }, [allServices, onUpdate]);
 
   // Handle duplicate
-  const handleDuplicate = async (service: MenuServiceWithEmbeddedVariants) => {
+  const handleDuplicate = useCallback(async (service: MenuServiceWithEmbeddedVariants) => {
     if (onCreate) {
       await onCreate({
         categoryId: service.categoryId,
@@ -175,12 +168,17 @@ export function ServicesSection({
         allowCustomDuration: service.allowCustomDuration,
       }, service.variants);
     }
-  };
+  }, [onCreate, allServices.length]);
+
+  // Handle edit service
+  const handleEditService = useCallback((service: MenuServiceWithEmbeddedVariants) => {
+    setEditingService(service);
+    setShowModal(true);
+  }, []);
 
   // Handle opening archive modal
-  const handleOpenArchiveModal = async (service: MenuServiceWithEmbeddedVariants) => {
+  const handleOpenArchiveModal = useCallback(async (service: MenuServiceWithEmbeddedVariants) => {
     setSelectedServiceForArchive(service);
-    setExpandedMenuId(null);
 
     // Check dependencies if available
     if (checkServiceDependencies) {
@@ -189,7 +187,7 @@ export function ServicesSection({
     }
 
     setShowArchiveModal(true);
-  };
+  }, [checkServiceDependencies]);
 
   // Handle confirm archive
   const handleConfirmArchive = async () => {
@@ -280,63 +278,15 @@ export function ServicesSection({
               >
                 <Sparkles size={20} style={{ color: category?.color || '#6B7280' }} />
               </div>
-              <div className="relative">
-                <button
-                  onClick={() => setExpandedMenuId(expandedMenuId === service.id ? null : service.id)}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                >
-                  <MoreVertical size={16} />
-                </button>
-                {expandedMenuId === service.id && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setExpandedMenuId(null)} />
-                    <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                      <button
-                        onClick={() => {
-                          setEditingService(service);
-                          setShowModal(true);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Edit3 size={14} /> Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleDuplicate(service);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Copy size={14} /> Duplicate
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleToggleStatus(service.id);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        {service.status === 'active' ? <EyeOff size={14} /> : <Eye size={14} />}
-                        {service.status === 'active' ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button
-                        onClick={() => handleOpenArchiveModal(service)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Archive size={14} /> Archive
-                      </button>
-                      <hr className="my-1" />
-                      <button
-                        onClick={() => handleOpenDeleteDialog(service.id)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+              <ServiceActionsDropdown
+                service={service}
+                onEdit={handleEditService}
+                onDuplicate={handleDuplicate}
+                onToggleStatus={handleToggleStatus}
+                onArchive={handleOpenArchiveModal}
+                onDelete={handleOpenDeleteDialog}
+                size="sm"
+              />
             </div>
 
             {/* Service Info */}
@@ -454,63 +404,15 @@ export function ServicesSection({
               </div>
 
               {/* Actions */}
-              <div className="relative">
-                <button
-                  onClick={() => setExpandedMenuId(expandedMenuId === service.id ? null : service.id)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                >
-                  <MoreVertical size={18} />
-                </button>
-                {expandedMenuId === service.id && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setExpandedMenuId(null)} />
-                    <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                      <button
-                        onClick={() => {
-                          setEditingService(service);
-                          setShowModal(true);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Edit3 size={14} /> Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleDuplicate(service);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Copy size={14} /> Duplicate
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleToggleStatus(service.id);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        {service.status === 'active' ? <EyeOff size={14} /> : <Eye size={14} />}
-                        {service.status === 'active' ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button
-                        onClick={() => handleOpenArchiveModal(service)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Archive size={14} /> Archive
-                      </button>
-                      <hr className="my-1" />
-                      <button
-                        onClick={() => handleOpenDeleteDialog(service.id)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+              <ServiceActionsDropdown
+                service={service}
+                onEdit={handleEditService}
+                onDuplicate={handleDuplicate}
+                onToggleStatus={handleToggleStatus}
+                onArchive={handleOpenArchiveModal}
+                onDelete={handleOpenDeleteDialog}
+                size="md"
+              />
 
               <ChevronRight size={18} className="text-gray-400" />
             </div>
@@ -542,10 +444,7 @@ export function ServicesSection({
               {renderPrice(service)}
             </span>
             <button
-              onClick={() => {
-                setEditingService(service);
-                setShowModal(true);
-              }}
+              onClick={() => handleEditService(service)}
               className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
             >
               <Edit3 size={14} />
