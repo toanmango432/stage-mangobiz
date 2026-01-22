@@ -1419,7 +1419,7 @@
         "PHASE 3 FULLY COMPLETE after this story passes"
       ],
       "priority": 3002,
-      "passes": false,
+      "passes": true,
       "dependencies": [
         "US-P3R"
       ],
