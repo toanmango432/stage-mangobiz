@@ -13,6 +13,7 @@ interface ExportOptions {
 
 // Field definitions for export
 const EXPORT_FIELDS = [
+  // Basic Info
   { key: 'id', label: 'ID', category: 'basic' },
   { key: 'firstName', label: 'First Name', category: 'basic' },
   { key: 'lastName', label: 'Last Name', category: 'basic' },
@@ -20,33 +21,57 @@ const EXPORT_FIELDS = [
   { key: 'email', label: 'Email', category: 'basic' },
   { key: 'birthday', label: 'Birthday', category: 'basic' },
   { key: 'gender', label: 'Gender', category: 'basic' },
+  { key: 'nickname', label: 'Nickname', category: 'basic' },
+  // Address
   { key: 'address.street', label: 'Street', category: 'address' },
+  { key: 'address.apt', label: 'Apt/Suite', category: 'address' },
   { key: 'address.city', label: 'City', category: 'address' },
   { key: 'address.state', label: 'State', category: 'address' },
-  { key: 'address.zipCode', label: 'Zip Code', category: 'address' },
-  { key: 'source', label: 'Source', category: 'marketing' },
+  { key: 'address.zip', label: 'Zip Code', category: 'address' },
+  // Marketing & Source
+  { key: 'source', label: 'Client Source', category: 'marketing' },
+  { key: 'sourceDetails', label: 'Source Details', category: 'marketing' },
+  { key: 'referredByClientName', label: 'Referred By', category: 'marketing' },
+  { key: 'consentMarketing', label: 'Marketing Consent', category: 'marketing' },
+  { key: 'consentMarketingAt', label: 'Consent Date', category: 'marketing' },
+  // Loyalty & Points
   { key: 'loyaltyInfo.tier', label: 'Loyalty Tier', category: 'loyalty' },
   { key: 'loyaltyInfo.pointsBalance', label: 'Points Balance', category: 'loyalty' },
   { key: 'loyaltyInfo.lifetimePoints', label: 'Lifetime Points', category: 'loyalty' },
   { key: 'loyaltyInfo.referralCode', label: 'Referral Code', category: 'loyalty' },
+  { key: 'loyaltyInfo.referralCount', label: 'Referral Count', category: 'loyalty' },
+  { key: 'loyaltyInfo.rewardsRedeemed', label: 'Rewards Redeemed', category: 'loyalty' },
+  // Visit Summary
   { key: 'visitSummary.totalVisits', label: 'Total Visits', category: 'history' },
   { key: 'visitSummary.totalSpent', label: 'Total Spent', category: 'history' },
   { key: 'visitSummary.lastVisitDate', label: 'Last Visit', category: 'history' },
   { key: 'visitSummary.averageTicket', label: 'Average Ticket', category: 'history' },
+  { key: 'visitSummary.noShowCount', label: 'No-Show Count', category: 'history' },
+  { key: 'visitSummary.lateCancelCount', label: 'Late Cancel Count', category: 'history' },
+  // Financial
+  { key: 'outstandingBalance', label: 'Outstanding Balance', category: 'financial' },
+  { key: 'storeCredit', label: 'Store Credit', category: 'financial' },
+  // Notes & Tags
+  { key: 'tags', label: 'Tags', category: 'notes' },
+  { key: 'notes', label: 'Notes', category: 'notes' },
+  // Status
   { key: 'isVip', label: 'VIP Status', category: 'status' },
   { key: 'isBlocked', label: 'Blocked', category: 'status' },
-  { key: 'tags', label: 'Tags', category: 'other' },
+  { key: 'blockReason', label: 'Block Reason', category: 'status' },
+  // System
   { key: 'createdAt', label: 'Created Date', category: 'system' },
+  { key: 'updatedAt', label: 'Updated Date', category: 'system' },
 ];
 
 const FIELD_CATEGORIES = [
-  { key: 'basic', label: 'Basic Info' },
+  { key: 'basic', label: 'Profile' },
   { key: 'address', label: 'Address' },
   { key: 'marketing', label: 'Marketing' },
-  { key: 'loyalty', label: 'Loyalty' },
+  { key: 'loyalty', label: 'Loyalty & Points' },
   { key: 'history', label: 'Visit History' },
+  { key: 'financial', label: 'Financial' },
+  { key: 'notes', label: 'Notes & Tags' },
   { key: 'status', label: 'Status' },
-  { key: 'other', label: 'Other' },
   { key: 'system', label: 'System' },
 ];
 
@@ -55,17 +80,51 @@ function getNestedValue(obj: any, path: string): any {
   return path.split('.').reduce((current, key) => current?.[key], obj);
 }
 
+// Format special field values for export
+function formatFieldValue(value: any, field: string): string {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+
+  // Handle tags array - extract names
+  if (field === 'tags' && Array.isArray(value)) {
+    return value.map((v: any) => v.name || v).join('; ');
+  }
+
+  // Handle notes array - extract content
+  if (field === 'notes' && Array.isArray(value)) {
+    return value.map((n: any) => {
+      const dateStr = n.date ? new Date(n.date).toLocaleDateString() : '';
+      return `[${dateStr}] ${n.content || ''}`;
+    }).join(' | ');
+  }
+
+  // Handle dates
+  if (field.includes('Date') || field.includes('At') || field === 'createdAt' || field === 'updatedAt') {
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+  }
+
+  // Handle currency values
+  if (field.includes('Spent') || field.includes('Balance') || field.includes('Credit') || field.includes('Ticket')) {
+    if (typeof value === 'number') {
+      return value.toFixed(2);
+    }
+  }
+
+  if (Array.isArray(value)) return value.map(v => v.name || v).join('; ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
 // Convert clients to CSV
 function clientsToCSV(clients: Client[], fields: string[]): string {
   const headers = fields.map(f => EXPORT_FIELDS.find(ef => ef.key === f)?.label || f);
   const rows = clients.map(client => {
     return fields.map(field => {
-      let value = getNestedValue(client, field);
-      if (value === undefined || value === null) return '';
-      if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-      if (Array.isArray(value)) return value.map(v => v.name || v).join('; ');
-      if (typeof value === 'object') return JSON.stringify(value);
-      return String(value);
+      const value = getNestedValue(client, field);
+      return formatFieldValue(value, field);
     });
   });
 
@@ -155,6 +214,8 @@ export const ClientExportModal: React.FC<ClientExportModalProps> = ({
   const [exportScope, setExportScope] = useState<'all' | 'selected'>(
     selectedClientIds && selectedClientIds.length > 0 ? 'selected' : 'all'
   );
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
 
   const clientsToExport = exportScope === 'selected' && selectedClientIds
     ? clients.filter(c => selectedClientIds.includes(c.id))
@@ -179,12 +240,36 @@ export const ClientExportModal: React.FC<ClientExportModalProps> = ({
     }
   };
 
-  const handleExport = () => {
-    exportClients(clientsToExport, {
-      format,
-      includeFields: selectedFields,
-    });
-    onClose();
+  const handleExport = async () => {
+    setIsExporting(true);
+    setExportProgress(0);
+
+    // Simulate progress for large exports
+    const progressInterval = setInterval(() => {
+      setExportProgress(prev => Math.min(prev + 10, 90));
+    }, 100);
+
+    try {
+      // Small delay to show progress UI
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      exportClients(clientsToExport, {
+        format,
+        includeFields: selectedFields,
+      });
+
+      setExportProgress(100);
+      clearInterval(progressInterval);
+
+      // Show complete briefly before closing
+      setTimeout(() => {
+        onClose();
+      }, 500);
+    } catch (error) {
+      console.error('Export failed:', error);
+      clearInterval(progressInterval);
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -321,21 +406,40 @@ export const ClientExportModal: React.FC<ClientExportModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
-          <p className="text-sm text-gray-500">
-            Exporting {clientsToExport.length} client{clientsToExport.length !== 1 ? 's' : ''} with {selectedFields.length} fields
-          </p>
-          <div className="flex gap-3">
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button
-              variant="primary"
-              onClick={handleExport}
-              disabled={selectedFields.length === 0}
-            >
-              <DownloadIcon className="w-4 h-4" />
-              Export
-            </Button>
-          </div>
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex-shrink-0">
+          {isExporting ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">
+                  {exportProgress < 100 ? 'Exporting...' : 'Export complete!'}
+                </span>
+                <span className="text-gray-900 font-medium">{exportProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-cyan-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${exportProgress}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Exporting {clientsToExport.length} client{clientsToExport.length !== 1 ? 's' : ''} with {selectedFields.length} fields
+              </p>
+              <div className="flex gap-3">
+                <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                <Button
+                  variant="primary"
+                  onClick={handleExport}
+                  disabled={selectedFields.length === 0}
+                >
+                  <DownloadIcon className="w-4 h-4" />
+                  Export
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
