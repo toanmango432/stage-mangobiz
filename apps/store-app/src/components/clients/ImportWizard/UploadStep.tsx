@@ -23,6 +23,7 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 // ==================== TYPES ====================
 
@@ -106,6 +107,43 @@ function parseCSVLine(line: string): string[] {
 }
 
 /**
+ * Parse Excel file using xlsx library
+ */
+async function parseExcel(file: File): Promise<{ columns: string[]; rows: Record<string, string>[] }> {
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: 'array' });
+
+  // Get first sheet
+  const firstSheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[firstSheetName];
+
+  // Convert to JSON
+  const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
+
+  if (jsonData.length === 0) {
+    return { columns: [], rows: [] };
+  }
+
+  // First row is columns
+  const columns = jsonData[0].map(col => String(col || ''));
+
+  // Rest are data rows
+  const rows: Record<string, string>[] = [];
+  for (let i = 1; i < jsonData.length; i++) {
+    const values = jsonData[i];
+    if (values && values.length > 0) {
+      const row: Record<string, string> = {};
+      columns.forEach((col, idx) => {
+        row[col] = String(values[idx] || '');
+      });
+      rows.push(row);
+    }
+  }
+
+  return { columns, rows };
+}
+
+/**
  * Validate file type
  */
 function getFileType(fileName: string): 'csv' | 'xlsx' | 'xls' | null {
@@ -137,15 +175,21 @@ export function UploadStep({ onFileReady, onContinue, onCancel }: UploadStepProp
         throw new Error('Invalid file type. Please upload a CSV or Excel file.');
       }
 
-      if (fileType === 'xlsx' || fileType === 'xls') {
-        // For Excel files, we need xlsx library
-        // For now, show a message about Excel support
-        throw new Error('Excel file support requires additional setup. Please use CSV format for now.');
-      }
+      let columns: string[];
+      let rows: Record<string, string>[];
 
-      // Read CSV file
-      const text = await file.text();
-      const { columns, rows } = parseCSV(text);
+      if (fileType === 'xlsx' || fileType === 'xls') {
+        // Parse Excel file
+        const parsed = await parseExcel(file);
+        columns = parsed.columns;
+        rows = parsed.rows;
+      } else {
+        // Parse CSV file
+        const text = await file.text();
+        const parsed = parseCSV(text);
+        columns = parsed.columns;
+        rows = parsed.rows;
+      }
 
       if (columns.length === 0) {
         throw new Error('Could not detect columns in the file. Make sure the first row contains column headers.');
@@ -262,7 +306,7 @@ export function UploadStep({ onFileReady, onContinue, onCancel }: UploadStepProp
                   <span className="text-brand-600 underline">browse</span>
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Supports CSV files (Excel support coming soon)
+                  Supports CSV and Excel files (.csv, .xlsx, .xls)
                 </p>
               </div>
             </div>
