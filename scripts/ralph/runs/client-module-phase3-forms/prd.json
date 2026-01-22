@@ -200,7 +200,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Use papaparse for CSV parsing. Use xlsx library for Excel files. Follow existing file upload patterns."
     },
     {
@@ -220,7 +220,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Client fields: firstName, lastName, email, phone, birthday, tags, notes. Show validation errors for required fields."
     },
     {
@@ -241,7 +241,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "Use bulkUpdateClients thunk for import. Batch imports in groups of 50 for performance."
     },
     {
@@ -261,7 +261,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing modal patterns. Use useState for wizard state."
     },
     {
@@ -278,7 +278,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Add near existing export button. Use Upload icon from lucide-react."
     },
     {
@@ -297,7 +297,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Enhance existing export functionality. Use existing exportSegmentClients thunk as base."
     },
     {
@@ -314,7 +314,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Add as new tab alongside existing tabs. Follow existing tab pattern."
     },
     {
@@ -331,7 +331,7 @@
         "No forbidden strings"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing test patterns in __tests__/ folder. Mock Edge Function calls. Test both success and error cases."
     }
   ]

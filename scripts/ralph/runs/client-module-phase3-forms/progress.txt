@@ -263,3 +263,359 @@
 - Badge chips with X button provide clear UX for removal
 - Info icon with help text explains the auto-send behavior
 
+---
+
+### Iteration 9 - US-024: Create SegmentBuilder component
+**Date:** 2026-01-22
+**Story:** US-024 - Create SegmentBuilder component
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/components/clients/SegmentBuilder.tsx` with:
+  - Filter conditions with field/operator/value selection
+  - 15+ supported fields (visits, spend, dates, loyalty, tags, etc.)
+  - 12+ operators (equals, contains, greater_than, is_empty, etc.)
+  - AND/OR group logic toggle
+  - Live preview count of matching clients
+  - Color picker for segment identification
+  - Save with name, description, color
+  - Uses existing createCustomSegment thunk
+
+**Files Changed:**
+- `apps/store-app/src/components/clients/SegmentBuilder.tsx` (new)
+
+**Commit:** c23b26c
+
+**Learnings:**
+- Reused filterClientsByCustomSegment from segmentationConfig.ts for live preview
+- CustomSegment type requires createdBy and syncStatus fields
+- Use Label component separately from Input for proper labeling
+- selectClients returns Client[] from Redux state
+
+---
+
+### Iteration 10 - US-025: Create SegmentPreview component
+**Date:** 2026-01-22
+**Story:** US-025 - Create SegmentPreview component
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/components/clients/SegmentPreview.tsx` with:
+  - Client list table with name/avatar, phone, last visit, visits, spent columns
+  - Total count badge and contact info summary
+  - Pagination with 10 items per page
+  - Export button that downloads CSV using generateSegmentExportCsv
+  - Send Message button callback for bulk messaging
+  - Loading and empty state handling
+  - Click handler for viewing client details
+
+**Files Changed:**
+- `apps/store-app/src/components/clients/SegmentPreview.tsx` (new)
+
+**Commit:** d08c7fb
+
+**Learnings:**
+- Reused generateSegmentExportCsv from segmentationConfig.ts for export
+- Table component from ui/table for consistent styling
+- Avatar component with initials fallback for clients without photos
+
+---
+
+### Iteration 11 - US-026: Create ImportWizard component - Step 1 (Upload)
+**Date:** 2026-01-22
+**Story:** US-026 - Create ImportWizard component - Step 1 (Upload)
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/components/clients/ImportWizard/UploadStep.tsx` with:
+  - Drag-and-drop file upload zone with visual feedback
+  - CSV parsing with quote handling (parseCSV, parseCSVLine functions)
+  - File type validation (csv, xlsx, xls)
+  - File preview showing name, type badge, row count, column count
+  - Detected columns displayed as badges (max 10 shown with "+N more")
+  - Remove file button to reset
+  - Continue button enabled only after successful file parse
+  - Error handling with Alert component
+  - Processing state with Loader2 spinner
+
+**Files Changed:**
+- `apps/store-app/src/components/clients/ImportWizard/UploadStep.tsx` (new)
+
+**Commit:** 64977d2
+
+**Learnings:**
+- Simple CSV parser handles quoted values and escaped quotes
+- Excel support deferred with error message (requires xlsx library)
+- ParsedFileData interface exports fileName, fileType, columns, rows, rowCount
+- Used useCallback for all handlers to prevent unnecessary re-renders
+
+---
+
+### Iteration 12 - US-027: Create ImportWizard component - Step 2 (Mapping)
+**Date:** 2026-01-22
+**Story:** US-027 - Create ImportWizard component - Step 2 (Mapping)
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/components/clients/ImportWizard/MappingStep.tsx` with:
+  - Column mapping UI showing source columns with dropdown to select target field
+  - CLIENT_FIELDS constant with firstName, lastName (required), email, phone, birthday, tags, notes, address, city, state, zipCode, referralSource
+  - AUTO_DETECT_PATTERNS using regex for common column naming patterns
+  - Auto-detect notification showing how many columns were matched
+  - Required fields validation with error alert when missing
+  - Preview table showing first 3 rows with mapping applied
+  - Back and Continue navigation buttons
+  - Dropdown excludes already-mapped fields to prevent duplicates
+
+**Files Changed:**
+- `apps/store-app/src/components/clients/ImportWizard/MappingStep.tsx` (new)
+
+**Commit:** 3799180
+
+**Learnings:**
+- ColumnMapping interface: { sourceColumn, targetField }
+- Auto-detect uses regex patterns in AUTO_DETECT_PATTERNS object
+- useMemo for validation state to optimize re-renders
+- Skip option uses 'skip' value that maps to null targetField
+
+---
+
+### Iteration 13 - US-028: Create ImportWizard component - Step 3 (Preview & Import)
+**Date:** 2026-01-22
+**Story:** US-028 - Create ImportWizard component - Step 3 (Preview & Import)
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/components/clients/ImportWizard/PreviewStep.tsx` with:
+  - Summary cards showing total, valid, invalid, duplicate counts
+  - Duplicate detection by normalized phone (last 10 digits) and email (lowercase)
+  - Dropdown for duplicate handling: Skip, Update, Create New
+  - Download invalid rows as CSV with `_errors` column
+  - Preview table showing first 5 valid rows with status badges
+  - Progress bar during import (updates per batch)
+  - Batch import using BATCH_SIZE=50 for performance
+  - Success summary screen with created/updated/skipped/errors counts
+  - Uses createClient and updateClient thunks from clientsSlice
+- Updated MappingStep.tsx:
+  - Changed `referralSource` to `sourceDetails` to match Client type
+
+**Files Changed:**
+- `apps/store-app/src/components/clients/ImportWizard/PreviewStep.tsx` (new)
+- `apps/store-app/src/components/clients/ImportWizard/MappingStep.tsx` (modified)
+
+**Commit:** 04361ff
+
+**Learnings:**
+- Client type has `sourceDetails` not `referralSource`
+- tags field is ClientTag[] (with id, name, color), not string[]
+- notes field is ClientNote[] (with id, date, content, type, isPrivate, createdBy)
+- Client required fields: storeId, firstName, lastName, phone, isBlocked, isVip
+- normalizePhone strips to last 10 digits for comparison
+
+---
+
+### Iteration 14 - US-029: Create ImportWizard container component
+**Date:** 2026-01-22
+**Story:** US-029 - Create ImportWizard container component
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/components/clients/ImportWizard/ImportWizard.tsx` with:
+  - Dialog-based modal container
+  - Step indicator showing upload, mapping, and preview steps with icons
+  - State management for fileData and mapping across steps
+  - Step navigation handlers (continue, back)
+  - Reset wizard state on close with timeout to avoid visual glitch
+  - onComplete callback for refresh after import
+- Created `apps/store-app/src/components/clients/ImportWizard/index.ts` with:
+  - Barrel exports for ImportWizard, UploadStep, MappingStep, PreviewStep
+  - Type exports for ParsedFileData, ColumnMapping, ImportResults, etc.
+
+**Files Changed:**
+- `apps/store-app/src/components/clients/ImportWizard/ImportWizard.tsx` (new)
+- `apps/store-app/src/components/clients/ImportWizard/index.ts` (new)
+
+**Commit:** 4dfa9ba
+
+**Learnings:**
+- Use setTimeout on resetWizard after modal close to avoid visual glitch
+- Step indicator uses cn() for conditional styling
+- WizardState type holds { fileData, mapping }
+
+---
+
+### Iteration 15 - US-030: Add ImportWizard to ClientSettings
+**Date:** 2026-01-22
+**Story:** US-030 - Add ImportWizard to ClientSettings
+**Status:** COMPLETED
+
+**Changes Made:**
+- Modified `apps/store-app/src/components/client-settings/ClientSettings.tsx`:
+  - Replaced import of `ClientImportModal` with `ImportWizard`
+  - Replaced `ClientImportModal` render with `ImportWizard` component
+  - Updated onComplete handler to dispatch `fetchClientsFromSupabase()` for refresh
+  - Removed unused `handleImportClients` callback
+
+**Files Changed:**
+- `apps/store-app/src/components/client-settings/ClientSettings.tsx` (modified)
+
+**Commit:** b48d04f
+
+**Learnings:**
+- Import button already existed, just needed to replace the modal implementation
+- ImportWizard handles its own import logic via thunks, simpler integration
+
+---
+
+### Iteration 16 - US-031: Enhance export with full client data
+**Date:** 2026-01-22
+**Story:** US-031 - Enhance export with full client data
+**Status:** COMPLETED
+
+**Changes Made:**
+- Modified `apps/store-app/src/components/client-settings/components/ClientDataExportImport.tsx`:
+  - Added more EXPORT_FIELDS: nickname, apt, sourceDetails, referredByClientName
+  - Added marketing fields: consentMarketing, consentMarketingAt
+  - Added loyalty fields: referralCount, rewardsRedeemed
+  - Added history fields: noShowCount, lateCancelCount
+  - Added financial fields: outstandingBalance, storeCredit
+  - Added status fields: blockReason, updatedAt
+  - Reorganized categories: renamed 'other' to 'notes', added 'financial'
+  - Added formatFieldValue() helper for better date, currency, notes formatting
+  - Added isExporting and exportProgress state
+  - Added progress bar UI in footer during export
+
+**Files Changed:**
+- `apps/store-app/src/components/client-settings/components/ClientDataExportImport.tsx` (modified)
+
+**Commit:** 0deb0e5
+
+**Learnings:**
+- Notes array needs special handling to extract date and content
+- Progress bar uses CSS transitions for smooth animation
+- Existing export modal had good structure, just needed more fields
+
+---
+
+### Iteration 9 - US-026: Create ImportWizard component - Step 1 (Upload)
+**Date:** 2026-01-22
+**Story:** US-026 - Create ImportWizard component - Step 1 (Upload)
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/components/clients/ImportWizard/UploadStep.tsx` with:
+  - Drag-and-drop file upload zone with visual feedback (isDragging state)
+  - Custom CSV parser handling quotes and commas
+  - Excel parsing using xlsx library (XLSX.read + sheet_to_json)
+  - File validation (checks for .csv, .xlsx, .xls extensions)
+  - File preview showing name, row count, column count, first 10 columns as badges
+  - Remove file button to start over
+  - Continue button (disabled until file is parsed)
+  - Error handling with Alert component for invalid files
+  - Loading state with spinner during processing
+- Added xlsx ^0.18.5 to apps/store-app/package.json
+
+**Files Changed:**
+- `apps/store-app/src/components/clients/ImportWizard/UploadStep.tsx` (new)
+- `apps/store-app/package.json` (modified - added xlsx dependency)
+
+**Commit:** ec26afa
+
+**Learnings:**
+- xlsx library works seamlessly with File.arrayBuffer() in browser
+- Using sheet_to_json with header: 1 option returns array of arrays for easy column extraction
+- Custom CSV parser needed to handle quoted values with commas
+- File type detection can be done with simple extension check
+- ParsedFileData type exported for use in next steps
+
+---
+
+
+### Iteration 10 - US-032: Add SegmentBuilder to ClientSettings
+**Date:** 2026-01-22
+**Story:** US-032 - Add SegmentBuilder to ClientSettings
+**Status:** COMPLETED
+
+**Changes Made:**
+- Updated `apps/store-app/src/components/client-settings/types.ts`:
+  - Added 'segments' to ClientSettingsSection union type
+- Updated `apps/store-app/src/components/clients/SegmentBuilder.tsx`:
+  - Added onPreview prop to SegmentBuilderProps interface
+  - Added Eye icon import and Preview button in actions section
+  - Preview button shows matching client count and triggers onPreview callback
+- Updated `apps/store-app/src/components/client-settings/ClientSettings.tsx`:
+  - Added CustomSegment type import
+  - Added selectedSegment state to store preview segment
+  - Added Segments tab to sectionNav (for managers/owners/admins only)
+  - Added SegmentIcon component for tab icon
+  - Added segments section render with SegmentBuilder and SegmentPreview
+  - SegmentPreview shows when onPreview is triggered, with back button
+  - onClientClick navigates to client profile
+
+**Files Changed:**
+- `apps/store-app/src/components/client-settings/types.ts` (modified)
+- `apps/store-app/src/components/clients/SegmentBuilder.tsx` (modified)
+- `apps/store-app/src/components/client-settings/ClientSettings.tsx` (modified)
+
+**Commit:** d0006a0
+
+**Learnings:**
+- SegmentPreview requires segment prop (CustomSegment), not just clients
+- SegmentBuilder onPreview needed to pass both segment and matching clients
+- Segments tab only visible to managers/owners/admins (canAccessDataRequests check)
+- Pre-existing typecheck errors in @mango/types package (duplicate exports) unrelated to this story
+
+---
+
+### Iteration 11 - US-033: Add Phase 3 unit tests
+**Date:** 2026-01-22
+**Story:** US-033 - Add Phase 3 unit tests
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/store/slices/formsSlice/__tests__/deliveryThunks.test.ts` with 21 tests:
+  - sendFormToClient thunk: email success, SMS success, with appointmentId, Edge Function error, success=false error
+  - generateFormPdf thunk: success, Edge Function error, success=false error
+  - fetchFormDeliveries thunk: fetch all, filter by clientId, filter by status, empty result, query error
+  - checkFormCompletion thunk: completion status, empty templates, templates query error
+  - resendFormDelivery thunk: resend success, not found error
+  - Type validation tests for FormDeliveryMethod and FormDeliveryStatus
+
+- Created `apps/store-app/src/constants/__tests__/segmentationConfig.test.ts` with 37 tests:
+  - daysSince utility: today, past dates, undefined, empty string
+  - calculateVipThreshold: empty list, zero spend, 10% threshold, 20% threshold
+  - isClientVip: explicit flag, spend threshold, not VIP, zero threshold
+  - getClientPrimarySegment: blocked, vip, member, new, active, at_risk, lapsed
+  - getClientAllSegments: multiple segments, blocked clients
+  - filterClientsBySegment: VIP clients, blocked clients (10 client pool for threshold math)
+  - filterClientsByCustomSegment: totalSpent, totalVisits, loyaltyTier, AND/OR logic, isVip boolean, inactive segment, is_empty, is_not_empty
+  - calculateSegmentCounts: segment counting, empty list
+  - Operators: less_than, greater_or_equal, not_equals
+
+**Files Changed:**
+- `apps/store-app/src/store/slices/formsSlice/__tests__/deliveryThunks.test.ts` (new - 779 lines)
+- `apps/store-app/src/constants/__tests__/segmentationConfig.test.ts` (new - 673 lines)
+
+**Commit:** b6db959
+
+**Learnings:**
+- Supabase chainable query mocking requires .then() method for await to work
+- VIP threshold calculation uses top 10% of spends - need enough clients for test accuracy
+- For is_empty/is_not_empty operators, value field must still be valid type (use empty string)
+- Mock query = query.eq() pattern requires all methods to return the chain object
+
+---
+
+## ALL STORIES COMPLETED
+
+All 18 user stories (US-016 through US-033) have been completed successfully.
+
+**Summary:**
+- Database: 1 migration (033_form_delivery.sql)
+- Edge Functions: 2 (send-form, generate-form-pdf)
+- Types: form.ts enhancements
+- Thunks: deliveryThunks.ts
+- Components: FormDeliveryModal, ServiceFormConfig, SegmentBuilder, SegmentPreview, ImportWizard (3 steps + container), ClientDataExportImport enhancements
+- Tests: 58 new unit tests (21 delivery thunks + 37 segmentation)
+- Integration: ProfileSection, ClientSettings updated with new features
+
