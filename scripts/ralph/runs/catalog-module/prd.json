@@ -1214,7 +1214,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 71,
-      "passes": false,
+      "passes": true,
       "notes": "Display in PaymentSummary component."
     },
     {
