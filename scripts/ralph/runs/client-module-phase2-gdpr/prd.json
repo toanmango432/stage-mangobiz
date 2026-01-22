@@ -52,7 +52,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from existing thunks in thunks.ts. Use dataService for Supabase operations. Include proper error handling."
     },
     {

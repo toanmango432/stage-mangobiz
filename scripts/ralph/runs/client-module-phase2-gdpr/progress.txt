@@ -105,3 +105,42 @@
 
 ---
 
+### Iteration 3 - US-003: Create GDPR thunks file
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/store/slices/clientsSlice/gdprThunks.ts`
+
+**Files Modified:**
+- `apps/store-app/src/store/slices/clientsSlice/index.ts`
+
+**Changes Made:**
+1. Created `gdprThunks.ts` with 5 async thunks:
+   - `createDataRequest` - Creates export/delete/access request in client_data_requests
+   - `fetchDataRequests` - Fetches requests for a store, with optional status/client filters
+   - `updateDataRequestStatus` - Updates request status, processed_at, processed_by
+   - `logDataRetention` - Creates immutable audit log entry in data_retention_logs
+   - `fetchDataRetentionLogs` - Fetches audit logs for compliance auditing
+
+2. Added TypeScript interfaces for thunk inputs:
+   - `CreateDataRequestInput`
+   - `UpdateDataRequestStatusInput`
+   - `LogDataRetentionInput`
+   - `FetchDataRequestsInput`
+
+3. Exported all thunks from slice index.ts
+
+**Implementation Details:**
+- All thunks follow `createAsyncThunk` pattern with proper error handling via `rejectWithValue`
+- Direct Supabase client usage (not dataService) since these are new tables
+- Snake_case to camelCase conversion for all returned data
+- No `as any` casts - all types are properly defined
+
+**Learnings:**
+- GDPR tables use direct Supabase queries since they're not in dataService yet
+- Store-app typecheck passes independently even when @mango/types has pre-existing errors
+- The `Record<string, unknown>` type works well for dynamic update objects
+
+---
+
