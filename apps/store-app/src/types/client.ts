@@ -574,6 +574,7 @@ export interface Client {
   sourceDetails?: string;
   referredByClientId?: string;
   referredByClientName?: string;
+  referralCode?: string; // Unique referral code for this client (migration 036)
 
   // Beauty Profiles
   hairProfile?: HairProfile;
