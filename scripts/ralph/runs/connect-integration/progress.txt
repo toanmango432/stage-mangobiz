@@ -1,0 +1,19 @@
+# Connect Integration - Ralph Progress Log
+
+> Auto-updated by Ralph agent. Do not manually edit.
+> PRD: scripts/ralph/runs/connect-integration/prd.json
+> Branch: ralph/connect-integration
+
+---
+
+## Codebase Patterns
+
+> Patterns discovered during this run. Add new patterns at the end.
+
+(No patterns discovered yet)
+
+---
+
+## Progress Log
+
+(No iterations completed yet)

@@ -247,3 +247,6 @@ export * from './activityLog';
 
 // Member Authentication (Supabase Auth integration)
 export * from './memberAuth';
+
+// Connect Integration (Mango Connect SDK)
+export * from './connectIntegration';

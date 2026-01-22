@@ -822,6 +822,21 @@ class StoreAuthManager {
   }
 
   /**
+   * Set the active session state directly
+   * Use this when authentication was done via memberAuthService/authService
+   * and you need to update storeAuthManager's internal state
+   */
+  setActiveSession(store: StoreSession, member?: MemberSession): void {
+    authLogger.info('Setting active session directly');
+    this.updateState({
+      status: 'active',
+      store,
+      member,
+      message: 'Session active.',
+    });
+  }
+
+  /**
    * Subscribe to auth state changes
    */
   subscribe(listener: AuthStateListener): () => void {

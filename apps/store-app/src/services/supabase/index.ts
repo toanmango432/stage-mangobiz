@@ -16,6 +16,9 @@ export {
   type LicenseInfo,
 } from './authService';
 
+// Store Service (settings management)
+export { storeService } from './storeService';
+
 // Types
 export type {
   Database,

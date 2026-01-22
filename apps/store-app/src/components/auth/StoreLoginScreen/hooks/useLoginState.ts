@@ -326,6 +326,20 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
 
       dispatch(setAuthStatus('active'));
 
+      // Update storeAuthManager's internal state so isLoginRequired() returns false
+      // This must be done BEFORE any early returns for modals
+      storeAuthManager.setActiveSession(
+        {
+          storeId: primaryStore.storeId,
+          storeName: primaryStore.storeName,
+          storeLoginId: primaryStore.storeLoginId,
+          tenantId: primaryStore.tenantId,
+          tier: primaryStore.tier,
+          timezone: primaryStore.timezone,
+        },
+        memberSessionData
+      );
+
       // Start grace period checker for offline access
       memberAuthService.startGraceChecker();
 
