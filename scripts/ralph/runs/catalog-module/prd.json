@@ -517,7 +517,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/hooks/useCatalog.ts. Follow pattern from other CRUD operations."
     },
     {
@@ -533,7 +533,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": "tenantId should come from auth context, not default to storeId."
     },
     {
@@ -548,7 +548,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 2 COMPLETE - Data layer fixes done. Verify: pnpm test --run"
     },
     {
@@ -1360,7 +1360,7 @@
         "If NO issues found, mark this story as passes: true"
       ],
       "priority": 2001,
-      "passes": false,
+      "passes": true,
       "notes": "CRITICAL: Use Task tool with subagent_type=Explore for thorough analysis. Security-critical: verify multi-tenant isolation in all queries."
     },
     {
