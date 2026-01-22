@@ -322,7 +322,8 @@ export type ClientSettingsSection =
   | 'notes'
   | 'loyalty'
   | 'membership'
-  | 'documents';
+  | 'documents'
+  | 'data-requests';
 
 export interface ClientSettingsUIState {
   selectedClientId: string | null;
