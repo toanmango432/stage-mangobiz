@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import type { EnhancedClient, ClientGender, ClientSource, EmergencyContact } from '../types';
 import type { BlockReason, Client } from '@/types';
 import { genderLabels, sourceLabels } from '../constants';
@@ -17,6 +17,9 @@ import {
 import { StaffAlertBanner } from '../components/StaffAlertBanner';
 import { BlockClientModal } from '../components/BlockClientModal';
 import { ConsentManagement } from '@/components/clients/ConsentManagement';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectMemberId, selectMemberName, selectStoreId } from '@/store/slices/authSlice';
+import { exportClientData, createDataRequest } from '@/store/slices/clientsSlice';
 
 interface ProfileSectionProps {
   client: EnhancedClient;
@@ -35,7 +38,18 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   onBlockClient,
   onUnblockClient,
 }) => {
+  const dispatch = useAppDispatch();
+  const memberId = useAppSelector(selectMemberId);
+  const memberName = useAppSelector(selectMemberName);
+  const storeId = useAppSelector(selectStoreId);
+
   const [showBlockModal, setShowBlockModal] = useState(false);
+
+  // Export data state
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
   const updateContact = (field: string, value: string) => {
     onChange({
@@ -147,6 +161,67 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       onChange({ communicationPreferences: updates.communicationPreferences });
     }
   };
+
+  // Handle export client data
+  const handleExportData = useCallback(async () => {
+    if (!storeId || !memberId) {
+      setExportError('Store or member information is missing');
+      return;
+    }
+
+    setIsExporting(true);
+    setExportError(null);
+    setExportSuccess(false);
+    setDownloadUrl(null);
+
+    try {
+      // First create a data request record
+      const requestResult = await dispatch(createDataRequest({
+        clientId: client.id,
+        storeId,
+        requestType: 'export',
+        notes: 'Initiated from client profile',
+      })).unwrap();
+
+      // Then trigger the export with the request ID
+      const exportResult = await dispatch(exportClientData({
+        clientId: client.id,
+        storeId,
+        performedBy: memberId,
+        performedByName: memberName,
+        requestId: requestResult.id,
+      })).unwrap();
+
+      setDownloadUrl(exportResult.downloadUrl);
+      setExportSuccess(true);
+
+      // Auto-clear success message after 10 seconds
+      setTimeout(() => {
+        setExportSuccess(false);
+      }, 10000);
+    } catch (err) {
+      setExportError(
+        err instanceof Error ? err.message :
+        typeof err === 'string' ? err :
+        'Failed to export client data'
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  }, [dispatch, client.id, storeId, memberId, memberName]);
+
+  // Trigger download when URL is available
+  const handleDownload = useCallback(() => {
+    if (downloadUrl) {
+      // Create a temporary anchor to trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `client-data-${client.id}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }, [downloadUrl, client.id]);
 
   return (
     <div className="space-y-6">
@@ -481,6 +556,77 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         onChange={handleConsentChange}
       />
 
+      {/* Data Management - GDPR Data Portability */}
+      <Card title="Data Management">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Export or manage client data in compliance with GDPR/CCPA regulations.
+          </p>
+
+          {/* Export Success Message */}
+          {exportSuccess && downloadUrl && (
+            <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-800">
+                  Export completed successfully!
+                </p>
+                <p className="text-xs text-green-600 mt-0.5">
+                  Click the download button to save the file.
+                </p>
+              </div>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <DownloadIcon className="w-4 h-4" />
+                Download
+              </button>
+            </div>
+          )}
+
+          {/* Export Error Message */}
+          {exportError && (
+            <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <XCircleIcon className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800">
+                  Export failed
+                </p>
+                <p className="text-xs text-red-600 mt-0.5">
+                  {exportError}
+                </p>
+              </div>
+              <button
+                onClick={() => setExportError(null)}
+                className="text-red-400 hover:text-red-600"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Export Button */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div>
+              <p className="font-medium text-gray-900">Export Client Data</p>
+              <p className="text-sm text-gray-500">
+                Download all data associated with this client (profile, appointments, transactions)
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleExportData}
+              disabled={isExporting}
+              icon={isExporting ? <LoadingSpinner /> : <DownloadIcon className="w-4 h-4" />}
+            >
+              {isExporting ? 'Exporting...' : 'Export Data'}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       {/* Block Client Modal */}
       {showBlockModal && (
         <BlockClientModal
@@ -516,6 +662,42 @@ const BlockIcon: React.FC<{ className?: string }> = ({ className }) => (
 const EmergencyIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+  </svg>
+);
+
+// Download Icon
+const DownloadIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  </svg>
+);
+
+// Check Circle Icon
+const CheckCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+// X Circle Icon
+const XCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+// X Icon (for dismissing)
+const XIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+// Loading Spinner
+const LoadingSpinner: React.FC = () => (
+  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
   </svg>
 );
 

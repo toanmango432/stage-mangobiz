@@ -492,3 +492,69 @@
 
 ---
 
+### Iteration 11 - US-013: Add Export Client Data button to profile
+**Date:** 2026-01-22
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/components/client-settings/sections/ProfileSection.tsx`
+
+**Changes Made:**
+1. Added imports:
+   - `useCallback` from React
+   - `useAppDispatch`, `useAppSelector` from `@/store/hooks`
+   - `selectMemberId`, `selectMemberName`, `selectStoreId` from authSlice
+   - `exportClientData`, `createDataRequest` from clientsSlice
+
+2. Added state management:
+   - `isExporting` - loading state during export
+   - `exportSuccess` - success feedback flag
+   - `exportError` - error message state
+   - `downloadUrl` - URL for downloading exported data
+
+3. Implemented `handleExportData` callback:
+   - Validates storeId and memberId are present
+   - Creates a data request record with type 'export'
+   - Calls `exportClientData` thunk with request ID
+   - Stores download URL on success
+   - Shows success message for 10 seconds
+   - Handles errors gracefully
+
+4. Implemented `handleDownload` callback:
+   - Creates temporary anchor element
+   - Triggers download with proper filename: `client-data-{clientId}.json`
+
+5. Added "Data Management" Card after ConsentManagement:
+   - Description text about GDPR/CCPA compliance
+   - Success message banner with Download button (green)
+   - Error message banner with dismiss button (red)
+   - Export button with loading state and Download icon
+
+6. Added new icons:
+   - DownloadIcon - for export button and download action
+   - CheckCircleIcon - for success feedback
+   - XCircleIcon - for error feedback
+   - XIcon - for dismissing error
+   - LoadingSpinner - animated spinner during export
+
+**Implementation Details:**
+- Uses `useCallback` to memoize handlers and prevent unnecessary re-renders
+- Download uses `document.createElement('a')` pattern for cross-browser compatibility
+- Success message auto-clears after 10 seconds
+- Button shows "Exporting..." with spinner during processing
+- Creates data request before export for audit trail
+
+**Quality Verification:**
+- `pnpm run typecheck` on store-app passes (pre-existing @mango/types errors are unrelated)
+- No `as any` casts added (pre-existing ones are unchanged)
+- No forbidden strings ("Test Client") added
+- File increased from 522 to 704 lines
+
+**Learnings:**
+- Base64 data URL from Edge Function can be used directly for download
+- Creating a data request before export links the audit trail
+- Download filename should include clientId for traceability
+- Auto-clearing success messages improve UX without persistent banners
+
+---
+
