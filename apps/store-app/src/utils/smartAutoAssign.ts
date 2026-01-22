@@ -59,7 +59,8 @@ export function calculateAssignmentScore(
   }
 
   // 3. Fair rotation (20% weight)
-  // Check how many appointments each staff has today
+  // Check weighted workload using turnWeight for each service
+  // turnWeight (0.0-5.0, default 1.0) - higher = more complex service = more rotation credit
   const today = new Date(startTime);
   today.setHours(0, 0, 0, 0);
   const todayEnd = new Date(today);
@@ -72,24 +73,51 @@ export function calculateAssignmentScore(
            apt.status !== 'no-show';
   });
 
-  const staffTodayCount = todayAppointments.filter(apt => apt.staffId === staffId).length;
-  const maxTodayCount = Math.max(...allStaff.map(s => 
-    todayAppointments.filter(apt => apt.staffId === s.id).length
-  ), 0);
+  // Helper: Calculate total turnWeight for an appointment's services
+  const getAppointmentTurnWeight = (apt: LocalAppointment): number => {
+    if (!apt.services || apt.services.length === 0) return 1.0;
+    return apt.services.reduce((sum, svc) => {
+      // Default turnWeight is 1.0 if not set
+      const weight = svc.turnWeight ?? 1.0;
+      // Clamp to valid range 0.0-5.0
+      return sum + Math.max(0, Math.min(5, weight));
+    }, 0);
+  };
 
-  if (maxTodayCount === 0) {
+  // Calculate weighted workload for this staff
+  const staffTodayWeight = todayAppointments
+    .filter(apt => apt.staffId === staffId)
+    .reduce((sum, apt) => sum + getAppointmentTurnWeight(apt), 0);
+
+  // Calculate max weighted workload across all staff
+  const maxTodayWeight = Math.max(
+    ...allStaff.map(s =>
+      todayAppointments
+        .filter(apt => apt.staffId === s.id)
+        .reduce((sum, apt) => sum + getAppointmentTurnWeight(apt), 0)
+    ),
+    0
+  );
+
+  // Get turnWeight of current service being assigned (for rotation credit preview)
+  const currentServiceWeight = appointment.services?.[0]?.turnWeight ?? 1.0;
+
+  if (maxTodayWeight === 0) {
     score += 20; // No appointments today - fair distribution
     reasons.push('Fair rotation: no appointments today');
   } else {
-    const ratio = staffTodayCount / maxTodayCount;
+    const ratio = staffTodayWeight / maxTodayWeight;
     if (ratio < 0.8) {
-      score += 20; // Below average - good for fairness
-      reasons.push(`Fair rotation: ${staffTodayCount} appointment${staffTodayCount !== 1 ? 's' : ''} today (below average)`);
+      score += 20; // Below average weighted workload - good for fairness
+      reasons.push(`Fair rotation: ${staffTodayWeight.toFixed(1)} weighted workload (below average)`);
     } else if (ratio < 1.0) {
       score += 15; // Slightly below average
-      reasons.push(`Fair rotation: ${staffTodayCount} appointments today`);
+      reasons.push(`Fair rotation: ${staffTodayWeight.toFixed(1)} weighted workload`);
     } else {
       score += 5; // At or above average
+      if (currentServiceWeight > 1.5) {
+        reasons.push(`Fair rotation: above average workload (service weight: ${currentServiceWeight.toFixed(1)})`);
+      }
     }
   }
 
