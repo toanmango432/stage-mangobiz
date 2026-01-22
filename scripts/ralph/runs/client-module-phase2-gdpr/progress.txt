@@ -1,0 +1,75 @@
+# Ralph Progress - Client Module Phase 2: GDPR Compliance
+# Started: 2026-01-21
+# Branch: ralph/client-module-phase2
+
+## Codebase Patterns (Persistent across iterations)
+
+### Edge Function Pattern
+- Location: `supabase/functions/`
+- Use Deno imports: `https://deno.land/std@0.168.0/http/server.ts`
+- Create Supabase client with `SUPABASE_SERVICE_ROLE_KEY` for admin operations
+- Return proper CORS headers
+
+### Redux Thunk Pattern
+- Use `createAsyncThunk` from `@reduxjs/toolkit`
+- Call Edge Functions via `supabase.functions.invoke()`
+- Use `rejectWithValue` for error handling
+- Export from slice index.ts
+
+### Modal Component Pattern
+- Follow `MergeClientsModal.tsx` for confirmation flows
+- Use Dialog from `@/components/ui/dialog`
+- Include loading, error, and success states
+- Type confirmation for destructive actions
+
+### Migration Pattern (NEW)
+- Use `gen_random_uuid()` for UUID primary keys
+- Use `TIMESTAMPTZ` for all timestamp columns
+- Enable RLS with `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
+- Create store-scoped policies using staff.auth_user_id = auth.uid()
+- Add column comments for documentation
+
+---
+
+## Iteration Log
+
+### Iteration 1 - US-001: Create GDPR database migration
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `supabase/migrations/032_gdpr_compliance.sql`
+
+**Changes Made:**
+1. Created `client_data_requests` table with:
+   - id (UUID), client_id, store_id
+   - request_type (export/delete/access)
+   - status (pending/processing/completed/rejected)
+   - requested_at, processed_at, processed_by
+   - notes, export_url
+   - created_at, updated_at
+
+2. Created `data_retention_logs` table with:
+   - id (UUID), client_id (nullable for deleted clients), store_id
+   - action (data_exported, data_deleted, consent_updated, etc.)
+   - fields_affected (JSONB)
+   - performed_by, performed_by_name, performed_at
+
+3. Added consent columns to clients table:
+   - consent_marketing (boolean, default false)
+   - consent_marketing_at (timestamptz)
+   - consent_data_processing (boolean, default true)
+   - consent_data_processing_at (timestamptz)
+   - data_deletion_requested_at (timestamptz)
+
+4. Added RLS policies for store-scoped access
+5. Created indexes for efficient queries
+6. Added updated_at trigger for client_data_requests
+
+**Learnings:**
+- data_retention_logs uses ON DELETE SET NULL for client_id to preserve audit trail
+- No UPDATE/DELETE policies on audit logs to ensure immutability
+- Partial indexes (WHERE status = 'pending') save space for common queries
+
+---
+

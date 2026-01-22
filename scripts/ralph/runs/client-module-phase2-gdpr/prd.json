@@ -1,0 +1,273 @@
+{
+  "project": "Mango POS - Client Module",
+  "branchName": "ralph/client-module-phase2",
+  "description": "Phase 2: GDPR/CCPA Compliance - Data export, deletion, and consent management",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create GDPR database migration",
+      "description": "As a developer, I need database tables to track data requests and consent.",
+      "acceptanceCriteria": [
+        "Create `client_data_requests` table with columns: id, client_id, store_id, request_type (export/delete/access), status (pending/processing/completed/rejected), requested_at, processed_at, processed_by, notes, export_url",
+        "Create `data_retention_logs` table with columns: id, client_id, action, fields_affected (JSONB), performed_by, performed_at",
+        "Add consent columns to clients table: consent_marketing (boolean), consent_marketing_at (timestamptz), consent_data_processing (boolean), consent_data_processing_at (timestamptz), data_deletion_requested_at (timestamptz)",
+        "Add RLS policies for store-scoped access",
+        "Migration file created at supabase/migrations/032_gdpr_compliance.sql",
+        "Migration runs without errors"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Follow pattern from 031_client_merge.sql. Use gen_random_uuid() for IDs. All timestamps should be TIMESTAMPTZ."
+    },
+    {
+      "id": "US-002",
+      "title": "Add GDPR types to client types",
+      "description": "As a developer, I need TypeScript types for GDPR features.",
+      "acceptanceCriteria": [
+        "Add DataRequestType = 'export' | 'delete' | 'access' to apps/store-app/src/types/client.ts",
+        "Add DataRequestStatus = 'pending' | 'processing' | 'completed' | 'rejected'",
+        "Add ClientDataRequest interface with all fields from migration",
+        "Add DataRetentionLog interface",
+        "Add consent fields to Client interface if not present",
+        "No 'as any' casts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Follow existing type patterns in client.ts. Export all new types."
+    },
+    {
+      "id": "US-003",
+      "title": "Create GDPR thunks file",
+      "description": "As a developer, I need Redux thunks for GDPR operations.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/store/slices/clientsSlice/gdprThunks.ts",
+        "Create createDataRequest thunk (creates export/delete/access request)",
+        "Create fetchDataRequests thunk (gets requests for a store)",
+        "Create updateDataRequestStatus thunk (updates request status)",
+        "Create logDataRetention thunk (logs GDPR actions)",
+        "All thunks use createAsyncThunk pattern",
+        "Export from apps/store-app/src/store/slices/clientsSlice/index.ts",
+        "No forbidden strings: 'Test Client', 'as any'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Follow pattern from existing thunks in thunks.ts. Use dataService for Supabase operations. Include proper error handling."
+    },
+    {
+      "id": "US-004",
+      "title": "Create data export Edge Function",
+      "description": "As a developer, I need an Edge Function to export client data as JSON/CSV.",
+      "acceptanceCriteria": [
+        "Create supabase/functions/export-client-data/index.ts",
+        "Accept client_id and store_id as parameters",
+        "Fetch all client data: profile, appointments, transactions, forms, notes",
+        "Generate JSON export with all data",
+        "Return download URL or base64 encoded data",
+        "Log export action to data_retention_logs",
+        "Handle errors gracefully with proper status codes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Follow pattern from supabase/functions/clients/index.ts. Use Supabase client for data fetching. Include all related data."
+    },
+    {
+      "id": "US-005",
+      "title": "Create data deletion Edge Function",
+      "description": "As a developer, I need an Edge Function to anonymize client PII per GDPR.",
+      "acceptanceCriteria": [
+        "Create supabase/functions/process-data-deletion/index.ts",
+        "Accept client_id, store_id, and performed_by as parameters",
+        "Anonymize PII fields: firstName to 'DELETED', lastName to 'DELETED', email to 'deleted_[id]@removed.local', phone to '0000000000'",
+        "Clear sensitive fields: address, emergencyContacts, staffAlert, notes",
+        "Preserve transaction history (amount, date, services) for accounting",
+        "Set data_deletion_requested_at timestamp",
+        "Log deletion to data_retention_logs with fields_affected",
+        "Update data_request status to 'completed'"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "GDPR requires keeping financial records, just anonymize PII. Follow pattern from supabase/functions/clients/index.ts. This is irreversible."
+    },
+    {
+      "id": "US-006",
+      "title": "Add exportClientData thunk",
+      "description": "As a developer, I need a thunk to trigger client data export.",
+      "acceptanceCriteria": [
+        "Add exportClientData async thunk to apps/store-app/src/store/slices/clientsSlice/gdprThunks.ts",
+        "Call export-client-data Edge Function using supabase.functions.invoke()",
+        "Return download URL on success",
+        "Update request status via updateDataRequestStatus",
+        "Handle errors with user-friendly messages",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Follow existing thunk patterns in the file."
+    },
+    {
+      "id": "US-007",
+      "title": "Add processDataDeletion thunk",
+      "description": "As a developer, I need a thunk to trigger client data deletion.",
+      "acceptanceCriteria": [
+        "Add processDataDeletion async thunk to apps/store-app/src/store/slices/clientsSlice/gdprThunks.ts",
+        "Call process-data-deletion Edge Function",
+        "Remove client from local Redux state on success",
+        "Update request status to 'completed'",
+        "Handle errors with user-friendly messages",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "This is irreversible - thunk should require confirmation flag. Follow existing thunk patterns."
+    },
+    {
+      "id": "US-008",
+      "title": "Create DataRequestsPanel component",
+      "description": "As a staff member, I want to see and manage data requests.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/DataRequestsPanel.tsx",
+        "Display list of data requests with status badges",
+        "Show request type (Export/Delete/Access) with icons",
+        "Show requester info and request date",
+        "Filter by status (All/Pending/Completed)",
+        "Action buttons: Process, Reject, View Details",
+        "Empty state when no requests",
+        "Loading state while fetching",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Follow pattern from apps/store-app/src/components/client-settings/sections/HistorySection.tsx. Use existing Badge, Button components from ui/. Use Tailwind for styling."
+    },
+    {
+      "id": "US-009",
+      "title": "Create DataDeletionRequestModal component",
+      "description": "As a staff member, I want to confirm data deletion with warnings.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/DataDeletionRequestModal.tsx",
+        "Display client name and summary of data to be deleted",
+        "Show prominent warning: 'This action cannot be undone'",
+        "List what will be anonymized vs preserved",
+        "Require typing 'DELETE' to confirm (like MergeClientsModal)",
+        "Show processing state during deletion",
+        "Display success/error feedback",
+        "Close modal on success",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Follow pattern from MergeClientsModal.tsx for confirmation flow. Use AlertTriangle icon for warnings. Red color scheme for destructive action."
+    },
+    {
+      "id": "US-010",
+      "title": "Create ConsentManagement component",
+      "description": "As a staff member, I want to manage client consent preferences.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/ConsentManagement.tsx",
+        "Display current consent status for: SMS, Email, Marketing, Photo, Data Processing",
+        "Toggle switches for each consent type",
+        "Show timestamp of last consent change",
+        "'Do Not Contact' master toggle that disables all",
+        "Save changes via updateClientInSupabase thunk",
+        "Show success toast on save",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Follow pattern from PreferencesSection.tsx. Use Switch components from ui/. Each toggle change should log to data_retention_logs."
+    },
+    {
+      "id": "US-011",
+      "title": "Add ConsentManagement to ProfileSection",
+      "description": "As a staff member, I want consent management in the client profile.",
+      "acceptanceCriteria": [
+        "Import ConsentManagement component in apps/store-app/src/components/client-settings/sections/ProfileSection.tsx",
+        "Add 'Privacy & Consent' collapsible section",
+        "Place below contact information",
+        "Pass client data and update handler",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "ProfileSection is large - only add import and JSX. Use existing Collapsible pattern from the file."
+    },
+    {
+      "id": "US-012",
+      "title": "Add Data Requests tab to ClientSettings",
+      "description": "As a staff member, I want to access data requests from client settings.",
+      "acceptanceCriteria": [
+        "Import DataRequestsPanel in apps/store-app/src/components/client-settings/ClientSettings.tsx",
+        "Add 'Data Requests' tab to tab list",
+        "Show DataRequestsPanel when tab selected",
+        "Tab only visible to managers/owners (check role)",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "ClientSettings is large - only add tab and panel. Follow existing tab pattern. Use role selector for permission check."
+    },
+    {
+      "id": "US-013",
+      "title": "Add Export Client Data button to profile",
+      "description": "As a staff member, I want to initiate data export for a client.",
+      "acceptanceCriteria": [
+        "Add 'Export Client Data' button in ProfileSection.tsx profile actions",
+        "Button click creates data request with type 'export'",
+        "Show loading state while processing",
+        "Show success message with download link",
+        "Handle errors gracefully",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "Add to existing actions section in ProfileSection. Use Download icon from lucide-react."
+    },
+    {
+      "id": "US-014",
+      "title": "Add Delete Client Data button to profile",
+      "description": "As a staff member, I want to initiate data deletion for a client.",
+      "acceptanceCriteria": [
+        "Add 'Delete Client Data' button in ProfileSection.tsx (destructive style)",
+        "Button click opens DataDeletionRequestModal",
+        "Only visible to managers/owners",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Use red/destructive button variant. Check role before showing button."
+    },
+    {
+      "id": "US-015",
+      "title": "Add GDPR unit tests",
+      "description": "As a developer, I need tests for GDPR functionality.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/store/slices/clientsSlice/__tests__/gdprThunks.test.ts",
+        "Test createDataRequest thunk",
+        "Test exportClientData thunk (mock Edge Function)",
+        "Test processDataDeletion thunk (mock Edge Function)",
+        "Test data anonymization preserves transaction integrity",
+        "All tests pass with pnpm test",
+        "No forbidden strings"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "Follow existing test patterns in __tests__/ folder. Mock supabase.functions.invoke calls. Test both success and error cases."
+    }
+  ]
+}
