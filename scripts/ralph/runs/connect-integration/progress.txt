@@ -70,3 +70,35 @@ Commit: 7be2e2844b5c3e73a6d7bdf8cec0a58c75e3d0c3
 **Next story suggestion:** US-005 (useConnectToken hook) because US-004 is now complete and US-005 depends on both US-003 ✅ and US-004 ✅, making it the next unblocked story in the dependency chain.
 
 ---
+
+## 2026-01-21 - US-005: Create useConnectToken hook
+Commit: b44523f66e86923c53f7651dc0474ad5784a809e
+
+**Why this story?** US-005 was the only unblocked story with low priority (5). US-003 and US-004 were completed in previous iterations, unblocking this story. Completing US-005 unblocks US-006 (ConnectSDKProvider).
+
+**Changes:**
+- apps/store-app/src/hooks/useConnectToken.ts:1-170 (NEW): Created hook with token, loading, error, refresh, isExpired
+
+**Implementation Details:**
+- useConnectToken() returns { token, loading, error, refresh, isExpired }
+- Fetches token from generate-connect-token Edge Function on mount (if Connect enabled)
+- Uses supabase.functions.invoke('generate-connect-token', { body: {...} }) for API call
+- Caches token in state with expiresAt timestamp
+- Auto-refresh when token is 5 minutes from expiry (REFRESH_BUFFER_SECONDS = 300)
+- isExpired computed from expiresAt - returns true if within refresh buffer
+- Returns null token if Connect not enabled (checked via useConnectConfig())
+- Gets user data from Redux auth slice selectors (selectMember, selectStoreId, etc.)
+- Builds permissions array from member.permissions object (filters truthy values)
+
+**Learnings:**
+- Used existing ConnectTokenResponse type from connectIntegration.ts for Edge Function response
+- Followed useCallback pattern for stable function references (consistent with useSystemConfig.ts)
+- Auto-refresh scheduling uses setTimeout with cleanup in useEffect
+- Token expiry check uses 5-minute buffer to prevent race conditions with SDK calls
+
+**Pre-existing test failures documented:**
+- 21 test files failed (14 individual tests) - MQTT/integration related, not from this change (same as previous iterations)
+
+**Next story suggestion:** US-006 (ConnectSDKProvider) because it depends on US-003 ✅ and US-005 ✅, both now complete. This is the next story in the dependency chain that unblocks US-007, US-008.
+
+---

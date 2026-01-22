@@ -107,7 +107,7 @@
       "notes": "Follow pattern from apps/store-app/src/hooks/useSystemConfig.ts. Use useConnectConfig() to check if Connect is enabled. Call Edge Function via supabase.functions.invoke('generate-connect-token', { body: {...} }). Parse JWT to extract exp claim for expiry check.",
       "dependencies": ["US-003", "US-004"],
       "priority": 5,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-006",
