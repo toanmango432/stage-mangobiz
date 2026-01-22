@@ -74,3 +74,15 @@ export {
   isRowRedeemable,
   getRowStatusDisplay,
 } from './giftCardAdapter';
+
+// ============================================
+// CATALOG MODULE ADAPTERS
+// ============================================
+
+// ServiceCategory adapters
+export {
+  toServiceCategory,
+  toServiceCategories,
+  toServiceCategoryInsert,
+  toServiceCategoryUpdate,
+} from './serviceCategoryAdapter';
