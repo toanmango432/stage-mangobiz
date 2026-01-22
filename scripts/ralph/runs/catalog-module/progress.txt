@@ -127,12 +127,30 @@ export const entityTable = {
 
 ### Phase 3: UI Components (US-031 to US-054 + US-P3R + US-P3F) - 26 stories
 **Implementation Stories (24):**
-- [ ] ConfirmDialog component replaces all browser confirm()
-- [ ] Skeleton loaders in all sections
-- [ ] Keyboard drag-drop where applicable
-- [ ] Zod validation in ServiceModal
-- [ ] Staff assignments load in ServiceModal
-- [ ] More Options button works
+- [x] US-031: ConfirmDialog shared component created ✓
+- [x] US-032: Skeleton loader components created ✓
+- [x] US-033: ErrorState and EmptyState components created ✓
+- [x] US-034: useKeyboardDragDrop hook created ✓
+- [x] US-035: CategoriesSection - browser confirm() replaced ✓
+- [ ] US-036: CategoriesSection - skeleton loader
+- [ ] US-037: CategoriesSection - keyboard drag-drop
+- [ ] US-038: ServicesSection - browser confirm() replaced
+- [ ] US-039: ServicesSection - skeleton loaders
+- [ ] US-040: ServiceActionsDropdown extracted
+- [ ] US-041: PackagesSection - browser confirm() and skeleton
+- [ ] US-042: ProductsSection - browser confirm() and skeleton
+- [ ] US-043: ProductsSection - barcode display and low stock indicator
+- [ ] US-044: AddOnsSection - browser confirm() and skeleton
+- [ ] US-045: StaffPermissionsSection - batch save error handling
+- [ ] US-046: MenuGeneralSettingsSection - validation
+- [ ] US-047: GiftCardsSection - CatalogSettings defaults
+- [ ] US-048: BookingSequenceSection - keyboard drag-drop
+- [ ] US-049: ServiceModal - Zod validation
+- [ ] US-050: ServiceModal - staff assignments
+- [ ] US-051: PackageModal - validation
+- [ ] US-052: ProductModal - validation
+- [ ] US-053: MenuSettings More Options button
+- [ ] US-054: MenuSettings per-section skeletons
 
 **Review Story (US-P3R):**
 - [ ] Browser verification via Playwright MCP
@@ -142,7 +160,7 @@ export const entityTable = {
 **Fix Story (US-P3F):**
 - [ ] All Phase 3 Review Issues resolved
 
-- Status: Not started
+- Status: 🔄 IN PROGRESS (5/26 stories complete)
 
 ### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
 **Implementation Stories (9):**
@@ -2141,5 +2159,35 @@ Commit: 1589252
 - Pattern #8: Keyboard Accessible Drag-Drop - Use @dnd-kit with KeyboardSensor and custom announcements for WCAG compliance
 
 **Next story suggestion:** US-035 (Replace browser confirm() in CategoriesSection) - Next Phase 3 story, will use the ConfirmDialog component from US-031
+
+---
+
+## 2026-01-22 - US-035: Replace browser confirm() in CategoriesSection
+Commit: 047720f
+
+**Why this story?** First incomplete story in Phase 3, highest priority (35) with passes: false. No dependencies, builds on ConfirmDialog from US-031.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/CategoriesSection.tsx`:
+   - Added import for ConfirmDialog component from '../components/ConfirmDialog'
+   - Added import for AlertTriangle icon from lucide-react
+   - Added state: deleteDialogOpen, selectedCategoryToDelete, isDeleting for delete flow
+   - Added state: errorDialogOpen, errorMessage for error case (category has services)
+   - Replaced handleDelete with handleDeleteClick (opens dialog)
+   - Created handleConfirmDelete for async delete with loading state
+   - Added ConfirmDialog for delete confirmation with destructive variant
+   - Added ConfirmDialog for error case with amber warning icon
+   - No browser confirm() or alert() calls remain
+
+**Verification:**
+- `cd apps/store-app && pnpm run typecheck` passes ✓
+- `grep -E "(confirm\(|alert\()" CategoriesSection.tsx` returns no matches ✓
+
+**Learnings:**
+- ConfirmDialog component from US-031 provides all needed features: variant, loading state, icon support
+- Using two dialogs (delete confirmation + error) provides better UX than mixing browser dialogs
+- The error dialog uses "OK" single button for acknowledgment (no cancel needed)
+
+**Next story suggestion:** US-036 (Add skeleton loader to CategoriesSection) - Same file, continues CategoriesSection improvements
 
 ---

@@ -30,12 +30,14 @@ import type {
 } from '@/types/catalog';
 import { CATEGORY_COLORS } from '../constants';
 import { CategoryModal } from '../modals/CategoryModal';
-import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ConfirmDialog, CategoryCardSkeleton } from '../components';
 
 interface CategoriesSectionProps {
   categories: CategoryWithCount[];
   services: MenuServiceWithEmbeddedVariants[];
   searchQuery?: string;
+  /** Loading state - shows skeleton cards when true */
+  isLoading?: boolean;
   // Action callbacks (return types are flexible to match useCatalog hook)
   onCreate?: (data: Partial<ServiceCategory>) => Promise<ServiceCategory | null | undefined>;
   onUpdate?: (id: string, data: Partial<ServiceCategory>) => Promise<ServiceCategory | null | undefined>;
@@ -53,6 +55,7 @@ export function CategoriesSection({
   categories,
   services,
   searchQuery = '',
+  isLoading = false,
   onCreate,
   onUpdate,
   onDelete,
@@ -222,7 +225,17 @@ export function CategoriesSection({
 
         {/* Categories List */}
         <div className="space-y-2">
-          {filteredCategories.map((category) => {
+          {/* Loading State - Show skeletons */}
+          {isLoading && (
+            <>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <CategoryCardSkeleton key={`skeleton-${index}`} />
+              ))}
+            </>
+          )}
+
+          {/* Loaded State - Show actual categories */}
+          {!isLoading && filteredCategories.map((category) => {
             const Icon = getIconComponent(category.icon || 'Sparkles');
             const serviceCount = getServiceCount(category);
 
@@ -351,8 +364,8 @@ export function CategoriesSection({
             );
           })}
 
-          {/* Empty State */}
-          {filteredCategories.length === 0 && (
+          {/* Empty State - Only show when not loading */}
+          {!isLoading && filteredCategories.length === 0 && (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Sparkles size={24} className="text-gray-400" />

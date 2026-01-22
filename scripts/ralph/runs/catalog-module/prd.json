@@ -635,7 +635,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/CategoriesSection.tsx"
     },
     {
