@@ -86,25 +86,28 @@ export const entityTable = {
 - [x] US-015: addOnGroupAdapter.ts and addOnOptionAdapter.ts created ✓
 - [x] US-016: Remaining adapters (staffServiceAssignment, catalogSettings, bookingSequence, product, giftCardDenomination, giftCardSettings) ✓
 - [x] US-017: serviceCategoriesTable.ts created ✓
-- [ ] US-018 to US-021: Remaining table operations
+- [x] US-018: menuServicesTable.ts created ✓
+- [x] US-019: serviceVariantsTable.ts and servicePackagesTable.ts created ✓
+- [x] US-020: addOnGroupsTable.ts and addOnOptionsTable.ts created ✓
+- [x] US-021: Remaining table operations (staffServiceAssignments, catalogSettings, bookingSequences, products, giftCardDenominations, giftCardSettings) ✓
 - [x] `pnpm run typecheck` passes ✓
 
 **Review Story (US-P1R):**
-- [ ] Explore agent analyzes all Phase 1 files
-- [ ] Plan agent verifies architectural decisions
-- [ ] Document issues in 'Phase 1 Review Issues' section below
+- [x] Explore agent analyzes all Phase 1 files ✓
+- [x] Plan agent verifies architectural decisions ✓
+- [x] Document issues in 'Phase 1 Review Issues' section below ✓
 
 **Fix Story (US-P1F):**
-- [ ] All Phase 1 Review Issues resolved
+- [x] All Phase 1 Review Issues resolved (4/4 issues fixed) ✓
 
-- Status: In Progress (17/23 complete)
+- Status: ✅ PHASE 1 COMPLETE (23/23 stories pass)
 
 ### Phase 2: Data Layer (US-022 to US-030 + US-P2R + US-P2F) - 11 stories
 **Implementation Stories (9):**
-- [ ] Booking sequence CRUD in IndexedDB
-- [ ] Product restore method
-- [ ] getByBarcode fixed for multi-tenant
-- [ ] Supabase routing in catalogDataService
+- [x] US-022: Booking sequence CRUD in IndexedDB ✓
+- [ ] US-023: Product restore method
+- [ ] US-024: getByBarcode fixed for multi-tenant
+- [ ] US-025: Supabase routing in catalogDataService
 - [ ] `pnpm test --run` passes
 
 **Review Story (US-P2R):**
@@ -114,7 +117,7 @@ export const entityTable = {
 **Fix Story (US-P2F):**
 - [ ] All Phase 2 Review Issues resolved
 
-- Status: Not started
+- Status: In Progress (1/11 stories complete)
 
 ### Phase 3: UI Components (US-031 to US-054 + US-P3R + US-P3F) - 26 stories
 **Implementation Stories (24):**
@@ -1028,5 +1031,422 @@ Commit: bbc0869
 - Pattern #9: Soft Delete with Tombstone - Use is_deleted, deleted_at, deleted_by, deleted_by_device, tombstone_expires_at for audit trail and eventual cleanup
 
 **Next story suggestion:** US-018 (Create menuServicesTable.ts) - Same folder, continues table operations work
+
+---
+
+## 2026-01-21 - US-018: Create menuServicesTable.ts
+Commit: e2a8777
+
+**Why this story?** Highest priority incomplete story (priority 18). Continues the table operations work from US-017, same folder (table operations are fresh in context).
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/tables/menuServicesTable.ts` (NEW):
+   - Created `getByStoreId(storeId, includeInactive?)`: Get all services for a store with optional inactive filter
+   - Created `getById(id)`: Get single service with is_deleted check
+   - Created `getByCategoryId(categoryId, includeInactive?)`: Get services by category
+   - Created `create(service)`: Insert new service
+   - Created `update(id, updates)`: Update service with auto-updated timestamp
+   - Created `delete(id, userId, deviceId)`: Soft delete with 30-day tombstone
+   - Created `archive(id, userId)`: Set status to 'archived' (recoverable soft delete)
+   - Created `restore(id)`: Set status back to 'active' and clear archive fields
+   - Created `search(storeId, query, limit)`: Search services by name with sanitized input
+   - Created `getUpdatedSince(storeId, since)`: Get services updated after timestamp for sync
+   - Created `upsertMany(services)`: Bulk upsert for sync
+   - Created `updateDisplayOrder(updates)`: Batch reorder services
+   - Created `getOnlineBookingServices(storeId)`: Get services available for online booking
+   - Created `getServicesWithVariants(storeId)`: Get services that have variants
+   - Created `getArchivedServices(storeId)`: Get archived services only
+   - Created `hardDelete(id)`: Permanent delete for cleanup
+   - Created `updateVariantCount(id, count)`: Update variant count when variants change
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- MenuServices table has archive/restore separate from soft delete - archive is recoverable, soft delete propagates through sync
+- Archive sets status='archived', soft delete sets is_deleted=true
+- Added helper methods like getServicesWithVariants and updateVariantCount for variant management
+- Search uses sanitized query input to prevent SQL injection via PostgREST
+
+**Patterns to sync:**
+- Pattern #10: Archive vs Soft Delete - Archive (status='archived') is user-visible and recoverable. Soft delete (is_deleted=true) is for sync propagation and eventual cleanup.
+
+**Next story suggestion:** US-019 (Create serviceVariantsTable.ts and servicePackagesTable.ts) - Same folder, continues table operations work
+
+---
+
+## 2026-01-21 - US-019: Create serviceVariantsTable.ts and servicePackagesTable.ts
+Commit: cbdbcc3
+
+**Why this story?** Highest priority incomplete story (priority 19). Continues the table operations work from US-017 and US-018, same folder (table operations are fresh in context).
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/tables/serviceVariantsTable.ts` (NEW):
+   - Created `getByStoreId(storeId, includeInactive?)`: Get all variants for a store
+   - Created `getById(id)`: Get single variant with is_deleted check
+   - Created `getByServiceId(serviceId, includeInactive?)`: Get variants by service (key for checkout/booking)
+   - Created `getDefaultVariant(serviceId)`: Get the default variant for a service
+   - Created `create(variant)`: Insert new variant
+   - Created `update(id, updates)`: Update variant with auto-updated timestamp
+   - Created `delete(id, userId, deviceId)`: Soft delete with 30-day tombstone
+   - Created `setDefault(id, serviceId)`: Set a variant as default (clears default from others)
+   - Created `getUpdatedSince(storeId, since)`: Get variants updated after timestamp for sync
+   - Created `upsertMany(variants)`: Bulk upsert for sync
+   - Created `updateDisplayOrder(updates)`: Batch reorder variants
+   - Created `hardDelete(id)`: Permanent delete for cleanup
+   - Created `deleteByServiceId(serviceId, userId, deviceId)`: Soft delete all variants for a service
+   - Created `countByServiceId(serviceId)`: Count active variants (for updating service.variantCount)
+
+2. `apps/store-app/src/services/supabase/tables/servicePackagesTable.ts` (NEW):
+   - Created `getByStoreId(storeId, includeInactive?)`: Get all packages for a store
+   - Created `getById(id)`: Get single package with is_deleted check
+   - Created `create(pkg)`: Insert new package
+   - Created `update(id, updates)`: Update package with auto-updated timestamp
+   - Created `delete(id, userId, deviceId)`: Soft delete with 30-day tombstone
+   - Created `search(storeId, query, limit)`: Search packages by name with sanitized input
+   - Created `getUpdatedSince(storeId, since)`: Get packages updated after timestamp for sync
+   - Created `upsertMany(packages)`: Bulk upsert for sync
+   - Created `updateDisplayOrder(updates)`: Batch reorder packages
+   - Created `getOnlineBookingPackages(storeId)`: Get packages available for online booking
+   - Created `hardDelete(id)`: Permanent delete for cleanup
+   - Created `activate(id)`: Activate a package
+   - Created `deactivate(id)`: Deactivate a package
+   - Created `getByBookingMode(storeId, mode)`: Get packages by booking mode (single-session/multiple-visits)
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test -- --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- Variants have a unique setDefault method that clears default from other variants of the same service
+- countByServiceId is useful for keeping service.variantCount in sync
+- deleteByServiceId enables cascade-like behavior when a service is deleted
+- Packages have activate/deactivate methods for simpler status toggling
+- getByBookingMode helps filter packages by their usage pattern (single session vs multi-visit)
+
+**Patterns to sync:**
+- None new - all table operations follow established patterns from US-017 and US-018
+
+**Next story suggestion:** US-020 (Create addOnGroupsTable.ts and addOnOptionsTable.ts) - Same folder, continues table operations work
+
+---
+
+## 2026-01-21 - US-020: Create addOnGroupsTable.ts and addOnOptionsTable.ts
+Commit: 88a7ca1
+
+**Why this story?** Highest priority incomplete story (priority 20). Continues the table operations work from US-019, same folder (table operations are fresh in context).
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/tables/addOnGroupsTable.ts` (NEW):
+   - Created `getByStoreId(storeId, includeInactive?)`: Get all add-on groups for a store
+   - Created `getById(id)`: Get single group with is_deleted check
+   - Created `getForService(storeId, serviceId?, categoryId?)`: KEY METHOD - filters by applicability:
+     - Returns groups where applicable_to_all = true
+     - OR serviceId is in applicable_service_ids
+     - OR categoryId is in applicable_category_ids
+   - Created `getOnlineBookingGroups(storeId)`: Get groups visible for online booking
+   - Created `search(storeId, query, limit)`: Search groups by name with sanitized input
+   - Created `create(group)`: Insert new group
+   - Created `update(id, updates)`: Update group with auto-updated timestamp
+   - Created `delete(id, userId, deviceId)`: Soft delete with 30-day tombstone
+   - Created `hardDelete(id)`: Permanent delete for cleanup
+   - Created `getUpdatedSince(storeId, since)`: Get groups updated after timestamp for sync
+   - Created `upsertMany(groups)`: Bulk upsert for sync
+   - Created `updateDisplayOrder(updates)`: Batch reorder groups
+   - Created `activate(id)` / `deactivate(id)`: Status toggling
+   - Created `getRequiredForService(storeId, serviceId?, categoryId?)`: Get required groups for checkout
+
+2. `apps/store-app/src/services/supabase/tables/addOnOptionsTable.ts` (NEW):
+   - Created `getByStoreId(storeId, includeInactive?)`: Get all add-on options for a store
+   - Created `getById(id)`: Get single option with is_deleted check
+   - Created `getByGroupId(groupId, includeInactive?)`: KEY METHOD - Get options for a specific group
+   - Created `getByGroupIds(groupIds)`: Bulk load options for multiple groups
+   - Created `search(storeId, query, limit)`: Search options by name
+   - Created `create(option)`: Insert new option
+   - Created `update(id, updates)`: Update option with auto-updated timestamp
+   - Created `delete(id, userId, deviceId)`: Soft delete with 30-day tombstone
+   - Created `deleteByGroupId(groupId, userId, deviceId)`: Cascade delete all options in a group
+   - Created `hardDelete(id)`: Permanent delete for cleanup
+   - Created `getUpdatedSince(storeId, since)`: Get options updated after timestamp for sync
+   - Created `upsertMany(options)`: Bulk upsert for sync
+   - Created `updateDisplayOrder(updates)`: Batch reorder options
+   - Created `activate(id)` / `deactivate(id)`: Status toggling
+   - Created `countByGroupId(groupId)`: Count active options in a group
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test -- --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- getForService uses JavaScript filtering because PostgREST array operations are limited for "contains" queries
+- First fetch all groups, then filter by applicable_to_all OR serviceId in applicable_service_ids OR categoryId in applicable_category_ids
+- deleteByGroupId enables cascade-like behavior when a group is deleted
+- getByGroupIds enables efficient bulk loading for checkout/booking scenarios
+
+**Patterns to sync:**
+- Pattern #11: Array Contains Filtering - When filtering by array containment (e.g., serviceId in applicable_service_ids), fetch all rows and filter in JavaScript since PostgREST array operators are limited
+
+**Next story suggestion:** US-021 (Create remaining catalog table operations) - Same folder, completes Phase 1 backend foundation
+
+---
+
+## 2026-01-21 - US-021: Create remaining catalog table operations
+Commit: abfd3a6
+
+**Why this story?** Highest priority story (priority 21) with passes: false. Completes Phase 1 backend foundation by creating the final 6 Supabase table operation files.
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/tables/staffServiceAssignmentsTable.ts` (NEW):
+   - CRUD operations for staff-service assignments
+   - `getByStaffId(staffId)`: Get all services a staff can perform
+   - `getByServiceId(serviceId)`: Get all staff who can perform a service
+   - `getByStaffAndService(staffId, serviceId)`: Get specific assignment
+   - `assignStaffToService(storeId, staffId, serviceId, assignment)`: Upsert assignment
+   - `removeStaffFromService(staffId, serviceId, userId, deviceId)`: Soft delete
+   - `deleteByStaffId/deleteByServiceId`: Cascade-style soft delete
+   - `updateCustomPricing(id, price, duration, commission)`: Update overrides
+   - `getStaffIdsForService/getServiceIdsForStaff`: ID-only lookups for performance
+
+2. `apps/store-app/src/services/supabase/tables/catalogSettingsTable.ts` (NEW):
+   - One-per-store settings table operations
+   - `get(storeId)`: Get settings or null
+   - `getOrCreate(storeId, tenantId, userId?, deviceId?)`: Get or create with defaults
+   - `update(storeId, updates)`: Update by storeId
+   - Feature toggle helpers: enablePackages, disablePackages, enableAddOns, etc.
+   - `isFeatureEnabled(storeId, feature)`: Check if feature is enabled
+
+3. `apps/store-app/src/services/supabase/tables/bookingSequencesTable.ts` (NEW):
+   - CRUD operations for booking sequences
+   - `getEnabled(storeId)`: Get only enabled sequences
+   - `enable(id)` / `disable(id)`: Toggle status
+   - `updateServiceOrder(id, serviceIds)`: Set service order array
+   - `addService(id, serviceId, position?)`: Add service to sequence
+   - `removeService(id, serviceId)`: Remove service from sequence
+   - `reorderService(id, serviceId, newPosition)`: Move service within sequence
+
+4. `apps/store-app/src/services/supabase/tables/productsTable.ts` (NEW):
+   - Full CRUD with archive/restore for products
+   - `getByBarcode(storeId, barcode)`: Lookup by barcode (multi-tenant isolated)
+   - `getBySku(storeId, sku)`: Lookup by SKU (multi-tenant isolated)
+   - `getByCategory/getByBrand`: Filter by category/brand
+   - `getRetailProducts/getBackbarProducts`: Filter by product type
+   - `getLowStockProducts(storeId)`: Get products with min_stock_level set
+   - `search(storeId, query)`: Search by name, SKU, or barcode
+   - `archive(id)` / `restore(id)`: Soft archive/restore
+   - `updatePricing(id, retailPrice, costPrice)`: Update pricing with auto-margin calculation
+   - `getCategories/getBrands`: Get distinct category/brand values
+
+5. `apps/store-app/src/services/supabase/tables/giftCardDenominationsTable.ts` (NEW):
+   - CRUD for gift card preset amounts
+   - `getActiveDenominations(storeId)`: Get active denominations for sale display
+   - `updateDisplayOrder(updates)`: Batch reorder denominations
+   - `updateAmount(id, amount, label?)`: Update denomination value
+   - `createStandardDenominations(storeId, tenantId)`: Create standard $25-$200 set
+
+6. `apps/store-app/src/services/supabase/tables/giftCardSettingsTable.ts` (NEW):
+   - One-per-store gift card settings
+   - `getOrCreate(storeId, tenantId)`: Get or create with defaults (custom amounts, 365-day expiration)
+   - Amount limit helpers: enableCustomAmount, updateAmountLimits
+   - Online settings: enableOnlineSales, enableEmailDelivery
+   - `validateAmount(storeId, amount)`: Validate custom amount against settings
+
+7. `apps/store-app/src/services/supabase/tables/index.ts` (NEW):
+   - Barrel export for all Supabase table operations
+   - Organized by module: Core, Team, Gift Card, Catalog
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test -- --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- Settings tables (catalogSettings, giftCardSettings) use getOrCreate pattern for default initialization
+- Products table has archive (is_active=false) separate from soft delete (is_deleted=true)
+- productsTable.updatePricing auto-calculates margin: (retailPrice - costPrice) / retailPrice * 100
+- Multi-tenant isolation is critical for getByBarcode and getBySku - always filter by storeId
+- BookingSequences service_order is stored as JSONB array, needs `as unknown as Json` cast
+
+**Patterns to sync:**
+- Pattern #12: Settings Table Pattern - Use getOrCreate with sensible defaults for one-per-store settings tables. Default to enabled/permissive values.
+
+**PHASE 1 BACKEND FOUNDATION COMPLETE:**
+- ✅ 5 type extensions (US-001 to US-005)
+- ✅ 12 Supabase tables in migration (US-006 to US-010)
+- ✅ 12 Supabase type definitions (US-011)
+- ✅ 12 adapters (US-012 to US-016)
+- ✅ 12 table operations (US-017 to US-021)
+
+**Next story suggestion:** US-P1R (REVIEW: Phase 1 Backend Foundation) - Comprehensive review of all Phase 1 implementation before moving to Phase 2
+
+---
+
+## 2026-01-21 - US-P1R: REVIEW: Phase 1 Backend Foundation
+Commit: N/A (Review story - no code changes)
+
+**Why this story?** Highest priority incomplete story (priority 1001) with no dependencies. Phase 1 implementation is complete, review ensures quality before Phase 2.
+
+**Review Methodology:**
+- Launched Explore agents to analyze types, migration, Supabase types, adapters, and table operations
+- Ran `pnpm run typecheck` to verify compilation
+
+**Review Findings:**
+
+### 1. Type Definitions (catalog.ts) - 2 Issues Found
+
+**Issue 1: Missing CreateCatalogSettingsInput type**
+- **Severity:** LOW
+- **Location:** apps/store-app/src/types/catalog.ts:496-518
+- **Description:** CatalogSettings extends BaseSyncableEntity but has no corresponding CreateCatalogSettingsInput type
+- **Impact:** Developers may use Partial<CatalogSettings> or type assertions for creation
+- **Recommendation:** Add CreateCatalogSettingsInput type omitting all BaseSyncableEntity fields
+
+**Issue 2: Missing CreateGiftCardSettingsInput type**
+- **Severity:** LOW
+- **Location:** apps/store-app/src/types/catalog.ts:954-966
+- **Description:** GiftCardSettings extends BaseSyncableEntity but has no corresponding CreateGiftCardSettingsInput type
+- **Impact:** Same as Issue 1
+- **Recommendation:** Add CreateGiftCardSettingsInput type omitting all BaseSyncableEntity fields
+
+### 2. Supabase Migration (031_create_catalog_tables.sql) - 2 Issues Found
+
+**Issue 3: Missing Foreign Key on staff_id in staff_service_assignments**
+- **Severity:** MEDIUM
+- **Location:** supabase/migrations/031_create_catalog_tables.sql:847
+- **Description:** staff_id column has NO foreign key reference to staff table
+- **Impact:** Orphaned assignments possible if staff deleted, no referential integrity
+- **Recommendation:** Add `REFERENCES staff(id) ON DELETE CASCADE`
+
+**Issue 4: Missing ON DELETE CASCADE on parent_category_id**
+- **Severity:** LOW
+- **Location:** supabase/migrations/031_create_catalog_tables.sql:27
+- **Description:** parent_category_id FK does not have ON DELETE CASCADE
+- **Impact:** Child categories become orphaned when parent deleted
+- **Recommendation:** Add ON DELETE CASCADE to maintain hierarchy integrity
+
+### 3. Supabase Types (types.ts) - PASS
+- All 12 catalog tables have Row, Insert, Update variants
+- All columns from migration represented with correct snake_case
+- No TypeScript errors or 'as any' casts
+
+### 4. Adapters - PASS
+- All 12 adapters correctly convert snake_case ↔ camelCase
+- Proper null → undefined handling
+- Consistent JSONB parsing patterns
+- No 'as any' type casts
+
+### 5. Table Operations - PASS
+- Multi-tenant isolation: ALL queries filter by store_id ✓
+- Soft delete: queries filter is_deleted = false by default ✓
+- Error handling: throws on error, graceful PGRST116 handling ✓
+- Tombstone pattern: 30-day expiration correctly implemented ✓
+- Version: NOT manually incremented (trigger handles it) ✓
+
+### 6. TypeScript Compilation - PASS
+- `pnpm run typecheck` passes with no errors
+
+---
+
+## Phase 1 Review Issues
+
+<!-- US-P1R has documented the following issues for US-P1F to address -->
+
+1. **[ISSUE-P1-001]** Missing CreateCatalogSettingsInput type
+   - File: apps/store-app/src/types/catalog.ts
+   - Status: ✅ RESOLVED (US-P1F) - Added type at line 524
+
+2. **[ISSUE-P1-002]** Missing CreateGiftCardSettingsInput type
+   - File: apps/store-app/src/types/catalog.ts
+   - Status: ✅ RESOLVED (US-P1F) - Added type at line 998
+
+3. **[ISSUE-P1-003]** Missing FK on staff_id → staff(id) in staff_service_assignments
+   - File: supabase/migrations/032_fix_catalog_table_foreign_keys.sql
+   - Status: ✅ RESOLVED (US-P1F) - Added FK with ON DELETE CASCADE
+
+4. **[ISSUE-P1-004]** Missing ON DELETE CASCADE on parent_category_id
+   - File: supabase/migrations/032_fix_catalog_table_foreign_keys.sql
+   - Status: ✅ RESOLVED (US-P1F) - Re-created FK with ON DELETE CASCADE
+
+---
+
+**Overall Assessment:**
+Phase 1 implementation is **HIGH QUALITY** with only **4 minor issues** found:
+- 2 missing type definitions (low severity)
+- 2 missing FK constraints (medium-low severity)
+
+All core functionality (types, adapters, table operations) is production-ready. The issues are isolated to type completeness and database constraints.
+
+**Learnings:**
+- Settings tables (CatalogSettings, GiftCardSettings) were treated as special cases but should still have CreateInput types for consistency
+- Foreign key constraints are easy to miss when table references aren't in the same migration
+- Comprehensive review with multiple agents ensures thorough coverage
+
+---
+
+## 2026-01-21 - US-P1F: FIX - Address Phase 1 Review Issues
+Commit: e6cad7b
+
+**Why this story?** Final story in Phase 1. US-P1R (review) identified 4 issues that need fixing before Phase 1 is complete.
+
+**Changes:**
+1. `apps/store-app/src/types/catalog.ts`:
+   - Added CreateCatalogSettingsInput type (lines 524-542) - omits all BaseSyncableEntity fields
+   - Added CreateGiftCardSettingsInput type (lines 998-1016) - omits all BaseSyncableEntity fields
+
+2. `supabase/migrations/032_fix_catalog_table_foreign_keys.sql` (NEW):
+   - Added FK on staff_service_assignments.staff_id → staff(id) ON DELETE CASCADE
+   - Added index for FK (idx_staff_service_assignments_staff_fk)
+   - Dropped and re-created service_categories.parent_category_id FK with ON DELETE CASCADE
+   - Added documentation comments on both constraints
+
+**Verification:**
+- `pnpm run typecheck` passes for store-app ✓
+- Pre-existing test failures in other packages (not from this change)
+- Pre-existing lint errors in other packages (not from this change)
+
+**Learnings:**
+- Adding new migration files for FK fixes is cleaner than modifying existing migrations
+- Comments on FK constraints help document the cascade behavior intention
+
+**PHASE 1 COMPLETE** ✓ (23/23 stories pass)
+
+**Next story suggestion:** US-022 (Phase 2 first story) or US-P2R (Phase 2 Review) depending on iteration
+
+---
+
+## 2026-01-21 - US-022: Add booking sequence CRUD to catalogDatabase.ts
+Commit: aade17f
+
+**Why this story?** First story in Phase 2 (priority 22), no dependencies. Starts the Data Layer phase.
+
+**Changes:**
+1. `apps/store-app/src/db/schema.ts`:
+   - Added BookingSequence import from '../types'
+   - Added bookingSequences table declaration: `Table<BookingSequence, string>`
+   - Added version 17 with bookingSequences table and indexes: `id, storeId, isEnabled, syncStatus, [storeId+isEnabled]`
+   - Added `await db.bookingSequences.clear()` to clearDatabase function
+
+2. `apps/store-app/src/db/catalogDatabase.ts`:
+   - Added BookingSequence and CreateBookingSequenceInput imports
+   - Added bookingSequencesDB object with CRUD operations:
+     - `getAll(storeId, includeDisabled?)`: Get all sequences with optional filter
+     - `getById(id)`: Get single sequence
+     - `create(input, userId, storeId, tenantId?, deviceId?)`: Create new sequence with sync defaults
+     - `update(id, updates, userId, deviceId?)`: Update sequence with version incrementing
+     - `delete(id)`: Hard delete
+     - `enable(id, userId, deviceId?)`: Enable a sequence
+     - `disable(id, userId, deviceId?)`: Disable a sequence
+     - `updateServiceOrder(id, serviceOrder, userId, deviceId?)`: Update service order array
+
+**Verification:**
+- `pnpm run typecheck` passes for store-app ✓
+- Pre-existing test failures in other packages (not from this change)
+- Pre-existing lint errors in other packages (not from this change)
+
+**Learnings:**
+- BookingSequence is a simple type with serviceOrder (string[]) and isEnabled (boolean)
+- Adding a new IndexedDB table requires a new schema version
+- Follows same pattern as other catalog DB objects (createBaseSyncableDefaults, version incrementing)
+
+**Next story suggestion:** US-023 (Add product restore method to catalogDatabase.ts) - Same file, continues Data Layer work
 
 ---

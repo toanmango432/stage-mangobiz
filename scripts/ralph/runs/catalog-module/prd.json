@@ -354,7 +354,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Services need archive/restore and search functionality."
     },
     {
@@ -368,7 +368,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "Straightforward CRUD. Variants filtered by serviceId."
     },
     {
@@ -383,7 +383,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "getForService is key for checkout integration - filter by applicability."
     },
     {
@@ -402,7 +402,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 1 COMPLETE - Backend foundation ready. Verify: pnpm run typecheck"
     },
     {
@@ -418,7 +418,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/db/catalogDatabase.ts. BookingSequence type already exists."
     },
     {
@@ -1319,7 +1319,7 @@
         "If issues found, list them clearly for US-P1F to address"
       ],
       "priority": 1001,
-      "passes": false,
+      "passes": true,
       "notes": "CRITICAL: Use Task tool with subagent_type=Explore and subagent_type=Plan for thorough analysis. This is a review-only story - do NOT make code changes. Document findings for US-P1F."
     },
     {
@@ -1336,7 +1336,7 @@
         "PHASE 1 FULLY COMPLETE after this story passes"
       ],
       "priority": 1002,
-      "passes": false,
+      "passes": true,
       "dependencies": [
         "US-P1R"
       ],
