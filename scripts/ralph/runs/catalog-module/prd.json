@@ -104,7 +104,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/types/catalog.ts. AddOnGroup has applicability fields - keep those."
     },
     {
@@ -122,7 +122,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/types/catalog.ts. Complete type system foundation - all types now have sync support."
     },
     {

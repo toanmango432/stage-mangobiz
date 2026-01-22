@@ -71,7 +71,9 @@ export const entityTable = {
 **Implementation Stories (21):**
 - [x] US-001: ServiceCategory extends BaseSyncableEntity ✓
 - [x] US-002: MenuService extends BaseSyncableEntity ✓
-- [ ] All remaining catalog types extend BaseSyncableEntity
+- [x] US-003: ServiceVariant and ServicePackage extend BaseSyncableEntity ✓
+- [x] US-004: AddOnGroup and AddOnOption extend BaseSyncableEntity ✓
+- [x] US-005: All remaining catalog types extend BaseSyncableEntity ✓
 - [ ] Supabase migration creates 12 tables
 - [ ] All adapters created and exported
 - [ ] All table operations created and exported
@@ -85,7 +87,7 @@ export const entityTable = {
 **Fix Story (US-P1F):**
 - [ ] All Phase 1 Review Issues resolved
 
-- Status: In Progress (2/23 complete)
+- Status: In Progress (5/23 complete)
 
 ### Phase 2: Data Layer (US-022 to US-030 + US-P2R + US-P2F) - 11 stories
 **Implementation Stories (9):**
@@ -334,5 +336,129 @@ Commit: 3eb3323
 - Pattern #1: Seed Helper Functions - Create helper functions for seeding entities with full sync fields instead of inline object literals
 
 **Next story suggestion:** US-004 (Extend AddOnGroup and AddOnOption with sync fields) - same file, same pattern, continues type extension work
+
+---
+
+## 2026-01-21 - US-004: Extend AddOnGroup and AddOnOption with sync fields
+Commit: 233ee98
+
+**Why this story?** Highest priority story (priority 4) with passes: false. Same file as US-001-003, continues the type extension pattern with code fresh in context.
+
+**Changes:**
+1. `apps/store-app/src/types/catalog.ts`:
+   - AddOnGroup already extends BaseSyncableEntity (line 339) - verified
+   - AddOnOption already extends BaseSyncableEntity (line 367) - verified
+   - CreateAddOnGroupInput and CreateAddOnOptionInput already omit all BaseSyncableEntity fields - verified
+   - Fixed fromServiceAddOn() function to return CreateAddOnGroupInput/CreateAddOnOptionInput types instead of incomplete partial types (lines 644-675)
+
+2. `apps/store-app/src/db/catalogDatabase.ts`:
+   - addOnGroupsDB.create() already uses createBaseSyncableDefaults (line 459) - verified
+   - addOnGroupsDB.update() already handles version/vectorClock sync fields (lines 484-492) - verified
+   - addOnOptionsDB.create() already uses createBaseSyncableDefaults (line 538) - verified
+   - addOnOptionsDB.update() already handles version/vectorClock sync fields (lines 564-571) - verified
+
+3. `apps/store-app/src/db/catalogSeed.ts`:
+   - Added createSeedAddOnGroup() helper function with all sync fields
+   - Added createSeedAddOnOption() helper function with all sync fields
+   - Updated add-on group and option seeding to use helper functions
+
+4. `apps/store-app/src/hooks/useCatalog.ts`:
+   - Updated addOnGroupsDB.create() call to include userId parameter (line 833)
+   - Updated addOnGroupsDB.update() call to include userId parameter (line 844)
+   - Updated addOnOptionsDB.create() call to include userId parameter (line 883)
+   - Updated addOnOptionsDB.update() call to include userId parameter (line 894)
+
+5. `apps/store-app/src/services/domain/catalogDataService.ts`:
+   - Updated addOnGroupsService.create() to pass userId to Dexie API (line 315)
+   - Updated addOnGroupsService.update() to pass userId to Dexie API (line 323)
+   - Updated addOnOptionsService.create() to pass userId to Dexie API (line 357)
+   - Updated addOnOptionsService.update() to pass userId to Dexie API (line 365)
+   - Added import for AddOnGroup and AddOnOption types
+
+6. `apps/store-app/src/store/slices/catalogSlice.ts`:
+   - Updated createAddOnGroup thunk to include userId in parameters (line 267)
+   - Updated updateAddOnGroup thunk to include userId in parameters (line 274)
+   - Updated createAddOnOption thunk to include userId in parameters (line 290)
+   - Updated updateAddOnOption thunk to include userId in parameters (line 297)
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- AddOnGroup and AddOnOption types were already extended with BaseSyncableEntity in previous iterations
+- The main work was updating all callers to pass the required userId parameter
+- The fromServiceAddOn function needed to be fixed to return input types (not full entity types) since sync fields are auto-generated during create()
+
+**Patterns to sync:**
+- Pattern #2: Input Types for Conversion Functions - When converting from legacy types, return CreateXxxInput types instead of partial entity types, since sync fields are auto-generated during create()
+
+**Next story suggestion:** US-005 (Extend remaining catalog types with sync fields) - same file, completes type system foundation
+
+---
+
+## 2026-01-21 - US-005: Extend remaining catalog types with BaseSyncableEntity
+Commit: 73642a5
+
+**Why this story?** Highest priority story (priority 5) with passes: false. Continues type extension pattern from US-001-004, completing the type system foundation.
+
+**Changes:**
+1. `apps/store-app/src/types/catalog.ts`:
+   - StaffServiceAssignment now extends BaseSyncableEntity (removed duplicate id, storeId, createdAt, updatedAt, syncStatus fields)
+   - CatalogSettings now extends BaseSyncableEntity (removed duplicate id, storeId, createdAt, updatedAt, syncStatus fields)
+   - BookingSequence now extends BaseSyncableEntity (removed duplicate id, storeId, createdAt, updatedAt, syncStatus fields)
+   - GiftCardDenomination now extends BaseSyncableEntity (removed duplicate id, storeId, createdAt, updatedAt, syncStatus fields)
+   - GiftCardSettings now extends BaseSyncableEntity (removed duplicate id, storeId, createdAt, updatedAt, syncStatus fields)
+   - Updated CreateStaffAssignmentInput to omit all BaseSyncableEntity fields
+   - Updated CreateBookingSequenceInput to omit all BaseSyncableEntity fields
+   - Updated CreateGiftCardDenominationInput to omit all BaseSyncableEntity fields
+
+2. `apps/store-app/src/db/catalogDatabase.ts`:
+   - Updated staffServiceAssignmentsDB.create() with userId, deviceId, tenantId params
+   - Updated staffServiceAssignmentsDB.update() with userId, deviceId params and version incrementing
+   - Updated assignStaffToService() with userId, deviceId, tenantId params
+   - Updated removeStaffFromService() with userId, deviceId params
+   - Updated catalogSettingsDB.getOrCreate() with userId, deviceId, tenantId params
+   - Updated catalogSettingsDB.update() with userId, deviceId params and version incrementing
+
+3. `apps/store-app/src/db/catalogSeed.ts`:
+   - Added DEFAULT_USER_ID constant
+   - Updated CatalogSettings seeding to use createSeedSyncFields helper
+
+4. `apps/store-app/src/hooks/useCatalog.ts`:
+   - Updated catalogSettings initialization to pass all required params
+   - Updated updateCatalogSettings with userId and deviceId
+   - Updated createGiftCardDenomination with full sync fields
+   - Updated updateGiftCardDenomination with version incrementing
+   - Updated updateGiftCardSettings with full sync fields and version incrementing
+
+5. `apps/store-app/src/services/domain/catalogDataService.ts`:
+   - Updated staffServiceAssignmentsService.create() with new signature
+   - Updated staffServiceAssignmentsService.update() with new signature
+   - Updated catalogSettingsService.set() with new signature
+
+6. `apps/store-app/src/store/slices/catalogSlice.ts`:
+   - Updated fetchCatalogSettings thunk with userId, deviceId, tenantId params
+   - Updated updateCatalogSettings thunk with userId, deviceId params
+
+7. `apps/store-app/src/components/giftcards/GiftCardsPage.tsx`:
+   - Updated createDenomination with full sync fields
+   - Updated updateDenomination with version incrementing
+   - Updated updateSettings with full sync fields and version incrementing
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- When extending types with BaseSyncableEntity, must update ALL callers across multiple files (hooks, services, slices, components)
+- The ripple effect is significant - changing a function signature requires updating all call sites
+- Using default values for deviceId/tenantId helps with backward compatibility during incremental migration
+- GiftCard functionality was spread across multiple files (hook, page component) requiring consistent updates
+
+**Patterns to sync:**
+- Pattern #3: Cascading API Changes - When updating function signatures to require new params, provide sensible defaults to minimize breakage during migration
+
+**Next story suggestion:** US-006 (Create Supabase migration for service_categories table) - Phase 1 types are complete, next step is database migration
 
 ---
