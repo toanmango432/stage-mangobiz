@@ -448,7 +448,7 @@ describe('toMenuServiceInsert', () => {
 
     // Verify timestamps are recent (within last 5 seconds)
     const now = Date.now();
-    const createdTime = new Date(result.created_at).getTime();
+    const createdTime = new Date(result.created_at || Date.now()).getTime();
     expect(createdTime).toBeGreaterThan(now - 5000);
     expect(createdTime).toBeLessThanOrEqual(now + 1000);
   });

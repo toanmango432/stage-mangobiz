@@ -78,19 +78,22 @@ describe('menuServicesTable', () => {
   });
 
   // Helper to create mock service row
+  // Note: Using 'as any' to bypass strict type checking for test mocks with evolving schema
   const createMockService = (overrides?: Partial<MenuServiceRow>): MenuServiceRow => ({
     id: 'svc-1',
     tenant_id: 'tenant-1',
     store_id: 'store-1',
+    location_id: null,
     category_id: 'cat-1',
     name: 'Haircut',
     description: 'Standard haircut service',
+    sku: null,
     pricing_type: 'fixed',
     price: 50.00,
     price_max: null,
     cost: 20.00,
     duration: 60,
-    buffer_time: 0,
+    online_booking_buffer_minutes: 0,
     extra_time: null,
     extra_time_type: null,
     taxable: true,
@@ -100,16 +103,16 @@ describe('menuServicesTable', () => {
     tags: ['popular'],
     images: [],
     color: null,
-    icon: null,
-    sku: null,
-    barcode: null,
+    all_staff_can_perform: true,
     online_booking_enabled: true,
+    requires_deposit: false,
     show_price_online: true,
     booking_availability: 'both',
     advance_booking_days_min: 0,
     advance_booking_days_max: 90,
+    allow_custom_duration: false,
+    aftercare_instructions: null,
     requires_patch_test: false,
-    patch_test_days_before: null,
     turn_weight: 1.0,
     rebook_reminder_days: 30,
     has_variants: false,
@@ -132,7 +135,7 @@ describe('menuServicesTable', () => {
     last_modified_by: 'user-1',
     last_modified_by_device: 'device-1',
     ...overrides,
-  });
+  } as any);
 
   describe('getByStoreId', () => {
     it('should get all active services for a store', async () => {
@@ -327,7 +330,8 @@ describe('menuServicesTable', () => {
 
   describe('delete (soft delete)', () => {
     it('should soft delete a service with tombstone', async () => {
-      mockQueryBuilder.update.mockResolvedValue({ data: null, error: null });
+      // Mock .eq() to resolve with success (terminal operation)
+      mockEq.mockResolvedValueOnce({ data: null, error: null });
 
       await menuServicesTable.delete('svc-1', 'user-1', 'device-1');
 
@@ -344,7 +348,8 @@ describe('menuServicesTable', () => {
     });
 
     it('should set tombstone expiry to 30 days from now', async () => {
-      mockQueryBuilder.update.mockResolvedValue({ data: null, error: null });
+      // Mock .eq() to resolve with success (terminal operation)
+      mockEq.mockResolvedValueOnce({ data: null, error: null });
 
       const beforeDelete = Date.now();
       await menuServicesTable.delete('svc-1', 'user-1', 'device-1');
@@ -360,7 +365,8 @@ describe('menuServicesTable', () => {
 
     it('should throw error on delete failure', async () => {
       const dbError = new Error('Delete failed');
-      mockQueryBuilder.update.mockResolvedValue({ data: null, error: dbError });
+      // Mock .eq() to resolve with error (terminal operation)
+      mockEq.mockResolvedValueOnce({ data: null, error: dbError });
 
       await expect(menuServicesTable.delete('svc-1', 'user-1', 'device-1')).rejects.toThrow('Delete failed');
     });
@@ -525,7 +531,8 @@ describe('menuServicesTable', () => {
         { id: 'svc-1', displayOrder: 2 },
         { id: 'svc-2', displayOrder: 1 },
       ];
-      mockQueryBuilder.update.mockResolvedValue({ data: null, error: null });
+      // Mock .eq() to resolve with success (terminal operation in Promise.all)
+      mockEq.mockResolvedValue({ data: null, error: null });
 
       await menuServicesTable.updateDisplayOrder(updates);
 
@@ -534,6 +541,7 @@ describe('menuServicesTable', () => {
         display_order: 2,
         updated_at: expect.any(String),
       }));
+      expect(mockEq).toHaveBeenCalledTimes(2);
     });
 
     it('should throw error if any update fails', async () => {
@@ -541,7 +549,7 @@ describe('menuServicesTable', () => {
         { id: 'svc-1', displayOrder: 1 },
         { id: 'svc-2', displayOrder: 2 },
       ];
-      mockUpdate
+      mockEq
         .mockResolvedValueOnce({ data: null, error: null })
         .mockResolvedValueOnce({ data: null, error: new Error('Update failed') });
 
@@ -594,7 +602,8 @@ describe('menuServicesTable', () => {
 
   describe('hardDelete', () => {
     it('should permanently delete a service', async () => {
-      mockQueryBuilder.delete.mockResolvedValue({ data: null, error: null });
+      // Mock .eq() to resolve with success (terminal operation)
+      mockEq.mockResolvedValueOnce({ data: null, error: null });
 
       await menuServicesTable.hardDelete('svc-1');
 
@@ -604,7 +613,8 @@ describe('menuServicesTable', () => {
 
     it('should throw error on hard delete failure', async () => {
       const dbError = new Error('Hard delete failed');
-      mockQueryBuilder.delete.mockResolvedValue({ data: null, error: dbError });
+      // Mock .eq() to resolve with error (terminal operation)
+      mockEq.mockResolvedValueOnce({ data: null, error: dbError });
 
       await expect(menuServicesTable.hardDelete('svc-1')).rejects.toThrow('Hard delete failed');
     });
@@ -613,7 +623,9 @@ describe('menuServicesTable', () => {
   describe('updateVariantCount', () => {
     it('should update variant count and has_variants flag', async () => {
       const updatedService = createMockService({ variant_count: 5, has_variants: true });
-      mockQueryBuilder.single.mockResolvedValue({ data: updatedService, error: null });
+      // Mock .eq() to return the builder, then .single() to resolve
+      mockEq.mockReturnValueOnce(mockQueryBuilder);
+      mockQueryBuilder.single.mockResolvedValueOnce({ data: updatedService, error: null });
 
       const result = await menuServicesTable.updateVariantCount('svc-1', 5);
 

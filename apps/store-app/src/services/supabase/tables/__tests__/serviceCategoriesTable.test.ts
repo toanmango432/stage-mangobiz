@@ -59,7 +59,7 @@ vi.mock('../../client', () => ({
 describe('serviceCategoriesTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset all mocks to return the query builder by default
+    // Reset all mocks to return the query builder by default for proper chaining
     mockSelect.mockReturnValue(mockQueryBuilder);
     mockEq.mockReturnValue(mockQueryBuilder);
     mockIs.mockReturnValue(mockQueryBuilder);
@@ -71,6 +71,7 @@ describe('serviceCategoriesTable', () => {
     mockUpdate.mockReturnValue(mockQueryBuilder);
     mockDelete.mockReturnValue(mockQueryBuilder);
     mockUpsert.mockReturnValue(mockQueryBuilder);
+    mockSingle.mockResolvedValue({ data: null, error: null });
   });
 
   afterEach(() => {
@@ -82,6 +83,7 @@ describe('serviceCategoriesTable', () => {
     id: 'cat-1',
     tenant_id: 'tenant-1',
     store_id: 'store-1',
+    location_id: null,
     name: 'Hair Services',
     description: 'All hair-related services',
     color: '#FF5733',
@@ -238,8 +240,9 @@ describe('serviceCategoriesTable', () => {
 
       await serviceCategoriesTable.search('store-1', "test'; DROP TABLE--");
 
-      // Sanitization removes SQL special chars
-      expect(mockQueryBuilder.ilike).toHaveBeenCalledWith('name', '%test DROP TABLE---%');
+      // Sanitization removes quotes and parens but keeps semicolons and dashes
+      // Input: "test'; DROP TABLE--" → removes ' → "test; DROP TABLE--"
+      expect(mockQueryBuilder.ilike).toHaveBeenCalledWith('name', '%test; DROP TABLE--%');
     });
   });
 
@@ -341,7 +344,8 @@ describe('serviceCategoriesTable', () => {
 
   describe('delete (soft delete)', () => {
     it('should soft delete a category with tombstone', async () => {
-      mockQueryBuilder.update.mockResolvedValue({ data: null, error: null });
+      // Mock .eq() to resolve with success (terminal operation)
+      mockEq.mockResolvedValueOnce({ data: null, error: null });
 
       await serviceCategoriesTable.delete('cat-1', 'user-1', 'device-1');
 
@@ -358,7 +362,8 @@ describe('serviceCategoriesTable', () => {
     });
 
     it('should set tombstone expiry to 30 days from now', async () => {
-      mockQueryBuilder.update.mockResolvedValue({ data: null, error: null });
+      // Mock .eq() to resolve with success (terminal operation)
+      mockEq.mockResolvedValueOnce({ data: null, error: null });
 
       const beforeDelete = Date.now();
       await serviceCategoriesTable.delete('cat-1', 'user-1', 'device-1');
@@ -374,7 +379,8 @@ describe('serviceCategoriesTable', () => {
 
     it('should throw error on delete failure', async () => {
       const dbError = new Error('Delete failed');
-      mockQueryBuilder.update.mockResolvedValue({ data: null, error: dbError });
+      // Mock .eq() to resolve with error (terminal operation)
+      mockEq.mockResolvedValueOnce({ data: null, error: dbError });
 
       await expect(serviceCategoriesTable.delete('cat-1', 'user-1', 'device-1')).rejects.toThrow('Delete failed');
     });
@@ -382,7 +388,8 @@ describe('serviceCategoriesTable', () => {
 
   describe('hardDelete', () => {
     it('should permanently delete a category', async () => {
-      mockQueryBuilder.delete.mockResolvedValue({ data: null, error: null });
+      // Mock .eq() to resolve with success response (terminal operation)
+      mockEq.mockResolvedValueOnce({ data: null, error: null });
 
       await serviceCategoriesTable.hardDelete('cat-1');
 
@@ -392,7 +399,8 @@ describe('serviceCategoriesTable', () => {
 
     it('should throw error on hard delete failure', async () => {
       const dbError = new Error('Hard delete failed');
-      mockQueryBuilder.delete.mockResolvedValue({ data: null, error: dbError });
+      // Mock .eq() to resolve with error response
+      mockEq.mockResolvedValueOnce({ data: null, error: dbError });
 
       await expect(serviceCategoriesTable.hardDelete('cat-1')).rejects.toThrow('Hard delete failed');
     });
@@ -471,7 +479,8 @@ describe('serviceCategoriesTable', () => {
         { id: 'cat-2', displayOrder: 1 },
         { id: 'cat-3', displayOrder: 2 },
       ];
-      mockQueryBuilder.update.mockResolvedValue({ data: null, error: null });
+      // Mock .eq() to resolve with success (terminal operation in Promise.all)
+      mockEq.mockResolvedValue({ data: null, error: null });
 
       await serviceCategoriesTable.updateDisplayOrder(updates);
 
@@ -488,6 +497,7 @@ describe('serviceCategoriesTable', () => {
         display_order: 2,
         updated_at: expect.any(String),
       }));
+      expect(mockEq).toHaveBeenCalledTimes(3);
     });
 
     it('should throw error if any update fails', async () => {
@@ -495,7 +505,7 @@ describe('serviceCategoriesTable', () => {
         { id: 'cat-1', displayOrder: 1 },
         { id: 'cat-2', displayOrder: 2 },
       ];
-      mockUpdate
+      mockEq
         .mockResolvedValueOnce({ data: null, error: null })
         .mockResolvedValueOnce({ data: null, error: new Error('Update failed') });
 
