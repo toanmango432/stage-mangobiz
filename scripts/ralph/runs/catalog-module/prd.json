@@ -190,7 +190,7 @@
         "Both tables have sync metadata and RLS"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Arrays in Postgres: use TEXT[] type for UUID arrays."
     },
     {
@@ -208,7 +208,7 @@
         "All tables have sync metadata and RLS policies"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Complete the migration file. Verify all 12 tables are created."
     },
     {
@@ -230,7 +230,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/services/supabase/types.ts. Follow existing pattern from clients table."
     },
     {
@@ -249,7 +249,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from clientAdapter.ts. Handle vectorClock JSON parsing."
     },
     {

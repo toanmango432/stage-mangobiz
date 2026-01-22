@@ -77,7 +77,9 @@ export const entityTable = {
 - [x] US-006: service_categories table created ✓
 - [x] US-007: menu_services and service_variants tables created ✓
 - [x] US-008: service_packages table created ✓
-- [ ] Supabase migration creates remaining tables (US-009 to US-010)
+- [x] US-009: add_on_groups and add_on_options tables created ✓
+- [x] US-010: All remaining tables created (staff_service_assignments, catalog_settings, booking_sequences, products, gift_card_denominations, gift_card_settings) ✓
+- [x] US-011: Supabase types added ✓
 - [ ] All adapters created and exported (US-012 to US-016)
 - [ ] All table operations created and exported (US-017 to US-021)
 - [ ] `pnpm run typecheck` passes
@@ -90,7 +92,7 @@ export const entityTable = {
 **Fix Story (US-P1F):**
 - [ ] All Phase 1 Review Issues resolved
 
-- Status: In Progress (8/23 complete)
+- Status: In Progress (11/23 complete)
 
 ### Phase 2: Data Layer (US-022 to US-030 + US-P2R + US-P2F) - 11 stories
 **Implementation Stories (9):**
@@ -592,5 +594,197 @@ Commit: d4b0d4f
 - Denormalization in JSONB trades referential integrity for simpler queries and offline support
 
 **Next story suggestion:** US-009 (Add add_on_groups and add_on_options tables to migration) - Same file, continues building out catalog tables
+
+---
+
+## 2026-01-21 - US-009: Add add_on_groups and add_on_options tables to migration
+Commit: 00bff2f
+
+**Why this story?** Highest priority incomplete story (priority 9). Continues the database migration work from US-008, same file (migration file is fresh in context).
+
+**Changes:**
+1. `supabase/migrations/031_create_catalog_tables.sql` (lines 589-827):
+   - Added add_on_groups table:
+     - Multi-tenant columns: tenant_id, store_id, location_id
+     - Core fields: name, description
+     - Selection rules: selection_mode ('single'|'multiple'), min_selections, max_selections, is_required
+     - Applicability: applicable_to_all (BOOLEAN), applicable_category_ids (TEXT[]), applicable_service_ids (TEXT[])
+     - Status: is_active, display_order, online_booking_enabled
+     - Sync metadata, timestamps, audit trail, soft delete
+     - 6 indexes including applicability filter
+     - RLS policies for all CRUD operations
+     - Trigger for auto-updating updated_at and incrementing version
+
+   - Added add_on_options table:
+     - Multi-tenant columns: tenant_id, store_id, location_id
+     - Foreign key: group_id → add_on_groups(id) ON DELETE CASCADE
+     - Core fields: name, description
+     - Pricing & Duration: price (DECIMAL), duration (INTEGER minutes)
+     - Status: is_active, display_order
+     - Sync metadata, timestamps, audit trail, soft delete
+     - 6 indexes for common query patterns
+     - RLS policies for all CRUD operations
+     - Trigger for auto-updating updated_at and incrementing version
+
+**Verification:**
+- `pnpm run typecheck` (store-app) passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+- Migration follows established pattern from US-006 through US-008
+
+**Learnings:**
+- TEXT[] is the correct type for storing UUID arrays in PostgreSQL (applicable_category_ids, applicable_service_ids)
+- ON DELETE CASCADE on group_id ensures options are deleted when their parent group is deleted
+- selection_mode uses CHECK constraint to enforce 'single' | 'multiple' enum values
+
+**Next story suggestion:** US-010 (Add remaining catalog tables to migration) - Same file, completes the migration
+
+---
+
+## 2026-01-21 - US-010: Add remaining catalog tables to migration
+Commit: 0cf38d4
+
+**Why this story?** Highest priority incomplete story (priority 10). Continues the database migration work from US-009, completing all 12 catalog tables.
+
+**Changes:**
+1. `supabase/migrations/031_create_catalog_tables.sql` (lines 833-1565):
+   - Added staff_service_assignments table:
+     - Links staff to services with custom price/duration/commission overrides
+     - Unique constraint on (store_id, staff_id, service_id)
+     - Foreign key to menu_services(id) ON DELETE CASCADE
+
+   - Added catalog_settings table:
+     - Per-store catalog configuration (one record per store via UNIQUE constraint)
+     - Default duration, extra time, tax rate settings
+     - Feature toggles: packages, add-ons, variants, custom pricing
+     - Online booking defaults
+
+   - Added booking_sequences table:
+     - Defines service order for logical booking flow
+     - service_order stored as JSONB array of service IDs
+     - is_enabled flag for toggling
+
+   - Added products table:
+     - Retail and backbar products for inventory
+     - SKU and barcode identifiers with indexes
+     - Pricing (retail_price, cost_price, margin)
+     - Inventory management (min_stock_level, reorder_quantity)
+     - Supplier info (supplier_id, supplier_name)
+
+   - Added gift_card_denominations table:
+     - Preset gift card amounts for quick sale
+     - amount (DECIMAL) and optional label
+     - display_order for sorting
+
+   - Added gift_card_settings table:
+     - Per-store gift card configuration (one per store via UNIQUE constraint)
+     - Custom amount limits (allow_custom_amount, min_amount, max_amount)
+     - Expiration settings (default_expiration_days)
+     - Online/email delivery settings
+
+All 6 tables include:
+- Multi-tenant isolation (tenant_id, store_id, location_id)
+- Sync metadata (sync_status, version, vector_clock, last_synced_version)
+- RLS policies for SELECT, INSERT, UPDATE, DELETE
+- Auto-increment version trigger on updates
+- Soft delete support (is_deleted, deleted_at, deleted_by, tombstone_expires_at)
+
+**Verification:**
+- `pnpm run typecheck` (store-app) passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+- All 12 tables verified: service_categories, menu_services, service_variants, service_packages, add_on_groups, add_on_options, staff_service_assignments, catalog_settings, booking_sequences, products, gift_card_denominations, gift_card_settings
+- All 12 tables have RLS enabled
+
+**Learnings:**
+- UNIQUE constraints (CONSTRAINT xyz_store_unique UNIQUE (store_id)) enforce one-per-store for settings tables
+- JSONB arrays are flexible for service_order in booking_sequences (avoids separate join table)
+- Products table needs indexes on both SKU and barcode for efficient lookups
+- Composite indexes help with multi-column filters (e.g., store_id + category)
+
+**Next story suggestion:** US-011 (Add catalog table types to Supabase types.ts) - Next phase of backend foundation: TypeScript types for the new tables
+
+---
+
+## 2026-01-21 - US-011: Add catalog table types to Supabase types.ts
+Commit: b5357cc
+
+**Why this story?** Highest priority incomplete story (priority 11). Database migration (US-006-010) is complete, next logical step is TypeScript types for Supabase sync.
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/types.ts`:
+   - Added 12 new table type definitions to Database['public']['Tables'] interface:
+     - service_categories (lines ~960-1040)
+     - menu_services (lines ~1042-1180)
+     - service_variants (lines ~1182-1260)
+     - service_packages (lines ~1262-1365)
+     - add_on_groups (lines ~1367-1465)
+     - add_on_options (lines ~1467-1545)
+     - staff_service_assignments (lines ~1547-1615)
+     - catalog_settings (lines ~1617-1720)
+     - booking_sequences (lines ~1722-1790)
+     - catalog_products (lines ~1792-1920)
+     - catalog_gift_card_denominations (lines ~1922-1995)
+     - catalog_gift_card_settings (lines ~1997-2070)
+   - Added 8 catalog module enums:
+     - SyncStatus: 'local' | 'pending' | 'synced' | 'conflict' | 'error'
+     - PricingType: 'fixed' | 'from' | 'free' | 'varies' | 'hourly'
+     - ServiceStatus: 'active' | 'inactive' | 'archived'
+     - BookingAvailability: 'online' | 'in-store' | 'both' | 'disabled'
+     - ExtraTimeType: 'processing' | 'blocked' | 'finishing'
+     - DiscountType: 'fixed' | 'percentage'
+     - BookingMode: 'single-session' | 'multiple-visits'
+     - SelectionMode: 'single' | 'multiple'
+   - Added Row, Insert, Update helper type exports for all 12 tables
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- Products table named `catalog_products` to avoid collision with existing `products` table concept
+- Gift card tables prefixed with `catalog_` to disambiguate from existing gift_cards tables (migration 019)
+- Every Row type includes full sync metadata: sync_status, version, vector_clock, last_synced_version
+- Every Row type includes full audit trail: created_by, created_by_device, last_modified_by, last_modified_by_device
+- Every Row type includes soft delete fields: is_deleted, deleted_at, deleted_by, deleted_by_device, tombstone_expires_at
+
+**Patterns to sync:**
+- Pattern #6: Supabase Type Convention - Use Row/Insert/Update triplet for every table. Row is complete, Insert has optional auto-generated fields, Update is Partial<Insert>
+
+**Next story suggestion:** US-012 (Create serviceCategoryAdapter.ts) - Same file area, creates adapters to convert between Supabase and app types
+
+---
+
+## 2026-01-21 - US-012: Create serviceCategoryAdapter.ts
+Commit: a1ca37d
+
+**Why this story?** Highest priority incomplete story (priority 12). Database migration and types (US-006-011) complete, next logical step is adapters for type conversion.
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/adapters/serviceCategoryAdapter.ts` (NEW):
+   - Created `toServiceCategory(row)`: Converts ServiceCategoryRow → ServiceCategory
+   - Created `toServiceCategories(rows)`: Batch conversion
+   - Created `toServiceCategoryInsert(category, storeId, tenantId, userId?, deviceId?)`: App type → Supabase insert
+   - Created `toServiceCategoryUpdate(updates, userId?, deviceId?)`: Partial updates → Supabase update
+   - Handles snake_case ↔ camelCase conversion for all fields
+   - Handles JSONB vectorClock parsing
+   - Handles null → undefined for optional fields
+   - Uses exported types from types.ts (ServiceCategoryRow, etc.)
+
+2. `apps/store-app/src/services/supabase/adapters/index.ts`:
+   - Added CATALOG MODULE ADAPTERS section
+   - Exported toServiceCategory, toServiceCategories, toServiceCategoryInsert, toServiceCategoryUpdate
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- Supabase SyncStatus type differs from app SyncStatus ('syncing' is app-only, not stored in Supabase)
+- Use types exported from types.ts (ServiceCategoryRow, etc.) rather than inline Database access
+- When converting updates.syncStatus to Supabase, cast with `as SyncStatus` since app may have 'syncing' which is transient
+
+**Patterns to sync:**
+- Pattern #7: SyncStatus Type Mismatch - App SyncStatus has 'syncing' for transient state, Supabase SyncStatus does not. Cast when writing to Supabase.
+
+**Next story suggestion:** US-013 (Create menuServiceAdapter.ts) - Same pattern, same folder, builds on this adapter work
 
 ---

@@ -86,3 +86,11 @@ export {
   toServiceCategoryInsert,
   toServiceCategoryUpdate,
 } from './serviceCategoryAdapter';
+
+// MenuService adapters
+export {
+  toMenuService,
+  toMenuServices,
+  toMenuServiceInsert,
+  toMenuServiceUpdate,
+} from './menuServiceAdapter';
