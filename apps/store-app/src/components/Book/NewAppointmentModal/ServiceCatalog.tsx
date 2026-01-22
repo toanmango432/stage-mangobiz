@@ -2,12 +2,13 @@
  * ServiceCatalog - Service selection grid with category tabs and search
  *
  * @see US-061 - Variant selector integration for booking
+ * @see US-062 - Availability badges and disabled services
  */
 
 import { useState, useCallback } from 'react';
-import { Search, User, CheckCircle2, AlertCircle, Clock, DollarSign, Check, ChevronRight, X } from 'lucide-react';
+import { Search, User, CheckCircle2, AlertCircle, Clock, DollarSign, Check, ChevronRight, X, Globe, Store, Ban, Droplet } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import type { Service, BookingGuest, BookingVariant, ServiceWithVariantSelection } from './types';
+import type { Service, BookingGuest, BookingAvailability } from './types';
 import {
   Sheet,
   SheetContent,
@@ -33,6 +34,43 @@ interface ServiceCatalogProps {
   groupStep: 'guests' | 'services';
   activeGuestId: string | null;
   bookingGuests: BookingGuest[];
+}
+
+/**
+ * Check if a service is disabled for booking (in-store context)
+ * Services with bookingAvailability='disabled' cannot be booked
+ */
+function isServiceDisabled(service: Service): boolean {
+  return service.bookingAvailability === 'disabled';
+}
+
+/**
+ * Get availability badge info for a service
+ */
+function getAvailabilityBadge(service: Service): { label: string; icon: React.ReactNode; colorClass: string } | null {
+  switch (service.bookingAvailability) {
+    case 'online':
+      return {
+        label: 'Online Only',
+        icon: <Globe className="h-2.5 w-2.5" />,
+        colorClass: 'bg-blue-100 text-blue-700',
+      };
+    case 'in-store':
+      return {
+        label: 'In-Store Only',
+        icon: <Store className="h-2.5 w-2.5" />,
+        colorClass: 'bg-purple-100 text-purple-700',
+      };
+    case 'disabled':
+      return {
+        label: 'Unavailable',
+        icon: <Ban className="h-2.5 w-2.5" />,
+        colorClass: 'bg-gray-100 text-gray-500',
+      };
+    default:
+      // 'both' or undefined - no badge needed
+      return null;
+  }
 }
 
 export function ServiceCatalog({
@@ -61,8 +99,14 @@ export function ServiceCatalog({
 
   /**
    * Handle service card click - opens variant selector if service has variants
+   * Disabled services (bookingAvailability='disabled') cannot be clicked
    */
   const handleServiceClick = useCallback((service: Service) => {
+    // Prevent selecting disabled services
+    if (isServiceDisabled(service)) {
+      return;
+    }
+
     if (service.hasVariants && service.variants && service.variants.length > 0) {
       // Service has variants - open variant selection sheet
       setSelectedServiceForVariant(service);
@@ -188,42 +232,90 @@ export function ServiceCatalog({
         </div>
       ) : activeStaffId ? (
         <div className="grid grid-cols-3 gap-2">
-          {filteredServices.map(service => (
-            <button
-              key={service.id}
-              onClick={() => handleServiceClick(service)}
-              className={cn(
-                'text-left p-2.5 rounded-lg transition-all text-xs relative overflow-hidden group',
-                'bg-white border border-gray-200 hover:border-brand-500 hover:shadow-md hover:scale-[1.03] active:scale-[0.97]',
-                justAddedService === service.id && 'ring-2 ring-brand-500 border-brand-500'
-              )}
-            >
-              {justAddedService === service.id && (
-                <div className="absolute top-1 right-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-brand-500" />
-                </div>
-              )}
-              <p className="font-medium text-gray-900 mb-1.5 line-clamp-2 leading-tight pr-4">{service.name}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-gray-500">{service.duration}m</span>
-                <div className="flex items-center gap-1">
-                  {/* Show "from" prefix if service has variants */}
-                  {service.hasVariants && service.variants && service.variants.length > 0 && (
-                    <span className="text-[9px] text-gray-400">from</span>
-                  )}
-                  <span className="font-bold text-gray-900">${service.price}</span>
-                </div>
-              </div>
-              {/* Variant badge */}
-              {service.hasVariants && service.variants && service.variants.length > 0 && (
-                <div className="absolute bottom-1 right-1">
-                  <span className="text-[8px] bg-brand-100 text-brand-700 px-1 py-0.5 rounded font-medium">
-                    {service.variants.length} options
+          {filteredServices.map(service => {
+            const disabled = isServiceDisabled(service);
+            const availabilityBadge = getAvailabilityBadge(service);
+
+            return (
+              <button
+                key={service.id}
+                onClick={() => handleServiceClick(service)}
+                disabled={disabled}
+                className={cn(
+                  'text-left p-2.5 rounded-lg transition-all text-xs relative overflow-hidden group',
+                  disabled
+                    ? 'bg-gray-50 border border-gray-200 opacity-60 cursor-not-allowed'
+                    : 'bg-white border border-gray-200 hover:border-brand-500 hover:shadow-md hover:scale-[1.03] active:scale-[0.97]',
+                  justAddedService === service.id && !disabled && 'ring-2 ring-brand-500 border-brand-500'
+                )}
+                aria-disabled={disabled}
+              >
+                {justAddedService === service.id && !disabled && (
+                  <div className="absolute top-1 right-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-brand-500" />
+                  </div>
+                )}
+
+                {/* Availability badge - top right corner when NOT just added */}
+                {availabilityBadge && justAddedService !== service.id && (
+                  <div className="absolute top-1 right-1">
+                    <span className={cn(
+                      'text-[8px] px-1 py-0.5 rounded font-medium flex items-center gap-0.5',
+                      availabilityBadge.colorClass
+                    )}>
+                      {availabilityBadge.icon}
+                      {availabilityBadge.label}
+                    </span>
+                  </div>
+                )}
+
+                <p className={cn(
+                  'font-medium mb-1.5 line-clamp-2 leading-tight pr-4',
+                  disabled ? 'text-gray-500' : 'text-gray-900'
+                )}>
+                  {service.name}
+                </p>
+
+                {/* Requires Patch Test warning */}
+                {service.requiresPatchTest && (
+                  <div className="flex items-center gap-1 mb-1">
+                    <Droplet className="h-2.5 w-2.5 text-orange-500" />
+                    <span className="text-[9px] text-orange-600 font-medium">Requires Patch Test</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <span className={cn(
+                    'text-[10px]',
+                    disabled ? 'text-gray-400' : 'text-gray-500'
+                  )}>
+                    {service.duration}m
                   </span>
+                  <div className="flex items-center gap-1">
+                    {/* Show "from" prefix if service has variants */}
+                    {service.hasVariants && service.variants && service.variants.length > 0 && (
+                      <span className="text-[9px] text-gray-400">from</span>
+                    )}
+                    <span className={cn(
+                      'font-bold',
+                      disabled ? 'text-gray-500' : 'text-gray-900'
+                    )}>
+                      ${service.price}
+                    </span>
+                  </div>
                 </div>
-              )}
-            </button>
-          ))}
+
+                {/* Variant badge - bottom right, only if not showing availability badge */}
+                {service.hasVariants && service.variants && service.variants.length > 0 && !disabled && (
+                  <div className="absolute bottom-1 right-1">
+                    <span className="text-[8px] bg-brand-100 text-brand-700 px-1 py-0.5 rounded font-medium">
+                      {service.variants.length} options
+                    </span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-12">

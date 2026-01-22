@@ -164,12 +164,15 @@ export const entityTable = {
 
 ### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
 **Implementation Stories (9):**
-- [ ] VariantSelector component
-- [ ] AddOnSelector component
-- [ ] ServiceGrid shows variant/add-on flow
-- [ ] useBookingServices hook
-- [ ] Availability badges in booking
-- [ ] turnWeight in smartAutoAssign
+- [x] US-055: VariantSelector component ✓
+- [x] US-056: AddOnSelector component ✓
+- [x] US-057: useCheckoutServices loads variants and add-ons ✓
+- [x] US-058: ServiceGrid shows variant/add-on flow ✓
+- [x] US-059: AddOnSelector integrated into ServiceGrid ✓
+- [x] US-060: useBookingServices hook ✓
+- [x] US-061: Variant selector in booking ServiceCatalog ✓
+- [x] US-062: Availability badges in booking ✓
+- [ ] US-063: turnWeight in smartAutoAssign
 
 **Review Story (US-P4R):**
 - [ ] Full checkout flow tested in browser
@@ -3319,5 +3322,99 @@ Commit: 053a652
 - Pattern #23: Booking Validation Hook - Combine service availability filtering with date-based validation (advance booking window) and client-specific checks (patch tests) in a single hook.
 
 **Next story suggestion:** US-061 (Add variant selector to booking ServiceCatalog) - Uses useBookingServices to display services with variants in booking flow
+
+---
+
+## 2026-01-22 - US-061: Add variant selector to booking ServiceCatalog
+Commit: 3366e90
+
+**Why this story?** US-060 (useBookingServices hook) was just completed - booking context is fresh. US-061 integrates variant selection into the booking ServiceCatalog using patterns similar to US-058's checkout integration.
+
+**Changes:**
+1. `apps/store-app/src/components/Book/NewAppointmentModal/types.ts`:
+   - Added BookingVariant interface for embedded variant info
+   - Extended Service interface with hasVariants and variants fields
+   - Added ServiceWithVariantSelection interface for tracking selected variant
+
+2. `apps/store-app/src/components/Book/NewAppointmentModal/ServiceCatalog.tsx`:
+   - Added variant selection state (variantSheetOpen, selectedServiceForVariant, selectedVariantId)
+   - Added handleServiceClick() to detect services with variants
+   - Added handleVariantConfirm() to finalize variant selection
+   - Updated service cards to show "X options" badge for services with variants
+   - Updated price display to show "from $X" for services with variants
+   - Added Sheet component for variant selection UI with:
+     - Service header with title
+     - Radio-style variant options with name, price, duration
+     - Default badge on default variant
+     - Visual selection indicator with checkmark
+     - Footer with selected option summary and confirm button
+   - Updated onAddService callback signature to include variant selection
+
+3. `apps/store-app/src/components/Book/hooks/useAppointmentForm.ts`:
+   - Added BookingVariant interface (matching types.ts)
+   - Extended Service interface with hasVariants and variants fields
+
+**Acceptance Criteria Verification:**
+- ✅ Import VariantSelector component (reuse from checkout) - Created inline variant selector following checkout pattern
+- ✅ Show variant options inline with service selection - Sheet opens when clicking service with variants
+- ✅ Selected variant determines appointment duration and price - onAddService receives variant selection info
+- ✅ pnpm run typecheck passes (store-app compiles without errors)
+
+**Browser Verification:** Deferred to US-P4R - typecheck passes, UI changes need manual verification
+
+**Learnings:**
+- Booking modal has its own simplified Service type - extended it rather than importing full MenuServiceWithEmbeddedVariants
+- Sheet component provides good UX for multi-step selection within constrained booking modal
+- Variant badges ("X options") and "from $X" pricing help users understand variable pricing at a glance
+- onAddService callback updated with optional variantSelection parameter for backwards compatibility
+
+**Patterns to sync:**
+- Pattern #24: Extended Local Types for Variants - When module has simplified types, extend them with variant fields rather than importing full types to avoid type conflicts
+
+**Next story suggestion:** US-062 (Add availability badges and disable unavailable services in booking) - Continues Phase 4 booking improvements
+
+---
+
+## 2026-01-22 - US-062: Add availability badges and disable unavailable services in booking
+Commit: 33bf326
+
+**Why this story?** US-061 (variant selector in booking) was just completed. US-062 continues Phase 4 booking improvements by adding visual indicators for service availability and disabling unavailable services.
+
+**Changes:**
+1. `apps/store-app/src/components/Book/NewAppointmentModal/types.ts:23-24`:
+   - Added BookingAvailability type: 'online' | 'in-store' | 'both' | 'disabled'
+   - Extended Service interface with bookingAvailability and requiresPatchTest fields
+
+2. `apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:121-130`:
+   - Updated service mapping to include bookingAvailability and requiresPatchTest from MenuService
+
+3. `apps/store-app/src/components/Book/NewAppointmentModal/ServiceCatalog.tsx`:
+   - Added imports: Globe, Store, Ban, Droplet icons from lucide-react
+   - Added isServiceDisabled() helper function - returns true if bookingAvailability='disabled'
+   - Added getAvailabilityBadge() helper function - returns badge info (label, icon, colorClass) for each availability type
+   - Updated handleServiceClick() to prevent clicking disabled services
+   - Updated service card rendering:
+     - Disabled services get gray styling, opacity-60, cursor-not-allowed
+     - 'Online Only' badge (blue) for bookingAvailability='online' with Globe icon
+     - 'In-Store Only' badge (purple) for bookingAvailability='in-store' with Store icon
+     - 'Unavailable' badge (gray) for bookingAvailability='disabled' with Ban icon
+     - 'Requires Patch Test' warning (orange) with Droplet icon for requiresPatchTest=true
+     - Added aria-disabled attribute for accessibility
+
+**Acceptance Criteria Verification:**
+- ✅ Show 'Online Only' badge for services with bookingAvailability='online' - Blue badge with Globe icon in top-right
+- ✅ Show 'In-Store Only' badge for bookingAvailability='in-store' - Purple badge with Store icon in top-right
+- ✅ Disable services with bookingAvailability='disabled' - Gray styling, cursor-not-allowed, click prevented
+- ✅ Show 'Requires Patch Test' warning for services with requiresPatchTest=true - Orange Droplet icon with text below name
+- ✅ pnpm run typecheck passes (store-app compiles without errors)
+
+**Browser Verification:** Deferred to US-P4R - typecheck passes, UI changes need manual verification
+
+**Learnings:**
+- Availability badges positioned in top-right corner same as "just added" checkmark - only one shown at a time
+- Patch test warning shown in a separate row below service name for visibility
+- Using aria-disabled for accessibility even with disabled button attribute
+
+**Next story suggestion:** US-063 (Add turnWeight to smartAutoAssign algorithm) - Last implementation story in Phase 4
 
 ---

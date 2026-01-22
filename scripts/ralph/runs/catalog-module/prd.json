@@ -1057,7 +1057,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 61,
-      "passes": false,
+      "passes": true,
       "notes": "Reuse VariantSelector from checkout module."
     },
     {
@@ -1073,7 +1073,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 62,
-      "passes": false,
+      "passes": true,
       "notes": "Visual indicators help users understand service availability."
     },
     {

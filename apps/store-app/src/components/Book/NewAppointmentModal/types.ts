@@ -20,6 +20,9 @@ export interface BookingVariant {
   isDefault?: boolean;
 }
 
+/** Booking availability for a service */
+export type BookingAvailability = 'online' | 'in-store' | 'both' | 'disabled';
+
 export interface Service {
   id: string;
   name: string;
@@ -30,6 +33,10 @@ export interface Service {
   hasVariants?: boolean;
   /** Embedded variants for services with hasVariants=true */
   variants?: BookingVariant[];
+  /** Booking availability: online, in-store, both, or disabled */
+  bookingAvailability?: BookingAvailability;
+  /** Whether this service requires a patch test */
+  requiresPatchTest?: boolean;
 }
 
 /**
