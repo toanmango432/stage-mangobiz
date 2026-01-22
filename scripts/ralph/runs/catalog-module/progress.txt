@@ -141,7 +141,7 @@ export const entityTable = {
 - [x] US-042: ProductsSection - browser confirm() and skeleton ✓
 - [x] US-043: ProductsSection - barcode display and low stock indicator ✓
 - [x] US-044: AddOnsSection - browser confirm() and skeleton ✓
-- [ ] US-045: StaffPermissionsSection - batch save error handling
+- [x] US-045: StaffPermissionsSection - batch save error handling ✓
 - [ ] US-046: MenuGeneralSettingsSection - validation
 - [ ] US-047: GiftCardsSection - CatalogSettings defaults
 - [ ] US-048: BookingSequenceSection - keyboard drag-drop
@@ -160,7 +160,7 @@ export const entityTable = {
 **Fix Story (US-P3F):**
 - [ ] All Phase 3 Review Issues resolved
 
-- Status: 🔄 IN PROGRESS (14/26 stories complete)
+- Status: 🔄 IN PROGRESS (15/26 stories complete)
 
 ### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
 **Implementation Stories (9):**
@@ -2531,5 +2531,46 @@ Commit: 81d480e
 - useMemo optimization for filtering improves performance when there are many groups with options
 
 **Next story suggestion:** US-045 (Fix batch save error handling in StaffPermissionsSection) - Continues Phase 3 UI improvements
+
+---
+
+## 2026-01-22 - US-045: Fix batch save error handling in StaffPermissionsSection
+Commit: 5abc42c
+
+**Why this story?** Highest priority incomplete story in Phase 3. Continues UI improvements following similar pattern from previous stories.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/StaffPermissionsSection.tsx`:
+   - Added imports for AlertCircle and Loader2 icons from lucide-react
+   - Added `failedMemberIds: Set<string>` state to track which members failed to save
+   - Added `savingMemberIds: Set<string>` state to track which members are currently saving
+   - Refactored `savePermissions()` to save members individually with try-catch:
+     - Sets all modified members in savingMemberIds at start
+     - Saves each member one by one with individual error handling
+     - Removes members from savingMemberIds after each attempt
+     - Tracks successful and failed IDs separately
+     - Only removes successful saves from modifiedMemberIds
+     - Shows summary toast with success/failure counts
+   - Updated member list button to show save status:
+     - Red background for failed members (bg-red-50 border-red-200)
+     - Loader2 spinner overlay on avatar during save
+     - AlertCircle badge on avatar for failed members
+     - "Save failed - retry" text instead of status for failed members
+     - "Saving..." text in service count area during save
+
+**Acceptance Criteria Verification:**
+- ✅ Wrap each member save in try-catch (individual try-catch per member)
+- ✅ Track failed member IDs in state (failedMemberIds Set)
+- ✅ Show error indicator on failed member rows (red badge + background)
+- ✅ Show summary of failures after batch save (toast with success/failure counts)
+- ✅ Add loading indicator per member during save (Loader2 spinner + "Saving..." text)
+- ✅ pnpm run typecheck passes (store-app)
+
+**Learnings:**
+- Using for...of loop instead of Promise.all allows per-member status updates during save
+- savingMemberIds being a Set allows efficient add/remove operations
+- Failed members stay in modifiedMemberIds so user can retry just the failed saves
+
+**Next story suggestion:** US-046 (Add validation to MenuGeneralSettingsSection) - Continues Phase 3 UI improvements
 
 ---

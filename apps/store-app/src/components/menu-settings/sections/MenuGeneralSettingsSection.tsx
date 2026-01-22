@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import {
   Clock,
   DollarSign,
@@ -7,9 +7,20 @@ import {
   Zap,
   Settings,
   Info,
+  Check,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import type { MenuGeneralSettings } from '@/types/catalog';
 import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS } from '../constants';
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+// Validation errors for fields
+interface ValidationErrors {
+  taxRate?: string;
+  depositPercentage?: string;
+}
 
 interface MenuGeneralSettingsSectionProps {
   settings?: MenuGeneralSettings;
@@ -31,28 +42,161 @@ const defaultSettings: MenuGeneralSettings = {
   enableAddOns: true,
 };
 
+// Debounce timeout in ms
+const DEBOUNCE_DELAY = 500;
+const SAVED_INDICATOR_DURATION = 2000;
+
 export function MenuGeneralSettingsSection({
   settings = defaultSettings,
   onUpdate,
 }: MenuGeneralSettingsSectionProps) {
+  // Save status state
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+  // Refs for debouncing
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Pending updates for debounced save
+  const pendingUpdatesRef = useRef<Partial<MenuGeneralSettings>>({});
+
+  // Clear timers on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      if (savedTimerRef.current) {
+        clearTimeout(savedTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Validation functions
+  const validateTaxRate = useCallback((value: number): string | undefined => {
+    if (value < 0) return 'Tax rate cannot be negative';
+    if (value > 100) return 'Tax rate cannot exceed 100%';
+    return undefined;
+  }, []);
+
+  const validateDepositPercentage = useCallback((value: number): string | undefined => {
+    if (value < 5) return 'Deposit must be at least 5%';
+    if (value > 100) return 'Deposit cannot exceed 100%';
+    return undefined;
+  }, []);
+
+  // Validate all current values
+  const currentValidationErrors = useMemo((): ValidationErrors => {
+    return {
+      taxRate: validateTaxRate(settings.taxRate),
+      depositPercentage: validateDepositPercentage(settings.defaultDepositPercentage),
+    };
+  }, [settings.taxRate, settings.defaultDepositPercentage, validateTaxRate, validateDepositPercentage]);
+
+  // Perform the actual save
+  const performSave = useCallback(async (updates: Partial<MenuGeneralSettings>) => {
+    if (!onUpdate || Object.keys(updates).length === 0) return;
+
+    // Check for validation errors before saving
+    const hasErrors = Object.values(currentValidationErrors).some(error => error !== undefined);
+    if (hasErrors) {
+      setValidationErrors(currentValidationErrors);
+      setSaveStatus('error');
+      return;
+    }
+
+    setSaveStatus('saving');
+    try {
+      await onUpdate(updates);
+      setSaveStatus('saved');
+
+      // Clear saved status after delay
+      if (savedTimerRef.current) {
+        clearTimeout(savedTimerRef.current);
+      }
+      savedTimerRef.current = setTimeout(() => {
+        setSaveStatus('idle');
+      }, SAVED_INDICATOR_DURATION);
+    } catch {
+      setSaveStatus('error');
+    }
+  }, [onUpdate, currentValidationErrors]);
+
+  // Debounced update function
   const updateSetting = useCallback(<K extends keyof MenuGeneralSettings>(
     key: K,
     value: MenuGeneralSettings[K]
   ) => {
-    if (onUpdate) {
-      onUpdate({ [key]: value });
+    // Validate immediately for user feedback
+    if (key === 'taxRate') {
+      const error = validateTaxRate(value as number);
+      setValidationErrors(prev => ({ ...prev, taxRate: error }));
+    } else if (key === 'defaultDepositPercentage') {
+      const error = validateDepositPercentage(value as number);
+      setValidationErrors(prev => ({ ...prev, depositPercentage: error }));
     }
-  }, [onUpdate]);
+
+    // Accumulate pending updates
+    pendingUpdatesRef.current = {
+      ...pendingUpdatesRef.current,
+      [key]: value,
+    };
+
+    // Clear existing debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new debounce timer
+    debounceTimerRef.current = setTimeout(() => {
+      const updates = { ...pendingUpdatesRef.current };
+      pendingUpdatesRef.current = {};
+      performSave(updates);
+    }, DEBOUNCE_DELAY);
+  }, [validateTaxRate, validateDepositPercentage, performSave]);
+
+  // Render save status indicator
+  const renderSaveStatus = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Loader2 size={16} className="animate-spin" />
+            <span>Saving...</span>
+          </div>
+        );
+      case 'saved':
+        return (
+          <div className="flex items-center gap-2 text-sm text-green-600">
+            <Check size={16} />
+            <span>Saved</span>
+          </div>
+        );
+      case 'error':
+        return (
+          <div className="flex items-center gap-2 text-sm text-red-600">
+            <AlertCircle size={16} />
+            <span>Error saving</span>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="h-full overflow-auto p-6">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Menu Settings</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Configure default settings for your service menu
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Menu Settings</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Configure default settings for your service menu
+            </p>
+          </div>
+          {renderSaveStatus()}
         </div>
 
         {/* Service Defaults */}
@@ -154,10 +298,22 @@ export function MenuGeneralSettingsSection({
                   step="0.1"
                   value={settings.taxRate}
                   onChange={(e) => updateSetting('taxRate', Number(e.target.value))}
-                  className="w-full px-3 py-2 pr-8 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                    validationErrors.taxRate
+                      ? 'border-red-300 focus:ring-red-500 bg-red-50'
+                      : 'border-gray-200 focus:ring-orange-500'
+                  }`}
+                  aria-invalid={!!validationErrors.taxRate}
+                  aria-describedby={validationErrors.taxRate ? 'tax-rate-error' : undefined}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
               </div>
+              {validationErrors.taxRate && (
+                <p id="tax-rate-error" className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} />
+                  {validationErrors.taxRate}
+                </p>
+              )}
             </div>
 
             {/* Custom Pricing */}
@@ -247,12 +403,26 @@ export function MenuGeneralSettingsSection({
                     step="5"
                     value={settings.defaultDepositPercentage}
                     onChange={(e) => updateSetting('defaultDepositPercentage', Number(e.target.value))}
-                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                    className={`flex-1 h-2 rounded-lg appearance-none cursor-pointer ${
+                      validationErrors.depositPercentage
+                        ? 'bg-red-200 accent-red-500'
+                        : 'bg-gray-200 accent-orange-500'
+                    }`}
+                    aria-invalid={!!validationErrors.depositPercentage}
+                    aria-describedby={validationErrors.depositPercentage ? 'deposit-error' : undefined}
                   />
-                  <span className="text-sm font-medium text-gray-900 w-12 text-right">
+                  <span className={`text-sm font-medium w-12 text-right ${
+                    validationErrors.depositPercentage ? 'text-red-600' : 'text-gray-900'
+                  }`}>
                     {settings.defaultDepositPercentage}%
                   </span>
                 </div>
+                {validationErrors.depositPercentage && (
+                  <p id="deposit-error" className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                    <AlertCircle size={12} />
+                    {validationErrors.depositPercentage}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -325,7 +495,7 @@ export function MenuGeneralSettingsSection({
           <div>
             <p className="text-sm font-medium text-blue-900">Changes are saved automatically</p>
             <p className="text-sm text-blue-700 mt-1">
-              All settings changes are applied immediately across your booking system.
+              Settings are auto-saved after you stop making changes. Watch the save indicator above for status.
             </p>
           </div>
         </div>
