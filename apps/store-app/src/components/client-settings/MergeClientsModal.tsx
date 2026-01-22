@@ -61,6 +61,7 @@ export function MergeClientsModal({
   });
   const [isMerging, setIsMerging] = useState(false);
   const [confirmText, setConfirmText] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const primaryClient = useMemo(
     () => clients.find(c => c.id === primaryClientId),
@@ -77,9 +78,18 @@ export function MergeClientsModal({
   };
 
   const handleMerge = async () => {
-    if (!primaryClientId || !secondaryClientId || !currentMemberId) return;
+    if (!primaryClientId || !secondaryClientId) {
+      setError('Please select both primary and secondary clients.');
+      return;
+    }
+
+    if (!currentMemberId) {
+      setError('Session error: You must be logged in as a staff member to merge clients. Please log in again.');
+      return;
+    }
 
     setIsMerging(true);
+    setError(null);
     try {
       await dispatch(
         mergeClientsInSupabase({
@@ -92,8 +102,10 @@ export function MergeClientsModal({
 
       onMergeComplete?.(primaryClientId);
       onClose();
-    } catch (error) {
-      console.error('Failed to merge clients:', error);
+    } catch (err) {
+      console.error('Failed to merge clients:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to merge clients. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsMerging(false);
     }
@@ -104,6 +116,7 @@ export function MergeClientsModal({
     setPrimaryClientId('');
     setSecondaryClientId('');
     setConfirmText('');
+    setError(null);
     onClose();
   };
 
@@ -364,11 +377,22 @@ export function MergeClientsModal({
               <input
                 type="text"
                 value={confirmText}
-                onChange={e => setConfirmText(e.target.value.toUpperCase())}
+                onChange={e => {
+                  setConfirmText(e.target.value.toUpperCase());
+                  setError(null); // Clear error when user types
+                }}
                 placeholder="Type MERGE"
                 className="w-full p-2 border rounded-md"
               />
             </div>
+
+            {/* Error display */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep('options')}>
