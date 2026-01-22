@@ -29,6 +29,7 @@ import { AccountLicensingSettings } from './categories/AccountLicensingSettings'
 import { SystemSettings } from './categories/SystemSettings';
 import { DeviceManagerSettings } from './categories/DeviceManagerSettings';
 import { IntegrationsSettings } from './categories/IntegrationsSettings';
+import { ConnectSettings } from './categories/ConnectSettings';
 import type { SettingsCategory } from '@/types/settings';
 import { cn } from '@/lib/utils';
 
@@ -109,6 +110,8 @@ export function SettingsPage({ onBack, storeId }: SettingsPageProps) {
         return <DeviceManagerSettings />;
       case 'integrations':
         return <IntegrationsSettings />;
+      case 'connect':
+        return <ConnectSettings />;
       case 'account':
         return <AccountLicensingSettings />;
       case 'system':

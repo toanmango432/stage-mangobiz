@@ -11,6 +11,7 @@ import { storeAuthManager, type MemberSession } from '../../../../services/store
 import { memberAuthService } from '../../../../services/memberAuthService';
 import { authService } from '../../../../services/supabase';
 import { biometricService, type BiometricAvailability } from '../../../../services/biometricService';
+import { webAuthnService } from '../../../../services/webAuthnService';
 import {
   setStoreSession,
   setMemberSession,
@@ -27,11 +28,14 @@ import { auditLogger } from '../../../../services/audit/auditLogger';
 import { AUTH_TIMEOUTS } from '../../constants';
 import type { MemberAuthSession } from '../../../../types/memberAuth';
 import type { LoginMode, PinSetupMemberInfo } from '../types';
+import type { StoredSessionData } from '../../../../services/biometricService';
 
 /** Info for biometric enrollment modal */
 interface BiometricEnrollmentInfo {
   memberId: string;
   memberName: string;
+  /** Session data to store with the credential for recovery after logout */
+  sessionData?: StoredSessionData;
 }
 
 /** Info for pending TOTP login */
@@ -364,10 +368,21 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         // (biometricCapability state may still be null if useEffect hasn't completed)
         const currentBiometricCapability = biometricCapability ?? (await biometricService.isAvailable());
 
+        const hasCredential = await biometricService.hasCredential(memberSessionData.memberId);
+        const hasDismissed = hasDismissedBiometricEnrollment(memberSessionData.memberId);
+
+        console.log('[Biometric Debug] completeMemberLogin check:', {
+          biometricAvailable: currentBiometricCapability.available,
+          platformName: currentBiometricCapability.platformName,
+          hasCredential,
+          hasDismissed,
+          memberId: memberSessionData.memberId,
+        });
+
         const shouldPromptBiometric =
           currentBiometricCapability.available &&
-          !(await biometricService.hasCredential(memberSessionData.memberId)) &&
-          !hasDismissedBiometricEnrollment(memberSessionData.memberId);
+          !hasCredential &&
+          !hasDismissed;
 
         if (shouldPromptBiometric) {
           // Update state for modal to use
@@ -377,6 +392,16 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
           setBiometricEnrollmentMember({
             memberId: memberSessionData.memberId,
             memberName: firstName || memberSessionData.memberName,
+            // Store session data with the credential for recovery after logout
+            sessionData: {
+              memberId: memberSessionData.memberId,
+              email: memberSessionData.email,
+              name: memberSessionData.memberName,
+              role: memberSessionData.role,
+              storeIds: allStores.map((s) => s.storeId),
+              permissions: memberSessionData.permissions,
+              defaultStoreId: primaryStore.storeId,
+            },
           });
           setShowBiometricEnrollment(true);
           return; // Modal will call onLoggedIn when done
@@ -608,9 +633,20 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
             if (!biometricCapability) {
               setBiometricCapability(currentBiometricCapability);
             }
+            // Get cached session for session data to store with credential
+            const cachedSession = memberAuthService.getCachedMemberSession();
             setBiometricEnrollmentMember({
               memberId: member.memberId,
               memberName: member.name,
+              sessionData: cachedSession ? {
+                memberId: cachedSession.memberId,
+                email: cachedSession.email,
+                name: cachedSession.name,
+                role: cachedSession.role,
+                storeIds: cachedSession.storeIds || [],
+                permissions: cachedSession.permissions,
+                defaultStoreId: cachedSession.defaultStoreId,
+              } : undefined,
             });
             setShowBiometricEnrollment(true);
             return;
@@ -644,9 +680,20 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
             if (!biometricCapability) {
               setBiometricCapability(currentBiometricCapability);
             }
+            // Get cached session for session data to store with credential
+            const cachedSession = memberAuthService.getCachedMemberSession();
             setBiometricEnrollmentMember({
               memberId: member.memberId,
               memberName: member.name,
+              sessionData: cachedSession ? {
+                memberId: cachedSession.memberId,
+                email: cachedSession.email,
+                name: cachedSession.name,
+                role: cachedSession.role,
+                storeIds: cachedSession.storeIds || [],
+                permissions: cachedSession.permissions,
+                defaultStoreId: cachedSession.defaultStoreId,
+              } : undefined,
             });
             setShowBiometricEnrollment(true);
             return;
@@ -795,8 +842,12 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     setSuccess(null);
 
     try {
+      console.log('[Biometric Debug] handleBiometricLogin starting for:', lastBiometricUserId);
+
       // Authenticate with biometrics (WebAuthn on web, native on iOS/Android)
       const authenticated = await biometricService.authenticate(lastBiometricUserId);
+
+      console.log('[Biometric Debug] WebAuthn authentication result:', authenticated);
 
       if (!authenticated) {
         setError('Biometric authentication failed. Please try again or use password.');
@@ -804,27 +855,66 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
       }
 
       // Get the cached session for this user
-      const cachedSession = memberAuthService.getCachedMemberSession();
+      let cachedSession = memberAuthService.getCachedMemberSession();
 
+      console.log('[Biometric Debug] Cached session check:', {
+        hasCachedSession: !!cachedSession,
+        cachedMemberId: cachedSession?.memberId,
+        expectedMemberId: lastBiometricUserId,
+        match: cachedSession?.memberId === lastBiometricUserId,
+      });
+
+      // If no cached session or wrong user, try to get stored session data from the credential
       if (!cachedSession || cachedSession.memberId !== lastBiometricUserId) {
-        // No cached session - this happens when:
-        // 1. User logged out (session cleared but biometric credentials remain)
-        // 2. Session expired beyond grace period
-        // 3. Different user's credentials are stored
+        console.log('[Biometric Debug] No cached session, trying stored session data from credential...');
 
-        // Clear the stale biometric credentials so the button won't appear anymore
-        await biometricService.removeCredential(lastBiometricUserId);
+        // Try to get session data stored with the WebAuthn credential
+        const storedSessionData = await webAuthnService.getStoredSessionData(lastBiometricUserId);
 
-        // Clear the last biometric user so the Touch ID button won't show
-        biometricService.clearLastBiometricUser();
-        setLastBiometricUserId(null);
-        setBiometricEnabled(false);
+        console.log('[Biometric Debug] Stored session data:', {
+          hasStoredData: !!storedSessionData,
+          storedMemberId: storedSessionData?.memberId,
+        });
 
-        setError('Your session has ended. Please log in with your password to re-enable Touch ID.');
-        return;
+        if (storedSessionData && storedSessionData.memberId === lastBiometricUserId) {
+          // Use stored session data to reconstruct the cached session format
+          // Some fields like authUserId aren't stored with the credential, use defaults
+          const now = new Date();
+          cachedSession = {
+            memberId: storedSessionData.memberId,
+            authUserId: storedSessionData.memberId, // Use memberId as fallback
+            email: storedSessionData.email,
+            name: storedSessionData.name,
+            role: storedSessionData.role,
+            storeIds: storedSessionData.storeIds,
+            permissions: storedSessionData.permissions ?? {},
+            defaultStoreId: storedSessionData.defaultStoreId ?? null,
+            lastOnlineAuth: now, // Biometric auth is local, set to now
+            sessionCreatedAt: now,
+          };
+          console.log('[Biometric Debug] Using stored session data from credential');
+        } else {
+          // No stored session data either - credentials are stale
+          console.log('[Biometric Debug] No stored session data, clearing stale credentials');
+
+          // Clear the stale biometric credentials so the button won't appear anymore
+          await biometricService.removeCredential(lastBiometricUserId);
+
+          // Clear the last biometric user so the Touch ID button won't show
+          biometricService.clearLastBiometricUser();
+          setLastBiometricUserId(null);
+          setBiometricEnabled(false);
+
+          setError('Your session has ended. Please log in with your password to re-enable Touch ID.');
+          return;
+        }
       }
 
-      // Session is valid, proceed with login
+      // Session is valid (either from cache or stored credential data), proceed with login
+      // TypeScript doesn't track that the else branch returns, so add explicit check
+      if (!cachedSession) {
+        throw new Error('Session data is unexpectedly null');
+      }
       const storeIds = cachedSession.storeIds || [];
       if (storeIds.length === 0) {
         throw new Error('No store access assigned to this account');
@@ -924,6 +1014,7 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         memberSessionData
       );
 
+      // Also persist the session to localStorage for future biometric logins
       memberAuthService.startGraceChecker();
 
       auditLogger.log({

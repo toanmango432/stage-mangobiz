@@ -10,6 +10,9 @@
 
 import { settingsDB } from '@/db/database';
 
+// Export types for external use
+export type { StoredSessionData };
+
 // Storage key prefixes
 const WEBAUTHN_CREDENTIAL_PREFIX = 'webauthn_credential_';
 const WEBAUTHN_PREFERENCE_PREFIX = 'webauthn_enabled_';
@@ -37,6 +40,19 @@ interface PlatformBiometricInfo {
 }
 
 /**
+ * Stored session data for biometric login recovery
+ */
+interface StoredSessionData {
+  memberId: string;
+  email: string;
+  name: string;
+  role: string;
+  storeIds: string[];
+  permissions?: Record<string, boolean> | null;
+  defaultStoreId?: string | null;
+}
+
+/**
  * Stored credential data structure
  */
 interface StoredCredential {
@@ -45,6 +61,8 @@ interface StoredCredential {
   counter: number;
   createdAt: string;
   deviceName?: string;
+  /** Session data stored with credential for recovery after logout */
+  sessionData?: StoredSessionData;
 }
 
 /** Default unavailable capability result */
@@ -194,8 +212,11 @@ export const webAuthnService = {
 
   /**
    * Register a new biometric credential for a user
+   * @param userId - User ID to register
+   * @param userName - Display name for the credential
+   * @param sessionData - Optional session data to store for recovery after logout
    */
-  async register(userId: string, userName: string): Promise<boolean> {
+  async register(userId: string, userName: string, sessionData?: StoredSessionData): Promise<boolean> {
     if (!this.isSupported()) {
       throw new Error('WebAuthn is not supported on this device');
     }
@@ -247,6 +268,7 @@ export const webAuthnService = {
         counter: 0,
         createdAt: new Date().toISOString(),
         deviceName: capability.platformName,
+        sessionData, // Store session data for recovery after logout
       };
 
       await settingsDB.set(getCredentialKey(userId), storedCredential);
@@ -338,6 +360,25 @@ export const webAuthnService = {
       }
       console.error('WebAuthn authentication error:', error);
       throw new Error('Biometric authentication failed');
+    }
+  },
+
+  /**
+   * Get stored session data for a user (for recovery after logout)
+   */
+  async getStoredSessionData(userId: string): Promise<StoredSessionData | null> {
+    const storedCredential: StoredCredential | null = await settingsDB.get(getCredentialKey(userId));
+    return storedCredential?.sessionData || null;
+  },
+
+  /**
+   * Update stored session data for an existing credential
+   */
+  async updateStoredSessionData(userId: string, sessionData: StoredSessionData): Promise<void> {
+    const storedCredential: StoredCredential | null = await settingsDB.get(getCredentialKey(userId));
+    if (storedCredential) {
+      storedCredential.sessionData = sessionData;
+      await settingsDB.set(getCredentialKey(userId), storedCredential);
     }
   },
 

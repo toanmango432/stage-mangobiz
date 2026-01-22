@@ -261,7 +261,7 @@
       "notes": "Add after main content area, before provider closing tags. AIAssistantPanel self-manages visibility via useConnectConfig.",
       "dependencies": ["US-011"],
       "priority": 12,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-013",

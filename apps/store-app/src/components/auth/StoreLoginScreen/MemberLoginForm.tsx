@@ -110,21 +110,9 @@ export function MemberLoginForm({
       </div>
 
       <div>
-        <div className="flex justify-between items-center mb-2">
-          <label htmlFor="member-password" className="block text-sm font-medium text-gray-700">
-            Password
-          </label>
-          {/* Forgot Password link - only visible when online */}
-          {isOnline && onForgotPassword && (
-            <button
-              type="button"
-              onClick={onForgotPassword}
-              className="text-sm text-brand-600 hover:text-brand-700 hover:underline"
-            >
-              Forgot Password?
-            </button>
-          )}
-        </div>
+        <label htmlFor="member-password" className="block text-sm font-medium text-gray-700 mb-2">
+          Password
+        </label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Lock className="h-5 w-5 text-gray-400" />
@@ -151,6 +139,18 @@ export function MemberLoginForm({
             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
+        {/* Forgot Password link - only visible when online */}
+        {isOnline && onForgotPassword && (
+          <div className="flex justify-end mt-1.5">
+            <button
+              type="button"
+              onClick={onForgotPassword}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (

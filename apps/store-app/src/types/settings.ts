@@ -698,14 +698,15 @@ export const DEFAULT_LAYOUT_SETTINGS: LayoutSettings = {
 // SETTINGS CATEGORY ENUM (for navigation)
 // =============================================================================
 
-export type SettingsCategory = 
-  | 'business' 
-  | 'checkout' 
-  | 'receipts' 
-  | 'account' 
+export type SettingsCategory =
+  | 'business'
+  | 'checkout'
+  | 'receipts'
+  | 'account'
   | 'system'
   | 'devices'
-  | 'integrations';
+  | 'integrations'
+  | 'connect';
 
 export const SETTINGS_CATEGORIES: { id: SettingsCategory; label: string; icon: string; description: string }[] = [
   { id: 'business', label: 'Business', icon: 'Building2', description: 'Profile, hours, tax settings' },

@@ -6,7 +6,7 @@
  *   const { token, loading, error, refresh, isExpired } = useConnectToken();
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectStoreId,
@@ -22,11 +22,6 @@ import type { ConnectTokenResponse } from '@/types';
 
 /** Time before expiry to trigger refresh (5 minutes in seconds) */
 const REFRESH_BUFFER_SECONDS = 5 * 60;
-
-interface TokenState {
-  token: string | null;
-  expiresAt: number | null;
-}
 
 interface UseConnectTokenResult {
   /** Current JWT token for Connect SDK (null if disabled or not fetched) */
@@ -58,21 +53,31 @@ export function useConnectToken(): UseConnectTokenResult {
   const { config } = useConnectConfig();
 
   // Token state
-  const [tokenState, setTokenState] = useState<TokenState>({
-    token: null,
-    expiresAt: null,
-  });
+  const [token, setToken] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  // Refs for cleanup and preventing concurrent requests
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFetchingRef = useRef(false);
 
   /**
    * Check if token is expired or about to expire (within buffer period)
    */
   const isExpired = useMemo(() => {
-    if (!tokenState.expiresAt) return true;
+    if (!expiresAt) return true;
     const now = Math.floor(Date.now() / 1000);
-    return now >= tokenState.expiresAt - REFRESH_BUFFER_SECONDS;
-  }, [tokenState.expiresAt]);
+    return now >= expiresAt - REFRESH_BUFFER_SECONDS;
+  }, [expiresAt]);
+
+  /**
+   * Clear token state
+   */
+  const clearToken = useCallback(() => {
+    setToken(null);
+    setExpiresAt(null);
+  }, []);
 
   /**
    * Fetch a new token from the Edge Function
@@ -80,7 +85,7 @@ export function useConnectToken(): UseConnectTokenResult {
   const fetchToken = useCallback(async () => {
     // Don't fetch if Connect is disabled
     if (!config.enabled) {
-      setTokenState({ token: null, expiresAt: null });
+      clearToken();
       return;
     }
 
@@ -90,11 +95,14 @@ export function useConnectToken(): UseConnectTokenResult {
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    // Prevent concurrent fetch requests
+    if (isFetchingRef.current) return;
 
-      // Build request payload for Edge Function
+    isFetchingRef.current = true;
+    setLoading(true);
+    setError(null);
+
+    try {
       const requestBody = {
         storeId,
         tenantId,
@@ -107,7 +115,6 @@ export function useConnectToken(): UseConnectTokenResult {
           .map(([key]) => key),
       };
 
-      // Call Edge Function via Supabase client
       const { data, error: functionError } = await supabase.functions.invoke<ConnectTokenResponse>(
         'generate-connect-token',
         { body: requestBody }
@@ -121,45 +128,39 @@ export function useConnectToken(): UseConnectTokenResult {
         throw new Error('Invalid token response from server');
       }
 
-      setTokenState({
-        token: data.token,
-        expiresAt: data.expiresAt,
-      });
+      setToken(data.token);
+      setExpiresAt(data.expiresAt);
     } catch (err) {
       const fetchError = err instanceof Error ? err : new Error('Failed to fetch Connect token');
       setError(fetchError);
-      setTokenState({ token: null, expiresAt: null });
+      clearToken();
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
-  }, [config.enabled, storeId, tenantId, memberId, memberName, memberRole, member]);
-
-  /**
-   * Force refresh token
-   */
-  const refresh = useCallback(async () => {
-    await fetchToken();
-  }, [fetchToken]);
+  }, [config.enabled, storeId, tenantId, memberId, memberName, memberRole, member, clearToken]);
 
   // Fetch token on mount and when dependencies change
   useEffect(() => {
-    // Only fetch if Connect is enabled and we have auth data
     if (config.enabled && storeId && memberId) {
       fetchToken();
     } else {
-      // Clear token if Connect disabled or no auth
-      setTokenState({ token: null, expiresAt: null });
+      clearToken();
       setError(null);
     }
-  }, [config.enabled, storeId, memberId, fetchToken]);
+  }, [config.enabled, storeId, memberId, fetchToken, clearToken]);
 
   // Auto-refresh when token is about to expire
   useEffect(() => {
-    if (!config.enabled || !tokenState.expiresAt) return;
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
 
-    // Calculate time until we should refresh (5 min before expiry)
+    if (!config.enabled || !expiresAt) return;
+
     const now = Math.floor(Date.now() / 1000);
-    const refreshAt = tokenState.expiresAt - REFRESH_BUFFER_SECONDS;
+    const refreshAt = expiresAt - REFRESH_BUFFER_SECONDS;
     const timeUntilRefresh = refreshAt - now;
 
     // If already past refresh time, refresh now
@@ -169,18 +170,24 @@ export function useConnectToken(): UseConnectTokenResult {
     }
 
     // Schedule refresh
-    const timeoutId = setTimeout(() => {
+    refreshTimeoutRef.current = setTimeout(() => {
+      refreshTimeoutRef.current = null;
       fetchToken();
     }, timeUntilRefresh * 1000);
 
-    return () => clearTimeout(timeoutId);
-  }, [config.enabled, tokenState.expiresAt, fetchToken]);
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+    };
+  }, [config.enabled, expiresAt, fetchToken]);
 
   return {
-    token: tokenState.token,
+    token,
     loading,
     error,
-    refresh,
+    refresh: fetchToken,
     isExpired,
   };
 }

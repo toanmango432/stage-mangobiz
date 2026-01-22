@@ -377,6 +377,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
         memberName={biometricEnrollmentMember?.memberName || ''}
         biometricType={biometricType}
         platformName={biometricPlatformName}
+        sessionData={biometricEnrollmentMember?.sessionData}
       />
 
       {/* TOTP Verification Modal */}

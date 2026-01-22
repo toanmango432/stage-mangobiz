@@ -16,13 +16,18 @@ import { Button } from '@/components/ui/Button';
  * Handles loading, error, and unloaded states gracefully.
  */
 export function MessagesPage() {
-  const { sdk, loading, error, retry } = useConnectSDK();
+  const { sdkModule, loading, error, retry } = useConnectSDK();
 
   // Loading state - show spinner while SDK loads
   if (loading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div
+        className="h-full flex flex-col items-center justify-center gap-4"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading messages"
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
         <p className="text-sm text-muted-foreground">Loading messages...</p>
       </div>
     );
@@ -31,8 +36,12 @@ export function MessagesPage() {
   // Error state - show error message with retry button
   if (error) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4">
-        <AlertCircle className="h-12 w-12 text-destructive" />
+      <div
+        className="h-full flex flex-col items-center justify-center gap-4"
+        role="alert"
+        aria-live="assertive"
+      >
+        <AlertCircle className="h-12 w-12 text-destructive" aria-hidden="true" />
         <div className="text-center">
           <h2 className="text-lg font-semibold text-foreground">
             Unable to load messages
@@ -47,10 +56,14 @@ export function MessagesPage() {
   }
 
   // SDK not loaded state - Connect may be disabled
-  if (!sdk) {
+  if (!sdkModule) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4">
-        <MessageSquare className="h-12 w-12 text-muted-foreground" />
+      <div
+        className="h-full flex flex-col items-center justify-center gap-4"
+        role="status"
+        aria-label="Messages not available"
+      >
+        <MessageSquare className="h-12 w-12 text-muted-foreground" aria-hidden="true" />
         <div className="text-center">
           <h2 className="text-lg font-semibold text-foreground">
             Messages not available
@@ -65,9 +78,9 @@ export function MessagesPage() {
 
   // Render the SDK's ConversationsModule
   return (
-    <div className="h-full flex flex-col">
-      <sdk.ConversationsModule />
-    </div>
+    <main className="h-full flex flex-col" role="main" aria-label="Messages">
+      <sdkModule.ConversationsModule />
+    </main>
   );
 }
 

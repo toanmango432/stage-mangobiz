@@ -23,7 +23,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { biometricService, type BiometricAvailability } from '@/services/biometricService';
+import { biometricService, type BiometricAvailability, type StoredSessionData } from '@/services/biometricService';
 import type { BiometricType } from '@/services/webAuthnService';
 
 export interface UseBiometricAuthResult {
@@ -41,8 +41,8 @@ export interface UseBiometricAuthResult {
   isLoading: boolean;
   /** Error message if any operation failed */
   error: string | null;
-  /** Register/enroll biometric credential */
-  register: (userName: string) => Promise<boolean>;
+  /** Register/enroll biometric credential, optionally storing session data for recovery after logout */
+  register: (userName: string, sessionData?: StoredSessionData) => Promise<boolean>;
   /** Authenticate using biometrics */
   authenticate: () => Promise<boolean>;
   /** Disable biometric authentication */
@@ -108,7 +108,7 @@ export function useBiometricAuth(userId: string | null): UseBiometricAuthResult 
 
   // Register biometric credential
   const register = useCallback(
-    async (userName: string): Promise<boolean> => {
+    async (userName: string, sessionData?: StoredSessionData): Promise<boolean> => {
       if (!userId) {
         setError('No user ID provided');
         return false;
@@ -123,7 +123,7 @@ export function useBiometricAuth(userId: string | null): UseBiometricAuthResult 
       setError(null);
 
       try {
-        const success = await biometricService.register(userId, userName);
+        const success = await biometricService.register(userId, userName, sessionData);
         if (success) {
           biometricService.setLastBiometricUser(userId);
           setIsEnabled(true);

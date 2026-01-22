@@ -3,7 +3,7 @@
  * Left sidebar navigation for the 7 settings categories
  */
 
-import { Building2, CreditCard, Receipt, User, Monitor, Plug, Palette } from 'lucide-react';
+import { Building2, CreditCard, Receipt, User, Monitor, Plug, Palette, Link2 } from 'lucide-react';
 import type { SettingsCategory } from '@/types/settings';
 import { cn } from '@/lib/utils';
 
@@ -64,15 +64,21 @@ const CATEGORY_SECTIONS: CategorySection[] = [
         icon: <Monitor className="w-5 h-5" />,
         description: 'POS devices, printers, hardware'
       },
-      { 
-        id: 'integrations', 
-        label: 'Integrations', 
+      {
+        id: 'integrations',
+        label: 'Integrations',
         icon: <Plug className="w-5 h-5" />,
         description: 'Third-party connections'
       },
-      { 
-        id: 'account', 
-        label: 'Account & Billing', 
+      {
+        id: 'connect',
+        label: 'Mango Connect',
+        icon: <Link2 className="w-5 h-5" />,
+        description: 'Messaging, AI, campaigns'
+      },
+      {
+        id: 'account',
+        label: 'Account & Billing',
         icon: <User className="w-5 h-5" />,
         description: 'Security, subscription, license'
       },

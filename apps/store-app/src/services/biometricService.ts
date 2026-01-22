@@ -9,8 +9,10 @@
  */
 
 import { NativeBiometric, BiometryType } from '@capgo/capacitor-native-biometric';
-import { webAuthnService, type BiometricType } from './webAuthnService';
+import { webAuthnService, type BiometricType, type StoredSessionData } from './webAuthnService';
 import { deviceManager } from './deviceManager';
+
+export type { StoredSessionData };
 
 /** Credential storage key prefix for native biometrics */
 const NATIVE_CREDENTIAL_KEY = 'mango_native_biometric_';
@@ -155,12 +157,15 @@ export const biometricService = {
 
   /**
    * Register/enroll biometric credential for a user.
+   * @param userId - User ID to register
+   * @param userName - Display name for the credential
+   * @param sessionData - Optional session data to store for recovery after logout
    */
-  async register(userId: string, userName: string): Promise<boolean> {
+  async register(userId: string, userName: string, sessionData?: StoredSessionData): Promise<boolean> {
     if (deviceManager.isNative()) {
       return this.registerNative(userId, userName);
     }
-    return webAuthnService.register(userId, userName);
+    return webAuthnService.register(userId, userName, sessionData);
   },
 
   /**

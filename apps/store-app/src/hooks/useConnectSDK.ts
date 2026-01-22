@@ -2,18 +2,19 @@
  * useConnectSDK Hook
  *
  * React hook to access the Connect SDK context from ConnectSDKProvider.
- * Provides access to the SDK instance, loading state, errors, and unread count.
+ * Provides access to the SDK module, loading state, errors, and connection status.
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { sdk, loading, error, unreadCount, retry } = useConnectSDK();
+ *   const { sdkModule, loading, error, isReady, retry } = useConnectSDK();
  *
  *   if (loading) return <Spinner />;
  *   if (error) return <Error onRetry={retry} />;
- *   if (!sdk) return null;
+ *   if (!sdkModule) return null;
  *
- *   return <sdk.ConversationsModule />;
+ *   // Render SDK modules as components
+ *   return <sdkModule.ConversationsModule />;
  * }
  * ```
  */

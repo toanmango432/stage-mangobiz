@@ -13,7 +13,7 @@
 
 import { useState } from 'react';
 import { Fingerprint, ScanFace, Loader2, X, Shield } from 'lucide-react';
-import { biometricService } from '@/services/biometricService';
+import { biometricService, type StoredSessionData } from '@/services/biometricService';
 
 const BIOMETRIC_DISMISSED_KEY = 'mango_biometric_dismissed';
 
@@ -25,6 +25,8 @@ interface BiometricEnrollmentModalProps {
   memberName: string;
   biometricType?: 'face' | 'fingerprint' | 'unknown' | 'none';
   platformName?: string;
+  /** Session data to store with the credential for recovery after logout */
+  sessionData?: StoredSessionData;
 }
 
 /**
@@ -60,6 +62,7 @@ export function BiometricEnrollmentModal({
   memberName,
   biometricType = 'unknown',
   platformName = 'Biometrics',
+  sessionData,
 }: BiometricEnrollmentModalProps) {
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +75,8 @@ export function BiometricEnrollmentModal({
 
     try {
       // Register biometric credential (WebAuthn on web, native on iOS/Android)
-      const success = await biometricService.register(memberId, memberName);
+      // Pass session data to store with credential for recovery after logout
+      const success = await biometricService.register(memberId, memberName, sessionData);
 
       if (!success) {
         throw new Error('Failed to register biometric credential');

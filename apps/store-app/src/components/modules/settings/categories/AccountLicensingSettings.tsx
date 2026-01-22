@@ -264,7 +264,18 @@ export function AccountLicensingSettings() {
     if (!memberId || !biometricAvailability?.available) return;
     setIsBiometricLoading(true);
     try {
-      const success = await biometricService.register(memberId, memberName);
+      // Construct session data to store with the credential for recovery after logout
+      const sessionData = memberSession ? {
+        memberId: memberSession.memberId,
+        email: memberSession.email,
+        name: memberSession.name,
+        role: memberSession.role,
+        storeIds: memberSession.storeIds || [],
+        permissions: memberSession.permissions,
+        defaultStoreId: memberSession.defaultStoreId,
+      } : undefined;
+
+      const success = await biometricService.register(memberId, memberName, sessionData);
       if (success) {
         biometricService.setLastBiometricUser(memberId);
         setBiometricEnabled(true);
@@ -274,7 +285,7 @@ export function AccountLicensingSettings() {
     } finally {
       setIsBiometricLoading(false);
     }
-  }, [memberId, memberName, biometricAvailability]);
+  }, [memberId, memberName, memberSession, biometricAvailability]);
 
   // Handle biometric disable click
   const handleDisableBiometricClick = useCallback(() => {

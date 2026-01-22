@@ -60,11 +60,38 @@ const AUDIENCE = 'mango-connect';
 
 // ==================== CORS HEADERS ====================
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+/**
+ * Get allowed origins for CORS
+ * In production, restrict to known domains
+ */
+function getAllowedOrigin(requestOrigin: string | null): string {
+  const allowedOrigins = [
+    'https://app.mango.ai',
+    'https://pos.mango.ai',
+    'https://staging.mango.ai',
+  ];
+
+  // Allow localhost in development
+  if (requestOrigin?.startsWith('http://localhost:')) {
+    return requestOrigin;
+  }
+
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  // Default to first allowed origin (won't match if request is from unknown origin)
+  return allowedOrigins[0];
+}
+
+function getCorsHeaders(requestOrigin: string | null): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': getAllowedOrigin(requestOrigin),
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 // ==================== CRYPTO HELPERS ====================
 
@@ -124,7 +151,7 @@ async function generateJWT(payload: ConnectTokenPayload, secret: string): Promis
 
 // ==================== RESPONSE HELPERS ====================
 
-function jsonResponse(data: unknown, status = 200): Response {
+function jsonResponse(data: unknown, corsHeaders: Record<string, string>, status = 200): Response {
   return new Response(
     JSON.stringify(data),
     {
@@ -136,28 +163,47 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 // ==================== VALIDATION ====================
 
+const MAX_STRING_LENGTH = 255;
+const MAX_PERMISSION_COUNT = 50;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidString(value: unknown, maxLength = MAX_STRING_LENGTH): boolean {
+  return typeof value === 'string' && value.length > 0 && value.length <= maxLength;
+}
+
+function isValidEmail(email: string): boolean {
+  return EMAIL_REGEX.test(email) && email.length <= MAX_STRING_LENGTH;
+}
+
 function validateRequest(body: GenerateTokenRequest): string | null {
-  if (!body.storeId || typeof body.storeId !== 'string') {
-    return 'storeId is required and must be a string';
+  const stringFields: Array<[string, unknown]> = [
+    ['storeId', body.storeId],
+    ['tenantId', body.tenantId],
+    ['memberId', body.memberId],
+    ['memberName', body.memberName],
+    ['role', body.role],
+  ];
+
+  for (const [field, value] of stringFields) {
+    if (!isValidString(value)) {
+      return `${field} is required and must be a string (max ${MAX_STRING_LENGTH} chars)`;
+    }
   }
-  if (!body.tenantId || typeof body.tenantId !== 'string') {
-    return 'tenantId is required and must be a string';
+
+  if (!isValidString(body.memberEmail) || !isValidEmail(body.memberEmail)) {
+    return 'memberEmail is required and must be a valid email address';
   }
-  if (!body.memberId || typeof body.memberId !== 'string') {
-    return 'memberId is required and must be a string';
-  }
-  if (!body.memberEmail || typeof body.memberEmail !== 'string') {
-    return 'memberEmail is required and must be a string';
-  }
-  if (!body.memberName || typeof body.memberName !== 'string') {
-    return 'memberName is required and must be a string';
-  }
-  if (!body.role || typeof body.role !== 'string') {
-    return 'role is required and must be a string';
-  }
+
   if (!Array.isArray(body.permissions)) {
     return 'permissions is required and must be an array';
   }
+  if (body.permissions.length > MAX_PERMISSION_COUNT) {
+    return `permissions array cannot exceed ${MAX_PERMISSION_COUNT} items`;
+  }
+  if (!body.permissions.every(p => isValidString(p, 100))) {
+    return 'Each permission must be a non-empty string (max 100 chars)';
+  }
+
   return null;
 }
 
@@ -203,6 +249,10 @@ async function verifySupabaseAuth(authHeader: string | null): Promise<{ valid: b
 // ==================== MAIN HANDLER ====================
 
 serve(async (req: Request) => {
+  // Get dynamic CORS headers based on request origin
+  const requestOrigin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(requestOrigin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -210,7 +260,7 @@ serve(async (req: Request) => {
 
   // Only allow POST
   if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
+    return jsonResponse({ error: 'Method not allowed' }, corsHeaders, 405);
   }
 
   try {
@@ -219,7 +269,7 @@ serve(async (req: Request) => {
     const authResult = await verifySupabaseAuth(authHeader);
 
     if (!authResult.valid) {
-      return jsonResponse({ error: authResult.error }, 401);
+      return jsonResponse({ error: authResult.error }, corsHeaders, 401);
     }
 
     // Parse and validate request body
@@ -227,19 +277,19 @@ serve(async (req: Request) => {
     try {
       body = await req.json();
     } catch {
-      return jsonResponse({ error: 'Invalid JSON body' }, 400);
+      return jsonResponse({ error: 'Invalid JSON body' }, corsHeaders, 400);
     }
 
     const validationError = validateRequest(body);
     if (validationError) {
-      return jsonResponse({ error: validationError }, 400);
+      return jsonResponse({ error: validationError }, corsHeaders, 400);
     }
 
     // Get JWT secret
     const jwtSecret = Deno.env.get('MANGO_CONNECT_JWT_SECRET');
     if (!jwtSecret) {
       console.error('[generate-connect-token] MANGO_CONNECT_JWT_SECRET not configured');
-      return jsonResponse({ error: 'Server configuration error' }, 500);
+      return jsonResponse({ error: 'Server configuration error' }, corsHeaders, 500);
     }
 
     // Build token payload
@@ -266,12 +316,12 @@ serve(async (req: Request) => {
     return jsonResponse({
       token,
       expiresAt,
-    });
+    }, corsHeaders);
 
   } catch (error) {
     console.error('[generate-connect-token] Error:', error);
     return jsonResponse({
       error: error instanceof Error ? error.message : 'Internal server error',
-    }, 500);
+    }, corsHeaders, 500);
   }
 });

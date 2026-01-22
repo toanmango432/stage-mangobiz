@@ -66,15 +66,18 @@ export interface ConnectTokenResponse {
 }
 
 /**
- * SDK initialization options passed to MangoConnectSDK
+ * Props for the MangoConnectSDK provider component
+ * Note: The SDK is a React Provider, not an imperative API
  */
-export interface ConnectSDKInitOptions {
+export interface ConnectSDKProviderProps {
   authToken: string;
   bizSupabaseUrl: string;
   bizSupabaseKey: string;
-  onTokenRefresh: () => Promise<string>;
-  onUnreadCountChange: (count: number) => void;
-  onError: (error: Error) => void;
+  onTokenRefresh?: () => Promise<string>;
+  onError?: (error: Error) => void;
+  onReady?: () => void;
+  theme?: Record<string, unknown>;
+  children?: React.ReactNode;
 }
 
 /**

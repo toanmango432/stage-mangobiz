@@ -2,77 +2,152 @@
  * ConnectSDKProvider
  *
  * Provider component that loads the Mango Connect SDK globally and manages its lifecycle.
- * Provides SDK instance and state to children via React context.
+ * Provides SDK components to children via React context.
  *
  * The SDK is loaded only when Connect is enabled. It reads client/appointment data
  * directly from Biz's Supabase database using the provided credentials.
+ *
+ * IMPORTANT: MangoConnectSDK is a React Provider component, not an imperative API.
+ * The SDK modules (ConversationsModule, AIAssistantModule) must be rendered as children.
  */
 
 import {
   createContext,
-  useContext,
   useState,
   useEffect,
   useCallback,
   useMemo,
+  useRef,
+  createElement,
   type ReactNode,
+  type ComponentType,
 } from 'react';
 import { useConnectConfig } from '@/hooks/useConnectConfig';
 import { useConnectToken } from '@/hooks/useConnectToken';
 import { supabaseConfig } from '@/services/supabase/client';
-import type { ConnectSDKState, ConnectSDKInitOptions } from '@/types';
 
-// ==================== SDK INTERFACE ====================
+// ==================== SDK TYPES ====================
 
 /**
- * Interface for the Connect SDK object (loaded from external script)
- * These are the methods/modules exposed by the SDK
+ * Props for the MangoConnectSDK provider component
  */
-interface MangoConnectSDK {
-  /** Initialize the SDK with configuration */
-  init: (options: ConnectSDKInitOptions) => Promise<void>;
-  /** Destroy the SDK instance and cleanup */
-  destroy: () => void;
-  /** Conversations module component */
-  ConversationsModule: React.ComponentType;
-  /** AI Assistant module component */
-  AIAssistantModule: React.ComponentType;
-  /** Campaigns module component (future) */
-  CampaignsModule?: React.ComponentType;
+interface MangoConnectSDKProps {
+  authToken: string;
+  bizSupabaseUrl: string;
+  bizSupabaseKey: string;
+  onTokenRefresh?: () => Promise<string>;
+  onError?: (error: Error) => void;
+  onReady?: () => void;
+  theme?: Record<string, unknown>;
+  children?: ReactNode;
 }
 
-// Declare the SDK on window for TypeScript
+/**
+ * SDK module exports from the Connect SDK package
+ */
+interface MangoConnectSDKModule {
+  /** Provider component that wraps children with SDK context */
+  MangoConnectSDK: ComponentType<MangoConnectSDKProps>;
+  /** Conversations module component */
+  ConversationsModule: ComponentType;
+  /** AI Assistant module component */
+  AIAssistantModule: ComponentType;
+  /** Campaigns module component */
+  CampaignsModule?: ComponentType;
+  /** Automations module component */
+  AutomationsModule?: ComponentType;
+  /** SDK version string */
+  SDK_VERSION?: string;
+}
+
+// Declare the SDK on window for module script loading
 declare global {
   interface Window {
-    MangoConnectSDK?: MangoConnectSDK;
+    __MangoConnectSDKModule?: MangoConnectSDKModule;
   }
 }
 
 // ==================== CONTEXT TYPES ====================
 
-interface ConnectSDKContextType {
-  /** The loaded SDK instance (null if not loaded or disabled) */
-  sdk: MangoConnectSDK | null;
+export interface ConnectSDKContextType {
+  /** SDK module components (null if not loaded or disabled) */
+  sdkModule: MangoConnectSDKModule | null;
   /** Whether the SDK is currently loading */
   loading: boolean;
-  /** Error message if SDK failed to load or initialize */
+  /** Error message if SDK failed to load */
   error: string | null;
+  /** Whether the SDK is ready (connected) */
+  isReady: boolean;
   /** Number of unread conversations */
   unreadCount: number;
   /** Retry loading the SDK after an error */
   retry: () => void;
 }
 
-const ConnectSDKContext = createContext<ConnectSDKContextType | null>(null);
+export const ConnectSDKContext = createContext<ConnectSDKContextType | null>(null);
 
 // ==================== SDK URL ====================
 
 /** Default SDK URL if not specified in environment */
-const DEFAULT_SDK_URL = 'https://connect.mango.ai/sdk/v1/mango-connect-sdk.js';
+const DEFAULT_SDK_URL = 'https://mango-connect.vercel.app/sdk/mango-connect-sdk.js';
+const DEFAULT_CSS_URL = 'https://mango-connect.vercel.app/sdk/mango-connect-sdk.css';
+
+/** Allowed SDK domains for security validation */
+const ALLOWED_SDK_DOMAINS = [
+  'connect.mango.ai',
+  'sdk.mango.ai',
+  'connect-staging.mango.ai',
+  'mango-connect.vercel.app',
+  'localhost',
+];
+
+/**
+ * Validate SDK URL against allowed domains
+ */
+function isValidSDKUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' && parsed.hostname !== 'localhost') {
+      return false;
+    }
+    return ALLOWED_SDK_DOMAINS.includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
 
 /** Get SDK URL from environment or use default */
 function getSDKUrl(): string {
-  return import.meta.env.VITE_MANGO_CONNECT_SDK_URL || DEFAULT_SDK_URL;
+  const envUrl = import.meta.env.VITE_MANGO_CONNECT_SDK_URL;
+  if (envUrl) {
+    if (!isValidSDKUrl(envUrl)) {
+      console.error('[ConnectSDKProvider] Invalid SDK URL. Using default.');
+      return DEFAULT_SDK_URL;
+    }
+    return envUrl;
+  }
+  return DEFAULT_SDK_URL;
+}
+
+/** Get CSS URL from environment or use default */
+function getCSSUrl(): string {
+  const envUrl = import.meta.env.VITE_MANGO_CONNECT_CSS_URL;
+  if (envUrl && isValidSDKUrl(envUrl)) {
+    return envUrl;
+  }
+  return DEFAULT_CSS_URL;
+}
+
+/** Load SDK CSS stylesheet */
+function loadCSS(): void {
+  const cssUrl = getCSSUrl();
+  const existingLink = document.querySelector(`link[href="${cssUrl}"]`);
+  if (existingLink) return;
+
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = cssUrl;
+  document.head.appendChild(link);
 }
 
 // ==================== PROVIDER ====================
@@ -87,30 +162,33 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
   const { token, refresh: refreshToken, loading: tokenLoading } = useConnectToken();
 
   // SDK state
-  const [sdkState, setSdkState] = useState<ConnectSDKState>({
-    loaded: false,
-    error: null,
-    unreadCount: 0,
-  });
-  const [sdk, setSdk] = useState<MangoConnectSDK | null>(null);
+  const [sdkModule, setSdkModule] = useState<MangoConnectSDKModule | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [scriptLoading, setScriptLoading] = useState(false);
 
-  // Track if we've attempted to load
-  const [loadAttempted, setLoadAttempted] = useState(false);
+  // Ref to hold current token for async callbacks
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+
+  // Ref to store loaded SDK module (for caching)
+  const sdkModuleRef = useRef<MangoConnectSDKModule | null>(null);
 
   /**
-   * Handle unread count changes from SDK
+   * Handle SDK ready event
    */
-  const handleUnreadCountChange = useCallback((count: number) => {
-    setSdkState(prev => ({ ...prev, unreadCount: count }));
+  const handleSDKReady = useCallback(() => {
+    console.log('[ConnectSDKProvider] SDK is ready');
+    setIsReady(true);
   }, []);
 
   /**
    * Handle SDK errors
    */
-  const handleError = useCallback((error: Error) => {
-    console.error('[ConnectSDKProvider] SDK error:', error.message);
-    setSdkState(prev => ({ ...prev, error: error.message }));
+  const handleSDKError = useCallback((err: Error) => {
+    console.error('[ConnectSDKProvider] SDK error:', err.message);
+    setError(err.message);
   }, []);
 
   /**
@@ -118,195 +196,176 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
    */
   const handleTokenRefresh = useCallback(async (): Promise<string> => {
     await refreshToken();
-    // Return the new token - this may take a moment to update
-    // The hook will trigger a re-render with the new token
-    return token || '';
-  }, [refreshToken, token]);
+    return tokenRef.current || '';
+  }, [refreshToken]);
 
   /**
-   * Load the SDK script
+   * Load the SDK as ES module using inline script
    */
-  const loadScript = useCallback((): Promise<void> => {
+  const loadSDKModule = useCallback((): Promise<MangoConnectSDKModule> => {
     return new Promise((resolve, reject) => {
-      // Check if SDK is already loaded
-      if (window.MangoConnectSDK) {
-        resolve();
+      // Load CSS
+      loadCSS();
+
+      // Return cached module if already loaded
+      if (sdkModuleRef.current) {
+        resolve(sdkModuleRef.current);
         return;
       }
 
-      // Check if script is already in DOM
-      const existingScript = document.querySelector(
-        `script[src="${getSDKUrl()}"]`
-      );
-      if (existingScript) {
-        // Wait for it to load
-        existingScript.addEventListener('load', () => resolve());
-        existingScript.addEventListener('error', () =>
-          reject(new Error('Failed to load Connect SDK script'))
-        );
+      // Check if already loaded on window
+      if (window.__MangoConnectSDKModule) {
+        sdkModuleRef.current = window.__MangoConnectSDKModule;
+        resolve(window.__MangoConnectSDKModule);
         return;
       }
 
-      // Create and load script
+      const sdkUrl = getSDKUrl();
+      const scriptId = 'mango-connect-sdk-loader';
+
+      // Check if script already exists
+      if (document.getElementById(scriptId)) {
+        const checkInterval = setInterval(() => {
+          if (window.__MangoConnectSDKModule) {
+            clearInterval(checkInterval);
+            sdkModuleRef.current = window.__MangoConnectSDKModule;
+            resolve(window.__MangoConnectSDKModule);
+          }
+        }, 100);
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error('Timeout waiting for SDK to load'));
+        }, 10000);
+        return;
+      }
+
+      // Create inline module script that imports and exposes to window
       const script = document.createElement('script');
-      script.src = getSDKUrl();
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () =>
+      script.id = scriptId;
+      script.type = 'module';
+      script.textContent = `
+        import * as SDK from '${sdkUrl}';
+        window.__MangoConnectSDKModule = SDK;
+        window.dispatchEvent(new CustomEvent('mango-connect-sdk-loaded'));
+        console.log('[ConnectSDKProvider] SDK module loaded, exports:', Object.keys(SDK));
+      `;
+
+      const handleLoaded = () => {
+        window.removeEventListener('mango-connect-sdk-loaded', handleLoaded);
+        if (window.__MangoConnectSDKModule) {
+          sdkModuleRef.current = window.__MangoConnectSDKModule;
+          console.log('[ConnectSDKProvider] SDK module loaded successfully');
+          resolve(window.__MangoConnectSDKModule);
+        } else {
+          reject(new Error('SDK module not found on window after load'));
+        }
+      };
+
+      window.addEventListener('mango-connect-sdk-loaded', handleLoaded);
+
+      script.onerror = () => {
+        window.removeEventListener('mango-connect-sdk-loaded', handleLoaded);
         reject(new Error('Failed to load Connect SDK script'));
+      };
 
       document.head.appendChild(script);
+
+      setTimeout(() => {
+        window.removeEventListener('mango-connect-sdk-loaded', handleLoaded);
+        if (!sdkModuleRef.current) {
+          reject(new Error('Timeout loading Connect SDK module'));
+        }
+      }, 15000);
     });
   }, []);
 
   /**
-   * Initialize the SDK after script loads
-   */
-  const initializeSDK = useCallback(async () => {
-    if (!window.MangoConnectSDK) {
-      throw new Error('Connect SDK not available on window');
-    }
-
-    if (!token) {
-      throw new Error('No authentication token available');
-    }
-
-    const initOptions: ConnectSDKInitOptions = {
-      authToken: token,
-      bizSupabaseUrl: supabaseConfig.url,
-      bizSupabaseKey: supabaseConfig.anonKey,
-      onTokenRefresh: handleTokenRefresh,
-      onUnreadCountChange: handleUnreadCountChange,
-      onError: handleError,
-    };
-
-    await window.MangoConnectSDK.init(initOptions);
-    return window.MangoConnectSDK;
-  }, [token, handleTokenRefresh, handleUnreadCountChange, handleError]);
-
-  /**
-   * Load and initialize SDK
+   * Load SDK module
    */
   const loadAndInitialize = useCallback(async () => {
-    // Don't load if Connect is disabled
-    if (!config.enabled) {
-      setSdkState({ loaded: false, error: null, unreadCount: 0 });
-      setSdk(null);
-      return;
-    }
-
-    // Don't load if we don't have a token yet
-    if (!token) {
-      return;
-    }
+    if (!config.enabled || !token) return;
 
     setScriptLoading(true);
-    setSdkState(prev => ({ ...prev, error: null }));
+    setError(null);
+    setIsReady(false);
 
     try {
-      // Load the SDK script
-      await loadScript();
-
-      // Initialize the SDK
-      const loadedSDK = await initializeSDK();
-
-      setSdk(loadedSDK);
-      setSdkState(prev => ({ ...prev, loaded: true, error: null }));
-      console.log('[ConnectSDKProvider] SDK loaded and initialized');
+      const module = await loadSDKModule();
+      setSdkModule(module);
+      console.log('[ConnectSDKProvider] SDK module ready for use');
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load Connect SDK';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load Connect SDK';
       console.error('[ConnectSDKProvider] Load error:', errorMessage);
-      setSdkState(prev => ({ ...prev, loaded: false, error: errorMessage }));
-      setSdk(null);
+      setError(errorMessage);
+      setSdkModule(null);
     } finally {
       setScriptLoading(false);
-      setLoadAttempted(true);
     }
-  }, [config.enabled, token, loadScript, initializeSDK]);
+  }, [config.enabled, token, loadSDKModule]);
 
   /**
    * Retry loading the SDK
    */
   const retry = useCallback(() => {
-    setSdkState({ loaded: false, error: null, unreadCount: 0 });
-    setLoadAttempted(false);
+    setError(null);
+    setUnreadCount(0);
+    setIsReady(false);
     loadAndInitialize();
   }, [loadAndInitialize]);
 
   // Load SDK when enabled and token is available
   useEffect(() => {
-    // Wait for config to load
-    if (configLoading) return;
+    if (configLoading || tokenLoading) return;
 
-    // If Connect is disabled, cleanup and don't load
+    // If Connect is disabled, cleanup
     if (!config.enabled) {
-      if (sdk) {
-        sdk.destroy();
-        setSdk(null);
-      }
-      setSdkState({ loaded: false, error: null, unreadCount: 0 });
+      setSdkModule(null);
+      setError(null);
+      setUnreadCount(0);
+      setIsReady(false);
       return;
     }
 
-    // Wait for token
-    if (tokenLoading) return;
-
-    // Load SDK if we have a token and haven't already loaded
-    if (token && !loadAttempted && !sdkState.loaded) {
+    // Load SDK if we have a token but no SDK yet
+    if (token && !sdkModule && !scriptLoading && !error) {
       loadAndInitialize();
     }
-  }, [
-    config.enabled,
-    configLoading,
-    token,
-    tokenLoading,
-    loadAttempted,
-    sdkState.loaded,
-    loadAndInitialize,
-    sdk,
-  ]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (sdk) {
-        sdk.destroy();
-      }
-    };
-  }, [sdk]);
-
-  // Re-initialize when token changes (refresh)
-  useEffect(() => {
-    // Only re-init if SDK is loaded and we get a new token
-    if (sdk && token && sdkState.loaded) {
-      // The SDK should handle token updates via onTokenRefresh callback
-      // But if needed, we could re-init here
-    }
-  }, [sdk, token, sdkState.loaded]);
+  }, [config.enabled, configLoading, token, tokenLoading, sdkModule, scriptLoading, error, loadAndInitialize]);
 
   // ==================== CONTEXT VALUE ====================
 
-  const contextValue = useMemo<ConnectSDKContextType>(
-    () => ({
-      sdk,
-      loading: configLoading || tokenLoading || scriptLoading,
-      error: sdkState.error,
-      unreadCount: sdkState.unreadCount,
-      retry,
-    }),
-    [
-      sdk,
-      configLoading,
-      tokenLoading,
-      scriptLoading,
-      sdkState.error,
-      sdkState.unreadCount,
-      retry,
-    ]
-  );
+  const contextValue = useMemo<ConnectSDKContextType>(() => ({
+    sdkModule,
+    loading: configLoading || tokenLoading || scriptLoading,
+    error,
+    isReady,
+    unreadCount,
+    retry,
+  }), [sdkModule, configLoading, tokenLoading, scriptLoading, error, isReady, unreadCount, retry]);
 
-  // Children always render - the SDK loads in the background
+  // ==================== RENDER ====================
+
+  // If SDK is loaded and Connect is enabled, wrap children with SDK provider
+  if (sdkModule && config.enabled && token) {
+    return (
+      <ConnectSDKContext.Provider value={contextValue}>
+        {createElement(
+          sdkModule.MangoConnectSDK,
+          {
+            authToken: token,
+            bizSupabaseUrl: supabaseConfig.url,
+            bizSupabaseKey: supabaseConfig.anonKey,
+            onTokenRefresh: handleTokenRefresh,
+            onError: handleSDKError,
+            onReady: handleSDKReady,
+          },
+          children
+        )}
+      </ConnectSDKContext.Provider>
+    );
+  }
+
+  // Otherwise, just provide context without SDK wrapper
   return (
     <ConnectSDKContext.Provider value={contextValue}>
       {children}
@@ -314,22 +373,5 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
   );
 }
 
-// ==================== HOOK ====================
-
-/**
- * Access the Connect SDK context
- * Throws if used outside ConnectSDKProvider
- */
-export function useConnectSDKContext(): ConnectSDKContextType {
-  const context = useContext(ConnectSDKContext);
-  if (!context) {
-    throw new Error(
-      'useConnectSDKContext must be used within ConnectSDKProvider'
-    );
-  }
-  return context;
-}
-
-// Export context for external use if needed
-export { ConnectSDKContext };
-export type { ConnectSDKContextType, MangoConnectSDK };
+// Export SDK module type for consumers
+export type { MangoConnectSDKModule };
