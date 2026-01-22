@@ -351,3 +351,54 @@
 
 ---
 
+### Iteration 8 - US-010: Create ConsentManagement component
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/components/clients/ConsentManagement.tsx`
+
+**Changes Made:**
+1. Created ConsentManagement component with:
+   - Shield icon header with "Privacy & Consent" title
+   - Do Not Contact master toggle (red variant) at top
+   - Communication Preferences section: SMS, Email, Phone, Photo
+   - GDPR Consent section: Marketing, Data Processing
+   - Each toggle shows "Enabled" badge and timestamp when enabled
+
+2. Consent Items Configuration:
+   - Defined as array with id, label, description, field, timestampField
+   - `isCommunicationPref` flag differentiates client fields vs communicationPreferences fields
+   - `logActionGranted` and `logActionRevoked` for GDPR audit actions
+
+3. Toggle Component:
+   - Inline Toggle component with label, description, timestamp
+   - Supports 'default' (cyan) and 'danger' (red) variants
+   - Shows "Enabled" badge with checkmark when checked
+   - Displays "Last updated: {date}" when timestamp available
+
+4. State Management:
+   - `handleConsentChange` updates Supabase via `updateClientInSupabase`
+   - Logs GDPR changes via `logDataRetention` thunk
+   - Success message shows briefly (2 seconds) after save
+   - Do Not Contact toggle disables all communication preferences
+
+5. Type Safety:
+   - Type-safe getConsentValue using switch statement
+   - Builds complete CommunicationPreferences object for updates
+   - Uses selectMemberId and selectCurrentUser for audit info
+
+**Implementation Details:**
+- Icons defined inline: ShieldIcon, BellOffIcon, CheckIcon, ClockIcon
+- GDPR section has gray background for visual distinction
+- Info note at bottom explains auto-save and compliance logging
+- readOnly prop disables all interactions
+
+**Learnings:**
+- CommunicationPreferences has required boolean fields, need to spread complete object
+- Switch statement is more type-safe than dynamic property access
+- Marketing consent respects Do Not Contact (disabled when DNC enabled)
+- Data Processing defaults to true (required for service)
+
+---
+
