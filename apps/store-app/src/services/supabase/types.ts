@@ -314,6 +314,8 @@ export interface Database {
           archived_at: string | null;
           /** User ID of who archived the service, null if active */
           archived_by: string | null;
+          /** Form template IDs to automatically send when this service is booked (migration 033) */
+          auto_send_form_ids: string[];
           sync_status: string;
           sync_version: number;
           created_at: string;
@@ -333,6 +335,8 @@ export interface Database {
           archived_at?: string | null;
           /** User ID of who archived, null for active services */
           archived_by?: string | null;
+          /** Form template IDs to automatically send when this service is booked */
+          auto_send_form_ids?: string[];
           sync_status?: string;
           sync_version?: number;
           created_at?: string;
@@ -1003,6 +1007,157 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['portfolio_items']['Insert']>;
       };
+
+      // Form System Tables (migration 033)
+      form_templates: {
+        Row: {
+          id: string;
+          store_id: string;
+          name: string;
+          description: string | null;
+          category: FormTemplateCategory | null;
+          send_mode: FormSendMode;
+          frequency: FormFrequencyDb | null;
+          linked_service_ids: string[];
+          requires_signature: boolean;
+          send_before_hours: number | null;
+          reminder_enabled: boolean | null;
+          reminder_interval_hours: number | null;
+          expiration_hours: number | null;
+          sections: Json;
+          is_active: boolean;
+          is_built_in: boolean;
+          sync_status: string;
+          sync_version: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          name: string;
+          description?: string | null;
+          category?: FormTemplateCategory | null;
+          send_mode?: FormSendMode;
+          frequency?: FormFrequencyDb | null;
+          linked_service_ids?: string[];
+          requires_signature?: boolean;
+          send_before_hours?: number | null;
+          reminder_enabled?: boolean | null;
+          reminder_interval_hours?: number | null;
+          expiration_hours?: number | null;
+          sections?: Json;
+          is_active?: boolean;
+          is_built_in?: boolean;
+          sync_status?: string;
+          sync_version?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['form_templates']['Insert']>;
+      };
+
+      form_submissions: {
+        Row: {
+          id: string;
+          store_id: string;
+          form_template_id: string;
+          client_id: string | null;
+          appointment_id: string | null;
+          responses: Json;
+          signature_image: string | null;
+          signature_type: FormSignatureType | null;
+          signature_typed_name: string | null;
+          status: FormSubmissionStatus;
+          sent_at: string | null;
+          sent_via: FormSentVia | null;
+          started_at: string | null;
+          completed_at: string | null;
+          expires_at: string | null;
+          completed_by: string | null;
+          ip_address: string | null;
+          user_agent: string | null;
+          sync_status: string;
+          sync_version: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          form_template_id: string;
+          client_id?: string | null;
+          appointment_id?: string | null;
+          responses?: Json;
+          signature_image?: string | null;
+          signature_type?: FormSignatureType | null;
+          signature_typed_name?: string | null;
+          status?: FormSubmissionStatus;
+          sent_at?: string | null;
+          sent_via?: FormSentVia | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          expires_at?: string | null;
+          completed_by?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          sync_status?: string;
+          sync_version?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['form_submissions']['Insert']>;
+      };
+
+      form_deliveries: {
+        Row: {
+          id: string;
+          store_id: string;
+          form_template_id: string;
+          client_id: string;
+          appointment_id: string | null;
+          form_submission_id: string | null;
+          delivery_method: FormDeliveryMethodDb;
+          token: string;
+          delivery_email: string | null;
+          delivery_phone: string | null;
+          sent_at: string;
+          opened_at: string | null;
+          completed_at: string | null;
+          expires_at: string;
+          delivery_status: FormDeliveryStatus;
+          delivery_error: string | null;
+          message_id: string | null;
+          reminder_sent_at: string | null;
+          reminder_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          form_template_id: string;
+          client_id: string;
+          appointment_id?: string | null;
+          form_submission_id?: string | null;
+          delivery_method: FormDeliveryMethodDb;
+          token?: string;
+          delivery_email?: string | null;
+          delivery_phone?: string | null;
+          sent_at?: string;
+          opened_at?: string | null;
+          completed_at?: string | null;
+          expires_at: string;
+          delivery_status?: FormDeliveryStatus;
+          delivery_error?: string | null;
+          message_id?: string | null;
+          reminder_sent_at?: string | null;
+          reminder_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['form_deliveries']['Insert']>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -1188,3 +1343,26 @@ export type ClientGiftCardUpdate = Database['public']['Tables']['client_gift_car
 export type PortfolioItemRow = Database['public']['Tables']['portfolio_items']['Row'];
 export type PortfolioItemInsert = Database['public']['Tables']['portfolio_items']['Insert'];
 export type PortfolioItemUpdate = Database['public']['Tables']['portfolio_items']['Update'];
+
+// Form System Enums (migration 033)
+export type FormTemplateCategory = 'health' | 'consent' | 'consultation' | 'feedback' | 'custom';
+export type FormSendMode = 'automatic' | 'manual';
+export type FormFrequencyDb = 'every_time' | 'once';
+export type FormSignatureType = 'draw' | 'type';
+export type FormSubmissionStatus = 'pending' | 'in_progress' | 'completed' | 'expired';
+export type FormSentVia = 'email' | 'sms' | 'in_app';
+export type FormDeliveryMethodDb = 'email' | 'sms';
+export type FormDeliveryStatus = 'pending' | 'sent' | 'delivered' | 'failed' | 'bounced';
+
+// Form System Table Types
+export type FormTemplateRow = Database['public']['Tables']['form_templates']['Row'];
+export type FormTemplateInsert = Database['public']['Tables']['form_templates']['Insert'];
+export type FormTemplateUpdate = Database['public']['Tables']['form_templates']['Update'];
+
+export type FormSubmissionRow = Database['public']['Tables']['form_submissions']['Row'];
+export type FormSubmissionInsert = Database['public']['Tables']['form_submissions']['Insert'];
+export type FormSubmissionUpdate = Database['public']['Tables']['form_submissions']['Update'];
+
+export type FormDeliveryRow = Database['public']['Tables']['form_deliveries']['Row'];
+export type FormDeliveryInsert = Database['public']['Tables']['form_deliveries']['Insert'];
+export type FormDeliveryUpdate = Database['public']['Tables']['form_deliveries']['Update'];
