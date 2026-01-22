@@ -966,6 +966,14 @@ export function useCatalog({ storeId, tenantId, userId = 'system', deviceId = 'w
     );
   }, [withErrorHandling]);
 
+  const restoreProduct = useCallback(async (id: string) => {
+    return withErrorHandling(
+      () => productsDB.restore(id, userId, deviceId),
+      'Product restored',
+      'Failed to restore product'
+    );
+  }, [userId, deviceId, withErrorHandling]);
+
   // ==================== SETTINGS ACTIONS ====================
 
   const updateSettings = useCallback(async (data: Partial<MenuGeneralSettings>) => {
@@ -1252,6 +1260,7 @@ export function useCatalog({ storeId, tenantId, userId = 'system', deviceId = 'w
     updateProduct,
     deleteProduct,
     archiveProduct,
+    restoreProduct,
 
     // Settings Actions
     updateSettings,
