@@ -144,11 +144,11 @@ export const entityTable = {
 - [x] US-045: StaffPermissionsSection - batch save error handling ✓
 - [x] US-046: MenuGeneralSettingsSection - validation ✓
 - [x] US-047: GiftCardsSection - CatalogSettings defaults ✓
-- [ ] US-048: BookingSequenceSection - keyboard drag-drop
-- [ ] US-049: ServiceModal - Zod validation
-- [ ] US-050: ServiceModal - staff assignments
-- [ ] US-051: PackageModal - validation
-- [ ] US-052: ProductModal - validation
+- [x] US-048: BookingSequenceSection - keyboard drag-drop ✓
+- [x] US-049: ServiceModal - Zod validation ✓
+- [x] US-050: ServiceModal - staff assignments ✓
+- [x] US-051: PackageModal - validation ✓
+- [x] US-052: ProductModal - validation ✓
 - [ ] US-053: MenuSettings More Options button
 - [ ] US-054: MenuSettings per-section skeletons
 
@@ -160,7 +160,7 @@ export const entityTable = {
 **Fix Story (US-P3F):**
 - [ ] All Phase 3 Review Issues resolved
 
-- Status: 🔄 IN PROGRESS (17/26 stories complete)
+- Status: 🔄 IN PROGRESS (22/26 stories complete)
 
 ### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
 **Implementation Stories (9):**
@@ -2815,5 +2815,95 @@ Commit: f903719
 - Pattern #17: Modal with External Data Loading - Use props (initialData) for loading, callbacks (onSave) for saving, and useEffect in parent to load data when editingItem changes
 
 **Next story suggestion:** US-051 (Add validation to PackageModal) - Continues Phase 3 modal validation pattern
+
+---
+
+## 2026-01-22 - US-051: Add validation to PackageModal
+Commit: 30e747a
+
+**Why this story?** Highest priority incomplete Phase 3 story (priority 51). US-050 (ServiceModal staff assignments) was just completed, and US-051 continues the modal validation pattern with code structure fresh in context.
+
+**Changes:**
+1. `apps/store-app/src/types/catalog.ts:868-876`:
+   - Added `allPackages?: ServicePackage[]` prop to PackageModalProps for duplicate name validation
+
+2. `apps/store-app/src/components/menu-settings/modals/PackageModal.tsx` (complete rewrite for validation):
+   - Added Zod import and validation schema (lines 17-27)
+   - Added validation state and ValidationErrors type (lines 29-30, 63)
+   - Added `orphanedServices` memo to detect services in package that no longer exist (lines 85-88)
+   - Added `isDuplicateName` memo to check for duplicate package names excluding current package when editing (lines 90-100)
+   - Added `validateForm` callback with all validation rules (lines 102-143)
+   - Added `isFormValid` memo for button disabled state (lines 145-153)
+   - Added `removeOrphanedServices` function (lines 248-251)
+   - Updated handleSave to validate and filter orphaned services before saving (lines 253-276)
+   - Added orphaned services warning banner with "Remove orphaned services" button (lines 400-425)
+   - Added "Not Found" badge and styling for orphaned services in list (lines 446-514)
+   - Added field-level error messages with AlertCircle icons (name: lines 350-361, services: lines 528-533, discount: lines 584-595)
+   - Added discount validation error display for percentage >100% and fixed discount > original price
+   - Added aria-invalid and aria-describedby attributes for accessibility
+
+3. `apps/store-app/src/components/menu-settings/sections/PackagesSection.tsx:500-510`:
+   - Added `allPackages={packages}` prop to PackageModal
+
+**Acceptance Criteria Verification:**
+- ✅ Validate: discount percentage 0-100 (lines 122-127, 300-302, 584-588)
+- ✅ Validate: fixed discount <= original price (lines 128-133, 300-302, 590-595)
+- ✅ Filter out non-existent services from selection (filteredServices only shows active services, lines 198-206)
+- ✅ Show warning for packages with orphaned service references (lines 400-425)
+- ✅ Check for duplicate package name before save (lines 90-100, 111-114)
+- ✅ Show field-level error messages (lines 350-361, 528-533, 584-595)
+- ✅ pnpm run typecheck passes (store-app compiles without errors)
+
+**Learnings:**
+- Orphaned service detection requires keeping all services in state initially (including orphaned ones) to display the warning, then filtering them out on save
+- Duplicate name check must exclude current package when editing (compare by ID)
+- Zod schema isn't strictly necessary when doing manual validation with useMemo/useCallback, but it documents the validation rules
+- AlertTriangle icon for warnings (amber), AlertCircle icon for errors (red) - consistent with ServiceModal pattern
+
+**Patterns to sync:**
+- Pattern #18: Orphaned Reference Detection - Use useMemo to detect references to deleted entities, show warning banner with option to remove, filter out before save
+
+**Next story suggestion:** US-052 (Add validation to ProductModal) - Continues modal validation pattern, same file structure
+
+---
+
+## 2026-01-22 - US-052: Add validation to ProductModal
+Commit: b49caef
+
+**Why this story?** Highest priority story (priority 52) with passes: false. Continues the modal validation pattern from US-049 (ServiceModal) and US-051 (PackageModal). Same file structure and validation patterns.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/modals/ProductModal.tsx`:
+   - Added ValidationErrors interface for typed error state (lines 18-24)
+   - Added onCheckBarcode and onCheckSku optional props for async uniqueness checks (lines 12-15)
+   - Added validation state: validationErrors, isCheckingBarcode, isCheckingSku (lines 51-54)
+   - Added hasNegativeMargin memo to detect when retailPrice <= costPrice (lines 110-116)
+   - Added handleBarcodeBlur async handler with loading state (lines 118-139)
+   - Added handleSkuBlur async handler with loading state (lines 141-162)
+   - Added hasValidationErrors memo for button disabled state (lines 164-167)
+   - Added negative margin warning banner with AlertTriangle icon (lines 247-258)
+   - Updated margin display to show red text when negative (lines 242-244)
+   - Added Barcode input field with async validation (lines 352-385) - was missing from original UI
+   - Updated SKU input with async validation, error styling, and loading spinner (lines 296-323)
+   - Updated save button to disable when validation errors exist or checks in progress (line 506)
+
+**Acceptance Criteria Verification:**
+- ✅ Show warning when retailPrice <= costPrice (negative margin) - lines 247-258
+- ✅ Add async barcode uniqueness check on blur - handleBarcodeBlur (lines 118-139)
+- ✅ Add async SKU uniqueness check on blur - handleSkuBlur (lines 141-162)
+- ✅ Show field-level error messages - lines 321-323, 382-384
+- ✅ Show loading spinner during uniqueness checks - lines 317-319, 378-380
+- ✅ pnpm run typecheck passes (store-app compiles without errors)
+
+**Learnings:**
+- ProductModal was missing the barcode input field in UI even though state existed - added it
+- Async validation should silently fail on network errors to avoid blocking user
+- Clear validation errors when user starts typing (onChange) for better UX
+- Disable save button during async checks to prevent race conditions
+
+**Patterns to sync:**
+- Pattern #19: Async Field Uniqueness Check - Use onBlur with loading state for async uniqueness validation. Clear errors onChange. Silently fail on network errors.
+
+**Next story suggestion:** US-053 (Fix MenuSettings More Options button) - Same component file family, continues Phase 3 UI improvements
 
 ---

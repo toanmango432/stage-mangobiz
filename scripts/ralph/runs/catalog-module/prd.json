@@ -890,7 +890,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 51,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/modals/PackageModal.tsx"
     },
     {
@@ -907,7 +907,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 52,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/modals/ProductModal.tsx"
     },
     {
