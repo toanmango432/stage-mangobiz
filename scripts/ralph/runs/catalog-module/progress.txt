@@ -2907,3 +2907,33 @@ Commit: b49caef
 **Next story suggestion:** US-053 (Fix MenuSettings More Options button) - Same component file family, continues Phase 3 UI improvements
 
 ---
+
+## 2026-01-22 - US-053: Fix MenuSettings More Options button
+Commit: 116a674
+
+**Why this story?** Highest priority incomplete story in Phase 3 (priority 53). No dependencies. Completes the toolbar functionality in MenuSettings.
+
+**Changes:**
+- `apps/store-app/src/components/menu-settings/components/MoreOptionsDropdown.tsx` (NEW):
+  - Created dropdown component using Radix UI DropdownMenu
+  - Import submenu with JSON/CSV options
+  - Export submenu with JSON/CSV options
+  - Bulk edit mode toggle item
+  - Print menu item
+  - All items receive handler callbacks as props
+- `apps/store-app/src/components/menu-settings/components/index.ts`:
+  - Added export for MoreOptionsDropdown and its props type
+- `apps/store-app/src/components/menu-settings/MenuSettings.tsx`:
+  - Added useState for isBulkEditMode state
+  - Added handler callbacks for import/export/bulkEdit/print
+  - Replaced static MoreVertical button with MoreOptionsDropdown component
+  - Removed unused MoreVertical import
+
+**Learnings:**
+- Import/Export functionality shows toast "Coming soon" - actual implementation deferred
+- Print menu uses window.print() for native browser print dialog
+- Bulk edit mode state tracked but not yet connected to section components (future work)
+
+**Next story suggestion:** US-054 (MenuSettings per-section skeletons) - final UI story in Phase 3, same file context
+
+---
