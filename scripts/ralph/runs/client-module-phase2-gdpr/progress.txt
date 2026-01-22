@@ -558,3 +558,123 @@
 
 ---
 
+### Iteration 12 - US-014: Add Delete Client Data button to profile
+**Date:** 2026-01-22
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/components/client-settings/sections/ProfileSection.tsx`
+
+**Changes Made:**
+1. Added imports:
+   - `DataDeletionRequestModal` from `@/components/clients/DataDeletionRequestModal`
+   - `selectMemberRole` from authSlice
+
+2. Added role-based access control:
+   - `memberRole` selector from Redux
+   - `canDeleteClientData` computed for owner/manager/admin roles
+   - Delete button only visible when `canDeleteClientData` is true
+
+3. Added state management:
+   - `showDeletionModal` - controls modal visibility
+   - `handleOpenDeletionModal` - opens the deletion modal
+   - `handleCloseDeletionModal` - closes the deletion modal
+   - `handleDeletionComplete` - handles successful deletion callback
+
+4. Added Delete Client Data button:
+   - Placed in Data Management card after Export button
+   - Red/destructive styling: `bg-red-50 border-red-200` background
+   - Uses `variant="danger"` on Button component
+   - TrashIcon for visual indication
+
+5. Added DataDeletionRequestModal:
+   - Placed after BlockClientModal in JSX
+   - Passes `clientForConsent` (reuses existing conversion)
+   - Handles `onDeletionComplete` callback
+
+6. Added TrashIcon component for delete button
+
+**Implementation Details:**
+- Reuses `clientForConsent` memoized value from ConsentManagement integration
+- Role check follows same pattern as ClientSettings Data Requests tab
+- Modal uses same Dialog pattern as existing modals
+- Button follows destructive action pattern from Block Client section
+
+**Quality Verification:**
+- `pnpm run typecheck` on store-app passes
+- No new `as any` casts added (pre-existing ones unchanged)
+- No forbidden strings ("Test Client") added
+- File increased from 704 to 763 lines
+
+**Learnings:**
+- Role-based UI visibility uses `selectMemberRole` with string comparison
+- Reusing existing `clientForConsent` memo avoids duplicate type conversion
+- DataDeletionRequestModal handles its own state internally (processing, success, error)
+- Destructive actions should use red color scheme and clear warning text
+
+---
+
+### Iteration 13 - US-015: Add GDPR unit tests
+**Date:** 2026-01-22
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/store/slices/clientsSlice/__tests__/gdprThunks.test.ts`
+
+**Changes Made:**
+1. Created comprehensive test file with 32 unit tests covering:
+   - `createDataRequest` thunk (3 tests)
+   - `exportClientData` thunk (5 tests)
+   - `processDataDeletion` thunk (6 tests)
+   - Data anonymization integrity (2 tests)
+   - `updateDataRequestStatus` thunk (4 tests)
+   - `logDataRetention` thunk (4 tests)
+   - `fetchDataRequests` thunk (3 tests)
+   - GDPR type validation (5 tests)
+
+2. Test Coverage includes:
+   - Success cases for all thunks
+   - Error handling (Supabase errors, Edge Function errors)
+   - Validation (confirmed flag, performedBy required)
+   - Mock Edge Function responses
+   - Snake_case to camelCase conversion verification
+   - GDPR field categorization (PII, sensitive, preserved)
+
+3. Mock Setup:
+   - `mockSupabaseFrom` for Supabase query builder
+   - `mockSupabaseFunctionsInvoke` for Edge Functions
+   - `createQueryBuilderMock` helper for chainable Supabase mocks
+   - Database mocks (clientsDB, etc.)
+
+4. Test Utilities:
+   - `createMockDataRequest` - Factory for ClientDataRequest
+   - `createMockRetentionLog` - Factory for DataRetentionLog
+   - `createTestStore` - Redux store with proper thunk types
+
+**Quality Verification:**
+- All 32 tests pass with `npx vitest run`
+- No `as any` casts added
+- No forbidden strings ("Test Client") in test file
+- TypeScript typecheck passes
+- Test duration: ~80ms
+
+**Learnings:**
+- vi.mock hoisting requires mock functions defined before vi.mock()
+- Chainable mock pattern works well for Supabase query builder
+- fetchDataRequests needs different mock (returns array, not single)
+- Test structure follows merge.test.ts pattern for consistency
+
+---
+
+## PHASE 2 COMPLETE
+
+All 15 user stories for GDPR/CCPA compliance have been implemented:
+- Database migration with new tables and consent fields
+- TypeScript types for GDPR features
+- Redux thunks for data requests, export, deletion, and consent
+- Edge Functions for export and deletion processing
+- UI components: DataRequestsPanel, DataDeletionRequestModal, ConsentManagement
+- Integration into ClientSettings and ProfileSection
+- Role-based access control for data management features
+- Comprehensive unit test coverage
+

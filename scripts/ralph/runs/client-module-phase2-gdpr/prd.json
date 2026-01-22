@@ -249,7 +249,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Use red/destructive button variant. Check role before showing button."
     },
     {
@@ -266,7 +266,7 @@
         "No forbidden strings"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing test patterns in __tests__/ folder. Mock supabase.functions.invoke calls. Test both success and error cases."
     }
   ]
