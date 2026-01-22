@@ -10,6 +10,8 @@ import { selectActivePadTransaction, clearPadTransaction } from '@/store/slices/
 import { dataService } from '@/services/dataService';
 import { getMangoPadService } from '@/services/mangoPadService';
 import { isMqttEnabled } from '@/services/mqtt/featureFlags';
+import { calculateServiceCommission } from '@/utils/commissionCalculation';
+import type { MenuService, StaffServiceAssignment } from '@/types/catalog';
 import type { TicketService } from '../ServiceList';
 import type { Client } from '../ClientSelector';
 
@@ -178,7 +180,32 @@ export function useTicketPayment({
         }));
       }
 
-      // Create transaction
+      // Fetch catalog data for commission calculation
+      const storeId = dataService.getStoreId?.() || 'default-store';
+      const menuServices = new Map<string, MenuService>();
+      const staffAssignments = new Map<string, StaffServiceAssignment[]>();
+
+      // Load menu services and staff assignments for commission calculation
+      try {
+        const allServices = await dataService.menuServices.getAll(storeId);
+        allServices.forEach(service => menuServices.set(service.id, service));
+
+        // Load staff assignments for each service
+        for (const service of services) {
+          if (service.serviceId) {
+            const assignments = await dataService.staffServiceAssignments.getByService(
+              storeId,
+              service.serviceId
+            );
+            staffAssignments.set(service.serviceId, assignments);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load catalog data for commission calculation:', error);
+        // Continue without commission data - will default to 0%
+      }
+
+      // Create transaction with commission calculation
       const transactionData = {
         ticketId: effectiveTicketId || `ticket-${Date.now()}`,
         ticketNumber: ticketNumber,
@@ -193,15 +220,45 @@ export function useTicketPayment({
         discount: discount || 0,
         paymentMethod: primaryPaymentMethod,
         paymentDetails: paymentDetails,
-        services: services.map(s => ({
-          name: s.serviceName,
-          price: s.price,
-          staffName: s.staffName,
-        })),
+        services: services.map(s => {
+          // Get menu service and staff assignment for commission calculation
+          const menuService = menuServices.get(s.serviceId);
+          const assignments = staffAssignments.get(s.serviceId) || [];
+          const staffAssignment = s.staffId
+            ? assignments.find((a: StaffServiceAssignment) => a.staffId === s.staffId && a.isActive)
+            : undefined;
+
+          // Calculate commission using utility function
+          const checkoutService = {
+            id: s.id,
+            serviceId: s.serviceId,
+            serviceName: s.serviceName,
+            price: s.price,
+            duration: s.duration,
+            status: s.status as 'not_started' | 'in_progress' | 'paused' | 'completed',
+            staffId: s.staffId,
+            staffName: s.staffName,
+          };
+
+          const commission = calculateServiceCommission(
+            checkoutService,
+            menuService,
+            staffAssignment
+          );
+
+          return {
+            name: s.serviceName,
+            price: s.price,
+            staffName: s.staffName,
+            staffId: s.staffId,
+            commissionRate: commission.commissionRate,
+            commissionAmount: commission.commissionAmount,
+          };
+        }),
         notes: '',
       };
       await dataService.transactions.create(transactionData as any);
-      console.log('✅ Transaction record created');
+      console.log('✅ Transaction record created with commission data');
 
       // 4. Mark ticket as paid and move from pending to closed
       if (effectiveTicketId) {
