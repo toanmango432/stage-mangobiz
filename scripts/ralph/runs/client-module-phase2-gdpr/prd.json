@@ -140,7 +140,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from apps/store-app/src/components/client-settings/sections/HistorySection.tsx. Use existing Badge, Button components from ui/. Use Tailwind for styling."
     },
     {

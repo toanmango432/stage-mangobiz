@@ -254,3 +254,52 @@
 
 ---
 
+### Iteration 6 - US-008: Create DataRequestsPanel component
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/components/clients/DataRequestsPanel.tsx`
+
+**Changes Made:**
+1. Created DataRequestsPanel component with:
+   - Fetches data requests for a store via `fetchDataRequests` thunk
+   - Displays list of requests with status badges (Pending/Processing/Completed/Rejected)
+   - Shows request type with icons (Export/Delete/Access)
+   - Shows request date and processed date
+   - Filter tabs: All/Pending/Processing/Completed/Rejected
+   - Pending count badge on filter tab
+
+2. Actions:
+   - Process button for export/access requests (triggers `exportClientData`)
+   - Process button for deletion requests (delegates to parent via `onProcessDeletion`)
+   - Reject button to mark request as rejected
+   - Download link for completed exports
+
+3. States:
+   - Loading state with spinner on initial fetch
+   - Empty state with icon and message when no requests
+   - Error state with red banner and error message
+   - Processing state on individual request actions
+
+4. UI Components:
+   - Local Badge and Button components (following SharedComponents pattern)
+   - Icons: Download, Trash, Eye, Clock, CheckCircle, XCircle, Refresh, DocumentText
+   - Tailwind styling with cyan accent colors
+
+**Implementation Details:**
+- Uses `useEffect` to fetch on mount and when storeId changes
+- Local state for requests, loading, error, statusFilter, processingId
+- `handleProcessExport` updates status to processing, calls export, then completed
+- `handleReject` updates status to rejected
+- `onProcessDeletion` callback allows parent to handle deletion confirmation modal
+- Date formatting with Intl.DateTimeFormat
+
+**Learnings:**
+- Component uses local state instead of Redux for requests list (simpler for panel)
+- Deletion actions delegate to parent for confirmation modal integration
+- Export download URL stored in request.exportUrl after processing
+- Filter state is local to panel (not persisted)
+
+---
+
