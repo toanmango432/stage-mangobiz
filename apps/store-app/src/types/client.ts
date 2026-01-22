@@ -429,11 +429,7 @@ export interface LoyaltyProgram {
   storeId: string;
   name: string;
   pointsPerDollar: number;
-  eligibleCategories: {
-    services: boolean;
-    products: boolean;
-    giftCards: boolean;
-  };
+  eligibleCategories: string[]; // 'services', 'products', 'gift_cards'
   includeTax: boolean;
   pointsExpirationMonths: number | null; // null = never expires
   isActive: boolean;
