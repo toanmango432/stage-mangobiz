@@ -140,7 +140,7 @@ export const entityTable = {
 - [x] US-041: PackagesSection - browser confirm() and skeleton ✓
 - [x] US-042: ProductsSection - browser confirm() and skeleton ✓
 - [x] US-043: ProductsSection - barcode display and low stock indicator ✓
-- [ ] US-044: AddOnsSection - browser confirm() and skeleton
+- [x] US-044: AddOnsSection - browser confirm() and skeleton ✓
 - [ ] US-045: StaffPermissionsSection - batch save error handling
 - [ ] US-046: MenuGeneralSettingsSection - validation
 - [ ] US-047: GiftCardsSection - CatalogSettings defaults
@@ -160,7 +160,7 @@ export const entityTable = {
 **Fix Story (US-P3F):**
 - [ ] All Phase 3 Review Issues resolved
 
-- Status: 🔄 IN PROGRESS (13/26 stories complete)
+- Status: 🔄 IN PROGRESS (14/26 stories complete)
 
 ### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
 **Implementation Stories (9):**
@@ -2484,5 +2484,52 @@ Commit: d9dc460
 - Pattern: Inventory Level Integration - Use optional `inventoryLevels?: Map<productId, InventoryLevel>` prop to decouple stock data from catalog data, enabling gradual integration
 
 **Next story suggestion:** US-044 (Replace browser confirm() in AddOnsSection) - Continues Phase 3 confirm dialog replacement pattern
+
+---
+
+## 2026-01-22 - US-044: Replace browser confirm() in AddOnsSection
+Commit: 81d480e
+
+**Why this story?** Highest priority incomplete story (priority 44) in Phase 3. Continues the pattern of replacing browser confirm() dialogs with accessible ConfirmDialog components.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/components/skeletons/AddOnGroupSkeleton.tsx` (NEW):
+   - Created skeleton component matching the AddOnGroup card layout
+   - Shows expand icon, group icon, name/description area, status indicator, and menu button placeholders
+
+2. `apps/store-app/src/components/menu-settings/components/skeletons/index.ts`:
+   - Added export for AddOnGroupSkeleton
+
+3. `apps/store-app/src/components/menu-settings/components/index.ts`:
+   - Added AddOnGroupSkeleton to the skeleton exports
+
+4. `apps/store-app/src/components/menu-settings/sections/AddOnsSection.tsx`:
+   - Added imports: ConfirmDialog, AddOnGroupSkeleton, useMemo
+   - Added isLoading prop (optional, defaults to false)
+   - Added delete confirmation dialog states: deleteGroupDialogOpen, deleteOptionDialogOpen, groupToDelete, optionToDelete, isDeleting
+   - Replaced handleDeleteGroup/handleDeleteOption with dialog pattern:
+     - handleDeleteGroupClick(groupId): Opens group delete dialog
+     - handleConfirmDeleteGroup(): Performs group delete with loading state
+     - handleDeleteOptionClick(optionId): Opens option delete dialog
+     - handleConfirmDeleteOption(): Performs option delete with loading state
+   - Enhanced search filtering with useMemo:
+     - Added option.description search (in addition to existing option.name)
+     - Optimized with useMemo for better performance
+   - Added loading state rendering: Shows 4 AddOnGroupSkeleton cards when isLoading=true
+   - Added two ConfirmDialog components for group and option deletion with destructive variant
+
+**Acceptance Criteria Verification:**
+- ✅ Replace confirm() with ConfirmDialog (both group and option deletion)
+- ✅ Add skeleton loader during loading (AddOnGroupSkeleton, 4 cards)
+- ✅ Extend search to include nested option names within groups (also added option descriptions)
+- ✅ No browser confirm() calls remain (verified with grep)
+- ✅ pnpm run typecheck passes (store-app)
+
+**Learnings:**
+- AddOnsSection has two delete operations (group and option) requiring two ConfirmDialog instances
+- Search already included option names; extended to also include option descriptions for comprehensive search
+- useMemo optimization for filtering improves performance when there are many groups with options
+
+**Next story suggestion:** US-045 (Fix batch save error handling in StaffPermissionsSection) - Continues Phase 3 UI improvements
 
 ---
