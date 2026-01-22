@@ -20,6 +20,7 @@ import {
   appointmentsDB,
 } from '../db/database';
 import { productsDB, bookingSequencesDB } from '../db/catalogDatabase';
+import { bookingSequencesService } from '../services/domain/catalogDataService';
 import type {
   ServiceCategory,
   MenuService,
@@ -1138,7 +1139,7 @@ export function useCatalog({ storeId, tenantId, userId = 'system', deviceId = 'w
 
   const createBookingSequence = useCallback(async (data: CreateBookingSequenceInput) => {
     return withErrorHandling(
-      () => bookingSequencesDB.create(data, userId, storeId, tenantId, deviceId),
+      () => bookingSequencesService.create(data, userId, storeId, tenantId, deviceId),
       'Booking sequence created',
       'Failed to create booking sequence'
     );
@@ -1146,7 +1147,7 @@ export function useCatalog({ storeId, tenantId, userId = 'system', deviceId = 'w
 
   const updateBookingSequence = useCallback(async (id: string, data: Partial<BookingSequence>) => {
     return withErrorHandling(
-      () => bookingSequencesDB.update(id, data, userId, deviceId),
+      () => bookingSequencesService.update(id, data, userId, deviceId),
       'Booking sequence updated',
       'Failed to update booking sequence'
     );
@@ -1155,17 +1156,17 @@ export function useCatalog({ storeId, tenantId, userId = 'system', deviceId = 'w
   const deleteBookingSequence = useCallback(async (id: string) => {
     return withErrorHandling(
       async () => {
-        await bookingSequencesDB.delete(id);
+        await bookingSequencesService.delete(id, userId, deviceId);
         return true;
       },
       'Booking sequence deleted',
       'Failed to delete booking sequence'
     );
-  }, [withErrorHandling]);
+  }, [userId, deviceId, withErrorHandling]);
 
   const enableBookingSequence = useCallback(async (id: string) => {
     return withErrorHandling(
-      () => bookingSequencesDB.enable(id, userId, deviceId),
+      () => bookingSequencesService.enable(id, userId, deviceId),
       'Booking sequence enabled',
       'Failed to enable booking sequence'
     );
@@ -1173,7 +1174,7 @@ export function useCatalog({ storeId, tenantId, userId = 'system', deviceId = 'w
 
   const disableBookingSequence = useCallback(async (id: string) => {
     return withErrorHandling(
-      () => bookingSequencesDB.disable(id, userId, deviceId),
+      () => bookingSequencesService.disable(id, userId, deviceId),
       'Booking sequence disabled',
       'Failed to disable booking sequence'
     );
@@ -1181,7 +1182,7 @@ export function useCatalog({ storeId, tenantId, userId = 'system', deviceId = 'w
 
   const updateBookingSequenceOrder = useCallback(async (id: string, serviceOrder: string[]) => {
     return withErrorHandling(
-      () => bookingSequencesDB.updateServiceOrder(id, serviceOrder, userId, deviceId),
+      () => bookingSequencesService.updateServiceOrder(id, serviceOrder, userId, deviceId),
       undefined, // No success toast for reorder
       'Failed to update service order'
     );

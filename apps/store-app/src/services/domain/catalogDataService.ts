@@ -31,6 +31,7 @@ import { addOnOptionsTable } from '@/services/supabase/tables/addOnOptionsTable'
 import { staffServiceAssignmentsTable } from '@/services/supabase/tables/staffServiceAssignmentsTable';
 import { catalogSettingsTable } from '@/services/supabase/tables/catalogSettingsTable';
 import { productsTable } from '@/services/supabase/tables/productsTable';
+import { bookingSequencesTable } from '@/services/supabase/tables/bookingSequencesTable';
 import {
   toServiceCategory,
   toServiceCategories,
@@ -83,6 +84,12 @@ import {
   toProductInsert,
   toProductUpdate,
 } from '@/services/supabase/adapters/productAdapter';
+import {
+  toBookingSequence,
+  toBookingSequences,
+  toBookingSequenceInsert,
+  toBookingSequenceUpdate,
+} from '@/services/supabase/adapters/bookingSequenceAdapter';
 
 // Catalog operations from Dexie
 import {
@@ -95,6 +102,7 @@ import {
   staffServiceAssignmentsDB,
   catalogSettingsDB,
   productsDB,
+  bookingSequencesDB,
 } from '@/db/catalogDatabase';
 
 // SQLite: Import SQLite service wrappers
@@ -128,6 +136,8 @@ import type {
   StaffServiceAssignment,
   CreateStaffAssignmentInput,
   CatalogSettings,
+  BookingSequence,
+  CreateBookingSequenceInput,
 } from '@/types/catalog';
 import type { Product } from '@/types/inventory';
 
@@ -1855,15 +1865,18 @@ export const productsService = {
   /**
    * Restore an archived product
    */
-  async restore(id: string): Promise<Product | undefined> {
+  async restore(id: string, userId?: string, deviceId?: string): Promise<Product | undefined> {
+    const effectiveUserId = userId || getUserId();
+    const effectiveDeviceId = deviceId || getDeviceId();
+
     // Supabase path
     if (USE_SUPABASE) {
       const row = await productsTable.restore(id);
       return toProduct(row);
     }
 
-    // Fallback: update isActive
-    return this.update(id, { isActive: true } as Partial<Product>);
+    // Dexie path - uses full restore with sync metadata
+    return productsDB.restore(id, effectiveUserId, effectiveDeviceId);
   },
 
   /**
@@ -1877,6 +1890,163 @@ export const productsService = {
     }
 
     // Fallback: not available in SQLite/Dexie
+    return [];
+  },
+};
+
+/**
+ * Booking Sequences data operations
+ *
+ * Routing priority:
+ * 1. Supabase (if USE_SUPABASE=true and online)
+ * 2. Dexie/IndexedDB (default local-first storage)
+ *
+ * Note: SQLite support not yet implemented for booking sequences
+ */
+export const bookingSequencesService = {
+  async getAll(storeId: string, includeDisabled = false): Promise<BookingSequence[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await bookingSequencesTable.getByStoreId(storeId, !includeDisabled);
+      return toBookingSequences(rows);
+    }
+
+    // Dexie path (default local-first)
+    return bookingSequencesDB.getAll(storeId, includeDisabled);
+  },
+
+  async getById(id: string): Promise<BookingSequence | undefined> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const row = await bookingSequencesTable.getById(id);
+      return row ? toBookingSequence(row) : undefined;
+    }
+
+    // Dexie path
+    return bookingSequencesDB.getById(id);
+  },
+
+  async getEnabled(storeId: string): Promise<BookingSequence[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await bookingSequencesTable.getEnabled(storeId);
+      return toBookingSequences(rows);
+    }
+
+    // Dexie path - getAll with includeDisabled=false returns only enabled
+    return bookingSequencesDB.getAll(storeId, false);
+  },
+
+  async create(
+    input: CreateBookingSequenceInput,
+    userId: string,
+    storeId: string,
+    tenantId?: string,
+    deviceId?: string
+  ): Promise<BookingSequence> {
+    const effectiveTenantId = tenantId || getTenantId() || storeId;
+    const effectiveDeviceId = deviceId || getDeviceId();
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const insertData = toBookingSequenceInsert(input, storeId, effectiveTenantId, userId, effectiveDeviceId);
+      const row = await bookingSequencesTable.create(insertData);
+      return toBookingSequence(row);
+    }
+
+    // Dexie path
+    return bookingSequencesDB.create(input, userId, storeId, effectiveTenantId, effectiveDeviceId);
+  },
+
+  async update(
+    id: string,
+    updates: Partial<BookingSequence>,
+    userId: string,
+    deviceId?: string
+  ): Promise<BookingSequence | undefined> {
+    const effectiveDeviceId = deviceId || getDeviceId();
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const updateData = toBookingSequenceUpdate(updates, userId, effectiveDeviceId);
+      const row = await bookingSequencesTable.update(id, updateData);
+      return toBookingSequence(row);
+    }
+
+    // Dexie path
+    return bookingSequencesDB.update(id, updates, userId, effectiveDeviceId);
+  },
+
+  async delete(id: string, userId?: string, deviceId?: string): Promise<void> {
+    // Supabase path (soft delete with tombstone)
+    if (USE_SUPABASE) {
+      const effectiveUserId = userId || getUserId();
+      const effectiveDeviceId = deviceId || getDeviceId();
+      return bookingSequencesTable.delete(id, effectiveUserId, effectiveDeviceId);
+    }
+
+    // Dexie path (hard delete)
+    return bookingSequencesDB.delete(id);
+  },
+
+  async enable(id: string, userId?: string, deviceId?: string): Promise<BookingSequence | undefined> {
+    const effectiveUserId = userId || getUserId();
+    const effectiveDeviceId = deviceId || getDeviceId();
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const row = await bookingSequencesTable.enable(id);
+      return toBookingSequence(row);
+    }
+
+    // Dexie path
+    return bookingSequencesDB.enable(id, effectiveUserId, effectiveDeviceId);
+  },
+
+  async disable(id: string, userId?: string, deviceId?: string): Promise<BookingSequence | undefined> {
+    const effectiveUserId = userId || getUserId();
+    const effectiveDeviceId = deviceId || getDeviceId();
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const row = await bookingSequencesTable.disable(id);
+      return toBookingSequence(row);
+    }
+
+    // Dexie path
+    return bookingSequencesDB.disable(id, effectiveUserId, effectiveDeviceId);
+  },
+
+  async updateServiceOrder(
+    id: string,
+    serviceOrder: string[],
+    userId?: string,
+    deviceId?: string
+  ): Promise<BookingSequence | undefined> {
+    const effectiveUserId = userId || getUserId();
+    const effectiveDeviceId = deviceId || getDeviceId();
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const row = await bookingSequencesTable.updateServiceOrder(id, serviceOrder);
+      return toBookingSequence(row);
+    }
+
+    // Dexie path
+    return bookingSequencesDB.updateServiceOrder(id, serviceOrder, effectiveUserId, effectiveDeviceId);
+  },
+
+  /**
+   * Get booking sequences updated since a specific time (for sync)
+   */
+  async getUpdatedSince(storeId: string, since: Date): Promise<BookingSequence[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await bookingSequencesTable.getUpdatedSince(storeId, since);
+      return toBookingSequences(rows);
+    }
+
+    // Fallback: not available in Dexie
     return [];
   },
 };
