@@ -161,7 +161,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from existing filter components. Use existing createCustomSegment thunk for saving. Keep under 300 lines - split if needed."
     },
     {

@@ -211,3 +211,55 @@
 - Form link built from token returned by sendFormToClient thunk
 - Unused FormTemplate import removed by linter
 
+---
+
+### Iteration 7 - US-022: Add Send Form button to client profile
+**Date:** 2026-01-22
+**Story:** US-022 - Add Send Form button to client profile
+**Status:** COMPLETED
+
+**Changes Made:**
+- Modified `apps/store-app/src/components/client-settings/sections/ProfileSection.tsx`:
+  - Added FormDeliveryModal import
+  - Added FileText icon import from lucide-react
+  - Added showFormDeliveryModal state
+  - Added 'Send Form' button in profile header actions area
+  - Added FormDeliveryModal render with client data
+
+**Files Changed:**
+- `apps/store-app/src/components/client-settings/sections/ProfileSection.tsx` (modified)
+
+**Commit:** b32fc03
+
+**Learnings:**
+- Button placed in profile header stats section for easy access
+- Uses same pattern as other profile modals (BlockClientModal, DataDeletionRequestModal)
+- clientForConsent provides Client type needed by FormDeliveryModal
+
+---
+
+### Iteration 8 - US-023: Create ServiceFormConfig component
+**Date:** 2026-01-22
+**Story:** US-023 - Create ServiceFormConfig component
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/components/services/ServiceFormConfig.tsx` with:
+  - Multi-select dropdown for adding form templates
+  - Selected forms displayed as removable badge chips
+  - Fetches active form templates from Supabase
+  - Info text explaining auto-send behavior
+  - Support disabled state and customizable labels
+- Created `apps/store-app/src/components/services/index.ts` barrel export
+
+**Files Changed:**
+- `apps/store-app/src/components/services/ServiceFormConfig.tsx` (new)
+- `apps/store-app/src/components/services/index.ts` (new)
+
+**Commit:** 1123a5d
+
+**Learnings:**
+- Simple select-based multi-select pattern (add one at a time) is cleaner than complex combobox
+- Badge chips with X button provide clear UX for removal
+- Info icon with help text explains the auto-send behavior
+
