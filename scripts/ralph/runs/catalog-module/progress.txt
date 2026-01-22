@@ -135,9 +135,9 @@ export const entityTable = {
 - [x] US-036: CategoriesSection - skeleton loader ✓
 - [x] US-037: CategoriesSection - keyboard drag-drop ✓
 - [x] US-038: ServicesSection - browser confirm() replaced ✓
-- [ ] US-039: ServicesSection - skeleton loaders
-- [ ] US-040: ServiceActionsDropdown extracted
-- [ ] US-041: PackagesSection - browser confirm() and skeleton
+- [x] US-039: ServicesSection - skeleton loaders ✓
+- [x] US-040: ServiceActionsDropdown extracted ✓
+- [x] US-041: PackagesSection - browser confirm() and skeleton ✓
 - [ ] US-042: ProductsSection - browser confirm() and skeleton
 - [ ] US-043: ProductsSection - barcode display and low stock indicator
 - [ ] US-044: AddOnsSection - browser confirm() and skeleton
@@ -160,7 +160,7 @@ export const entityTable = {
 **Fix Story (US-P3F):**
 - [ ] All Phase 3 Review Issues resolved
 
-- Status: 🔄 IN PROGRESS (8/26 stories complete)
+- Status: 🔄 IN PROGRESS (11/26 stories complete)
 
 ### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
 **Implementation Stories (9):**
@@ -2297,5 +2297,117 @@ Commit: e7b4c79
 - ConfirmDialog automatically closes on successful confirm via onOpenChange callback
 
 **Next story suggestion:** US-039 (Add skeleton loaders to ServicesSection) - Same file is fresh in context, continues ServicesSection improvements
+
+---
+
+## 2026-01-22 - US-039: Add skeleton loaders to ServicesSection
+Commit: c0a62c6
+
+**Why this story?** Highest priority incomplete story (priority 39) in Phase 3. Same file as US-038, continues ServicesSection improvements with code fresh in context.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx`:
+   - Added import for ServiceCardSkeleton and TableRowSkeleton from '../components'
+   - Added isLoading prop to ServicesSectionProps interface (optional, defaults to false)
+   - Added renderSkeletons function that returns appropriate skeletons based on viewMode:
+     - Grid view: 6 ServiceCardSkeleton cards in a 3-column grid
+     - List view: 6 TableRowSkeleton rows with 5 columns each, wrapped in rounded cards
+     - Compact view: 8 TableRowSkeleton rows with 3 columns in a single container
+   - Updated content section to check isLoading first before rendering services or empty state
+
+**Verification:**
+- `pnpm run typecheck` passes ✓ (store-app)
+
+**Learnings:**
+- Grid view uses ServiceCardSkeleton which is designed to match the service card layout
+- List/compact views use TableRowSkeleton with different column counts (5 for list, 3 for compact)
+- List view wraps each skeleton row in a card container to match the actual list view layout
+- Compact view uses a single container with divide-y styling for the skeleton rows
+
+**Next story suggestion:** US-040 (Extract ServiceActionsDropdown component) - Same file is fresh in context, extracts duplicated dropdown logic
+
+---
+
+## 2026-01-22 - US-040: Extract ServiceActionsDropdown component
+Commit: 421b4b3
+
+**Why this story?** Highest priority incomplete story (priority 40) in Phase 3. Same file as US-038/US-039, extracts duplicated dropdown code into a reusable component.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/ServicesSection/components/ServiceActionsDropdown.tsx` (NEW):
+   - Created ServiceActionsDropdown component using Radix DropdownMenu
+   - Props: service, onEdit, onDuplicate, onToggleStatus, onArchive, onDelete, size
+   - size='sm' for grid view (14px icons, p-1.5 button), size='md' for list view (16px icons, p-2 button)
+   - Uses DropdownMenuSeparator before destructive Delete action
+   - Includes aria-label for accessibility
+
+2. `apps/store-app/src/components/menu-settings/sections/ServicesSection/components/index.ts` (NEW):
+   - Barrel export for ServiceActionsDropdown and its props type
+
+3. `apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx`:
+   - Replaced inline dropdown code in grid view (~55 lines) with ServiceActionsDropdown component
+   - Replaced inline dropdown code in list view (~55 lines) with ServiceActionsDropdown component
+   - Removed expandedMenuId state (Radix handles open/close internally)
+   - Removed unused imports: MoreVertical, Trash2, Copy, EyeOff, Eye, Archive
+   - Added handleEditService callback for consistent edit handling
+   - Converted handlers to useCallback: handleOpenDeleteDialog, handleToggleStatus, handleDuplicate, handleOpenArchiveModal
+
+**Acceptance Criteria Verification:**
+- ✅ Create ServicesSection/components/ServiceActionsDropdown.tsx
+- ✅ Move duplicated dropdown logic from grid and list views
+- ✅ Props: service, onEdit, onDuplicate, onArchive, onDelete (also onToggleStatus)
+- ✅ Use DropdownMenu from @/components/ui/dropdown-menu
+- ✅ Replace both inline dropdowns with new component
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- Radix DropdownMenu handles open/close state internally - no need for custom expandedMenuId state
+- Moving from custom dropdown to Radix improves accessibility (proper ARIA, keyboard navigation)
+- The size prop allows adapting icon/button sizes for different contexts (grid vs list)
+- useCallback wrappers are important when handlers are passed to child components
+
+**Patterns to sync:**
+- Pattern #10: Radix DropdownMenu for Actions - Use Radix DropdownMenu instead of custom dropdown menus for better accessibility and less boilerplate
+
+**Next story suggestion:** US-041 (Replace browser confirm() in PackagesSection) - Continues Phase 3 confirm dialog replacement pattern
+
+---
+
+## 2026-01-22 - US-041: Replace browser confirm() in PackagesSection
+Commit: 7bf2ae0
+
+**Why this story?** Highest priority incomplete story (priority 41) in Phase 3. Continues the pattern of replacing browser confirm() dialogs with accessible ConfirmDialog components started in CategoriesSection and ServicesSection.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/PackagesSection.tsx`:
+   - Added imports: useCallback from React, ConfirmDialog, PackageCardSkeleton, TableRowSkeleton
+   - Added isLoading prop to PackagesSectionProps interface (optional, defaults to false)
+   - Added delete confirmation dialog state: deleteDialogOpen, selectedPackageToDelete, isDeleting
+   - Replaced handleDelete with three callbacks using useCallback:
+     - handleOpenDeleteDialog(packageId): Opens dialog and closes dropdown menu
+     - handleConfirmDelete(): Performs delete via onDelete prop with loading state
+     - handleCloseDeleteDialog(open): Closes dialog and clears selected package
+   - Added renderSkeletons() function that returns:
+     - Grid/compact view: 6 PackageCardSkeleton cards in 3-column grid
+     - List view: 6 TableRowSkeleton rows with 5 columns, wrapped in rounded card containers
+   - Updated content section to check isLoading first before rendering packages or empty state
+   - Added ConfirmDialog component at end with:
+     - variant="destructive" for red danger styling
+     - title="Delete Package"
+     - description explaining permanent deletion
+     - isLoading={isDeleting} for button loading state
+
+**Acceptance Criteria Verification:**
+- ✅ Replace confirm() with ConfirmDialog
+- ✅ Add skeleton loader during loading
+- ✅ No browser confirm() calls remain (verified with grep)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- PackagesSection follows same pattern as ServicesSection for ConfirmDialog integration
+- Skeleton rendering logic differs by view mode: grid/compact uses PackageCardSkeleton, list uses TableRowSkeleton wrapped in rounded containers
+- The isLoading prop is optional with default false, allowing gradual migration to loading states
+
+**Next story suggestion:** US-042 (Replace browser confirm() in ProductsSection) - Continues Phase 3 confirm dialog replacement pattern, same file structure
 
 ---

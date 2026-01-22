@@ -17,12 +17,15 @@ import type { Product, CreateProductInput } from '@/types/inventory';
 import type { CatalogViewMode } from '@/types/catalog';
 import { formatPrice } from '../constants';
 import { ProductModal } from '../modals/ProductModal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ProductCardSkeleton } from '../components/skeletons/ProductCardSkeleton';
 
 interface ProductsSectionProps {
   products: Product[];
   productCategories: string[];
   viewMode: CatalogViewMode;
   searchQuery?: string;
+  isLoading?: boolean;
   onCreate?: (data: CreateProductInput) => Promise<Product | null>;
   onUpdate?: (id: string, data: Partial<Product>) => Promise<number | null>;
   onDelete?: (id: string) => Promise<boolean | null>;
@@ -34,6 +37,7 @@ export function ProductsSection({
   productCategories,
   viewMode,
   searchQuery = '',
+  isLoading = false,
   onCreate,
   onUpdate,
   onDelete,
@@ -42,6 +46,9 @@ export function ProductsSection({
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter products
   const filteredProducts = products.filter(product =>
@@ -78,12 +85,23 @@ export function ProductsSection({
     setEditingProduct(undefined);
   };
 
-  // Handle delete
-  const handleDelete = async (productId: string) => {
-    if (confirm('Are you sure you want to delete this product?')) {
-      if (onDelete) {
-        await onDelete(productId);
-      }
+  // Handle delete - opens confirmation dialog
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete action
+  const handleConfirmDelete = async () => {
+    if (!productToDelete || !onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(productToDelete.id);
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -122,6 +140,20 @@ export function ProductsSection({
     if (product.retailPrice <= 0) return 0;
     return Math.round(((product.retailPrice - product.costPrice) / product.retailPrice) * 100);
   };
+
+  // Render Skeleton Loading View
+  const renderSkeletonView = () => (
+    <div className="space-y-6">
+      <div>
+        <div className="h-5 w-32 bg-gray-200 rounded mb-3 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <ProductCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   // Render Grid View
   const renderGridView = () => (
@@ -199,7 +231,7 @@ export function ProductsSection({
                               <hr className="my-1" />
                               <button
                                 onClick={() => {
-                                  handleDelete(product.id);
+                                  handleDeleteClick(product);
                                   setExpandedMenuId(null);
                                 }}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -356,7 +388,7 @@ export function ProductsSection({
                       <hr className="my-1" />
                       <button
                         onClick={() => {
-                          handleDelete(product.id);
+                          handleDeleteClick(product);
                           setExpandedMenuId(null);
                         }}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -400,7 +432,9 @@ export function ProductsSection({
         </div>
 
         {/* Content */}
-        {filteredProducts.length > 0 ? (
+        {isLoading ? (
+          renderSkeletonView()
+        ) : filteredProducts.length > 0 ? (
           viewMode === 'grid' || viewMode === 'compact' ? renderGridView() : renderListView()
         ) : (
           <div className="text-center py-12">
@@ -432,6 +466,19 @@ export function ProductsSection({
         product={editingProduct}
         categories={productCategories}
         onSave={handleSaveProduct}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Product"
+        description={`Are you sure you want to delete "${productToDelete?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
       />
     </div>
   );
