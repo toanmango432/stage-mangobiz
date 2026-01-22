@@ -482,7 +482,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "Follow same pattern as categories. Services have more methods."
     },
     {
@@ -502,7 +502,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "Complete Supabase routing - data layer fully functional with Supabase support."
     },
     {

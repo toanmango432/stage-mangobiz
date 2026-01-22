@@ -107,7 +107,12 @@ export const entityTable = {
 - [x] US-022: Booking sequence CRUD in IndexedDB ✓
 - [x] US-023: Product restore method ✓
 - [x] US-024: getByBarcode fixed for multi-tenant ✓
-- [ ] US-025: Supabase routing in catalogDataService
+- [x] US-025: Supabase routing in catalogDataService (categories) ✓
+- [x] US-026: Supabase routing in catalogDataService (menu services) ✓
+- [x] US-027: Supabase routing for remaining services ✓
+- [ ] US-028: Booking sequence CRUD in useCatalog hook
+- [ ] US-029: tenantId handling in useCatalog
+- [ ] US-030: Product restore in useCatalog
 - [ ] `pnpm test --run` passes
 
 **Review Story (US-P2R):**
@@ -117,7 +122,7 @@ export const entityTable = {
 **Fix Story (US-P2F):**
 - [ ] All Phase 2 Review Issues resolved
 
-- Status: In Progress (3/11 stories complete)
+- Status: In Progress (6/11 stories complete)
 
 ### Phase 3: UI Components (US-031 to US-054 + US-P3R + US-P3F) - 26 stories
 **Implementation Stories (24):**
@@ -1567,5 +1572,109 @@ Commit: 8c3f3c7
 - Pattern #14: Supabase Routing in DataService - When adding Supabase path to data services, use opt-in flag (VITE_USE_SUPABASE), check online status, and apply type adapters to convert rows to app types
 
 **Next story suggestion:** US-026 (Add Supabase routing for menu services) - Same file, continues Phase 2 data layer work
+
+---
+
+## 2026-01-22 - US-026: Add Supabase routing for menu services in catalogDataService.ts
+Commit: ddd6fd1
+
+**Why this story?** Highest priority incomplete story (priority 26) in Phase 2 with no dependencies. Continues the Supabase routing work from US-025 in the same file (catalogDataService.ts is fresh in context).
+
+**Changes:**
+1. `apps/store-app/src/services/domain/catalogDataService.ts`:
+   - Added imports for menuServicesTable and menuServiceAdapter functions (lines 25, 32-37)
+   - Added MenuService and CreateMenuServiceInput type imports (lines 67-68)
+   - Updated menuServicesService with Supabase routing (lines 361-584):
+     - `getAll()`: Added Supabase path with proper return type `Promise<MenuService[]>`
+     - `getById()`: Added Supabase path with return type `Promise<MenuService | undefined>`
+     - `getByCategoryId()`: Added Supabase path (renamed from getByCategory for clarity)
+     - `create()`: Added Supabase path with toMenuServiceInsert adapter
+     - `update()`: Added Supabase path with toMenuServiceUpdate adapter
+     - `delete()`: Added Supabase path using soft delete with tombstone
+     - `archive()`: NEW method - archives a service (sets status='archived')
+     - `restore()`: NEW method - restores an archived service
+     - `search()`: Added Supabase path with limit parameter
+     - `getUpdatedSince()`: NEW method - gets services updated after timestamp for sync
+     - `getOnlineBookingServices()`: NEW method - gets services available for online booking
+     - `getServicesWithVariants()`: NEW method - gets services with hasVariants=true
+     - `getArchivedServices()`: NEW method - gets archived services only
+
+**Acceptance Criteria Verification:**
+- ✅ Supabase path added to all methods: getAll, getById, getByCategoryId, create, update, delete, archive, restore, search
+- ✅ Uses menuServicesTable from @/services/supabase/tables/menuServicesTable
+- ✅ Uses menuServiceAdapter functions (toMenuService, toMenuServices, toMenuServiceInsert, toMenuServiceUpdate)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- menuServicesDB.restore() requires userId parameter - different from Supabase which doesn't require it
+- Added 4 new utility methods (getUpdatedSince, getOnlineBookingServices, getServicesWithVariants, getArchivedServices) that leverage Supabase's built-in methods
+- For SQLite path fallbacks where methods don't exist (like restore), return undefined gracefully
+
+**Next story suggestion:** US-027 (Add Supabase routing for remaining services) - Same file, completes the data layer Supabase routing
+
+---
+
+## 2026-01-22 - US-027: Add Supabase routing for remaining services in catalogDataService.ts
+Commit: f49468e
+
+**Why this story?** Highest priority incomplete story (priority 27) with no explicit dependencies. US-025 and US-026 just completed Supabase routing for categories and menu services - the file is fresh in context, making US-027 the most efficient choice.
+
+**Changes:**
+1. `apps/store-app/src/services/domain/catalogDataService.ts`:
+   - Added imports for all remaining Supabase tables (lines 27-33):
+     - serviceVariantsTable, servicePackagesTable
+     - addOnGroupsTable, addOnOptionsTable
+     - staffServiceAssignmentsTable
+     - catalogSettingsTable, productsTable
+   - Added imports for all remaining adapters (lines 52-82):
+     - serviceVariantAdapter (toServiceVariant, toServiceVariants, toServiceVariantInsert, toServiceVariantUpdate)
+     - servicePackageAdapter (toServicePackage, toServicePackages, etc.)
+     - addOnGroupAdapter, addOnOptionAdapter
+     - staffServiceAssignmentAdapter
+     - catalogSettingsAdapter
+     - productAdapter
+   - Added type imports for ServiceVariant, ServicePackage, StaffServiceAssignment, CatalogSettings, Product (lines 115-131)
+   - Added CreateProductInput type definition (lines 133-151)
+   - Updated **serviceVariantsService** (~lines 600-750):
+     - Full Supabase routing with SQLite/Supabase/Dexie paths
+     - Added getDefaultVariant(), getUpdatedSince() helper methods
+   - Updated **servicePackagesService** (~lines 760-920):
+     - Full Supabase routing with all CRUD operations
+     - Added search(), getOnlineBookingPackages(), getUpdatedSince() helpers
+   - Updated **addOnGroupsService** (~lines 930-1100):
+     - Full Supabase routing with all CRUD operations
+     - Added getForService(), getOnlineBookingGroups(), search(), getUpdatedSince()
+   - Updated **addOnOptionsService** (~lines 1110-1270):
+     - Full Supabase routing with all CRUD operations
+     - Added getByGroupIds(), search(), getUpdatedSince()
+   - Updated **staffServiceAssignmentsService** (~lines 1280-1490):
+     - Full Supabase routing with proper parameter ordering
+     - Added getByStaffAndService(), getStaffIdsForService(), getServiceIdsForStaff(), getUpdatedSince()
+   - Updated **catalogSettingsService** (~lines 1500-1630):
+     - Full Supabase routing including getOrCreate()
+     - Added isFeatureEnabled() helper
+   - Updated **productsService** (~lines 1640-1870):
+     - Full Supabase routing with all existing methods
+     - Added archive(), restore(), getUpdatedSince(), search()
+     - Fixed return type issue in update() - Dexie returns count, now fetches updated record
+
+**Acceptance Criteria Verification:**
+- ✅ Add Supabase paths to serviceVariantsService - DONE (all methods routed)
+- ✅ Add Supabase paths to servicePackagesService - DONE (all methods routed)
+- ✅ Add Supabase paths to addOnGroupsService, addOnOptionsService - DONE (all methods routed)
+- ✅ Add Supabase paths to staffServiceAssignmentsService - DONE (all methods routed)
+- ✅ Add Supabase paths to catalogSettingsService - DONE (all methods routed)
+- ✅ Add Supabase paths to productsService - DONE (all methods routed)
+- ⚠️ Add Supabase paths to giftCardDenominationsService, giftCardSettingsService - SKIPPED (no Supabase tables exist yet)
+- ✅ Remove 'as unknown' type casts - DONE (using proper types from adapters)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- Dexie productsDB.update() returns Promise<number> (count), not the updated record. Fixed by fetching after update.
+- Dexie catalogSettingsDB doesn't have create() - uses getOrCreate() instead.
+- Product type is in types/inventory.ts, not types/catalog.ts - needed separate import.
+- Gift card services (giftCardDenominationsService, giftCardSettingsService) don't have Supabase tables yet - those would be future work.
+
+**Next story suggestion:** US-028 (Add booking sequence CRUD to useCatalog hook) - Continues Phase 2 data layer work.
 
 ---
