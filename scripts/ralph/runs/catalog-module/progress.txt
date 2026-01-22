@@ -3159,3 +3159,46 @@ Commit: 4cae1da
 **Next story suggestion:** US-057 (Update useCheckoutServices to load variants and add-ons) - Required to integrate VariantSelector/AddOnSelector into checkout flow
 
 ---
+
+## 2026-01-22 - US-057: Update useCheckoutServices to load variants and add-ons
+Commit: bdf6ab5
+
+**Why this story?** US-057 is the highest priority incomplete story (priority 57) with no unmet dependencies. US-055 (VariantSelector) and US-056 (AddOnSelector) were just completed, and US-057 creates the hook that makes these components available in the checkout flow. US-058 and US-059 depend on this.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/hooks/useCheckoutServices.ts`:
+  - Extended hook to load service variants via serviceVariantsService.getByService()
+  - Load applicable add-on groups per service via addOnGroupsService.getForService()
+  - Load options for each add-on group via addOnOptionsService.getByGroup()
+  - Apply staff price/duration overrides when staffId is provided
+  - Created CheckoutServiceWithVariants interface extending MenuServiceWithEmbeddedVariants
+  - Added effectivePrice, effectiveDuration, hasStaffOverride fields for override tracking
+  - Added category field alias (points to categoryName) for backwards compatibility
+  - Added addOnGroupsByService map (Map<string, CheckoutAddOnGroup[]>) with loaded options
+  - Added CheckoutAddOnGroup interface (AddOnGroup with options array)
+  - Added UseCheckoutServicesOptions interface for staffId and includeArchived options
+  - Added isLoading and error states for async data loading
+  - Added useCheckoutServicesLegacy() for callers needing old CheckoutService interface
+  - Mapped extraTime to processingTime for UI compatibility
+
+**Acceptance Criteria Verification:**
+- ✅ Load service variants along with services - useEffect loads variants for services with hasVariants=true
+- ✅ Load applicable add-on groups for each service - useEffect loads groups via getForService() and options
+- ✅ Apply staff price/duration overrides when staff is selected - staffServiceAssignmentsService.getByStaff() + assignment lookup
+- ✅ Return services with embedded variants (MenuServiceWithEmbeddedVariants[]) - CheckoutServiceWithVariants extends MenuServiceWithEmbeddedVariants
+- ✅ pnpm run typecheck passes - store-app compiles with no errors
+
+**Browser Verification:** N/A (hook implementation, not UI component)
+
+**Learnings:**
+- Backwards compatibility is critical - existing ServiceGrid uses `category` field, added alias to new interface
+- MenuService has `extraTime`, but MenuServiceWithEmbeddedVariants has `processingTime` - mapped accordingly
+- Add-on loading can fail silently since checkout can proceed without add-ons
+- Staff assignment loading can also fail silently - checkout proceeds without overrides
+
+**Patterns to sync:**
+- Pattern #21: Hook Backwards Compatibility - When extending hook return types, add field aliases for existing consumers. Use separate legacy wrapper for complete backwards compatibility.
+
+**Next story suggestion:** US-058 (Integrate VariantSelector into ServiceGrid) - Depends on this story, uses CheckoutServiceWithVariants.variants for variant display
+
+---

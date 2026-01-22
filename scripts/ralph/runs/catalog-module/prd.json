@@ -992,7 +992,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 57,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/checkout/hooks/useCheckoutServices.ts"
     },
     {
