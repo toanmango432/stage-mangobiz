@@ -4,7 +4,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { BookingFormData } from '@/types/booking';
 import { cn } from '@/lib/utils';
-import { generateMockStaff } from '@/lib/mockData';
 import { IMAGES } from '@/lib/images';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -51,8 +50,8 @@ export const TechnicianSelectionSection = ({ formData, updateFormData }: Technic
       daysOff: [] as string[],
     }];
 
+    // Use real staff data from Supabase (no mock fallback)
     if (staffData && staffData.length > 0) {
-      // Use real staff data
       const realStaff = staffData.slice(0, 8).map((staff, idx) => ({
         id: staff.id,
         name: staff.fullName,
@@ -67,30 +66,8 @@ export const TechnicianSelectionSection = ({ formData, updateFormData }: Technic
       return [...baseList, ...realStaff];
     }
 
-    // Fallback to mock data
-    const mockStaff = generateMockStaff();
-    const mockStaffList = mockStaff.slice(0, 4).map((staff, idx) => {
-      const workingHours: Record<string, { start: string; end: string }> = {};
-      Object.entries(staff.availability).forEach(([day, slots]) => {
-        if (slots.length > 0) {
-          workingHours[day] = slots[0];
-        }
-      });
-
-      return {
-        id: staff.id,
-        name: staff.name,
-        title: staff.role,
-        avatar: STAFF_AVATARS[idx] || '',
-        initials: staff.name.split(' ').map(n => n[0]).join(''),
-        rating: staff.rating,
-        specialties: staff.services,
-        workingHours,
-        daysOff: [],
-      };
-    });
-
-    return [...baseList, ...mockStaffList];
+    // Return just "Next Available" if no staff available
+    return baseList;
   }, [staffData]);
 
   // Loading state

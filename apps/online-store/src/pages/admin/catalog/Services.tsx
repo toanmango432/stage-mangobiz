@@ -8,7 +8,7 @@ import { Service } from "@/types/catalog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { generateMockServices } from "@/lib/mockData";
+import { getServices } from "@/lib/services/catalogSyncService";
 
 export default function Services() {
   const navigate = useNavigate();
@@ -19,15 +19,20 @@ export default function Services() {
   const [sortValue, setSortValue] = useState("name");
 
   useEffect(() => {
-    const stored = localStorage.getItem("catalog_services");
-    if (stored) {
-      setServices(JSON.parse(stored) as Service[]);
-    } else {
-      // Initialize with 40 nail salon services
-      const mockServices = generateMockServices() as Service[];
-      localStorage.setItem("catalog_services", JSON.stringify(mockServices));
-      setServices(mockServices);
-    }
+    const loadServices = async () => {
+      try {
+        // Load services from Supabase via catalogSyncService
+        const storeId = localStorage.getItem('storeId') || '';
+        const loadedServices = await getServices(storeId);
+        setServices(loadedServices);
+      } catch (error) {
+        console.error('Failed to load services:', error);
+        toast.error('Failed to load services');
+        setServices([]);
+      }
+    };
+
+    loadServices();
   }, []);
 
   const saveServices = (updatedServices: Service[]) => {
