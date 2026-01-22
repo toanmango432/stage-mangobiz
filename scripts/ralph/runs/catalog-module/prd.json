@@ -743,7 +743,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 42,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/ProductsSection.tsx"
     },
     {
@@ -758,7 +758,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 43,
-      "passes": false,
+      "passes": true,
       "notes": "minStockLevel exists in Product type. Check against current stock."
     },
     {

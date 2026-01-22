@@ -12,8 +12,10 @@ import {
   Package,
   Barcode,
   Tag,
+  AlertTriangle,
+  ShoppingCart,
 } from 'lucide-react';
-import type { Product, CreateProductInput } from '@/types/inventory';
+import type { Product, CreateProductInput, InventoryLevel } from '@/types/inventory';
 import type { CatalogViewMode } from '@/types/catalog';
 import { formatPrice } from '../constants';
 import { ProductModal } from '../modals/ProductModal';
@@ -26,6 +28,8 @@ interface ProductsSectionProps {
   viewMode: CatalogViewMode;
   searchQuery?: string;
   isLoading?: boolean;
+  /** Inventory levels by product ID - enables low stock indicators */
+  inventoryLevels?: Map<string, InventoryLevel>;
   onCreate?: (data: CreateProductInput) => Promise<Product | null>;
   onUpdate?: (id: string, data: Partial<Product>) => Promise<number | null>;
   onDelete?: (id: string) => Promise<boolean | null>;
@@ -38,6 +42,7 @@ export function ProductsSection({
   viewMode,
   searchQuery = '',
   isLoading = false,
+  inventoryLevels,
   onCreate,
   onUpdate,
   onDelete,
@@ -139,6 +144,22 @@ export function ProductsSection({
   const getMargin = (product: Product) => {
     if (product.retailPrice <= 0) return 0;
     return Math.round(((product.retailPrice - product.costPrice) / product.retailPrice) * 100);
+  };
+
+  // Check if product is low stock
+  const isLowStock = (product: Product): boolean => {
+    const level = inventoryLevels?.get(product.id);
+    if (level) {
+      // Use inventory level data if available
+      return level.quantityAvailable < product.minStockLevel;
+    }
+    return false;
+  };
+
+  // Get stock quantity for display
+  const getStockQuantity = (product: Product): number | undefined => {
+    const level = inventoryLevels?.get(product.id);
+    return level?.quantityAvailable;
   };
 
   // Render Skeleton Loading View
@@ -244,19 +265,36 @@ export function ProductsSection({
                       </div>
                     </div>
 
-                    {/* SKU and Stock */}
-                    <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-                      <span className="flex items-center gap-1">
-                        <Barcode size={14} />
+                    {/* SKU, Barcode, and Stock */}
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-3">
+                      <span className="flex items-center gap-1" title="SKU">
+                        <Tag size={14} />
                         {product.sku}
                       </span>
-                      {product.size && (
-                        <span className="text-gray-400">|</span>
+                      {product.barcode && (
+                        <>
+                          <span className="text-gray-400">|</span>
+                          <span className="flex items-center gap-1" title="Barcode">
+                            <Barcode size={14} />
+                            {product.barcode}
+                          </span>
+                        </>
                       )}
                       {product.size && (
-                        <span>{product.size}</span>
+                        <>
+                          <span className="text-gray-400">|</span>
+                          <span>{product.size}</span>
+                        </>
                       )}
                     </div>
+
+                    {/* Low Stock Warning */}
+                    {isLowStock(product) && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-medium mb-3">
+                        <AlertTriangle size={14} />
+                        Low Stock ({getStockQuantity(product)} left)
+                      </div>
+                    )}
 
                     {/* Pricing */}
                     <div className="flex items-end justify-between pt-3 border-t border-gray-100">
@@ -273,7 +311,7 @@ export function ProductsSection({
                     <div className="flex items-center gap-2 mt-3">
                       {product.isRetail && (
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full flex items-center gap-1">
-                          <Tag size={12} /> Retail
+                          <ShoppingCart size={12} /> Retail
                         </span>
                       )}
                       {product.isBackbar && (
@@ -320,6 +358,12 @@ export function ProductsSection({
                       Inactive
                     </span>
                   )}
+                  {isLowStock(product) && (
+                    <span className="px-2 py-0.5 bg-red-50 text-red-600 text-xs rounded-full flex items-center gap-1">
+                      <AlertTriangle size={12} />
+                      Low Stock
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-500">
                   {product.brand ? `${product.brand} • ` : ''}{product.category}
@@ -331,6 +375,14 @@ export function ProductsSection({
                 <p className="text-sm font-medium text-gray-900">{product.sku}</p>
                 <p className="text-xs text-gray-500">SKU</p>
               </div>
+
+              {/* Barcode */}
+              {product.barcode && (
+                <div className="text-center px-4 hidden lg:block">
+                  <p className="text-sm font-medium text-gray-900">{product.barcode}</p>
+                  <p className="text-xs text-gray-500">Barcode</p>
+                </div>
+              )}
 
               {/* Cost */}
               <div className="text-center px-4 hidden md:block">

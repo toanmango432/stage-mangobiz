@@ -138,8 +138,8 @@ export const entityTable = {
 - [x] US-039: ServicesSection - skeleton loaders ✓
 - [x] US-040: ServiceActionsDropdown extracted ✓
 - [x] US-041: PackagesSection - browser confirm() and skeleton ✓
-- [ ] US-042: ProductsSection - browser confirm() and skeleton
-- [ ] US-043: ProductsSection - barcode display and low stock indicator
+- [x] US-042: ProductsSection - browser confirm() and skeleton ✓
+- [x] US-043: ProductsSection - barcode display and low stock indicator ✓
 - [ ] US-044: AddOnsSection - browser confirm() and skeleton
 - [ ] US-045: StaffPermissionsSection - batch save error handling
 - [ ] US-046: MenuGeneralSettingsSection - validation
@@ -160,7 +160,7 @@ export const entityTable = {
 **Fix Story (US-P3F):**
 - [ ] All Phase 3 Review Issues resolved
 
-- Status: 🔄 IN PROGRESS (11/26 stories complete)
+- Status: 🔄 IN PROGRESS (13/26 stories complete)
 
 ### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
 **Implementation Stories (9):**
@@ -2409,5 +2409,80 @@ Commit: 7bf2ae0
 - The isLoading prop is optional with default false, allowing gradual migration to loading states
 
 **Next story suggestion:** US-042 (Replace browser confirm() in ProductsSection) - Continues Phase 3 confirm dialog replacement pattern, same file structure
+
+---
+
+## 2026-01-22 - US-042: Replace browser confirm() in ProductsSection
+Commit: d50de99
+
+**Why this story?** Highest priority incomplete story (priority 42) in Phase 3. Continues the pattern of replacing browser confirm() dialogs with accessible ConfirmDialog components.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/ProductsSection.tsx`:
+   - Added imports: ConfirmDialog, ProductCardSkeleton
+   - Added isLoading prop to ProductsSectionProps interface (optional, defaults to false)
+   - Added delete confirmation dialog state: deleteDialogOpen, productToDelete, isDeleting
+   - Replaced handleDelete with two functions:
+     - handleDeleteClick(product): Opens dialog with the product to delete
+     - handleConfirmDelete(): Performs delete via onDelete prop with loading state
+   - Added renderSkeletonView() function that shows 6 ProductCardSkeleton cards in 3-column grid
+   - Updated content section to check isLoading first before rendering products or empty state
+   - Added ConfirmDialog component at end with:
+     - variant="destructive" for red danger styling
+     - title="Delete Product"
+     - description showing the product name to be deleted
+     - isLoading={isDeleting} for button loading state
+
+**Acceptance Criteria Verification:**
+- ✅ Replace confirm() with ConfirmDialog
+- ✅ Add skeleton loader during loading
+- ✅ No browser confirm() calls remain (verified with grep)
+- ✅ pnpm run typecheck passes (store-app)
+
+**Learnings:**
+- ProductsSection follows same pattern as PackagesSection for ConfirmDialog integration
+- ProductCardSkeleton already exists and matches the product card layout well
+- Including the product name in the delete confirmation helps users confirm they're deleting the right item
+
+**Next story suggestion:** US-043 (Add barcode display and low stock indicator to ProductsSection) - Same file is fresh in context, enhances product display
+
+---
+
+## 2026-01-22 - US-043: Add barcode display and low stock indicator to ProductsSection
+Commit: d9dc460
+
+**Why this story?** Highest priority incomplete story (priority 43) in Phase 3. Same file as US-042 is fresh in context, enhances product display with barcode and stock information.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/ProductsSection.tsx`:
+   - Added imports: AlertTriangle, ShoppingCart icons, InventoryLevel type
+   - Added optional `inventoryLevels` prop (Map<string, InventoryLevel>) for stock data integration
+   - Added helper functions:
+     - `isLowStock(product)`: Checks if quantityAvailable < minStockLevel from inventory levels
+     - `getStockQuantity(product)`: Returns quantityAvailable from inventory levels
+   - **Grid View enhancements:**
+     - Now shows both SKU (with Tag icon) and barcode (with Barcode icon) when barcode exists
+     - Added Low Stock warning box with red background and AlertTriangle icon showing remaining quantity
+     - Changed Retail tag to use ShoppingCart icon (Tag icon now used for SKU)
+   - **List View enhancements:**
+     - Added Low Stock badge next to product name when low stock
+     - Added Barcode column (visible on lg+ screens) showing barcode value
+
+**Acceptance Criteria Verification:**
+- ✅ Display barcode field in product list/grid view
+- ✅ Add low stock badge when quantity < minStockLevel (via inventoryLevels prop)
+- ✅ Badge shows red warning icon and 'Low Stock' text
+- ✅ pnpm run typecheck passes (store-app)
+
+**Learnings:**
+- The Product type has minStockLevel but not actual quantity - requires InventoryLevel data from separate source
+- Added inventoryLevels prop as Map<string, InventoryLevel> so components can pass stock data when available
+- Low stock check returns false when no inventory data is provided, enabling gradual integration
+- Barcode display is conditional on product.barcode existence (optional field)
+
+**Patterns to sync:**
+- Pattern: Inventory Level Integration - Use optional `inventoryLevels?: Map<productId, InventoryLevel>` prop to decouple stock data from catalog data, enabling gradual integration
+
+**Next story suggestion:** US-044 (Replace browser confirm() in AddOnsSection) - Continues Phase 3 confirm dialog replacement pattern
 
 ---
