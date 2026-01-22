@@ -27,6 +27,7 @@ import {
   MoreVertical,
   Trash2,
   User,
+  Plus,
 } from 'lucide-react';
 import { SERVICE_STATUS_COLORS } from '../constants';
 import type { ServiceSectionProps, TicketService } from '../types';
@@ -79,6 +80,23 @@ export default function ServiceSection({
     }).format(price);
   };
 
+  /**
+   * Calculate total price including add-ons
+   * The service.price should already include add-ons if they were selected,
+   * but we display add-on breakdown separately for clarity.
+   */
+  const getAddOnTotal = (service: TicketService): number => {
+    if (!service.addOns || service.addOns.length === 0) return 0;
+    return service.addOns.reduce((sum, addOn) => sum + addOn.price, 0);
+  };
+
+  /**
+   * Get the base service price (total minus add-ons)
+   */
+  const getBasePrice = (service: TicketService): number => {
+    return service.price - getAddOnTotal(service);
+  };
+
   if (services.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground p-8">
@@ -105,6 +123,11 @@ export default function ServiceSection({
                 <div className="flex items-center gap-2">
                   <h4 className="font-medium text-sm truncate">
                     {service.serviceName || service.name}
+                    {service.variantName && (
+                      <span className="text-muted-foreground ml-1">
+                        ({service.variantName})
+                      </span>
+                    )}
                   </h4>
                   <Badge
                     variant="secondary"
@@ -114,6 +137,26 @@ export default function ServiceSection({
                     <span className="ml-1 capitalize">{service.status.replace('_', ' ')}</span>
                   </Badge>
                 </div>
+
+                {/* Display selected add-ons */}
+                {service.addOns && service.addOns.length > 0 && (
+                  <div className="mt-1.5 pl-2 border-l-2 border-muted">
+                    {service.addOns.map((addOn) => (
+                      <div
+                        key={addOn.optionId}
+                        className="flex items-center justify-between text-xs text-muted-foreground py-0.5"
+                      >
+                        <span className="flex items-center gap-1">
+                          <Plus className="h-2.5 w-2.5" />
+                          {addOn.name}
+                        </span>
+                        <span className="ml-2 text-foreground/70">
+                          {formatPrice(addOn.price)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {service.staffName && (
                   <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
@@ -130,9 +173,18 @@ export default function ServiceSection({
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">
-                  {formatPrice(service.price)}
-                </span>
+                <div className="text-right">
+                  {/* Show total price */}
+                  <span className="font-medium text-sm">
+                    {formatPrice(service.price)}
+                  </span>
+                  {/* Show base price if add-ons exist */}
+                  {service.addOns && service.addOns.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Base: {formatPrice(getBasePrice(service))}
+                    </p>
+                  )}
+                </div>
 
                 {getNextStatus(service.status) && (
                   <Button

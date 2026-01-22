@@ -20,6 +20,18 @@ export interface StaffMember {
   isAvailable?: boolean;
 }
 
+/**
+ * Selected add-on on a ticket service
+ * Same structure as SelectedAddOn from AddOnSelector
+ */
+export interface TicketServiceAddOn {
+  optionId: string;
+  groupId: string;
+  name: string;
+  price: number;
+  duration: number;
+}
+
 // Service on a ticket
 export interface TicketService {
   id: string;
@@ -42,6 +54,12 @@ export interface TicketService {
   notes?: string;
   /** Indicates if this service is from an archived catalog item */
   isArchived?: boolean;
+  /** Selected add-ons for this service */
+  addOns?: TicketServiceAddOn[];
+  /** Variant ID if a variant was selected */
+  variantId?: string;
+  /** Variant name for display */
+  variantName?: string;
 }
 
 // Product on a ticket
