@@ -303,3 +303,51 @@
 
 ---
 
+### Iteration 7 - US-009: Create DataDeletionRequestModal component
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/components/clients/DataDeletionRequestModal.tsx`
+
+**Changes Made:**
+1. Created DataDeletionRequestModal component following MergeClientsModal pattern:
+   - Uses Dialog from @/components/ui/dialog
+   - Red color scheme for destructive action
+   - AlertTriangle icon for warnings
+
+2. Warning and Confirmation:
+   - Prominent red warning banner: "This action cannot be undone!"
+   - Requires typing "DELETE" to confirm (case-insensitive, converts to uppercase)
+   - Shows client name and summary information
+
+3. Data Impact Display (two columns):
+   - "Will Be Anonymized/Removed": name, email, phone, profiles, notes, forms
+   - "Will Be Preserved": transactions, visit stats, loyalty, membership, gift cards
+
+4. States:
+   - Default: shows warning, data impact, confirmation input
+   - Processing: spinner and disabled inputs
+   - Success: green checkmark with completion message
+   - Error: red banner with error details
+
+5. Integration:
+   - Calls `processDataDeletion` thunk with confirmed=true
+   - Uses `selectMemberId` and `selectCurrentUser` for audit trail
+   - `onDeletionComplete` callback for parent to handle post-deletion
+   - Optional `request` prop to link to data request record
+
+**Implementation Details:**
+- Follows MergeClientsModal.tsx pattern exactly for dialog structure
+- Uses lucide-react icons: AlertTriangle, Trash2, Shield, FileText, CheckCircle, XCircle
+- Success state auto-closes after 1.5 seconds
+- Lists all data categories from process-data-deletion Edge Function
+
+**Learnings:**
+- Dialog component from ui/ handles open/close state properly
+- Reusing patterns from MergeClientsModal ensures consistency
+- Success state delay gives user visual confirmation before close
+- Separating anonymized vs preserved data helps user understand GDPR compliance
+
+---
+

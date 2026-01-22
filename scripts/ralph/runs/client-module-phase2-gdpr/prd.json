@@ -161,7 +161,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from MergeClientsModal.tsx for confirmation flow. Use AlertTriangle icon for warnings. Red color scheme for destructive action."
     },
     {
