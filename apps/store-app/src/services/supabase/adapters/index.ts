@@ -110,3 +110,19 @@ export {
   toServicePackageInsert,
   toServicePackageUpdate,
 } from './servicePackageAdapter';
+
+// AddOnGroup adapters
+export {
+  toAddOnGroup,
+  toAddOnGroups,
+  toAddOnGroupInsert,
+  toAddOnGroupUpdate,
+} from './addOnGroupAdapter';
+
+// AddOnOption adapters
+export {
+  toAddOnOption,
+  toAddOnOptions,
+  toAddOnOptionInsert,
+  toAddOnOptionUpdate,
+} from './addOnOptionAdapter';
