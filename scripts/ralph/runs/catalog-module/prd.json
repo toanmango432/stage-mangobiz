@@ -434,7 +434,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "Products have archive but no restore currently."
     },
     {
@@ -451,7 +451,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/services/domain/catalogDataService.ts. CRITICAL security fix."
     },
     {
@@ -467,7 +467,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Add Supabase routing incrementally. This story does categories only."
     },
     {

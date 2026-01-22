@@ -411,3 +411,73 @@ async getOrCreate(storeId: string, tenantId: string, userId?: string, deviceId?:
 }
 ```
 **Why:** Settings tables have UNIQUE constraint on store_id. Default to enabled/permissive values so new stores work out-of-the-box. Include audit trail from creation.
+
+### Multi-Tenant Data Access Audit
+When adding lookup methods (getByBarcode, getBySku, getByEmail, etc.), verify ALL data paths include tenant isolation:
+
+```typescript
+// WRONG - Missing tenant isolation (security vulnerability)
+async getByBarcode(barcode: string): Promise<Product | undefined> {
+  return this.findOneWhere('barcode = ?', [barcode]);
+}
+
+// CORRECT - Multi-tenant isolation enforced
+async getByBarcode(storeId: string, barcode: string): Promise<Product | undefined> {
+  return this.findOneWhere('store_id = ? AND barcode = ?', [storeId, barcode]);
+}
+```
+
+**Check ALL data paths:**
+- SQLite path (ProductSQLiteService)
+- IndexedDB path (Dexie productsDB)
+- Supabase path (productsTable)
+
+**Why:** Without storeId filter, lookup methods could return data from other tenants - a critical security vulnerability. All data access must be scoped to the current tenant.
+
+### Supabase Routing in Data Services
+When adding Supabase path to data services, use opt-in flag, check online status, and apply type adapters:
+
+```typescript
+// Feature flag for Supabase routing
+function shouldUseSupabase(): boolean {
+  // Skip if SQLite is enabled (Electron local-first)
+  if (USE_SQLITE) return false;
+
+  // Opt-in via environment variable
+  if (import.meta.env.VITE_USE_SUPABASE !== 'true') return false;
+
+  // Only when online
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+
+  return true;
+}
+
+const USE_SUPABASE = shouldUseSupabase();
+
+// Service method with Supabase routing
+export const categoryService = {
+  async getAll(storeId: string): Promise<Category[]> {
+    // SQLite path (Electron)
+    if (USE_SQLITE) {
+      const result = await sqliteCategoriesDB.getAll(storeId);
+      return result as Category[];
+    }
+
+    // Supabase path (online-only with opt-in)
+    if (USE_SUPABASE) {
+      const rows = await categoriesTable.getByStoreId(storeId);
+      return toCategories(rows);  // Apply adapter
+    }
+
+    // Dexie path (default local-first)
+    return categoriesDB.getAll(storeId);
+  },
+};
+```
+
+**Routing Priority:**
+1. SQLite (if USE_SQLITE=true, Electron only)
+2. Supabase (if USE_SUPABASE=true and online)
+3. Dexie/IndexedDB (default local-first storage)
+
+**Why:** Local-first is the default behavior. Supabase routing is opt-in for online-only devices that don't need offline support. Type adapters ensure consistent camelCase types regardless of data source.

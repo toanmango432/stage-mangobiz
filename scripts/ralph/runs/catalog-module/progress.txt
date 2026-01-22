@@ -105,8 +105,8 @@ export const entityTable = {
 ### Phase 2: Data Layer (US-022 to US-030 + US-P2R + US-P2F) - 11 stories
 **Implementation Stories (9):**
 - [x] US-022: Booking sequence CRUD in IndexedDB ✓
-- [ ] US-023: Product restore method
-- [ ] US-024: getByBarcode fixed for multi-tenant
+- [x] US-023: Product restore method ✓
+- [x] US-024: getByBarcode fixed for multi-tenant ✓
 - [ ] US-025: Supabase routing in catalogDataService
 - [ ] `pnpm test --run` passes
 
@@ -117,7 +117,7 @@ export const entityTable = {
 **Fix Story (US-P2F):**
 - [ ] All Phase 2 Review Issues resolved
 
-- Status: In Progress (1/11 stories complete)
+- Status: In Progress (3/11 stories complete)
 
 ### Phase 3: UI Components (US-031 to US-054 + US-P3R + US-P3F) - 26 stories
 **Implementation Stories (24):**
@@ -1448,5 +1448,124 @@ Commit: aade17f
 - Follows same pattern as other catalog DB objects (createBaseSyncableDefaults, version incrementing)
 
 **Next story suggestion:** US-023 (Add product restore method to catalogDatabase.ts) - Same file, continues Data Layer work
+
+---
+
+## 2026-01-21 - US-023: Add product restore method to catalogDatabase.ts
+Commit: dce5500
+
+**Why this story?** Highest priority incomplete story (priority 23) in Phase 2. Same file as US-022 (catalogDatabase.ts is fresh in context), continues Data Layer work.
+
+**Changes:**
+1. `apps/store-app/src/db/catalogDatabase.ts`:
+   - Added `restore(id, userId, deviceId)` method to productsDB (lines 953-981)
+   - Method retrieves product by ID, validates existence
+   - Sets isActive=true, isDeleted=false (reverses archive/soft delete)
+   - Increments version (product.version + 1)
+   - Updates vectorClock with new version keyed by deviceId
+   - Sets syncStatus to 'local' for sync propagation
+   - Includes full audit trail: lastModifiedBy, lastModifiedByDevice, updatedAt
+
+**Verification:**
+- `pnpm run typecheck` passes for store-app ✓
+- Pre-existing test failures in other packages (not from this change)
+
+**Learnings:**
+- productsDB already had archive() that sets isActive=false, but no restore()
+- Following the pattern from menuServicesDB.restore() which clears archivedAt/archivedBy
+- Product restore is simpler since products use isActive flag rather than status enum
+
+**Next story suggestion:** US-024 (Fix getByBarcode multi-tenant isolation in catalogDataService.ts) - Same module, security-critical fix
+
+---
+
+## 2026-01-21 - US-024: Fix getByBarcode multi-tenant isolation in catalogDataService.ts
+Commit: 8194282
+
+**Why this story?** Highest priority incomplete story (priority 24) in Phase 2. CRITICAL security fix for multi-tenant isolation - without storeId filter, barcode lookup could return products from other stores.
+
+**Changes:**
+1. `packages/sqlite-adapter/src/services/catalogServices.ts` (line 1339):
+   - ProductSQLiteService.getByBarcode: Added storeId parameter
+   - SQL query now includes `store_id = ?` filter for multi-tenant isolation
+
+2. `apps/store-app/src/services/sqliteServices.ts` (line 1879):
+   - sqliteProductsDB.getByBarcode: Updated wrapper signature to accept storeId
+   - Pass storeId to ProductSQLiteService.getByBarcode
+
+3. `apps/store-app/src/services/domain/catalogDataService.ts` (line 513):
+   - productsService.getByBarcode: Updated SQLite path to pass storeId
+   - Both SQLite and Dexie paths now consistently require storeId
+
+**Acceptance Criteria Verification:**
+- ✅ productsService.getByBarcode(storeId, barcode) signature already correct
+- ✅ SQLite path: added storeId filter to query
+- ✅ Supabase path: already had storeId filter (verified in productsTable.ts:71-82)
+- ✅ All callers already pass storeId (catalogDataService API unchanged)
+- ✅ No products returned from other stores (query filters by store_id)
+- ✅ pnpm run typecheck passes for store-app and sqlite-adapter
+
+**Learnings:**
+- Multi-tenant isolation is CRITICAL for all data access methods
+- The Supabase productsTable.getByBarcode was already correctly implementing storeId filter
+- The SQLite path was the security gap - it was only filtering by barcode
+- Always verify all data paths (SQLite, Dexie, Supabase) enforce tenant isolation
+
+**Patterns to sync:**
+- Pattern #13: Multi-Tenant Data Access Audit - When adding barcode/SKU/ID lookup methods, verify ALL data paths (SQLite, IndexedDB, Supabase) include storeId/tenantId filter
+
+**Next story suggestion:** US-025 (Add Supabase routing to catalogDataService.ts) - Continues Phase 2 data layer work
+
+---
+
+## 2026-01-22 - US-025: Add Supabase routing to catalogDataService.ts (categories)
+Commit: 8c3f3c7
+
+**Why this story?** Highest priority incomplete story (priority 25) in Phase 2 with no dependencies. Continues the data layer work from US-024 by adding Supabase routing for categories.
+
+**Changes:**
+1. `apps/store-app/src/services/domain/catalogDataService.ts`:
+   - Added `shouldUseSupabase()` function (lines 69-92):
+     - Returns false if SQLite is enabled (Electron)
+     - Returns false if VITE_USE_SUPABASE !== 'true' (opt-in flag)
+     - Returns false if navigator.onLine is false (offline)
+     - Returns true otherwise
+   - Added `USE_SUPABASE` constant (line 94)
+   - Added helper functions:
+     - `getTenantId()`: Gets tenant ID from auth.store.tenantId or storeId fallback
+     - `getUserId()`: Gets user ID from auth.user.id or member.memberId fallback
+     - `getDeviceId()`: Gets or generates device ID from localStorage
+   - Imported serviceCategoriesTable and adapter functions (lines 22-29)
+   - Imported ServiceCategory, CreateCategoryInput types (line 54)
+   - Updated `serviceCategoriesService` with Supabase routing (lines 201-346):
+     - `getAll()`: Supabase → serviceCategoriesTable.getByStoreId + toServiceCategories
+     - `getById()`: Supabase → serviceCategoriesTable.getById + toServiceCategory
+     - `create()`: Supabase → toServiceCategoryInsert + serviceCategoriesTable.create + toServiceCategory
+     - `update()`: Supabase → toServiceCategoryUpdate + serviceCategoriesTable.update + toServiceCategory
+     - `delete()`: Supabase → serviceCategoriesTable.delete (soft delete with tombstone)
+     - Added new `search()` method with Supabase path
+     - Added new `getOnlineBookingCategories()` method
+     - Added new `getUpdatedSince()` method for sync
+   - Added type assertions for SQLite returns (which use `unknown` types)
+
+**Routing Priority (documented in JSDoc):**
+1. SQLite (if USE_SQLITE=true, Electron only)
+2. Supabase (if USE_SUPABASE=true and online)
+3. Dexie/IndexedDB (default local-first storage)
+
+**Verification:**
+- `pnpm run typecheck` passes for store-app ✓
+- Tests: 3205 passed, 13 failed (all pre-existing MQTT/Pad failures unrelated to this change)
+
+**Learnings:**
+- Auth state structure: storeId at root level, tenantId inside store object, userId requires checking user.id or member.memberId
+- SQLite service wrappers intentionally return `unknown` types (documented in file header) - need explicit type assertions
+- Supabase routing is opt-in via VITE_USE_SUPABASE=true to maintain local-first default behavior
+- The pattern for Supabase methods: `const rows = await table.method(); return toAppTypes(rows);`
+
+**Patterns to sync:**
+- Pattern #14: Supabase Routing in DataService - When adding Supabase path to data services, use opt-in flag (VITE_USE_SUPABASE), check online status, and apply type adapters to convert rows to app types
+
+**Next story suggestion:** US-026 (Add Supabase routing for menu services) - Same file, continues Phase 2 data layer work
 
 ---

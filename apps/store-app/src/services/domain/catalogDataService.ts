@@ -21,6 +21,15 @@ import { shouldUseSQLite } from '@/config/featureFlags';
 // LOCAL-FIRST: Import IndexedDB operations
 import { servicesDB } from '@/db/database';
 
+// SUPABASE: Import Supabase tables and adapters for cloud sync
+import { serviceCategoriesTable } from '@/services/supabase/tables/serviceCategoriesTable';
+import {
+  toServiceCategory,
+  toServiceCategories,
+  toServiceCategoryInsert,
+  toServiceCategoryUpdate,
+} from '@/services/supabase/adapters/serviceCategoryAdapter';
+
 // Catalog operations from Dexie
 import {
   serviceCategoriesDB,
@@ -49,11 +58,44 @@ import {
 } from '@/services/sqliteServices';
 
 import type { Service } from '@/types';
-import type { AddOnGroup, AddOnOption } from '@/types/catalog';
+import type { AddOnGroup, AddOnOption, ServiceCategory, CreateCategoryInput } from '@/types/catalog';
 
 // ==================== HELPERS ====================
 
 const USE_SQLITE = shouldUseSQLite();
+
+/**
+ * Check if Supabase should be used for data operations.
+ *
+ * Returns true when:
+ * - Device is online
+ * - NOT using SQLite (Electron)
+ * - VITE_USE_SUPABASE=true is set (opt-in for now)
+ *
+ * This enables direct Supabase access for online-only devices,
+ * while offline-enabled devices continue using local-first storage.
+ */
+function shouldUseSupabase(): boolean {
+  // Skip Supabase if SQLite is enabled (Electron uses local-first)
+  if (USE_SQLITE) {
+    return false;
+  }
+
+  // Check for explicit opt-in (VITE_USE_SUPABASE=true)
+  const useSupabaseEnv = import.meta.env.VITE_USE_SUPABASE;
+  if (useSupabaseEnv !== 'true') {
+    return false;
+  }
+
+  // Only use Supabase when online
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return false;
+  }
+
+  return true;
+}
+
+const USE_SUPABASE = shouldUseSupabase();
 
 /**
  * Get current store ID from Redux store
@@ -61,6 +103,40 @@ const USE_SQLITE = shouldUseSQLite();
 function getStoreId(): string {
   const state = store.getState();
   return state.auth.storeId || '';
+}
+
+/**
+ * Get current tenant ID from Redux store
+ */
+function getTenantId(): string {
+  const state = store.getState();
+  // tenantId typically equals storeId for single-store setups
+  // For multi-store organizations, this would come from auth context
+  return state.auth.store?.tenantId || state.auth.storeId || '';
+}
+
+/**
+ * Get current user ID from Redux store
+ */
+function getUserId(): string {
+  const state = store.getState();
+  return state.auth.user?.id || state.auth.member?.memberId || '';
+}
+
+/**
+ * Get device ID for sync tracking
+ */
+function getDeviceId(): string {
+  // In browser environment, use a stored device ID or generate one
+  if (typeof localStorage !== 'undefined') {
+    let deviceId = localStorage.getItem('mango:deviceId');
+    if (!deviceId) {
+      deviceId = `web-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      localStorage.setItem('mango:deviceId', deviceId);
+    }
+    return deviceId;
+  }
+  return 'web-client';
 }
 
 // ==================== CATALOG SERVICES ====================
@@ -116,41 +192,158 @@ export const servicesService = {
 
 /**
  * Service Categories data operations
+ *
+ * Routing priority:
+ * 1. SQLite (if USE_SQLITE=true, Electron only)
+ * 2. Supabase (if USE_SUPABASE=true and online)
+ * 3. Dexie/IndexedDB (default local-first storage)
  */
 export const serviceCategoriesService = {
-  async getAll(storeId: string, includeInactive = false) {
+  async getAll(storeId: string, includeInactive = false): Promise<ServiceCategory[]> {
+    // SQLite path (Electron)
     if (USE_SQLITE) {
-      return sqliteServiceCategoriesDB.getAll(storeId, includeInactive);
+      // SQLite service returns unknown[], cast to ServiceCategory[]
+      const result = await sqliteServiceCategoriesDB.getAll(storeId, includeInactive);
+      return result as ServiceCategory[];
     }
+
+    // Supabase path (online-only devices with opt-in)
+    if (USE_SUPABASE) {
+      const rows = await serviceCategoriesTable.getByStoreId(storeId, includeInactive);
+      return toServiceCategories(rows);
+    }
+
+    // Dexie path (default local-first)
     return serviceCategoriesDB.getAll(storeId, includeInactive);
   },
 
-  async getById(id: string) {
+  async getById(id: string): Promise<ServiceCategory | undefined> {
+    // SQLite path
     if (USE_SQLITE) {
-      return sqliteServiceCategoriesDB.getById(id);
+      const result = await sqliteServiceCategoriesDB.getById(id);
+      return result as ServiceCategory | undefined;
     }
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const row = await serviceCategoriesTable.getById(id);
+      return row ? toServiceCategory(row) : undefined;
+    }
+
+    // Dexie path
     return serviceCategoriesDB.getById(id);
   },
 
-  async create(input: unknown, userId: string, storeId: string) {
+  async create(
+    input: CreateCategoryInput,
+    userId: string,
+    storeId: string,
+    tenantId?: string,
+    deviceId?: string
+  ): Promise<ServiceCategory> {
+    // SQLite path
     if (USE_SQLITE) {
-      return sqliteServiceCategoriesDB.create(input);
+      const result = await sqliteServiceCategoriesDB.create(input);
+      return result as ServiceCategory;
     }
-    return serviceCategoriesDB.create(input as Parameters<typeof serviceCategoriesDB.create>[0], userId, storeId);
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const effectiveTenantId = tenantId || getTenantId() || storeId;
+      const effectiveDeviceId = deviceId || getDeviceId();
+      const insertData = toServiceCategoryInsert(input, storeId, effectiveTenantId, userId, effectiveDeviceId);
+      const row = await serviceCategoriesTable.create(insertData);
+      return toServiceCategory(row);
+    }
+
+    // Dexie path
+    return serviceCategoriesDB.create(input, userId, storeId);
   },
 
-  async update(id: string, updates: unknown, userId: string) {
+  async update(
+    id: string,
+    updates: Partial<ServiceCategory>,
+    userId: string,
+    deviceId?: string
+  ): Promise<ServiceCategory | undefined> {
+    // SQLite path
     if (USE_SQLITE) {
-      return sqliteServiceCategoriesDB.update(id, updates);
+      const result = await sqliteServiceCategoriesDB.update(id, updates);
+      return result as ServiceCategory | undefined;
     }
-    return serviceCategoriesDB.update(id, updates as Partial<unknown>, userId);
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const effectiveDeviceId = deviceId || getDeviceId();
+      const updateData = toServiceCategoryUpdate(updates, userId, effectiveDeviceId);
+      const row = await serviceCategoriesTable.update(id, updateData);
+      return toServiceCategory(row);
+    }
+
+    // Dexie path
+    return serviceCategoriesDB.update(id, updates, userId);
   },
 
-  async delete(id: string) {
+  async delete(id: string, userId?: string, deviceId?: string): Promise<void> {
+    // SQLite path
     if (USE_SQLITE) {
       return sqliteServiceCategoriesDB.delete(id);
     }
+
+    // Supabase path (soft delete with tombstone)
+    if (USE_SUPABASE) {
+      const effectiveUserId = userId || getUserId();
+      const effectiveDeviceId = deviceId || getDeviceId();
+      return serviceCategoriesTable.delete(id, effectiveUserId, effectiveDeviceId);
+    }
+
+    // Dexie path
     return serviceCategoriesDB.delete(id);
+  },
+
+  /**
+   * Search categories by name (Supabase only currently)
+   */
+  async search(storeId: string, query: string): Promise<ServiceCategory[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await serviceCategoriesTable.search(storeId, query);
+      return toServiceCategories(rows);
+    }
+
+    // Fallback to getAll and filter in JS (SQLite/Dexie don't have search)
+    const all = await this.getAll(storeId, false);
+    const lowerQuery = query.toLowerCase();
+    return all.filter(cat => cat.name.toLowerCase().includes(lowerQuery));
+  },
+
+  /**
+   * Get categories for online booking (Supabase only currently)
+   */
+  async getOnlineBookingCategories(storeId: string): Promise<ServiceCategory[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await serviceCategoriesTable.getOnlineBookingCategories(storeId);
+      return toServiceCategories(rows);
+    }
+
+    // Fallback: filter from getAll
+    const all = await this.getAll(storeId, false);
+    return all.filter(cat => cat.showOnlineBooking);
+  },
+
+  /**
+   * Get categories updated since a specific time (for sync)
+   */
+  async getUpdatedSince(storeId: string, since: Date): Promise<ServiceCategory[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await serviceCategoriesTable.getUpdatedSince(storeId, since);
+      return toServiceCategories(rows);
+    }
+
+    // Fallback: not available in SQLite/Dexie, return empty
+    return [];
   },
 };
 
