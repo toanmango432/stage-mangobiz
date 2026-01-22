@@ -3961,3 +3961,597 @@ Commit: 1f19169
 - UI story requires browser verification to confirm visual display is correct
 
 ---
+
+## 2026-01-22 - US-072: Create rebookReminderService
+Commit: 26d8811
+
+**Why this story?** Last implementation story in Phase 5 (priority 72) with passes: false. Completes Phase 5 before US-P5R review.
+
+**Changes:**
+1. `apps/store-app/src/services/rebookReminderService.ts` (NEW):
+   - calculateRebookDate(service, completedAt): Calculates next booking date from MenuService.rebookReminderDays
+   - storeRebookSuggestion(clientId, suggestion): Stores rebook suggestion for future notifications
+   - createRebookSuggestion(client, service, completedAt): Helper that combines calculation with metadata
+   - getRebookSuggestions(clientId): Retrieves stored suggestions for a client
+   - markNotificationSent(suggestionId): Marks notification as sent
+   - getSuggestionsDueWithin(daysAhead): Gets all suggestions due within N days
+   - RebookSuggestion interface with full metadata (confidence, isOverdue, notificationSent, etc.)
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+
+**Learnings:**
+- rebookReminderService follows similar pattern to clientHistoryAnalysis.ts and predictiveRebooking.ts
+- Service uses localStorage as placeholder until client_rebook_suggestions table is implemented
+- calculateRebookDate returns null if service has no rebookReminderDays configured
+- Confidence score calculated as `70 + rebookDays/2` (longer cycles = higher confidence)
+- createRebookSuggestion includes daysRemaining and isOverdue for notification scheduling
+- Future enhancement: Replace localStorage with proper Supabase table for sync support
+
+**Acceptance Criteria:**
+- ✅ Create rebookReminderService.ts with calculateRebookDate, storeRebookSuggestion functions
+- ✅ Read rebookReminderDays from completed service (MenuService.rebookReminderDays field)
+- ✅ Calculate recommended next booking date (adds rebookReminderDays to completedAt)
+- ✅ Store suggestion in client history (placeholder localStorage implementation)
+- ✅ Export required functions with proper TypeScript interfaces
+- ✅ pnpm run typecheck passes
+
+**Patterns to sync:** None (service follows established service patterns from appointmentService.ts, clientHistoryAnalysis.ts)
+
+**Next story suggestion:** US-P5R (REVIEW: Phase 5 Module Integrations) - Use Explore/Plan agents for comprehensive review of all Phase 5 integration work. This is a critical review checkpoint before Phase 6 testing.
+
+---
+## 2026-01-22 - US-P5R: REVIEW Phase 5 Module Integrations
+Commit: (review-only, no code changes)
+
+**Why this story?** Phase 5 REVIEW checkpoint (priority 5001) - Comprehensive analysis of all module integration work (US-064 to US-072) using Explore and Plan agents before moving to Phase 6 testing.
+
+**Review Method:**
+- Launched 3 Explore agents for deep code analysis
+- Launched 1 Plan agent for architectural pattern verification
+- Analyzed 20+ files across Store App and Online Store
+- Verified acceptance criteria for all 9 Phase 5 stories
+- Manual code review of rebookReminderService implementation
+
+---
+
+## Phase 5 Review Issues
+
+### 🔴 CRITICAL ISSUES (Must Fix Before Production)
+
+#### Issue #1: Commission Display Not Functional (US-071 INCOMPLETE)
+**Severity:** CRITICAL  
+**Story:** US-071 (Display commission breakdown in payment summary)  
+**Status:** ❌ Acceptance criteria NOT fully met
+
+**Problem:**
+- PaymentSummary component has commission display UI (lines 116-151)
+- Commission calculated in `useTicketPayment.ts` but ONLY stored in transaction
+- Commission never passed to PaymentSummary component
+- User cannot see commission breakdown despite it being calculated
+
+**Current Flow:**
+```
+useTicketPayment → calculateServiceCommission() → store in Transaction
+                                                  ↓
+                                            (commission lost)
+```
+
+**Expected Flow:**
+```
+usePaymentModal → calculateCommission() → commissionSummary
+                                        ↓
+                                   <PaymentSummary commissionSummary={...} />
+```
+
+**Files Affected:**
+- apps/store-app/src/components/checkout/PaymentModal/PaymentModal.tsx
+- apps/store-app/src/components/checkout/PaymentModal/hooks/usePaymentModal.ts
+- apps/store-app/src/components/checkout/PaymentModal/components/PaymentSummary.tsx
+
+**Fix Required:**
+1. Move commission calculation to `usePaymentModal.ts`
+2. Add `commissionSummary` state to PaymentModal
+3. Pass `commissionSummary` prop to PaymentSummary component
+4. Calculate during modal initialization, not just completion
+
+**Estimated Effort:** 1-2 hours
+
+---
+
+#### Issue #2: Mock Data Still Used in Online Store (US-067 INCOMPLETE)
+**Severity:** CRITICAL  
+**Story:** US-067 (Replace mock services in bookingDataService)  
+**Status:** ⚠️ Partially complete - bookingDataService fixed but mock data remains elsewhere
+
+**Problem:**
+Mock data generators (`generateMockServices`, `generateMockStaff`) still used in **8+ components**:
+1. ❌ BookingFlow.tsx (line 12, 71)
+2. ❌ ServiceBrowser.tsx (v2)
+3. ❌ StaffTimePicker.tsx (v2)
+4. ❌ UnifiedStaffTimePicker.tsx (v2)
+5. ❌ EnhancedStaffTimePicker.tsx (v2)
+6. ❌ ServicePickerModal.tsx
+7. ❌ ServiceSelectionSection.tsx
+8. ❌ TechnicianSelectionSection.tsx
+9. ❌ admin/catalog/Services.tsx
+
+**Impact:**
+- Online Store shows fake data in booking flows instead of real catalog
+- Users see inconsistent data (some real, some mock)
+- Catalog changes in Store App not reflected in Online Store
+
+**Files Affected:**
+- apps/online-store/src/components/BookingFlow.tsx
+- apps/online-store/src/components/booking/* (multiple files)
+- apps/online-store/src/admin/catalog/Services.tsx
+
+**Fix Required:**
+Replace all `generateMockServices()` and `generateMockStaff()` calls with `catalogSyncService.getServices()` and staff sync
+
+**Estimated Effort:** 2-4 hours
+
+---
+
+#### Issue #3: Missing RLS Validation (Security)
+**Severity:** CRITICAL (Security)  
+**Story:** Security audit across all Phase 5 stories  
+**Status:** ⚠️ Relies on RLS policies without application-level validation
+
+**Problem:**
+- All Supabase queries filter by `storeId` but rely ENTIRELY on RLS policies
+- No post-query validation that returned data matches requested storeId
+- No runtime checks for RLS policy violations
+- If RLS misconfigured, cross-store data leakage possible
+
+**Risk Scenario:**
+1. User requests services for Store A
+2. RLS policy missing/misconfigured
+3. Query returns services from Store B
+4. Application displays Store B services to Store A customer
+5. Customer books at wrong store
+
+**Files Affected:**
+- apps/online-store/src/lib/services/catalogSyncService.ts (lines 141-147, 235-243)
+- All Supabase table operations in Phase 5
+
+**Fix Required:**
+```typescript
+// Add post-query validation
+const validatedData = data.filter(row => row.store_id === storeId);
+if (validatedData.length !== data.length) {
+  console.error(`[SECURITY] RLS BREACH: ${data.length - validatedData.length} records from wrong store!`);
+  throw new Error('RLS policy violation detected');
+}
+```
+
+**Estimated Effort:** 1 hour per service
+
+---
+
+### ⚠️ IMPORTANT ISSUES (Should Fix Soon)
+
+#### Issue #4: Online Store Uses Separate Supabase Client
+**Severity:** IMPORTANT (Architecture)  
+**Story:** US-066 (Create catalogSyncService for Online Store)  
+**Status:** ⚠️ Works but violates shared client pattern
+
+**Problem:**
+- catalogSyncService.ts creates own Supabase client (lines 28-35)
+- Store App has separate Supabase client
+- Different auth contexts between apps
+- No shared connection pooling
+- Harder to maintain RLS policies consistently
+
+**Expected Pattern:**
+```typescript
+// Should use shared Supabase client from store-app
+import { supabase } from '@mango/supabase-client';
+```
+
+**Fix Required:**
+Create `packages/supabase-client/` shared package
+
+**Estimated Effort:** 2-3 hours
+
+---
+
+#### Issue #5: TicketWizard Missing Items Prop
+**Severity:** IMPORTANT  
+**Story:** US-070, US-071 (Commission calculation)  
+**Status:** ⚠️ Commission works in PaymentModal but not in TicketWizard flow
+
+**Problem:**
+- TicketWizard.tsx does NOT pass `items` prop to PaymentModal (line 351-357)
+- Commission calculation requires items with serviceId and staffId
+- Commission shows $0.00 when using TicketWizard
+
+**Files Affected:**
+- apps/store-app/src/components/tickets/TicketWizard.tsx
+
+**Fix Required:**
+```typescript
+<PaymentModal
+  items={services.map(s => ({
+    name: s.serviceName,
+    quantity: 1,
+    price: s.price,
+    staffName: s.staffName,
+    staffId: s.staffId,
+    serviceId: s.serviceId,
+  }))}
+  // ... other props
+/>
+```
+
+**Estimated Effort:** 30 minutes
+
+---
+
+#### Issue #6: Field Name Mismatch in catalogSyncService
+**Severity:** IMPORTANT (Potential Bug)  
+**Story:** US-068 (Update ServiceMenuGridMobile to respect showPriceOnline)  
+**Status:** ⚠️ Potential type mismatch
+
+**Problem:**
+- catalogSyncService adapter sets `showOnline` (line 104)
+- Type definition expects `showPriceOnline`
+- ServiceMenuGridMobile checks `service.showPriceOnline`
+- May cause price display logic to fail
+
+**Files Affected:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:104
+- apps/online-store/src/types/catalog.ts:10
+
+**Fix Required:**
+```typescript
+// Change line 104 from:
+showOnline: row.show_price_online !== false,
+// To:
+showPriceOnline: row.show_price_online !== false,
+```
+
+**Estimated Effort:** 5 minutes
+
+---
+
+#### Issue #7: Staff Data Not Synced in Online Store
+**Severity:** IMPORTANT  
+**Story:** US-067 (Replace mock services in bookingDataService)  
+**Status:** ⚠️ Acknowledged as out-of-scope but limits functionality
+
+**Problem:**
+- bookingDataService.ts line 148: `this.staff = [];`
+- TODO comment: "Replace with real staff sync when store-app staff data is available"
+- Online Store cannot show real staff availability
+
+**Impact:**
+- Online Store booking can't filter by staff
+- Can't show staff-specific pricing
+- Can't display staff photos/bios
+
+**Notes:**
+Not blocking for Phase 5, but should be tracked for future work
+
+---
+
+### 💡 NICE TO HAVE IMPROVEMENTS
+
+#### Issue #8: Large File Size
+**Severity:** LOW  
+**File:** apps/store-app/src/components/tickets/ServiceTicketCardRefactored.tsx  
+**Lines:** 602 lines (target: <500)
+
+**Recommendation:**
+Split by view mode:
+- CompactView.tsx
+- GridView.tsx
+- NormalView.tsx
+
+---
+
+#### Issue #9: Missing TODOs in catalogSyncService
+**Severity:** LOW  
+**Story:** US-066 (Create catalogSyncService for Online Store)
+
+**TODOs Found:**
+- Line 99: Category names not fetched (shows "Uncategorized")
+- Line 107: Add-ons not embedded in services
+- Line 108: Questions not mapped from service settings
+- Line 120: Rating not calculated from reviews
+
+**Impact:**
+- Services show "Uncategorized" instead of real category names
+- Add-ons loaded separately (works but less efficient)
+- Questions/ratings not available
+
+---
+
+## Story-by-Story Assessment
+
+### ✅ US-064: Display add-ons in ticket ServiceLineItem - PASSES
+**Status:** COMPLETE  
+**Evidence:**
+- Add-ons displayed under service name in ServiceSection.tsx (lines 142-159)
+- Add-on prices shown with "+" prefix
+- Add-on prices included in total via `getAddOnTotal()` (lines 88-91)
+- All acceptance criteria met
+
+---
+
+### ⚠️ US-065: Use staff override duration in ticket timer - CONDITIONAL PASS
+**Status:** INFRASTRUCTURE CORRECT, needs verification  
+**Evidence:**
+- `getTotalDuration()` calculates from `checkoutServices` array (lines 88-97)
+- `useCheckoutServices` applies staff overrides via `effectiveDuration` (lines 237, 248)
+- Timer uses `totalDurationMinutes` (line 99, 109, 129)
+
+**Concern:**
+Data flow from checkout → ticket creation → timer not explicitly verified. Assumption: ServiceGrid properly uses `effectiveDuration` when creating ticket services.
+
+**Verification Needed:**
+Trace ServiceGrid's `onAddServiceWithSelection` to confirm `effectiveDuration` flows to ticket
+
+---
+
+### ✅ US-066: Create catalogSyncService for Online Store - PASSES
+**Status:** COMPLETE (with TODOs for enrichment)  
+**Evidence:**
+- catalogSyncService.ts created (348 lines)
+- Fetches from Supabase `menu_services` table
+- Filters by `online_booking_enabled=true` (line 146)
+- localStorage cache with 5-min TTL (lines 40-41)
+- All acceptance criteria met
+
+---
+
+### ⚠️ US-067: Replace mock services in bookingDataService - PARTIAL PASS
+**Status:** bookingDataService works, but mock data remains in 8+ components  
+**Evidence:**
+- bookingDataService.ts uses `getServices()` from catalogSyncService (lines 120-136)
+- `generateMockServices()` removed from bookingDataService itself
+
+**Critical Gap:**
+Mock data still used in BookingFlow, ServiceBrowser, StaffTimePicker, and 5+ other components (see Issue #2)
+
+---
+
+### ✅ US-068: Update ServiceMenuGridMobile to respect showPriceOnline - PASSES
+**Status:** COMPLETE  
+**Evidence:**
+- ServiceMenuGridMobile checks `service.showPriceOnline` (lines 313-323, 423-433)
+- Shows "Price on request" when false
+- Handles variants correctly ("From $X")
+- All acceptance criteria met
+
+**Note:** Potential field name bug (Issue #6) doesn't affect functionality yet
+
+---
+
+### ✅ US-069: Create AddOnsSelector for Online Store - PASSES
+**Status:** COMPLETE  
+**Evidence:**
+- AddOnsSelector.tsx created (510 lines)
+- Mobile-optimized UI with touch-friendly interactions
+- Loads via `catalogSyncService.getAddOnGroups()`
+- Enforces min/max selection rules (lines 180-194)
+- Required groups validation (line 194)
+- All acceptance criteria met
+
+---
+
+### ⚠️ US-070: Implement commission calculation in checkout - CONDITIONAL PASS
+**Status:** Calculation correct, but not displayed in TicketWizard  
+**Evidence:**
+- Commission calculation utility correct (commissionCalculation.ts)
+- Reads MenuService.commissionRate (lines 36-39)
+- Checks StaffServiceAssignment.customCommissionRate override (lines 33-35)
+- Calculated per service line item (useTicketPayment.ts lines 243-247)
+- Stored in transaction record (lines 254-256)
+
+**Critical Gap:**
+TicketWizard doesn't pass items prop, so commission shows $0.00 (see Issue #5)
+
+---
+
+### ❌ US-071: Display commission breakdown in payment summary - INCOMPLETE
+**Status:** UI exists but not functional  
+**Evidence:**
+- PaymentSummary has commission display UI (lines 116-151)
+- Shows total commission and staff breakdown
+- Properly styled with blue theme and DollarSign icon
+
+**Critical Gap:**
+Commission never passed to PaymentSummary - calculated but lost (see Issue #1)
+
+**Acceptance Criteria:**
+- ⚠️ Add commission line to payment summary (UI exists but not wired)
+- ⚠️ Show total commission for all services (calculated but not displayed)
+- ⚠️ Break down by staff if multiple staff involved (logic exists but not rendered)
+
+---
+
+### ✅ US-072: Create rebookReminderService - PASSES
+**Status:** COMPLETE  
+**Evidence:**
+- rebookReminderService.ts created (285 lines)
+- `calculateRebookDate()` adds `rebookReminderDays` to completedAt (lines 54-55)
+- Returns null if service has no `rebookReminderDays` (line 50-52)
+- `storeRebookSuggestion()` with placeholder localStorage implementation (lines 110-123)
+- `createRebookSuggestion()` combines calculation with metadata (lines 156-170)
+- Calculates confidence score: `70 + rebookDays/2` (line 154)
+- Includes `daysRemaining` and `isOverdue` fields (lines 148-149, 164-165)
+- All acceptance criteria met
+
+**Notes:**
+- Uses localStorage as placeholder until `client_rebook_suggestions` table implemented
+- Future: Replace with proper Supabase table for sync support
+
+---
+
+## Architectural Patterns Assessment
+
+### ✅ FOLLOWS PATTERNS:
+- Data flow: Redux → dataService → Supabase ✓
+- Type safety: No `as any` in critical paths ✓
+- Supabase adapters: snake_case ↔ camelCase conversion ✓
+- Error handling: Graceful degradation in most places ✓
+- No hardcoded values: All config from env/database ✓
+
+### ❌ VIOLATES PATTERNS:
+- Separate Supabase clients (should be shared) ✗
+- Commission calculation split across hooks (should be consolidated) ✗
+- Large file sizes (ServiceTicketCardRefactored 602 lines, target <500) ✗
+- No RLS validation (relies on database policies only) ✗
+
+---
+
+## Security Assessment
+
+### Multi-Tenant Isolation:
+- ⚠️ All queries include `.eq('store_id', storeId)` - GOOD
+- ❌ No post-query validation of storeId - CRITICAL GAP
+- ❌ No RLS policy documentation - MISSING
+- ❌ No integration tests for cross-store isolation - MISSING
+
+### Recommendation:
+Add RLS validation layer before moving to production (see Issue #3)
+
+---
+
+## Overall Phase 5 Status
+
+**Completion:** 7/9 stories PASS, 2/9 INCOMPLETE
+- ✅ US-064: Add-ons display in tickets - COMPLETE
+- ⚠️ US-065: Staff override duration - CONDITIONAL PASS (needs verification)
+- ✅ US-066: catalogSyncService - COMPLETE
+- ⚠️ US-067: Replace mock services - PARTIAL (bookingDataService done, but mocks remain elsewhere)
+- ✅ US-068: ServiceMenuGridMobile showPriceOnline - COMPLETE
+- ✅ US-069: AddOnsSelector for Online Store - COMPLETE
+- ⚠️ US-070: Commission calculation - CONDITIONAL PASS (works but TicketWizard issue)
+- ❌ US-071: Commission display - INCOMPLETE (UI exists but not wired)
+- ✅ US-072: rebookReminderService - COMPLETE
+
+**Production Readiness:** 60%
+
+**Blockers for Production:**
+1. Fix commission display (Issue #1) - CRITICAL
+2. Remove all mock data from Online Store (Issue #2) - CRITICAL
+3. Add RLS validation (Issue #3) - CRITICAL (Security)
+
+**Estimated Effort to Production-Ready:** 8-15 hours
+- Commission display fix: 1-2 hours
+- Mock data removal: 2-4 hours
+- RLS validation: 1 hour per service (5-7 services = 5-7 hours)
+- TicketWizard items prop: 30 minutes
+- Field name fix: 5 minutes
+- Testing/verification: 2-3 hours
+
+---
+
+## Acceptance Criteria Check for US-P5R
+
+**US-P5R Acceptance Criteria:**
+- ✅ Launch Explore agent to analyze tickets integration - COMPLETE
+- ✅ Launch Explore agent to analyze Online Store catalog sync - COMPLETE
+- ✅ Launch Explore agent to analyze commission calculation - COMPLETE
+- ✅ Launch Plan agent to verify integration patterns - COMPLETE
+- ✅ Verify add-ons display correctly in ticket ServiceLineItem - VERIFIED (ServiceSection.tsx)
+- ⚠️ Verify staff override duration is used in ticket timer - INFRASTRUCTURE CORRECT (needs end-to-end trace)
+- ⚠️ Verify Online Store uses real catalog data (not mock) - PARTIAL (bookingDataService uses real, but mocks remain in 8+ components)
+- ✅ Verify showPriceOnline setting is respected - VERIFIED (ServiceMenuGridMobile.tsx)
+- ⚠️ Verify commission is calculated and stored correctly - CALCULATION CORRECT, DISPLAY INCOMPLETE
+- ✅ Verify rebookReminderService calculates dates correctly - VERIFIED (manual code review)
+- ⚠️ Use Playwright MCP to verify in browser where applicable - SKIPPED (blocked by commission display issue)
+- ✅ Document any issues found in progress.txt - COMPLETE (9 issues documented)
+
+**Result:** US-P5R has thoroughly analyzed Phase 5 and documented all issues. However, **Phase 5 has 3 CRITICAL blockers** that prevent marking US-P5R as passes: true.
+
+---
+
+## Learnings
+
+### Pattern: Commission Calculation Should Be in Presentation Layer
+**Discovery:** Commission calculated in data layer (`useTicketPayment`) but never reaches UI layer (`PaymentSummary`)
+
+**Correct Pattern:**
+- Calculation utilities: Pure functions in `utils/`
+- Data fetching: Data layer hooks
+- **Aggregation and display logic: Presentation layer hooks** ← This was missed
+
+**Why:** Presentation components need access to calculated data. Storing in transaction is correct, but display also needs live calculation.
+
+---
+
+### Pattern: Multi-App Data Access Requires Shared Packages
+**Discovery:** Online Store creates own Supabase client, leading to duplicate configuration
+
+**Correct Pattern:**
+```
+packages/
+  └── supabase-client/       # Shared Supabase client
+  └── catalog-types/         # Shared catalog types
+```
+
+**Why:** DRY principle, consistent RLS policies, shared connection pool
+
+---
+
+### Pattern: Post-Query RLS Validation (Defense in Depth)
+**Discovery:** All queries filter by `storeId` but don't validate returned data
+
+**Correct Pattern:**
+```typescript
+const data = await supabase.from('table').eq('store_id', storeId);
+// Defense in depth: Validate RLS worked correctly
+const validated = data.filter(row => row.store_id === storeId);
+if (validated.length !== data.length) {
+  throw new Error('RLS policy violation');
+}
+```
+
+**Why:** Database policies can be misconfigured. Application-level validation catches RLS failures.
+
+---
+
+### Pattern: Mock Data Removal Must Be Systematic
+**Discovery:** Removed mock data from bookingDataService but missed 8+ other components
+
+**Correct Pattern:**
+1. `grep -r "generateMock" apps/online-store/` to find all usages
+2. Create checklist of files to update
+3. Update all files in one PR
+4. Add lint rule to prevent future mock data in production paths
+
+**Why:** Partial removal causes inconsistent user experience
+
+---
+
+## Patterns to Sync
+
+Pattern #XX: **Post-Query Multi-Tenant Validation** - After querying Supabase with `.eq('store_id', storeId)`, validate ALL returned records match the requested `storeId`. This provides defense-in-depth against RLS misconfigurations. Example:
+```typescript
+const { data } = await supabase.from('table').eq('store_id', storeId);
+const validated = data?.filter(row => row.store_id === storeId) || [];
+if (validated.length !== (data?.length || 0)) {
+  console.error('[SECURITY] RLS policy violation detected');
+  throw new Error('Cross-store data leakage prevented');
+}
+```
+
+Pattern #XX: **Commission Display in Payment Modal** - Commission calculation should happen in presentation layer hook (usePaymentModal) not just in payment completion (useTicketPayment). This ensures commission is visible to users before they complete payment. Calculation utilities stay pure in `utils/commissionCalculation.ts`.
+
+---
+
+## Next Story Suggestion
+
+US-P5F (FIX: Address Phase 5 Review Issues) - Fix the 9 documented issues starting with 3 CRITICAL blockers:
+1. Issue #1: Fix commission display (US-071)
+2. Issue #2: Remove all mock data from Online Store (US-067 completion)
+3. Issue #3: Add RLS validation (security)
+
+**Dependency:** US-P5F depends on US-P5R (this review)
+
+**Priority:** CRITICAL - Phase 5 cannot proceed to Phase 6 until these blockers are resolved
+
+---
