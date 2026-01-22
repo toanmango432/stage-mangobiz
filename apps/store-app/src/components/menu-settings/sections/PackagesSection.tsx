@@ -505,6 +505,7 @@ export function PackagesSection({
         }}
         package={editingPackage}
         services={services}
+        allPackages={packages}
         onSave={handleSavePackage}
       />
 

@@ -857,7 +857,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 49,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/modals/ServiceModal.tsx"
     },
     {
@@ -873,7 +873,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 50,
-      "passes": false,
+      "passes": true,
       "notes": "Currently staffAssignments is set to empty array and never populated."
     },
     {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -11,15 +11,30 @@ import {
   Globe,
   Check,
   Minus,
+  AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
-import type { PackageServiceItem, PackageModalProps, MenuServiceWithEmbeddedVariants, BundleBookingMode } from '@/types/catalog';
+import { z } from 'zod';
+import type { PackageServiceItem, PackageModalProps, MenuServiceWithEmbeddedVariants, BundleBookingMode, ServicePackage } from '@/types/catalog';
 import { formatDuration, formatPrice, CATEGORY_COLORS, BUNDLE_BOOKING_MODES } from '../constants';
+
+// Zod schema for package form validation
+const packageFormSchema = z.object({
+  name: z.string().min(1, 'Package name is required'),
+  discountPercentage: z.number().min(0, 'Discount must be 0% or greater').max(100, 'Discount cannot exceed 100%'),
+  discountFixed: z.number().min(0, 'Discount must be $0 or greater'),
+  validityDays: z.number().min(1, 'Validity must be at least 1 day').optional(),
+});
+
+type PackageFormData = z.infer<typeof packageFormSchema>;
+type ValidationErrors = Partial<Record<keyof PackageFormData | 'services' | 'duplicateName' | 'discountExceedsPrice', string>>;
 
 export function PackageModal({
   isOpen,
   onClose,
   package: pkg,
   services,
+  allPackages = [],
   onSave,
 }: PackageModalProps) {
   // Basic Info
@@ -44,6 +59,9 @@ export function PackageModal({
   // UI State
   const [showServiceSelector, setShowServiceSelector] = useState(false);
 
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
   // Calculate totals
   const originalPrice = useMemo(() => {
     return selectedServices.reduce((sum, ps) => sum + ps.originalPrice * ps.quantity, 0);
@@ -64,6 +82,76 @@ export function PackageModal({
     }, 0);
   }, [selectedServices, services]);
 
+  // Detect orphaned service references (services in package that no longer exist)
+  const orphanedServices = useMemo(() => {
+    return selectedServices.filter(ps => !services.find(s => s.id === ps.serviceId));
+  }, [selectedServices, services]);
+
+  // Check for duplicate package name
+  const isDuplicateName = useMemo(() => {
+    const trimmedName = name.trim().toLowerCase();
+    if (!trimmedName) return false;
+
+    return allPackages.some(p =>
+      p.name.toLowerCase() === trimmedName &&
+      // Exclude current package when editing
+      p.id !== pkg?.id
+    );
+  }, [name, allPackages, pkg]);
+
+  // Validate form data
+  const validateForm = useCallback((): boolean => {
+    const errors: ValidationErrors = {};
+
+    // Validate name
+    if (!name.trim()) {
+      errors.name = 'Package name is required';
+    }
+
+    // Check for duplicate name
+    if (isDuplicateName) {
+      errors.duplicateName = 'A package with this name already exists';
+    }
+
+    // Validate services
+    if (selectedServices.length === 0) {
+      errors.services = 'At least one service is required';
+    }
+
+    // Validate discount based on type
+    if (discountType === 'percentage') {
+      if (discountValue < 0) {
+        errors.discountPercentage = 'Discount must be 0% or greater';
+      } else if (discountValue > 100) {
+        errors.discountPercentage = 'Discount cannot exceed 100%';
+      }
+    } else {
+      if (discountValue < 0) {
+        errors.discountFixed = 'Discount must be $0 or greater';
+      } else if (discountValue > originalPrice) {
+        errors.discountExceedsPrice = 'Fixed discount cannot exceed the original price';
+      }
+    }
+
+    // Validate validity days if set
+    if (validityDays !== undefined && validityDays < 1) {
+      errors.validityDays = 'Validity must be at least 1 day';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [name, isDuplicateName, selectedServices.length, discountType, discountValue, originalPrice, validityDays]);
+
+  // Check if form is valid (for button disabled state)
+  const isFormValid = useMemo(() => {
+    if (!name.trim()) return false;
+    if (selectedServices.length === 0) return false;
+    if (isDuplicateName) return false;
+    if (discountType === 'percentage' && (discountValue < 0 || discountValue > 100)) return false;
+    if (discountType === 'fixed' && discountValue > originalPrice) return false;
+    return true;
+  }, [name, selectedServices.length, isDuplicateName, discountType, discountValue, originalPrice]);
+
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +159,11 @@ export function PackageModal({
         setName(pkg.name);
         setDescription(pkg.description || '');
         setColor(pkg.color || '#F97316');
-        setSelectedServices(pkg.services);
+        // Filter out orphaned services when loading existing package
+        const validServices = pkg.services.filter(ps =>
+          services.find(s => s.id === ps.serviceId)
+        );
+        setSelectedServices(pkg.services); // Keep all services initially to show warning
         setDiscountType(pkg.discountType);
         setDiscountValue(pkg.discountValue);
         setValidityDays(pkg.validityDays);
@@ -92,10 +184,18 @@ export function PackageModal({
       }
       setServiceSearch('');
       setShowServiceSelector(false);
+      setValidationErrors({});
     }
-  }, [isOpen, pkg]);
+  }, [isOpen, pkg, services]);
 
-  // Filter services for selection
+  // Clear validation errors when values change
+  useEffect(() => {
+    if (Object.keys(validationErrors).length > 0) {
+      setValidationErrors({});
+    }
+  }, [name, selectedServices.length, discountType, discountValue, validityDays]);
+
+  // Filter services for selection - only show existing active services
   const filteredServices = useMemo(() => {
     return services
       .filter(s => s.status === 'active')
@@ -145,15 +245,25 @@ export function PackageModal({
     setSelectedServices(prev => prev.filter(ps => ps.serviceId !== serviceId));
   };
 
+  // Remove all orphaned services
+  const removeOrphanedServices = () => {
+    setSelectedServices(prev => prev.filter(ps => services.find(s => s.id === ps.serviceId)));
+  };
+
   // Handle save
   const handleSave = () => {
-    if (!name.trim() || selectedServices.length === 0) return;
+    if (!validateForm()) return;
+
+    // Filter out orphaned services before saving
+    const validServices = selectedServices.filter(ps =>
+      services.find(s => s.id === ps.serviceId)
+    );
 
     onSave({
       name: name.trim(),
       description: description.trim() || undefined,
       color,
-      services: selectedServices,
+      services: validServices,
       originalPrice,
       packagePrice: Math.round(packagePrice * 100) / 100,
       discountType,
@@ -179,12 +289,17 @@ export function PackageModal({
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showServiceSelector]);
+  }, [isOpen, showServiceSelector, onClose]);
 
   if (!isOpen) return null;
 
   const savings = originalPrice - packagePrice;
   const savingsPercent = originalPrice > 0 ? ((savings / originalPrice) * 100).toFixed(0) : 0;
+
+  // Check if discount is valid
+  const hasDiscountError = discountType === 'percentage'
+    ? (discountValue < 0 || discountValue > 100)
+    : (discountValue > originalPrice);
 
   const modalContent = (
     <div
@@ -223,9 +338,27 @@ export function PackageModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Bridal Beauty Package"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                  (validationErrors.name || validationErrors.duplicateName || isDuplicateName)
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-gray-200'
+                }`}
+                aria-invalid={!!(validationErrors.name || validationErrors.duplicateName || isDuplicateName)}
+                aria-describedby={validationErrors.name || validationErrors.duplicateName || isDuplicateName ? 'name-error' : undefined}
                 autoFocus
               />
+              {validationErrors.name && (
+                <p id="name-error" className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  {validationErrors.name}
+                </p>
+              )}
+              {(validationErrors.duplicateName || isDuplicateName) && !validationErrors.name && (
+                <p id="name-error" className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  A package with this name already exists
+                </p>
+              )}
             </div>
 
             <div>
@@ -257,11 +390,39 @@ export function PackageModal({
                         : 'hover:scale-105'
                     }`}
                     style={{ backgroundColor: c.value }}
+                    type="button"
                   />
                 ))}
               </div>
             </div>
           </div>
+
+          {/* Orphaned Services Warning */}
+          {orphanedServices.length > 0 && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={20} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-amber-800">Orphaned Services Detected</p>
+                  <p className="text-sm text-amber-700 mt-1">
+                    {orphanedServices.length} service{orphanedServices.length > 1 ? 's' : ''} in this package no longer exist{orphanedServices.length === 1 ? 's' : ''}:
+                  </p>
+                  <ul className="text-sm text-amber-700 mt-1 list-disc list-inside">
+                    {orphanedServices.map(ps => (
+                      <li key={ps.serviceId}>{ps.serviceName}</li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={removeOrphanedServices}
+                    className="mt-2 text-sm font-medium text-amber-800 hover:text-amber-900 underline"
+                  >
+                    Remove orphaned services
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Services */}
           <div>
@@ -270,6 +431,7 @@ export function PackageModal({
                 Services <span className="text-red-500">*</span>
               </label>
               <button
+                type="button"
                 onClick={() => setShowServiceSelector(true)}
                 className="flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700"
               >
@@ -282,44 +444,70 @@ export function PackageModal({
               <div className="space-y-2">
                 {selectedServices.map((ps) => {
                   const service = services.find(s => s.id === ps.serviceId);
+                  const isOrphaned = !service;
                   return (
                     <div
                       key={ps.serviceId}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                      className={`flex items-center gap-3 p-3 rounded-lg ${
+                        isOrphaned ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50'
+                      }`}
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{ps.serviceName}</p>
-                        <p className="text-xs text-gray-500">
-                          {formatDuration(service?.duration || 0)} • {formatPrice(ps.originalPrice)} each
+                        <div className="flex items-center gap-2">
+                          <p className={`font-medium truncate ${isOrphaned ? 'text-amber-800' : 'text-gray-900'}`}>
+                            {ps.serviceName}
+                          </p>
+                          {isOrphaned && (
+                            <span className="px-1.5 py-0.5 bg-amber-200 text-amber-800 text-xs font-medium rounded">
+                              Not Found
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-xs ${isOrphaned ? 'text-amber-600' : 'text-gray-500'}`}>
+                          {isOrphaned
+                            ? 'This service has been deleted'
+                            : `${formatDuration(service?.duration || 0)} • ${formatPrice(ps.originalPrice)} each`
+                          }
                         </p>
                       </div>
 
                       {/* Quantity */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => updateQuantity(ps.serviceId, -1)}
-                          disabled={ps.quantity <= 1}
-                          className="w-7 h-7 flex items-center justify-center rounded bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50"
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <span className="w-6 text-center font-medium">{ps.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(ps.serviceId, 1)}
-                          className="w-7 h-7 flex items-center justify-center rounded bg-gray-200 text-gray-600 hover:bg-gray-300"
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
+                      {!isOrphaned && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(ps.serviceId, -1)}
+                            disabled={ps.quantity <= 1}
+                            className="w-7 h-7 flex items-center justify-center rounded bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="w-6 text-center font-medium">{ps.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(ps.serviceId, 1)}
+                            className="w-7 h-7 flex items-center justify-center rounded bg-gray-200 text-gray-600 hover:bg-gray-300"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      )}
 
                       {/* Subtotal */}
-                      <p className="text-sm font-medium text-gray-900 w-16 text-right">
-                        {formatPrice(ps.originalPrice * ps.quantity)}
-                      </p>
+                      {!isOrphaned && (
+                        <p className="text-sm font-medium text-gray-900 w-16 text-right">
+                          {formatPrice(ps.originalPrice * ps.quantity)}
+                        </p>
+                      )}
 
                       <button
+                        type="button"
                         onClick={() => removeService(ps.serviceId)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                        className={`p-1.5 rounded ${
+                          isOrphaned
+                            ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-100'
+                            : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                        }`}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -329,12 +517,19 @@ export function PackageModal({
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => setShowServiceSelector(true)}
                 className="w-full p-8 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-orange-500 hover:text-orange-600 transition-colors"
               >
                 <Package size={24} className="mx-auto mb-2 opacity-50" />
                 <p>Click to add services to this package</p>
               </button>
+            )}
+            {validationErrors.services && (
+              <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                <AlertCircle size={14} />
+                {validationErrors.services}
+              </p>
             )}
           </div>
 
@@ -355,7 +550,7 @@ export function PackageModal({
                   <select
                     value={discountType}
                     onChange={(e) => {
-                      setDiscountType(e.target.value as any);
+                      setDiscountType(e.target.value as 'fixed' | 'percentage');
                       setCustomPrice(null);
                     }}
                     className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -367,19 +562,37 @@ export function PackageModal({
                     <input
                       type="number"
                       min="0"
-                      max={discountType === 'percentage' ? 100 : originalPrice}
+                      max={discountType === 'percentage' ? 100 : undefined}
                       value={discountValue}
                       onChange={(e) => {
                         setDiscountValue(Number(e.target.value));
                         setCustomPrice(null);
                       }}
-                      className="w-full px-3 py-2 pr-8 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                        hasDiscountError
+                          ? 'border-red-300 focus:ring-red-500'
+                          : 'border-gray-200 focus:ring-orange-500'
+                      }`}
+                      aria-invalid={hasDiscountError}
+                      aria-describedby={hasDiscountError ? 'discount-error' : undefined}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
                       {discountType === 'percentage' ? '%' : '$'}
                     </span>
                   </div>
                 </div>
+                {discountType === 'percentage' && discountValue > 100 && (
+                  <p id="discount-error" className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    Discount cannot exceed 100%
+                  </p>
+                )}
+                {discountType === 'fixed' && discountValue > originalPrice && (
+                  <p id="discount-error" className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    Fixed discount cannot exceed the original price ({formatPrice(originalPrice)})
+                  </p>
+                )}
               </div>
 
               {/* Or Custom Price */}
@@ -433,6 +646,7 @@ export function PackageModal({
                   return (
                     <button
                       key={mode.value}
+                      type="button"
                       onClick={() => setBookingMode(mode.value as BundleBookingMode)}
                       className={`p-4 rounded-lg border-2 text-left transition-all ${
                         bookingMode === mode.value
@@ -463,7 +677,7 @@ export function PackageModal({
               </div>
               <input
                 type="number"
-                min="0"
+                min="1"
                 value={validityDays || ''}
                 onChange={(e) => setValidityDays(e.target.value ? Number(e.target.value) : undefined)}
                 placeholder="No limit"
@@ -480,10 +694,13 @@ export function PackageModal({
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setOnlineBookingEnabled(!onlineBookingEnabled)}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
                   onlineBookingEnabled ? 'bg-orange-500' : 'bg-gray-300'
                 }`}
+                role="switch"
+                aria-checked={onlineBookingEnabled}
               >
                 <span
                   className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
@@ -503,14 +720,16 @@ export function PackageModal({
           </p>
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleSave}
-              disabled={!name.trim() || selectedServices.length === 0}
+              disabled={!isFormValid}
               className="px-4 py-2 text-sm font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {pkg ? 'Save Changes' : 'Create Package'}
@@ -539,6 +758,7 @@ export function PackageModal({
                   autoFocus
                 />
                 <button
+                  type="button"
                   onClick={() => setShowServiceSelector(false)}
                   className="p-1 text-gray-400 hover:text-gray-600"
                 >
@@ -552,6 +772,7 @@ export function PackageModal({
                   return (
                     <button
                       key={service.id}
+                      type="button"
                       onClick={() => addService(service)}
                       className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
                     >
@@ -579,6 +800,7 @@ export function PackageModal({
 
               <div className="px-4 py-3 border-t border-gray-100">
                 <button
+                  type="button"
                   onClick={() => setShowServiceSelector(false)}
                   className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-medium"
                 >

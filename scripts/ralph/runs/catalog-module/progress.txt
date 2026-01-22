@@ -2705,3 +2705,115 @@ Commit: ba38799
 **Next story suggestion:** US-049 (Add Zod validation to ServiceModal) - Continues Phase 3 modal validation pattern
 
 ---
+
+## 2026-01-22 - US-049: Add Zod validation to ServiceModal
+Commit: 950f06f
+
+**Why this story?** Highest priority incomplete story (priority 49) in Phase 3 with no dependencies. Continues the modal validation pattern introduced in earlier stories.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/modals/ServiceModal.tsx`:
+   - Added imports: useMemo, useCallback for validation hooks, AlertCircle icon, z from 'zod'
+   - Created serviceFormSchema Zod schema validating:
+     - name: required (min 1 char)
+     - categoryId: required (min 1 char)
+     - price: >= 0
+     - duration: >= 5 minutes
+     - advanceBookingDaysMin: >= 0
+     - advanceBookingDaysMax: >= 1 and >= advanceBookingDaysMin (refinement)
+     - depositPercentage: 5-100%
+     - turnWeight: 0-5
+     - commissionRate: 0-100% (optional)
+   - Added ValidationErrors type and validationErrors state
+   - Added validateForm() callback that runs Zod validation and sets errors
+   - Added isFormValid useMemo that checks form validity for button disabled state
+   - Added clearFieldError() callback to clear errors on field change
+   - Updated handleSave to use validateForm() instead of simple check
+   - Added inline error display under validated fields:
+     - Name input (basic tab)
+     - Price input (pricing tab)
+     - Duration select (pricing tab)
+     - Min/Max Advance Booking Days (booking tab)
+     - Turn Weight and Commission Rate (advanced tab)
+   - Each error shows AlertCircle icon with red text
+   - Added ARIA attributes: aria-invalid, aria-describedby for accessibility
+   - Updated save button to use isFormValid instead of simple name/categoryId check
+   - Errors clear when modal opens and when fields change
+
+**Acceptance Criteria Verification:**
+- ✅ Create Zod schema for service form validation
+- ✅ Validate: name required, price >= 0, duration >= 5
+- ✅ Validate: advanceBookingDaysMax >= advanceBookingDaysMin (via Zod refinement)
+- ✅ Show field-level error messages under inputs
+- ✅ Disable save button when form is invalid
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- Zod refinement allows cross-field validation (advanceBookingDaysMax >= advanceBookingDaysMin)
+- useMemo for isFormValid provides instant feedback without triggering full validation
+- Clearing validation errors on field change provides better UX than only validating on submit
+- ARIA attributes (aria-invalid, aria-describedby) improve accessibility for screen readers
+
+**Patterns to sync:**
+- Pattern #16: Zod Form Validation in Modals - Use Zod schema with refinements for cross-field validation, useMemo for instant isFormValid check, useCallback for validateForm, and clearFieldError on change for good UX
+
+**Next story suggestion:** US-050 (Load staff assignments in ServiceModal) - Same file, continues ServiceModal improvements
+
+---
+
+## 2026-01-22 - US-050: Load staff assignments in ServiceModal
+Commit: f903719
+
+**Why this story?** Highest priority incomplete story (priority 50) in Phase 3. Same file as US-049 (ServiceModal.tsx) - code is fresh in context. Continues ServiceModal improvements.
+
+**Changes:**
+1. `apps/store-app/src/types/catalog.ts`:
+   - Added StaffAssignmentData interface (shared type for staff assignment UI data)
+   - Extended ServiceModalProps to include:
+     - initialStaffAssignments?: StaffServiceAssignment[] - for loading existing assignments
+     - Updated onSave signature to include staffAssignments parameter
+
+2. `apps/store-app/src/types/index.ts`:
+   - Added StaffAssignmentData export
+
+3. `apps/store-app/src/components/menu-settings/modals/ServiceModal.tsx`:
+   - Import StaffAssignmentData from types/catalog
+   - Removed duplicate local StaffAssignmentData interface
+   - Added initialStaffAssignments prop destructuring
+   - Updated useEffect to load staff assignments from initialStaffAssignments prop
+   - Convert StaffServiceAssignment to StaffAssignmentData format when loading
+   - Updated handleSave to pass staffAssignmentsToSave to onSave callback
+   - Only passes staff assignments when allStaffCanPerform is false
+
+4. `apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx`:
+   - Added imports: useEffect, StaffServiceAssignment, StaffAssignmentData
+   - Extended ServicesSectionProps with getStaffAssignments and saveStaffAssignments callbacks
+   - Added editingServiceAssignments state
+   - Added useEffect to load staff assignments when editingService changes
+   - Updated handleSaveService to accept and save staff assignments
+   - Pass initialStaffAssignments to ServiceModal
+   - Clear editingServiceAssignments on modal close
+
+5. `apps/store-app/src/components/menu-settings/components/StaffAssignmentEditor.tsx`:
+   - Removed local StaffAssignmentData interface (now imported from types/catalog)
+   - Import StaffAssignmentData from @/types/catalog
+
+**Acceptance Criteria Verification:**
+- ✅ Load existing staff assignments via useCatalog (via initialStaffAssignments prop passed from parent)
+- ✅ Display staff assignment checkboxes in modal (StaffAssignmentEditor component, already existed)
+- ✅ Save staff assignments when service is saved (via onSave callback third parameter)
+- ✅ Remove TODO comment about populating staff assignments (replaced with actual implementation)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- Staff assignments flow: ServicesSection loads via getStaffAssignments → passes to ServiceModal as initialStaffAssignments → modal converts to StaffAssignmentData format → saved via handleSaveService's saveStaffAssignments callback
+- Shared type StaffAssignmentData consolidates interface across ServiceModal and StaffAssignmentEditor
+- Only pass staff assignments when allStaffCanPerform is false (otherwise all staff can perform the service)
+- useEffect dependency on editingService ensures assignments reload when switching between services
+
+**Patterns to sync:**
+- Pattern #17: Modal with External Data Loading - Use props (initialData) for loading, callbacks (onSave) for saving, and useEffect in parent to load data when editingItem changes
+
+**Next story suggestion:** US-051 (Add validation to PackageModal) - Continues Phase 3 modal validation pattern
+
+---

@@ -870,6 +870,8 @@ export interface PackageModalProps {
   onClose: () => void;
   package?: ServicePackage;
   services: MenuServiceWithEmbeddedVariants[];
+  /** All packages (for duplicate name validation) */
+  allPackages?: ServicePackage[];
   onSave: (pkg: Partial<ServicePackage>) => Promise<void> | void;
 }
 
