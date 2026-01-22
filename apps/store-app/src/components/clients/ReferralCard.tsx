@@ -20,7 +20,7 @@ interface ReferralStats {
 }
 
 interface ReferralCardProps {
-  client: Client;
+  client: Pick<Client, 'id' | 'referralCode' | 'loyaltyInfo'>;
   className?: string;
 }
 
