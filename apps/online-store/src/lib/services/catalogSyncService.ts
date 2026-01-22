@@ -197,13 +197,122 @@ export function getCachedServices(): Service[] {
 }
 
 /**
- * Get add-on groups for a service (placeholder for US-069)
- * TODO: Implement in US-069 when AddOnsSelector is created
+ * Add-on group structure for Online Store
  */
-export async function getAddOnGroups(storeId: string, serviceId: string): Promise<any[]> {
-  // Placeholder - will be implemented in US-069
-  console.log(`[CatalogSync] getAddOnGroups not yet implemented (serviceId: ${serviceId})`);
-  return [];
+export interface AddOnGroup {
+  id: string;
+  name: string;
+  description?: string;
+  selectionMode: 'single' | 'multiple';
+  minSelections: number;
+  maxSelections?: number;
+  isRequired: boolean;
+  displayOrder: number;
+  options: AddOnOption[];
+}
+
+export interface AddOnOption {
+  id: string;
+  groupId: string;
+  name: string;
+  description?: string;
+  price: number;
+  duration: number;
+  displayOrder: number;
+}
+
+/**
+ * Get add-on groups for a service
+ * Filters by applicability (service ID or category ID)
+ */
+export async function getAddOnGroups(storeId: string, serviceId: string, categoryId?: string): Promise<AddOnGroup[]> {
+  if (!supabase) {
+    console.log('[CatalogSync] Supabase not available - returning empty add-on groups');
+    return [];
+  }
+
+  try {
+    // Fetch all active add-on groups for the store
+    const { data: groupsData, error: groupsError } = await supabase
+      .from('add_on_groups')
+      .select('*')
+      .eq('store_id', storeId)
+      .eq('is_deleted', false)
+      .eq('is_active', true)
+      .eq('online_booking_enabled', true)
+      .order('display_order', { ascending: true });
+
+    if (groupsError) {
+      console.error('[CatalogSync] Error fetching add-on groups:', groupsError);
+      throw groupsError;
+    }
+
+    if (!groupsData || groupsData.length === 0) {
+      console.log('[CatalogSync] No add-on groups found for store:', storeId);
+      return [];
+    }
+
+    // Filter groups by applicability
+    const applicableGroups = groupsData.filter((group) => {
+      if (group.applicable_to_all) return true;
+      if (serviceId && group.applicable_service_ids?.includes(serviceId)) return true;
+      if (categoryId && group.applicable_category_ids?.includes(categoryId)) return true;
+      return false;
+    });
+
+    if (applicableGroups.length === 0) {
+      console.log('[CatalogSync] No applicable add-on groups for service:', serviceId);
+      return [];
+    }
+
+    // Fetch options for all applicable groups
+    const groupIds = applicableGroups.map(g => g.id);
+    const { data: optionsData, error: optionsError } = await supabase
+      .from('add_on_options')
+      .select('*')
+      .in('group_id', groupIds)
+      .eq('is_deleted', false)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (optionsError) {
+      console.error('[CatalogSync] Error fetching add-on options:', optionsError);
+      throw optionsError;
+    }
+
+    // Build groups with their options
+    const groups: AddOnGroup[] = applicableGroups.map((group) => {
+      const groupOptions = (optionsData || [])
+        .filter(opt => opt.group_id === group.id)
+        .map(opt => ({
+          id: opt.id,
+          groupId: opt.group_id,
+          name: opt.name,
+          description: opt.description,
+          price: opt.price,
+          duration: opt.duration,
+          displayOrder: opt.display_order,
+        }));
+
+      return {
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        selectionMode: group.selection_mode as 'single' | 'multiple',
+        minSelections: group.min_selections,
+        maxSelections: group.max_selections,
+        isRequired: group.is_required,
+        displayOrder: group.display_order,
+        options: groupOptions,
+      };
+    });
+
+    console.log(`[CatalogSync] Loaded ${groups.length} add-on groups for service ${serviceId}`);
+    return groups;
+  } catch (error) {
+    console.error('[CatalogSync] getAddOnGroups failed:', error);
+    throw error;
+  }
 }
 
 /**

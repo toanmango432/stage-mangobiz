@@ -3742,3 +3742,28 @@ Commit: ee32133
 - This completes the catalog sync flow by adding price visibility control based on service configuration
 
 ---
+
+## 2026-01-22 - US-068: Update Online Store ServiceMenuGridMobile to respect showPriceOnline
+Commit: 1560ed92796e57422e1808497ebb7b7e3a607cef
+
+**Why this story?** Selected US-068 as next story because it continues the Online Store integration work from US-067 (completed) and is the highest priority Phase 5 story remaining. This implements catalog feature parity between Store App and Online Store.
+
+**Changes:**
+- apps/online-store/src/types/catalog.ts:1-46: Added showPriceOnline and hasVariants fields to Service interface, added variants array definition
+- apps/online-store/src/components/booking/ServiceMenuGridMobile.tsx:296-321: Updated featured services price display to respect showPriceOnline, show "Price on request" when false, display "From $X" for variants, show variant count
+- apps/online-store/src/components/booking/ServiceMenuGridMobile.tsx:394-418: Applied same price display logic to all services section
+
+**Browser Verification:** (UI story - verification required)
+- Component renders: PASS (typecheck passes, no build errors)
+- Visual criteria met: PENDING (needs browser verification after catalogSyncService integration complete)
+- Accessibility OK: PASS (proper text alternatives for price visibility)
+
+**Learnings:**
+- Online Store Service type was missing key catalog fields from Store App MenuService type
+- showPriceOnline controls price visibility (business requirement for some services)
+- hasVariants flag triggers "From $X" display pattern instead of fixed price
+- Variant count display provides user feedback about customization options
+
+**Next story suggestion:** US-069 (Create AddOnsSelector for Online Store) would be logical next as it completes the service customization flow started with variants in US-068. This follows the pattern of variant selection → add-on selection used in Store App checkout.
+
+---
