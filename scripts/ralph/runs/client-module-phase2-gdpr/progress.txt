@@ -73,3 +73,35 @@
 
 ---
 
+### Iteration 2 - US-002: Add GDPR types to client types
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/types/client.ts`
+
+**Changes Made:**
+1. Added GDPR type aliases in "ENUMS & BASIC TYPES" section:
+   - `DataRequestType = 'export' | 'delete' | 'access'`
+   - `DataRequestStatus = 'pending' | 'processing' | 'completed' | 'rejected'`
+   - `DataRetentionAction` - 8 action types matching DB CHECK constraint
+
+2. Added new interfaces in "GDPR/CCPA COMPLIANCE" section:
+   - `ClientDataRequest` - matches client_data_requests table schema
+   - `DataRetentionLog` - matches data_retention_logs table schema
+
+3. Added consent fields to `Client` interface:
+   - `consentMarketing?: boolean`
+   - `consentMarketingAt?: string`
+   - `consentDataProcessing?: boolean`
+   - `consentDataProcessingAt?: string`
+   - `dataDeletionRequestedAt?: string`
+
+**Learnings:**
+- GDPR types use camelCase to match app conventions (vs snake_case in DB)
+- `DataRetentionLog.clientId` is optional (nullable) to preserve logs after client deletion
+- `fieldsAffected` stored as `string[]` in TypeScript vs JSONB in PostgreSQL
+- Pre-existing type errors in `@mango/types` package are unrelated to client types
+
+---
+

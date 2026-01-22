@@ -33,7 +33,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing type patterns in client.ts. Export all new types."
     },
     {

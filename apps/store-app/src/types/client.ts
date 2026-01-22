@@ -4,6 +4,21 @@ import { SyncStatus } from './common';
 
 export type BlockReason = 'no_show' | 'late_cancellation' | 'inappropriate_behavior' | 'non_payment' | 'other';
 
+// GDPR Data Request Types
+export type DataRequestType = 'export' | 'delete' | 'access';
+export type DataRequestStatus = 'pending' | 'processing' | 'completed' | 'rejected';
+
+// Data Retention Action Types (matches database CHECK constraint)
+export type DataRetentionAction =
+  | 'data_exported'
+  | 'data_deleted'
+  | 'data_accessed'
+  | 'consent_updated'
+  | 'consent_marketing_granted'
+  | 'consent_marketing_revoked'
+  | 'consent_data_processing_granted'
+  | 'consent_data_processing_revoked';
+
 export type ClientGender = 'female' | 'male' | 'non_binary' | 'prefer_not_to_say';
 
 export type LoyaltyTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'vip';
@@ -493,6 +508,13 @@ export interface Client {
   // Status flags
   isVip: boolean;
 
+  // GDPR Consent (PRD Phase 2 - GDPR Compliance)
+  consentMarketing?: boolean;
+  consentMarketingAt?: string;
+  consentDataProcessing?: boolean;
+  consentDataProcessingAt?: string;
+  dataDeletionRequestedAt?: string;
+
   // System fields
   createdAt: string;
   updatedAt: string;
@@ -709,4 +731,55 @@ export interface BulkOperationResult {
   processedCount: number;
   failedCount: number;
   errors?: { clientId: string; error: string }[];
+}
+
+// ==================== GDPR/CCPA COMPLIANCE ====================
+
+/**
+ * Client Data Request - Tracks GDPR/CCPA data requests
+ * PRD Phase 2 - GDPR Compliance
+ */
+export interface ClientDataRequest {
+  id: string;
+  clientId: string;
+  storeId: string;
+
+  // Request type and status
+  requestType: DataRequestType;
+  status: DataRequestStatus;
+
+  // Processing metadata
+  requestedAt: string;
+  processedAt?: string;
+  processedBy?: string;
+
+  // Additional information
+  notes?: string;
+  exportUrl?: string;  // URL to download exported data (for export requests)
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Data Retention Log - Immutable audit log for GDPR/CCPA data actions
+ * Required for compliance auditing
+ */
+export interface DataRetentionLog {
+  id: string;
+  clientId?: string;  // Nullable - keep log even if client deleted
+  storeId: string;
+
+  // Action details
+  action: DataRetentionAction;
+  fieldsAffected?: string[];  // Array of field names that were modified
+
+  // Actor information
+  performedBy?: string;
+  performedByName?: string;
+
+  // Timestamps
+  performedAt: string;
+  createdAt: string;
 }
