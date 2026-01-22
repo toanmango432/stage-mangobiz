@@ -21,7 +21,7 @@
       ],
       "notes": "Follow pattern from apps/store-app/src/types/ticket.ts. Keep types simple and flat, avoid deep nesting. Use union types for enums.",
       "priority": 1,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-002",
@@ -36,12 +36,12 @@
         "pnpm run typecheck passes"
       ],
       "files": [
-        "apps/store-app/src/services/supabase/storeService.ts"
+        "apps/store-app/src/services/supabase/storeService.ts (NEW)"
       ],
       "notes": "Follow existing patterns in storeService.ts for JSON field handling. Use existing Supabase client. Handle case where connect_config is null (return default).",
       "dependencies": ["US-001"],
       "priority": 2,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-003",
@@ -324,6 +324,57 @@
       ],
       "notes": "Follow existing .env.example format. Only VITE_ prefixed vars are exposed to frontend. Example: VITE_MANGO_CONNECT_SDK_URL=https://connect.mango.ai/sdk/v1/mango-connect-sdk.js",
       "priority": 15,
+      "passes": false
+    },
+    {
+      "id": "US-016",
+      "title": "Ultra Thinking review of all implementations",
+      "description": "As a developer, I need a comprehensive review of all Connect integration code using Ultra Thinking mode with specialist agents.",
+      "acceptanceCriteria": [
+        "Review all new files created in this integration",
+        "Check for security vulnerabilities (JWT handling, token storage)",
+        "Verify TypeScript types are correct and complete",
+        "Check for potential memory leaks in hooks and providers",
+        "Verify error handling is comprehensive",
+        "Check for accessibility issues in UI components",
+        "Verify coding patterns match existing codebase conventions",
+        "Document any issues found in progress.txt"
+      ],
+      "files": [
+        "apps/store-app/src/types/connectIntegration.ts",
+        "apps/store-app/src/services/supabase/storeService.ts",
+        "apps/store-app/src/hooks/useConnectConfig.ts",
+        "apps/store-app/src/hooks/useConnectToken.ts",
+        "apps/store-app/src/hooks/useConnectSDK.ts",
+        "apps/store-app/src/providers/ConnectSDKProvider.tsx",
+        "apps/store-app/src/pages/MessagesPage.tsx",
+        "apps/store-app/src/components/integrations/AIAssistantPanel.tsx",
+        "apps/store-app/src/components/modules/settings/categories/ConnectSettings.tsx",
+        "supabase/functions/generate-connect-token/index.ts"
+      ],
+      "notes": "Use /ultrathink skill to spawn specialist agents (Architect, Research, Coder, Tester) for comprehensive review. Focus on security, performance, and code quality. This is a review-only story - do not make changes, only document issues.",
+      "dependencies": ["US-001", "US-002", "US-003", "US-004", "US-005", "US-006", "US-007", "US-008", "US-009", "US-010", "US-011", "US-012", "US-013", "US-014", "US-015"],
+      "priority": 16,
+      "passes": false
+    },
+    {
+      "id": "US-017",
+      "title": "Fix issues found in Ultra Thinking review",
+      "description": "As a developer, I need to fix any issues discovered during the Ultra Thinking review.",
+      "acceptanceCriteria": [
+        "Address all security issues identified in US-016",
+        "Fix all TypeScript errors or type improvements",
+        "Resolve any memory leak concerns",
+        "Improve error handling where needed",
+        "Fix accessibility issues",
+        "Align code with codebase conventions",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes (if available)"
+      ],
+      "files": [],
+      "notes": "Files to modify will be determined by US-016 review findings. This story should be updated with specific files after US-016 completes. May result in no changes if review finds no issues.",
+      "dependencies": ["US-016"],
+      "priority": 17,
       "passes": false
     }
   ]
