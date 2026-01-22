@@ -481,3 +481,47 @@ export const categoryService = {
 3. Dexie/IndexedDB (default local-first storage)
 
 **Why:** Local-first is the default behavior. Supabase routing is opt-in for online-only devices that don't need offline support. Type adapters ensure consistent camelCase types regardless of data source.
+
+### Async Catalog Loading
+When replacing mock data generation with real catalog sync service, always use async loading pattern:
+```typescript
+// OLD (sync mock data):
+const services = generateMockServices();
+
+// NEW (async real data):
+useEffect(() => {
+  const loadServices = async () => {
+    try {
+      const storeId = localStorage.getItem('storeId') || '';
+      const loadedServices = await getServices(storeId);
+      setServices(loadedServices);
+    } catch (error) {
+      console.error('Failed to load services:', error);
+      setServices([]); // Empty array on error, NOT mock data
+    }
+  };
+  loadServices();
+}, []);
+```
+**Why:** Sync mock generation cannot be replaced with async Supabase calls without proper error handling. Empty arrays on error ensure UI degrades gracefully without showing stale mock data.
+
+### Post-Query RLS Validation (Defense in Depth)
+After querying Supabase with tenant isolation filters, validate ALL returned records match the expected tenant:
+```typescript
+function validateStoreIsolation(data: any[], storeId: string, context: string): void {
+  const invalidRecords = data.filter(row => row.store_id !== storeId);
+  if (invalidRecords.length > 0) {
+    console.error(`[SECURITY] RLS policy violation in ${context}`, {
+      requestedStoreId: storeId,
+      invalidRecordCount: invalidRecords.length,
+      invalidStoreIds: [...new Set(invalidRecords.map(r => r.store_id))],
+    });
+    throw new Error(`Cross-store data leakage prevented in ${context}`);
+  }
+}
+
+// Usage in data service:
+const { data } = await supabase.from('table').eq('store_id', storeId);
+validateStoreIsolation(data, storeId, 'serviceName');
+```
+**Why:** RLS policies can be misconfigured during migrations, schema changes, or policy updates. Application-level validation catches policy failures before data reaches UI. This prevents accidental cross-tenant data exposure in multi-tenant SaaS applications. Detailed error logging helps identify and fix RLS misconfigurations quickly.

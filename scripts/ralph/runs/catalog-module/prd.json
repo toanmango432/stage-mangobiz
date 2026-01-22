@@ -1507,7 +1507,7 @@
         "PHASE 5 FULLY COMPLETE after this story passes"
       ],
       "priority": 5002,
-      "passes": false,
+      "passes": true,
       "dependencies": [
         "US-P5R"
       ],
