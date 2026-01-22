@@ -3767,3 +3767,120 @@ Commit: 1560ed92796e57422e1808497ebb7b7e3a607cef
 **Next story suggestion:** US-069 (Create AddOnsSelector for Online Store) would be logical next as it completes the service customization flow started with variants in US-068. This follows the pattern of variant selection → add-on selection used in Store App checkout.
 
 ---
+## 2026-01-22 - US-069: Create AddOnsSelector for Online Store
+Commit: aadd41d
+
+**Why this story?** US-069 is the next incomplete Phase 5 story after US-068. It completes the service customization flow in Online Store (variants → add-ons), following the same pattern established in Store App checkout. Priority 69, no dependencies.
+
+**Changes:**
+1. `/Users/seannguyen/Winsurf-built/Mango-POS-Catalog/apps/online-store/src/lib/services/catalogSyncService.ts:199-317`:
+   - Added `AddOnGroup` interface for Online Store (id, name, description, selectionMode, minSelections, maxSelections, isRequired, displayOrder, options[])
+   - Added `AddOnOption` interface (id, groupId, name, description, price, duration, displayOrder)
+   - Implemented `getAddOnGroups(storeId, serviceId, categoryId?)` function:
+     - Fetches add_on_groups from Supabase where online_booking_enabled=true
+     - Filters by applicability (applicable_to_all OR applicableServiceIds OR applicableCategoryIds)
+     - Fetches add_on_options for all applicable groups
+     - Returns groups with embedded options array
+     - Graceful fallback if Supabase unavailable
+
+2. `/Users/seannguyen/Winsurf-built/Mango-POS-Catalog/apps/online-store/src/components/booking/AddOnsSelector.tsx:1-510`:
+   - Complete rewrite - replaced mock data with real catalogSyncService integration
+   - Updated props interface: added `storeId`, `serviceId`, `categoryId?` (required for data fetching)
+   - Loads add-on groups via `getAddOnGroups()` in useEffect
+   - Enforces selection rules:
+     - Single selection mode → Radio buttons
+     - Multiple selection mode → Checkboxes with max limit enforcement
+     - Required groups → Validation error if minSelections not met
+   - Mobile-optimized UI:
+     - Touch-friendly tap targets (p-3, rounded-lg borders)
+     - Active scale feedback (`active:scale-[0.98]`)
+     - Full-width cards with proper spacing
+     - Error states with AlertCircle icons
+     - Loading spinner during data fetch
+   - Selection state management:
+     - Tracks selections per group: `{ groupId: optionId[] }`
+     - Updates formData.addOns on every change
+     - Preserves selections when component re-renders
+   - Validation:
+     - `getGroupValidationError()` checks required groups
+     - `canProceed` disables Continue button if validation fails
+     - Visual error feedback (red border, error message)
+   - Empty/error states:
+     - Shows "No add-ons available" if groups.length === 0
+     - Shows error message if fetch fails
+     - Both states allow skip/continue
+
+**Acceptance Criteria:**
+- ✅ Created apps/online-store/src/components/booking/AddOnsSelector.tsx (rewrote existing file)
+- ✅ Mobile-optimized UI (touch-friendly, active:scale feedback, full-width cards)
+- ✅ Similar functionality to checkout AddOnSelector (same selection logic, enforcement rules)
+- ✅ Enforce selection rules (min/max per group, required group validation)
+- ✅ pnpm exec tsc --noEmit passes (no errors)
+
+**Learnings:**
+- Online Store had existing AddOnsSelector with mock data - rewrote to use real catalog sync
+- catalogSyncService had placeholder `getAddOnGroups()` - implemented full Supabase integration
+- Add-on group applicability uses fetch-then-filter pattern (PostgREST array contains limitations)
+- Mobile UI needs active:scale feedback for touch interactions (iOS/Android native feel)
+- Required groups need prominent visual feedback (border-primary/30, "Required" badge)
+- Empty state should be graceful - allow continue even if no add-ons available
+
+**Next story suggestion:** US-070 (Implement commission calculation in checkout) - Continues Phase 5 module integrations, moves back to Store App for checkout/payment features
+
+---
+
+
+## 2026-01-22 - US-070: Implement commission calculation in checkout
+Commit: 347d1ca
+
+**Why this story?** US-070 is the next incomplete Phase 5 story (priority 70, no dependencies). It continues the module integration work by adding commission tracking to checkout transactions.
+
+**Changes:**
+- apps/store-app/src/types/transaction.ts:54-59, 95-101: Added commissionRate and commissionAmount fields to services array in Transaction and CreateTransactionInput interfaces
+- apps/store-app/src/utils/commissionCalculation.ts:1-84 (NEW): Created utility module with:
+  - calculateServiceCommission(): Resolves commission rate from MenuService or StaffServiceAssignment override
+  - calculateTotalCommission(): Sums commission across services
+  - groupCommissionsByStaff(): Groups commission by staff member
+- apps/store-app/src/components/checkout/hooks/useTicketPayment.ts:10-15: Added imports for commission calculation utilities and catalog types
+- apps/store-app/src/components/checkout/hooks/useTicketPayment.ts:181-263: Enhanced handleCompletePayment to:
+  - Load MenuService data for all services in transaction
+  - Load StaffServiceAssignment data for each service
+  - Calculate commission per service line item using priority: customCommissionRate > commissionRate > 0%
+  - Store commission data in transaction record
+
+**Acceptance Criteria:**
+- ✅ Read commissionRate from MenuService (via menuServicesService.getAll)
+- ✅ Check StaffServiceAssignment for customCommissionRate override (via staffServiceAssignmentsService.getByService)
+- ✅ Calculate commission per service line item (using calculateServiceCommission utility)
+- ✅ Store commission amount in transaction record (added to services array in transaction)
+- ✅ pnpm run typecheck passes (no errors)
+
+**Learnings:**
+- Commission rate priority: StaffServiceAssignment.customCommissionRate > MenuService.commissionRate > 0%
+- Graceful degradation: If catalog data fetch fails, commission defaults to 0% without breaking payment flow
+- Transaction services array extended with staffId, commissionRate, commissionAmount fields for audit trail
+- catalogDataService doesn't have getAll for staffServiceAssignments - must call getByService per service
+
+**Next story suggestion:** US-071 (Display commission breakdown in payment summary) - Now that commission is calculated and stored, display it in the payment UI for staff visibility.
+
+---
+
+## Session Summary - 2026-01-22 (Iteration 2)
+
+**Completed this session:** 1 story (US-070)
+**Total progress:** 76/88 stories (86.4%)
+
+**Blocked stories:** None
+
+**Patterns synced:** 0 (no new reusable patterns discovered in this session)
+
+**Next session should:**
+- Start with: US-071 (Display commission breakdown in payment summary) - Continues commission integration by adding UI display of calculated commissions
+- Continue Phase 5 Module Integrations (8 more stories remain: US-071, US-072, US-P5R, US-P5F, and Phase 6 stories)
+
+**Notes:**
+- US-069 was already completed in previous session (commit aadd41d) but PRD wasn't updated - fixed in this session
+- Commission calculation now fully integrated into checkout flow with graceful fallback
+- Transaction records now include staff commission data for reporting and payroll integration
+
+---

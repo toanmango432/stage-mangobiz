@@ -1183,7 +1183,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 69,
-      "passes": false,
+      "passes": true,
       "notes": "Online Store integration complete."
     },
     {
@@ -1199,7 +1199,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 70,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/checkout/PaymentModal/PaymentModal.tsx"
     },
     {
@@ -1283,7 +1283,7 @@
         "All tests pass: pnpm test checkout"
       ],
       "priority": 75,
-      "passes": false,
+      "passes": true,
       "notes": "Integration test using Redux Provider wrapper."
     },
     {
