@@ -249,4 +249,42 @@ export * from './activityLog';
 export * from './memberAuth';
 
 // Form System (Phase 3: Consultation Forms)
-export * from './form';
+// Selectively export from form.ts (avoiding FormSection/FormSectionType/FormTemplate duplicates with client.ts)
+// Use form.ts types as they are more comprehensive
+export {
+  // Section types - these are more comprehensive in form.ts
+  type FormSectionType as FormSectionTypeExtended,
+  type ClientDetailsConfig,
+  type TextInputConfig,
+  type ChoiceConfig,
+  type DatePickerConfig,
+  type NumberInputConfig,
+  type FileUploadConfig,
+  type ConsentConfig,
+  type InfoTextConfig,
+  type FormSectionConfig,
+  type FormSection as FormSectionExtended,
+  // Delivery types (new in Phase 3)
+  type FormDeliveryMethod,
+  type FormDeliveryStatus,
+  type FormDelivery,
+  // Template types
+  type FormSendMode,
+  type FormFrequency,
+  type FormTemplate as FormTemplateExtended,
+  // Response types
+  type FormResponseStatus,
+  type FormResponse,
+  type FormFieldValue,
+  // Builder types
+  type BuilderMode,
+  type DragItem,
+  type FormBuilderState,
+  // Completion types
+  type FormCompletionState,
+  // Signature types
+  type SignatureData,
+  // Template library types
+  type TemplateCategory,
+  type TemplateLibraryItem,
+} from './form';

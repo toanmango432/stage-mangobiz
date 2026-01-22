@@ -6,7 +6,7 @@
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { supabase } from '../../../services/supabase/client';
-import type { FormDelivery, FormDeliveryMethod } from '../../../types';
+import type { FormDelivery, FormDeliveryMethod, FormDeliveryStatus } from '../../../types/form';
 
 // ==================== INPUT/OUTPUT TYPES ====================
 
@@ -38,7 +38,7 @@ export interface FetchFormDeliveriesInput {
   storeId: string;
   clientId?: string;
   appointmentId?: string;
-  status?: FormDelivery['deliveryStatus'];
+  status?: FormDeliveryStatus;
 }
 
 /** Input for generating a form PDF */
@@ -93,7 +93,7 @@ function toFormDelivery(row: Record<string, unknown>): FormDelivery {
     openedAt: row.opened_at as string | undefined,
     completedAt: row.completed_at as string | undefined,
     expiresAt: row.expires_at as string,
-    deliveryStatus: row.delivery_status as FormDelivery['deliveryStatus'],
+    deliveryStatus: row.delivery_status as FormDeliveryStatus,
     deliveryError: row.delivery_error as string | undefined,
     messageId: row.message_id as string | undefined,
     reminderSentAt: row.reminder_sent_at as string | undefined,
