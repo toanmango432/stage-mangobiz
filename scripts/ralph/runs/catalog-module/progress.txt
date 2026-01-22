@@ -3706,3 +3706,39 @@ Commit: 39851fb
 - Continue Phase 5 Module Integrations (5 more stories remain: US-067 to US-072, excluding US-065 which is already complete)
 
 ---
+
+## 2026-01-22 - US-067: Replace mock services in bookingDataService
+Commit: ee32133
+
+**Why this story?** US-067 builds directly on US-066 (catalogSyncService) which was completed previously. This story eliminates mock data generation in the Online Store and integrates real catalog sync from Supabase. It's the logical next step in Phase 5 module integrations, connecting the Online Store to the real catalog data layer.
+
+**Changes:**
+- apps/online-store/src/lib/services/bookingDataService.ts:2-3: Removed generateMockServices import, added catalogSyncService imports (getServices, syncFromSupabase)
+- apps/online-store/src/lib/services/bookingDataService.ts:107-154: Replaced initializeData mock generation with syncCatalogData() async method
+- apps/online-store/src/lib/services/bookingDataService.ts:107-154: Removed hardcoded staff array (lines 132-166), replaced with empty array and TODO comment for future staff sync
+- apps/online-store/src/lib/services/bookingDataService.ts:107-108: Constructor now calls syncCatalogData() on initialization to trigger catalog sync
+
+**Learnings:**
+- Online Store doesn't have `pnpm run typecheck` script - use `pnpm exec tsc --noEmit` instead
+- catalogSyncService.getServices() handles cache fallback automatically (5-minute TTL)
+- Services are now loaded asynchronously on first load, so UI components need to handle loading state
+- Staff data sync is deferred to future story - left as empty array with TODO comment
+
+**Next story suggestion:** US-068 (Update Online Store ServiceMenuGridMobile to respect showPriceOnline) - Now that real catalog data is flowing, implement price visibility control based on service.showOnline field. This is a direct continuation of catalog integration into Online Store UI.
+
+---
+
+## Session Summary - 2026-01-22
+
+**Completed this session:** 1 story (US-067)
+**Total progress:** 75/88 stories (85.2%)
+
+**Blocked stories:** None
+
+**Patterns synced:** 0 (no new patterns discovered)
+
+**Next session should:**
+- Start with: US-068 (Update Online Store ServiceMenuGridMobile to respect showPriceOnline) - Direct continuation of Online Store catalog integration
+- This completes the catalog sync flow by adding price visibility control based on service configuration
+
+---

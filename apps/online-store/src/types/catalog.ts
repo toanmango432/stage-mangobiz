@@ -7,8 +7,17 @@ export interface Service {
   basePrice: number;
   price: number; // For booking flow compatibility
   showOnline: boolean;
+  showPriceOnline: boolean; // Control price visibility online
   image?: string;
   gallery?: string[];
+  hasVariants: boolean; // Service has multiple variants
+  variants?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    duration?: number;
+    isDefault?: boolean;
+  }>;
   addOns: Array<{
     id: string;
     name: string;

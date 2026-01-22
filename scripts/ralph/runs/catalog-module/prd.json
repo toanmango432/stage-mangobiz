@@ -1152,7 +1152,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 67,
-      "passes": false,
+      "passes": true,
       "notes": "bookingDataService currently generates fake data."
     },
     {
