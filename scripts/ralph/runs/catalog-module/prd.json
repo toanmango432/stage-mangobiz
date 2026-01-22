@@ -1462,7 +1462,7 @@
         "PHASE 4 FULLY COMPLETE after this story passes"
       ],
       "priority": 4002,
-      "passes": false,
+      "passes": true,
       "dependencies": [
         "US-P4R"
       ],
