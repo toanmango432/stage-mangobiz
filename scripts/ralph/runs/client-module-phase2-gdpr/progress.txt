@@ -144,3 +144,113 @@
 
 ---
 
+### Iteration 4 - US-004: Create data export Edge Function
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `supabase/functions/export-client-data/index.ts`
+
+**Changes Made:**
+1. Created new Edge Function for GDPR data export with:
+   - POST endpoint accepting clientId, storeId, performedBy, performedByName, requestId
+   - Fetches client profile, appointments, tickets, and transactions
+   - Converts all snake_case DB fields to camelCase for JSON output
+   - Returns base64 encoded data URL for download
+
+2. Export data structure includes:
+   - `exportedAt` timestamp
+   - `exportVersion` (1.0)
+   - `client` - full profile with consent fields
+   - `appointments` - all appointments for client
+   - `tickets` - all tickets with services/products
+   - `transactions` - all payment transactions
+
+3. GDPR compliance features:
+   - Logs export action to `data_retention_logs` table
+   - Updates `client_data_requests` status if requestId provided
+   - Includes `fieldsAffected` array in audit log
+   - Returns summary counts in response
+
+4. Error handling:
+   - Validates required parameters (clientId, storeId)
+   - Returns 404 if client not found
+   - Continues export even if logging fails
+   - Proper CORS headers for cross-origin requests
+
+**Implementation Details:**
+- Follows existing Edge Function patterns from `clients/index.ts`
+- Uses `btoa(unescape(encodeURIComponent(jsonString)))` for base64 encoding
+- All type converters defined locally (no external type imports in Deno)
+- Console logging for debugging with `[export-client-data]` prefix
+
+**Learnings:**
+- Edge Functions use Deno runtime - can verify with `deno check`
+- Base64 data URLs work well for small-medium exports
+- Non-critical operations (logging) should not block main functionality
+- Type converters must be duplicated in Edge Functions (no shared types)
+
+---
+
+### Iteration 5 - US-005: Create data deletion Edge Function
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `supabase/functions/process-data-deletion/index.ts`
+
+**Changes Made:**
+1. Created new Edge Function for GDPR data deletion with:
+   - POST endpoint accepting clientId, storeId, performedBy, performedByName, requestId
+   - Validates required parameters (clientId, storeId, performedBy)
+   - Returns 404 if client not found
+
+2. PII Anonymization:
+   - `first_name` → 'DELETED'
+   - `last_name` → 'DELETED'
+   - `email` → 'deleted_{clientId}@removed.local'
+   - `phone` → '0000000000'
+   - `nickname` → null
+   - `display_name` → 'DELETED USER'
+
+3. Sensitive Data Cleared (set to null):
+   - address, emergency_contacts, staff_alert, notes
+   - hair_profile, skin_profile, nail_profile, medical_info
+   - preferences, avatar, birthday, anniversary
+   - referred_by_client_id, referred_by_client_name, source_details
+
+4. Communication Preferences Disabled:
+   - All allowEmail, allowSms, allowPhone, allowMarketing set to false
+   - doNotContact set to true
+
+5. GDPR Fields Updated:
+   - data_deletion_requested_at set to current timestamp
+   - consent_marketing and consent_data_processing set to false
+
+6. Related Records Anonymized:
+   - Appointments: client_name → 'DELETED USER', notes cleared
+   - Tickets: client_name → 'DELETED USER', notes cleared
+   - Form responses: deleted (contain signatures/PII)
+   - Client notes: deleted
+
+7. Audit Logging:
+   - Logs deletion to data_retention_logs with 'data_deleted' action
+   - fields_affected contains all anonymized and cleared fields
+   - Updates client_data_requests status to 'completed' if requestId provided
+
+**Preserved Data (for accounting):**
+- id, store_id (identification)
+- loyalty_info (points balance)
+- visit_summary (counts)
+- membership (status)
+- transactions (amounts, dates)
+- is_blocked, is_vip flags
+
+**Learnings:**
+- GDPR deletion = anonymization, not hard delete (preserve financial records)
+- Related records (appointments, tickets) must also be anonymized
+- Form responses contain PII (signatures) and should be fully deleted
+- performedBy is required for audit trail (unlike export which was optional)
+
+---
+

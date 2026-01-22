@@ -69,7 +69,7 @@
         "Handle errors gracefully with proper status codes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from supabase/functions/clients/index.ts. Use Supabase client for data fetching. Include all related data."
     },
     {
@@ -87,7 +87,7 @@
         "Update data_request status to 'completed'"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "GDPR requires keeping financial records, just anonymize PII. Follow pattern from supabase/functions/clients/index.ts. This is irreversible."
     },
     {
