@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Plus,
   Edit3,
@@ -26,6 +26,7 @@ import type {
 import { formatDuration, formatPrice } from '../constants';
 import { AddOnGroupModal } from '../modals/AddOnGroupModal';
 import { AddOnOptionModal } from '../modals/AddOnOptionModal';
+import { ConfirmDialog, AddOnGroupSkeleton } from '../components';
 
 interface AddOnsSectionProps {
   addOnGroups: AddOnGroupWithOptions[];
@@ -33,6 +34,8 @@ interface AddOnsSectionProps {
   services: MenuServiceWithEmbeddedVariants[];
   viewMode: CatalogViewMode;
   searchQuery?: string;
+  /** Whether data is currently loading */
+  isLoading?: boolean;
   // Group action callbacks
   onCreateGroup?: (data: Partial<AddOnGroup>) => Promise<AddOnGroup | null | undefined>;
   onUpdateGroup?: (id: string, data: Partial<AddOnGroup>) => Promise<AddOnGroup | null | undefined>;
@@ -49,6 +52,7 @@ export function AddOnsSection({
   services,
   // viewMode prop available for future grid/list toggle
   searchQuery = '',
+  isLoading = false,
   onCreateGroup,
   onUpdateGroup,
   onDeleteGroup,
@@ -63,16 +67,31 @@ export function AddOnsSection({
   const [editingOption, setEditingOption] = useState<AddOnOption | undefined>();
   const [selectedGroupForOption, setSelectedGroupForOption] = useState<{ id: string; name: string } | null>(null);
 
+  // Delete confirmation dialog states
+  const [deleteGroupDialogOpen, setDeleteGroupDialogOpen] = useState(false);
+  const [deleteOptionDialogOpen, setDeleteOptionDialogOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
+  const [optionToDelete, setOptionToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // UI states
   const [expandedGroupIds, setExpandedGroupIds] = useState<string[]>([]);
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
 
-  // Filter groups
-  const filteredGroups = addOnGroups.filter(group =>
-    group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    group.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    group.options.some(opt => opt.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Filter groups - search includes group name, description, AND nested option names and descriptions
+  const filteredGroups = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    if (!query) return addOnGroups;
+
+    return addOnGroups.filter(group =>
+      group.name.toLowerCase().includes(query) ||
+      group.description?.toLowerCase().includes(query) ||
+      group.options.some(opt =>
+        opt.name.toLowerCase().includes(query) ||
+        opt.description?.toLowerCase().includes(query)
+      )
+    );
+  }, [addOnGroups, searchQuery]);
 
   // Toggle group expansion
   const toggleGroupExpansion = (groupId: string) => {
@@ -141,21 +160,41 @@ export function AddOnsSection({
     setSelectedGroupForOption(null);
   };
 
-  // Handle delete group
-  const handleDeleteGroup = async (groupId: string) => {
-    if (confirm('Are you sure you want to delete this add-on group and all its options?')) {
-      if (onDeleteGroup) {
-        await onDeleteGroup(groupId);
-      }
+  // Handle delete group - open confirmation dialog
+  const handleDeleteGroupClick = (groupId: string) => {
+    setGroupToDelete(groupId);
+    setDeleteGroupDialogOpen(true);
+  };
+
+  // Confirm delete group
+  const handleConfirmDeleteGroup = async () => {
+    if (!groupToDelete || !onDeleteGroup) return;
+    setIsDeleting(true);
+    try {
+      await onDeleteGroup(groupToDelete);
+      setDeleteGroupDialogOpen(false);
+      setGroupToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  // Handle delete option
-  const handleDeleteOption = async (optionId: string) => {
-    if (confirm('Are you sure you want to delete this option?')) {
-      if (onDeleteOption) {
-        await onDeleteOption(optionId);
-      }
+  // Handle delete option - open confirmation dialog
+  const handleDeleteOptionClick = (optionId: string) => {
+    setOptionToDelete(optionId);
+    setDeleteOptionDialogOpen(true);
+  };
+
+  // Confirm delete option
+  const handleConfirmDeleteOption = async () => {
+    if (!optionToDelete || !onDeleteOption) return;
+    setIsDeleting(true);
+    try {
+      await onDeleteOption(optionToDelete);
+      setDeleteOptionDialogOpen(false);
+      setOptionToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -349,7 +388,7 @@ export function AddOnsSection({
                     <hr className="my-1" />
                     <button
                       onClick={() => {
-                        handleDeleteGroup(group.id);
+                        handleDeleteGroupClick(group.id);
                         setExpandedMenuId(null);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -427,7 +466,7 @@ export function AddOnsSection({
                         {option.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                       <button
-                        onClick={() => handleDeleteOption(option.id)}
+                        onClick={() => handleDeleteOptionClick(option.id)}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                         title="Delete option"
                       >
@@ -498,7 +537,14 @@ export function AddOnsSection({
         </div>
 
         {/* Content */}
-        {filteredGroups.length > 0 ? (
+        {isLoading ? (
+          // Loading state - show skeletons
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <AddOnGroupSkeleton key={index} />
+            ))}
+          </div>
+        ) : filteredGroups.length > 0 ? (
           <div className="space-y-3">
             {filteredGroups.map(renderGroupCard)}
           </div>
@@ -550,6 +596,36 @@ export function AddOnsSection({
           onSave={handleSaveOption}
         />
       )}
+
+      {/* Delete Group Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteGroupDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteGroupDialogOpen(open);
+          if (!open) setGroupToDelete(null);
+        }}
+        title="Delete Add-on Group"
+        description="Are you sure you want to delete this add-on group and all its options? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleConfirmDeleteGroup}
+        isLoading={isDeleting}
+      />
+
+      {/* Delete Option Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteOptionDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteOptionDialogOpen(open);
+          if (!open) setOptionToDelete(null);
+        }}
+        title="Delete Option"
+        description="Are you sure you want to delete this option? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleConfirmDeleteOption}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

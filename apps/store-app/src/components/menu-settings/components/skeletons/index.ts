@@ -10,3 +10,4 @@ export { CategoryCardSkeleton } from './CategoryCardSkeleton';
 export { PackageCardSkeleton } from './PackageCardSkeleton';
 export { ProductCardSkeleton } from './ProductCardSkeleton';
 export { TableRowSkeleton } from './TableRowSkeleton';
+export { AddOnGroupSkeleton } from './AddOnGroupSkeleton';

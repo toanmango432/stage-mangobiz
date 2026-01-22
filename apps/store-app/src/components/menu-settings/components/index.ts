@@ -24,4 +24,5 @@ export {
   PackageCardSkeleton,
   ProductCardSkeleton,
   TableRowSkeleton,
+  AddOnGroupSkeleton,
 } from './skeletons';
