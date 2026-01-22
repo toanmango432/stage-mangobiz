@@ -131,7 +131,7 @@
       "notes": "Create context with createContext<ConnectSDKContextType | null>(null). Use useConnectToken() for auth token. Use useConnectConfig() to check if enabled. SDK URL default: https://connect.mango.ai/sdk/v1/mango-connect-sdk.js. Script loading: create script element, set src, append to document.head.",
       "dependencies": ["US-003", "US-005"],
       "priority": 6,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-007",

@@ -4,6 +4,7 @@ import { BottomNavBar } from './BottomNavBar';
 import { selectAllStaff } from '../../store/slices/uiStaffSlice';
 import { useAuditContext } from '../../services/audit/auditLogger';
 import type { StaffMember } from '../checkout/ServiceList';
+import { ConnectSDKProvider } from '../../providers/ConnectSDKProvider';
 
 // Lazy load ALL modules to reduce initial bundle size
 // Core modules (frequently used but still lazy for faster initial load)
@@ -63,11 +64,13 @@ import { OfflineGraceBanner } from '../auth/OfflineGraceBanner';
 import { defaultsPopulator } from '../../services/defaultsPopulator';
 import { useBreakpoint } from '../../hooks/useMobileModal';
 
-// Main AppShell wraps with TicketPanelProvider
+// Main AppShell wraps with TicketPanelProvider and ConnectSDKProvider
 export function AppShell() {
   return (
     <TicketPanelProvider>
-      <AppShellContent />
+      <ConnectSDKProvider>
+        <AppShellContent />
+      </ConnectSDKProvider>
     </TicketPanelProvider>
   );
 }

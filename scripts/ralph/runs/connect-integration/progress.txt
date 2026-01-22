@@ -102,3 +102,36 @@ Commit: b44523f66e86923c53f7651dc0474ad5784a809e
 **Next story suggestion:** US-006 (ConnectSDKProvider) because it depends on US-003 ✅ and US-005 ✅, both now complete. This is the next story in the dependency chain that unblocks US-007, US-008.
 
 ---
+
+## 2026-01-21 - US-006: Create ConnectSDKProvider component
+Commit: 6cd3f4cdea3fdde6aff767ff922319ced2c2b696
+
+**Why this story?** US-006 depends on US-003 ✅ and US-005 ✅, both completed in previous iterations. Completing US-006 unblocks US-007 (add to AppShell) and US-008 (useConnectSDK hook).
+
+**Changes:**
+- apps/store-app/src/providers/ConnectSDKProvider.tsx:1-267 (NEW): Created provider that loads Connect SDK globally
+
+**Implementation Details:**
+- Provides context: { sdk, loading, error, unreadCount, retry }
+- Loads SDK script from import.meta.env.VITE_MANGO_CONNECT_SDK_URL (default: https://connect.mango.ai/sdk/v1/mango-connect-sdk.js)
+- Uses useConnectConfig() to check if Connect is enabled
+- Uses useConnectToken() to get auth token
+- Initializes SDK with: authToken, bizSupabaseUrl, bizSupabaseKey (from supabaseConfig)
+- Handles onTokenRefresh, onUnreadCountChange, onError callbacks from SDK
+- Children always render (SDK loads in background)
+- retry() function to reload SDK after error
+- Cleanup on unmount calls sdk.destroy()
+- Exported useConnectSDKContext() hook for context access
+
+**Learnings:**
+- Used declare global { interface Window { MangoConnectSDK?: ... } } for TypeScript SDK type
+- Script loading uses Promise wrapper with onload/onerror for clean async flow
+- supabaseConfig exported from client.ts provides url and anonKey for SDK init
+- Followed ModeContext.tsx pattern for provider structure with useMemo for context value
+
+**Pre-existing test failures documented:**
+- 21 test files failed (14 individual tests) - MQTT/integration related, not from this change (same as previous iterations)
+
+**Next story suggestion:** US-007 (Add ConnectSDKProvider to AppShell) or US-008 (useConnectSDK hook) - both are now unblocked. US-007 adds the provider to the app, US-008 creates the consumer hook. US-007 should come first as it needs the provider in place for the hook to be testable.
+
+---
