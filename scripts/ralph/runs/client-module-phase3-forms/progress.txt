@@ -1,0 +1,182 @@
+# Ralph Progress - Client Module Phase 3: Forms, Segments, Import/Export
+# Started: 2026-01-22
+# Branch: ralph/client-module-phase2
+
+## Codebase Patterns (Persistent across iterations)
+
+### Edge Function Pattern
+- Location: `supabase/functions/`
+- Use Deno imports: `https://deno.land/std@0.168.0/http/server.ts`
+- Create Supabase client with `SUPABASE_SERVICE_ROLE_KEY` for admin operations
+- Return proper CORS headers
+
+### Redux Thunk Pattern
+- Use `createAsyncThunk` from `@reduxjs/toolkit`
+- Call Edge Functions via `supabase.functions.invoke()`
+- Use `rejectWithValue` for error handling
+- Export from slice index.ts
+
+### Modal Component Pattern
+- Follow `MergeClientsModal.tsx` for confirmation flows
+- Use Dialog from `@/components/ui/dialog`
+- Include loading, error, and success states
+- Type confirmation for destructive actions
+
+### Migration Pattern
+- Use `gen_random_uuid()` for UUID primary keys
+- Use `TIMESTAMPTZ` for all timestamp columns
+- Enable RLS with `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
+- Create store-scoped policies using staff.auth_user_id = auth.uid()
+- Add column comments for documentation
+
+### Form Delivery Pattern (NEW)
+- Token-based form links with 24-hour expiration
+- Store delivery status (sent, opened, completed)
+- Support email and SMS delivery methods
+
+---
+
+## Iteration Log
+
+### Iteration 1 - US-016: Create form delivery database migration
+**Date:** 2026-01-22
+**Story:** US-016 - Create form delivery database migration
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `supabase/migrations/033_form_delivery.sql` with:
+  - `form_templates` table for storing form definitions
+  - `form_submissions` table for client responses
+  - `form_deliveries` table with token-based secure links
+  - `auto_send_form_ids` column added to services table
+  - RLS policies for all three tables
+  - Updated_at triggers
+- Updated `apps/store-app/src/services/supabase/types.ts` with:
+  - FormTemplateRow, FormSubmissionRow, FormDeliveryRow types
+  - Form-related enum types (FormTemplateCategory, FormSendMode, etc.)
+  - Added auto_send_form_ids to ServiceRow
+
+**Files Changed:**
+- `supabase/migrations/033_form_delivery.sql` (new)
+- `apps/store-app/src/services/supabase/types.ts` (modified)
+
+**Commit:** e6d5c2e
+
+**Learnings:**
+- Migration includes all prerequisite tables (form_templates, form_submissions) needed for later stories
+- Token is UUID type with unique constraint for secure form links
+- Added delivery tracking columns (delivery_status, message_id, reminder_count) for email/SMS providers
+
+---
+
+### Iteration 2 - US-017: Add form delivery types
+**Date:** 2026-01-22
+**Story:** US-017 - Add form delivery types
+**Status:** COMPLETED
+
+**Changes Made:**
+- Added to `apps/store-app/src/types/form.ts`:
+  - `FormDeliveryMethod = 'email' | 'sms'` type
+  - `FormDeliveryStatus = 'pending' | 'sent' | 'delivered' | 'failed' | 'bounced'` type
+  - `FormDelivery` interface with all fields matching migration 033
+- Note: `FormFrequency` and `FormTemplate.frequency` already existed
+
+**Files Changed:**
+- `apps/store-app/src/types/form.ts` (modified)
+
+**Commit:** d56f445
+
+**Learnings:**
+- Supabase types file already had database row types (FormDeliveryRow, etc.)
+- form.ts needed corresponding app-level types with camelCase naming
+- Pre-existing typecheck errors in @mango/types package (not related to this story)
+
+---
+
+### Iteration 3 - US-018: Create send-form Edge Function
+**Date:** 2026-01-22
+**Story:** US-018 - Create send-form Edge Function
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `supabase/functions/send-form/index.ts` with:
+  - Request handling for clientId, formTemplateId, deliveryMethod, appointmentId, storeId
+  - Token generation using crypto.randomUUID()
+  - form_delivery record creation with expiration (default 24 hours)
+  - Email sending via Resend API with HTML template
+  - SMS sending via Twilio API
+  - CORS headers and error handling
+  - Response with delivery record, token, and form link
+
+**Files Changed:**
+- `supabase/functions/send-form/index.ts` (new)
+
+**Commit:** 58657a0
+
+**Learnings:**
+- Followed send-gift-card-email pattern for Resend integration
+- Phone numbers need formatting (add +1 if missing country code)
+- Form link format: {FORM_BASE_URL}/forms/complete/{token}
+- Environment variables needed: RESEND_API_KEY, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FORM_BASE_URL
+
+---
+
+### Iteration 4 - US-019: Create generate-form-pdf Edge Function
+**Date:** 2026-01-22
+**Story:** US-019 - Create generate-form-pdf Edge Function
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `supabase/functions/generate-form-pdf/index.ts` with:
+  - PDF generation using pdf-lib (Deno compatible)
+  - Fetch form template, submission, client, and store data
+  - Professional PDF layout with Mango branding
+  - Client info section, form responses section, signature section
+  - Support for both drawn signatures (embedded images) and typed signatures
+  - Submission metadata (ID, status, timestamps)
+  - Upload to Supabase Storage (form-submissions bucket)
+  - Return public URL for download
+  - Word wrapping and page break handling
+
+**Files Changed:**
+- `supabase/functions/generate-form-pdf/index.ts` (new)
+
+**Commit:** 31b4182
+
+**Learnings:**
+- pdf-lib works well in Deno Edge Functions via esm.sh
+- Need to handle both PNG and JPEG signatures (try PNG first, fall back to JPEG)
+- Page breaks need to be checked before each section/text block
+- Store PDF in format: {storeId}/form_{submissionId}_{timestamp}.pdf
+
+---
+
+### Iteration 5 - US-020: Add form delivery thunks
+**Date:** 2026-01-22
+**Story:** US-020 - Add form delivery thunks
+**Status:** COMPLETED
+
+**Changes Made:**
+- Created `apps/store-app/src/store/slices/formsSlice/` directory with:
+  - `deliveryThunks.ts` containing:
+    - `sendFormToClient` thunk - calls send-form Edge Function
+    - `fetchFormDeliveries` thunk - fetches deliveries filtered by client/appointment/status
+    - `generateFormPdf` thunk - calls generate-form-pdf Edge Function
+    - `checkFormCompletion` thunk - checks if client completed required forms
+    - `resendFormDelivery` thunk - resends expired/failed form deliveries
+    - Type definitions for inputs/outputs
+    - Helper function `toFormDelivery` for snake_case to camelCase conversion
+  - `index.ts` barrel export
+
+**Files Changed:**
+- `apps/store-app/src/store/slices/formsSlice/deliveryThunks.ts` (new)
+- `apps/store-app/src/store/slices/formsSlice/index.ts` (new)
+
+**Commit:** f6a0cb9
+
+**Learnings:**
+- Followed pattern from gdprThunks.ts for Edge Function invocations
+- Added extra `resendFormDelivery` thunk for better UX (not required by PRD but useful)
+- Pre-existing typecheck errors in @mango/types package are unrelated to these changes
+- formsSlice is a new slice - no slice.ts needed yet (just thunks)
+

@@ -247,3 +247,6 @@ export * from './activityLog';
 
 // Member Authentication (Supabase Auth integration)
 export * from './memberAuth';
+
+// Form System (Phase 3: Consultation Forms)
+export * from './form';
