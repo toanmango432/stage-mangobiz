@@ -26,6 +26,7 @@ import type {
 import { formatDuration, formatPrice } from '../constants';
 import { ServiceModal } from '../modals/ServiceModal';
 import { ArchiveServiceModal } from '../modals/ArchiveServiceModal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { ServiceArchiveDependencies, ArchiveServiceResult } from '../../../hooks/useCatalog';
 
 interface ServicesSectionProps {
@@ -65,6 +66,11 @@ export function ServicesSection({
   const [selectedServiceForArchive, setSelectedServiceForArchive] = useState<MenuServiceWithEmbeddedVariants | null>(null);
   const [archiveDependencies, setArchiveDependencies] = useState<ServiceArchiveDependencies | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
+
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedServiceToDelete, setSelectedServiceToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Get category by ID
   const getCategory = (categoryId: string) => {
@@ -106,13 +112,31 @@ export function ServicesSection({
     setEditingService(undefined);
   };
 
-  // Handle delete
-  const handleDelete = async (serviceId: string) => {
-    if (confirm('Are you sure you want to delete this service?')) {
-      if (onDelete) {
-        await onDelete(serviceId);
-      }
+  // Handle opening delete confirmation dialog
+  const handleOpenDeleteDialog = (serviceId: string) => {
+    setSelectedServiceToDelete(serviceId);
+    setExpandedMenuId(null);
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle confirming delete
+  const handleConfirmDelete = async () => {
+    if (!selectedServiceToDelete || !onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(selectedServiceToDelete);
+      setDeleteDialogOpen(false);
+      setSelectedServiceToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  // Handle closing delete dialog
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setSelectedServiceToDelete(null);
   };
 
   // Handle toggle status
@@ -262,10 +286,7 @@ export function ServicesSection({
                       </button>
                       <hr className="my-1" />
                       <button
-                        onClick={() => {
-                          handleDelete(service.id);
-                          setExpandedMenuId(null);
-                        }}
+                        onClick={() => handleOpenDeleteDialog(service.id)}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <Trash2 size={14} /> Delete
@@ -439,10 +460,7 @@ export function ServicesSection({
                       </button>
                       <hr className="my-1" />
                       <button
-                        onClick={() => {
-                          handleDelete(service.id);
-                          setExpandedMenuId(null);
-                        }}
+                        onClick={() => handleOpenDeleteDialog(service.id)}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <Trash2 size={14} /> Delete
@@ -618,6 +636,19 @@ export function ServicesSection({
         service={selectedServiceForArchive}
         dependencies={archiveDependencies}
         isLoading={isArchiving}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={handleCloseDeleteDialog}
+        title="Delete Service"
+        description="Are you sure you want to delete this service? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
       />
     </div>
   );
