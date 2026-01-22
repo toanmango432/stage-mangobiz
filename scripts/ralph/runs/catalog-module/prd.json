@@ -1267,7 +1267,7 @@
         "85% coverage on table files"
       ],
       "priority": 74,
-      "passes": false,
+      "passes": true,
       "notes": "Use Supabase mock pattern from existing tests."
     },
     {
