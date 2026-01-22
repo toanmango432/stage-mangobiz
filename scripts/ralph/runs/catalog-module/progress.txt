@@ -3650,3 +3650,59 @@ Commit: fe55f1d
 **Next story suggestion:** US-066 (Create catalogSyncService for Online Store) - continues Phase 5 module integrations
 
 ---
+
+## [2026-01-22] - US-066: Create catalogSyncService for Online Store
+Commit: 39851fb
+
+**Why this story?** US-065 is already marked as passes:true in the PRD. US-066 is the highest priority Phase 5 story with passes=false. It's a foundational story for the Online Store catalog integration - we need real data sync before we can fix the UI components that consume that data (US-067, US-068, US-069).
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:1-268 (NEW): Complete service with Supabase integration
+  - syncFromSupabase(): Fetches services where online_booking_enabled=true
+  - getServices(): Cache-first fetch with 5-minute TTL
+  - getCachedServices(): Returns cached data without triggering sync
+  - getAddOnGroups(): Placeholder for US-069
+  - toOnlineService(): Adapter function (snake_case → camelCase)
+  - clearCache() and getCacheStatus(): Utility methods for debugging
+
+**Implementation Details:**
+- Uses same Supabase client pattern as store-app (createClient from @supabase/supabase-js)
+- Graceful degradation: If VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY not set, logs warning but doesn't throw (allows mock data fallback)
+- Cache keys: `catalog_services_v2`, `catalog_addons_v2`, `catalog_sync_timestamp`
+- Cache TTL: 5 minutes (300000ms)
+- RLS filtering: Queries filtered by store_id, is_deleted=false, online_booking_enabled=true
+- Type adapter: Converts Supabase menu_services rows to Online Store Service interface
+
+**Acceptance Criteria:**
+- ✅ Created catalogSyncService.ts in apps/online-store/src/lib/services/
+- ✅ syncFromSupabase method fetches from Supabase with RLS (store_id, online_booking_enabled)
+- ✅ getServices returns cached data or fetches if stale
+- ✅ getCachedServices returns cached data without sync
+- ✅ getAddOnGroups placeholder created (will be implemented in US-069)
+- ✅ LocalStorage cache with 5-minute TTL
+- ✅ pnpm exec tsc --noEmit passes in apps/online-store
+
+**Learnings:**
+- Online Store uses different Service interface than store-app's MenuService (simpler, UI-focused)
+- Need category name lookup (currently using category_id as string - could enhance with join query)
+- Add-ons integration deferred to US-069 when AddOnsSelector component is created
+- Environment variables are optional for Online Store (graceful degradation to mock data)
+
+**Next story suggestion:** US-067 (Replace mock services in bookingDataService) - Now that we have catalogSyncService, we can integrate it into bookingDataService and remove the mock data generation.
+
+---
+
+## Session Summary - [2026-01-22]
+
+**Completed this session:** 1 story (US-066)
+**Total progress:** 74/88 stories (84.1%)
+
+**Blocked stories:** None
+
+**Patterns synced:** 0 (no new reusable patterns discovered in this session)
+
+**Next session should:**
+- Start with: US-067 (Replace mock services in bookingDataService) - Now that catalogSyncService exists, integrate it into bookingDataService.initializeData() to replace generateMockServices() call
+- Continue Phase 5 Module Integrations (5 more stories remain: US-067 to US-072, excluding US-065 which is already complete)
+
+---

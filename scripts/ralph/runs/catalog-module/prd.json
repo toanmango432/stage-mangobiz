@@ -1136,7 +1136,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 66,
-      "passes": false,
+      "passes": true,
       "notes": "Online Store currently uses mock data - replace with real sync."
     },
     {
