@@ -650,7 +650,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "notes": "Use the skeleton component created in US-032."
     },
     {
@@ -666,7 +666,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "notes": "Enhance existing DndContext with keyboard support."
     },
     {

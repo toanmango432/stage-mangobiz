@@ -132,8 +132,8 @@ export const entityTable = {
 - [x] US-033: ErrorState and EmptyState components created ✓
 - [x] US-034: useKeyboardDragDrop hook created ✓
 - [x] US-035: CategoriesSection - browser confirm() replaced ✓
-- [ ] US-036: CategoriesSection - skeleton loader
-- [ ] US-037: CategoriesSection - keyboard drag-drop
+- [x] US-036: CategoriesSection - skeleton loader ✓
+- [x] US-037: CategoriesSection - keyboard drag-drop ✓
 - [ ] US-038: ServicesSection - browser confirm() replaced
 - [ ] US-039: ServicesSection - skeleton loaders
 - [ ] US-040: ServiceActionsDropdown extracted
@@ -160,7 +160,7 @@ export const entityTable = {
 **Fix Story (US-P3F):**
 - [ ] All Phase 3 Review Issues resolved
 
-- Status: 🔄 IN PROGRESS (5/26 stories complete)
+- Status: 🔄 IN PROGRESS (7/26 stories complete)
 
 ### Phase 4: Checkout & Booking (US-055 to US-063 + US-P4R + US-P4F) - 11 stories
 **Implementation Stories (9):**
@@ -2189,5 +2189,75 @@ Commit: 047720f
 - The error dialog uses "OK" single button for acknowledgment (no cancel needed)
 
 **Next story suggestion:** US-036 (Add skeleton loader to CategoriesSection) - Same file, continues CategoriesSection improvements
+
+---
+
+## 2026-01-22 - US-036: Add skeleton loader to CategoriesSection
+Commit: 22fb8ae
+
+**Why this story?** Next Phase 3 story by priority (priority 36), no dependencies. Same file as US-035, continues CategoriesSection improvements with code fresh in context.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/CategoriesSection.tsx`:
+   - Added isLoading prop to CategoriesSectionProps interface (optional, defaults to false)
+   - Updated import to include CategoryCardSkeleton from '../components'
+   - Added skeleton loading state: shows 5 CategoryCardSkeleton cards when isLoading is true
+   - Wrapped category list render with `!isLoading &&` condition
+   - Updated empty state to only show when `!isLoading && filteredCategories.length === 0`
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+
+**Learnings:**
+- Using Array.from({ length: 5 }) creates a clean iteration for skeleton cards
+- Fragment (<>...</>) keeps the JSX clean when rendering multiple skeletons
+- The empty state check must include `!isLoading` to prevent showing "No categories" during load
+
+**Next story suggestion:** US-037 (Add keyboard drag-drop to CategoriesSection) - Same file, continues accessibility improvements for CategoriesSection
+
+---
+
+## 2026-01-22 - US-037: Add keyboard drag-drop to CategoriesSection
+Commit: c7c241f
+
+**Why this story?** Next Phase 3 story by priority (priority 37), depends on US-034 (useKeyboardDragDrop hook). Same file as US-035/US-036, continues CategoriesSection accessibility improvements with code fresh in context.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/sections/CategoriesSection.tsx`:
+   - Added imports for @dnd-kit/sortable (useSortable, CSS), DndContext, SortableContext, closestCenter
+   - Added imports for useKeyboardDragDrop, KeyboardInstructions, LiveAnnouncer from '../hooks/useKeyboardDragDrop'
+   - Created SortableCategoryCard memoized component:
+     - Uses useSortable hook from @dnd-kit for drag state and refs
+     - Applies CSS transform and transition from dnd-kit utilities
+     - Combines dnd-kit attributes/listeners with keyboard handle props
+     - Includes focus styling (focus:ring-2 focus:ring-orange-500) on drag handle
+   - Replaced old manual HTML5 drag events with useKeyboardDragDrop hook:
+     - Removed handleDragStart, handleDragOver, handleDrop, handleDragEnd event handlers
+     - Removed draggedId state
+     - Added handleReorder callback that extracts ordered IDs and calls onReorder prop
+   - Wrapped category list with DndContext and SortableContext:
+     - Uses sensors from useKeyboardDragDrop (PointerSensor + KeyboardSensor)
+     - Uses closestCenter collision detection
+     - Uses vertical list sorting strategy
+     - Passes announcements config for screen reader support
+   - Added KeyboardInstructions component (sr-only) for screen reader instructions
+   - Added LiveAnnouncer component (aria-live polite) for reorder announcements
+   - Updated header text to include "or use arrow keys on drag handles"
+   - Wrapped handlers in useCallback for performance with memoized SortableCategoryCard
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm vitest run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- @dnd-kit provides excellent keyboard accessibility out of the box via KeyboardSensor
+- Combining dnd-kit attributes/listeners with custom keyboard props requires spreading all three: {...attributes} {...listeners} {...keyboardHandleProps}
+- LiveAnnouncer with aria-live="polite" gives screen readers context about reorder actions
+- SortableContext needs item IDs as strings, extracted from the hook's itemIds array
+
+**Patterns to sync:**
+- Pattern #9: Keyboard Drag Drop Integration - When integrating useKeyboardDragDrop with existing components, create a memoized sortable wrapper component that combines useSortable with the keyboard handle props for optimal accessibility and performance.
+
+**Next story suggestion:** US-038 (Replace browser confirm() in ServicesSection) - Same pattern as US-035, continues Phase 3 confirm dialog replacement work
 
 ---
