@@ -604,7 +604,8 @@ export type ClientSettingsSection =
   | 'membership'
   | 'notes'
   | 'loyalty'
-  | 'documents';
+  | 'documents'
+  | 'data-requests';
 
 export interface ClientFilters {
   searchQuery: string;

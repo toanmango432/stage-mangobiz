@@ -62,6 +62,7 @@ export interface ExportClientDataInput {
 /** Response from the export-client-data Edge Function */
 export interface ExportClientDataResponse {
   success: boolean;
+  error?: string;
   data: {
     exportedAt: string;
     exportVersion: string;

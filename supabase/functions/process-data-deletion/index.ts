@@ -295,7 +295,8 @@ async function handleDeletion(
     const { error: formsError } = await supabase
       .from('client_form_responses')
       .delete()
-      .eq('client_id', clientId);
+      .eq('client_id', clientId)
+      .eq('store_id', storeId);
 
     if (formsError) {
       console.error('[process-data-deletion] Error deleting form responses:', formsError);
@@ -305,7 +306,8 @@ async function handleDeletion(
     const { error: notesError } = await supabase
       .from('client_notes')
       .delete()
-      .eq('client_id', clientId);
+      .eq('client_id', clientId)
+      .eq('store_id', storeId);
 
     if (notesError) {
       console.error('[process-data-deletion] Error deleting client notes:', notesError);

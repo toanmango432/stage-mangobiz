@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import type { EnhancedClient, ClientGender, ClientSource, EmergencyContact } from '../types';
-import type { BlockReason, Client } from '@/types';
+import type { BlockReason, Client, StaffAlert } from '@/types';
 import { genderLabels, sourceLabels } from '../constants';
 import {
   Card,
@@ -133,11 +133,15 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   };
 
   // Convert client's staffAlert to the expected format if needed
+  // Type guard to check if staffAlert is a StaffAlert object
+  const isStaffAlertObject = (alert: unknown): alert is StaffAlert =>
+    typeof alert === 'object' && alert !== null && 'message' in alert;
+
   const staffAlert = client.staffAlert ? {
-    message: typeof client.staffAlert === 'string' ? client.staffAlert : (client.staffAlert as any).message,
-    createdAt: typeof client.staffAlert === 'object' ? (client.staffAlert as any).createdAt : new Date().toISOString(),
-    createdBy: typeof client.staffAlert === 'object' ? (client.staffAlert as any).createdBy : '',
-    createdByName: typeof client.staffAlert === 'object' ? (client.staffAlert as any).createdByName : 'Staff',
+    message: typeof client.staffAlert === 'string' ? client.staffAlert : isStaffAlertObject(client.staffAlert) ? client.staffAlert.message : '',
+    createdAt: isStaffAlertObject(client.staffAlert) ? client.staffAlert.createdAt : new Date().toISOString(),
+    createdBy: isStaffAlertObject(client.staffAlert) ? client.staffAlert.createdBy : '',
+    createdByName: isStaffAlertObject(client.staffAlert) ? client.staffAlert.createdByName : 'Staff',
   } : undefined;
 
   // Convert EnhancedClient to Client type for ConsentManagement component
