@@ -830,3 +830,740 @@ CREATE TRIGGER add_on_options_updated_at_trigger
 
 -- Add comment for documentation
 COMMENT ON TABLE add_on_options IS 'Individual add-on options within a group. Each option has a name, price, and duration that gets added to the service when selected.';
+
+-- ============================================
+-- STAFF SERVICE ASSIGNMENTS TABLE (US-010)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS staff_service_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Multi-tenant isolation
+  tenant_id UUID NOT NULL,
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  location_id UUID,
+
+  -- Assignment relationship
+  staff_id UUID NOT NULL,
+  service_id UUID NOT NULL REFERENCES menu_services(id) ON DELETE CASCADE,
+
+  -- Custom pricing/duration for this staff member
+  custom_price DECIMAL(10,2),
+  custom_duration INTEGER,
+
+  -- Commission override
+  custom_commission_rate DECIMAL(5,2),
+
+  -- Status
+  is_active BOOLEAN NOT NULL DEFAULT true,
+
+  -- Sync metadata
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  version INTEGER NOT NULL DEFAULT 1,
+  vector_clock JSONB NOT NULL DEFAULT '{}',
+  last_synced_version INTEGER NOT NULL DEFAULT 0,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Audit trail
+  created_by UUID,
+  created_by_device TEXT,
+  last_modified_by UUID,
+  last_modified_by_device TEXT,
+
+  -- Soft delete (tombstone pattern)
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  deleted_by_device TEXT,
+  tombstone_expires_at TIMESTAMPTZ,
+
+  -- Unique constraint: one assignment per staff/service pair
+  CONSTRAINT staff_service_assignments_unique UNIQUE (store_id, staff_id, service_id)
+);
+
+-- Add check constraint for valid sync_status
+ALTER TABLE staff_service_assignments ADD CONSTRAINT staff_service_assignments_sync_status_check
+CHECK (sync_status IN ('local', 'pending', 'synced', 'conflict', 'error'));
+
+-- Create indexes for common queries
+CREATE INDEX idx_staff_service_assignments_store_id ON staff_service_assignments(store_id);
+CREATE INDEX idx_staff_service_assignments_staff_id ON staff_service_assignments(staff_id);
+CREATE INDEX idx_staff_service_assignments_service_id ON staff_service_assignments(service_id);
+CREATE INDEX idx_staff_service_assignments_store_active ON staff_service_assignments(store_id, is_deleted) WHERE is_deleted = false;
+CREATE INDEX idx_staff_service_assignments_sync ON staff_service_assignments(store_id, sync_status) WHERE sync_status != 'synced';
+CREATE INDEX idx_staff_service_assignments_updated ON staff_service_assignments(store_id, updated_at DESC);
+
+-- Enable Row Level Security
+ALTER TABLE staff_service_assignments ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Store members can view own store staff assignments"
+  ON staff_service_assignments FOR SELECT
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can insert own store staff assignments"
+  ON staff_service_assignments FOR INSERT
+  WITH CHECK (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can update own store staff assignments"
+  ON staff_service_assignments FOR UPDATE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can delete own store staff assignments"
+  ON staff_service_assignments FOR DELETE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+-- Create function for auto-updating updated_at and incrementing version
+CREATE OR REPLACE FUNCTION update_staff_service_assignments_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS staff_service_assignments_updated_at_trigger ON staff_service_assignments;
+CREATE TRIGGER staff_service_assignments_updated_at_trigger
+  BEFORE UPDATE ON staff_service_assignments
+  FOR EACH ROW
+  EXECUTE FUNCTION update_staff_service_assignments_updated_at();
+
+-- Add comment for documentation
+COMMENT ON TABLE staff_service_assignments IS 'Links staff members to services they can perform. Supports custom pricing, duration, and commission overrides per staff/service combination.';
+
+-- ============================================
+-- CATALOG SETTINGS TABLE (US-010)
+-- One record per store for catalog configuration
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS catalog_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Multi-tenant isolation
+  tenant_id UUID NOT NULL,
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  location_id UUID,
+
+  -- Default values
+  default_duration INTEGER NOT NULL DEFAULT 30,
+  default_extra_time INTEGER NOT NULL DEFAULT 0,
+  default_extra_time_type TEXT NOT NULL DEFAULT 'processing',
+
+  -- Pricing defaults
+  default_tax_rate DECIMAL(5,2) NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  currency_symbol TEXT NOT NULL DEFAULT '$',
+
+  -- Online booking defaults
+  show_prices_online BOOLEAN NOT NULL DEFAULT true,
+  require_deposit_for_online_booking BOOLEAN NOT NULL DEFAULT false,
+  default_deposit_percentage INTEGER NOT NULL DEFAULT 25,
+
+  -- Feature toggles
+  enable_packages BOOLEAN NOT NULL DEFAULT true,
+  enable_add_ons BOOLEAN NOT NULL DEFAULT true,
+  enable_variants BOOLEAN NOT NULL DEFAULT true,
+  allow_custom_pricing BOOLEAN NOT NULL DEFAULT true,
+  booking_sequence_enabled BOOLEAN NOT NULL DEFAULT false,
+
+  -- Sync metadata
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  version INTEGER NOT NULL DEFAULT 1,
+  vector_clock JSONB NOT NULL DEFAULT '{}',
+  last_synced_version INTEGER NOT NULL DEFAULT 0,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Audit trail
+  created_by UUID,
+  created_by_device TEXT,
+  last_modified_by UUID,
+  last_modified_by_device TEXT,
+
+  -- Soft delete (tombstone pattern)
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  deleted_by_device TEXT,
+  tombstone_expires_at TIMESTAMPTZ,
+
+  -- One settings record per store
+  CONSTRAINT catalog_settings_store_unique UNIQUE (store_id)
+);
+
+-- Add check constraints
+ALTER TABLE catalog_settings ADD CONSTRAINT catalog_settings_sync_status_check
+CHECK (sync_status IN ('local', 'pending', 'synced', 'conflict', 'error'));
+
+ALTER TABLE catalog_settings ADD CONSTRAINT catalog_settings_extra_time_type_check
+CHECK (default_extra_time_type IN ('processing', 'blocked', 'finishing'));
+
+-- Create indexes for common queries
+CREATE INDEX idx_catalog_settings_store_id ON catalog_settings(store_id);
+CREATE INDEX idx_catalog_settings_sync ON catalog_settings(store_id, sync_status) WHERE sync_status != 'synced';
+
+-- Enable Row Level Security
+ALTER TABLE catalog_settings ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Store members can view own store catalog settings"
+  ON catalog_settings FOR SELECT
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can insert own store catalog settings"
+  ON catalog_settings FOR INSERT
+  WITH CHECK (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can update own store catalog settings"
+  ON catalog_settings FOR UPDATE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can delete own store catalog settings"
+  ON catalog_settings FOR DELETE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+-- Create function for auto-updating updated_at and incrementing version
+CREATE OR REPLACE FUNCTION update_catalog_settings_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS catalog_settings_updated_at_trigger ON catalog_settings;
+CREATE TRIGGER catalog_settings_updated_at_trigger
+  BEFORE UPDATE ON catalog_settings
+  FOR EACH ROW
+  EXECUTE FUNCTION update_catalog_settings_updated_at();
+
+-- Add comment for documentation
+COMMENT ON TABLE catalog_settings IS 'Per-store catalog configuration. One record per store containing default durations, tax rates, feature toggles, and online booking defaults.';
+
+-- ============================================
+-- BOOKING SEQUENCES TABLE (US-010)
+-- Defines the order services should be performed
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS booking_sequences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Multi-tenant isolation
+  tenant_id UUID NOT NULL,
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  location_id UUID,
+
+  -- Ordered list of service IDs (stored as JSONB array)
+  service_order JSONB NOT NULL DEFAULT '[]',
+
+  -- Whether this sequence is enabled
+  is_enabled BOOLEAN NOT NULL DEFAULT true,
+
+  -- Sync metadata
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  version INTEGER NOT NULL DEFAULT 1,
+  vector_clock JSONB NOT NULL DEFAULT '{}',
+  last_synced_version INTEGER NOT NULL DEFAULT 0,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Audit trail
+  created_by UUID,
+  created_by_device TEXT,
+  last_modified_by UUID,
+  last_modified_by_device TEXT,
+
+  -- Soft delete (tombstone pattern)
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  deleted_by_device TEXT,
+  tombstone_expires_at TIMESTAMPTZ
+);
+
+-- Add check constraint for valid sync_status
+ALTER TABLE booking_sequences ADD CONSTRAINT booking_sequences_sync_status_check
+CHECK (sync_status IN ('local', 'pending', 'synced', 'conflict', 'error'));
+
+-- Create indexes for common queries
+CREATE INDEX idx_booking_sequences_store_id ON booking_sequences(store_id);
+CREATE INDEX idx_booking_sequences_store_active ON booking_sequences(store_id, is_deleted) WHERE is_deleted = false;
+CREATE INDEX idx_booking_sequences_sync ON booking_sequences(store_id, sync_status) WHERE sync_status != 'synced';
+CREATE INDEX idx_booking_sequences_updated ON booking_sequences(store_id, updated_at DESC);
+
+-- Enable Row Level Security
+ALTER TABLE booking_sequences ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Store members can view own store booking sequences"
+  ON booking_sequences FOR SELECT
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can insert own store booking sequences"
+  ON booking_sequences FOR INSERT
+  WITH CHECK (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can update own store booking sequences"
+  ON booking_sequences FOR UPDATE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can delete own store booking sequences"
+  ON booking_sequences FOR DELETE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+-- Create function for auto-updating updated_at and incrementing version
+CREATE OR REPLACE FUNCTION update_booking_sequences_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS booking_sequences_updated_at_trigger ON booking_sequences;
+CREATE TRIGGER booking_sequences_updated_at_trigger
+  BEFORE UPDATE ON booking_sequences
+  FOR EACH ROW
+  EXECUTE FUNCTION update_booking_sequences_updated_at();
+
+-- Add comment for documentation
+COMMENT ON TABLE booking_sequences IS 'Defines the order services should be performed (e.g., Cut → Color → Style). Used to ensure services are booked in a logical order.';
+
+-- ============================================
+-- PRODUCTS TABLE (US-010)
+-- Retail and backbar products for inventory management
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS products (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Multi-tenant isolation
+  tenant_id UUID NOT NULL,
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  location_id UUID,
+
+  -- Identifiers
+  sku TEXT NOT NULL,
+  barcode TEXT,
+
+  -- Core fields
+  name TEXT NOT NULL,
+  brand TEXT NOT NULL,
+  category TEXT NOT NULL,
+  description TEXT,
+
+  -- Pricing
+  retail_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  cost_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  margin DECIMAL(5,2) NOT NULL DEFAULT 0,
+
+  -- Product type
+  is_retail BOOLEAN NOT NULL DEFAULT true,
+  is_backbar BOOLEAN NOT NULL DEFAULT false,
+
+  -- Inventory management
+  min_stock_level INTEGER NOT NULL DEFAULT 0,
+  reorder_quantity INTEGER,
+
+  -- Supplier
+  supplier_id UUID,
+  supplier_name TEXT,
+
+  -- Visual
+  image_url TEXT,
+
+  -- Size/unit
+  size TEXT,
+  backbar_unit TEXT,
+  backbar_uses_per_unit INTEGER,
+
+  -- Status
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  is_tax_exempt BOOLEAN DEFAULT false,
+
+  -- Commission
+  commission_rate DECIMAL(5,2),
+
+  -- Sync metadata
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  version INTEGER NOT NULL DEFAULT 1,
+  vector_clock JSONB NOT NULL DEFAULT '{}',
+  last_synced_version INTEGER NOT NULL DEFAULT 0,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Audit trail
+  created_by UUID,
+  created_by_device TEXT,
+  last_modified_by UUID,
+  last_modified_by_device TEXT,
+
+  -- Soft delete (tombstone pattern)
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  deleted_by_device TEXT,
+  tombstone_expires_at TIMESTAMPTZ
+);
+
+-- Add check constraint for valid sync_status
+ALTER TABLE products ADD CONSTRAINT products_sync_status_check
+CHECK (sync_status IN ('local', 'pending', 'synced', 'conflict', 'error'));
+
+-- Create indexes for common queries
+CREATE INDEX idx_products_store_id ON products(store_id);
+CREATE INDEX idx_products_store_active ON products(store_id, is_deleted) WHERE is_deleted = false;
+CREATE INDEX idx_products_sku ON products(store_id, sku);
+CREATE INDEX idx_products_barcode ON products(store_id, barcode) WHERE barcode IS NOT NULL;
+CREATE INDEX idx_products_category ON products(store_id, category) WHERE is_deleted = false;
+CREATE INDEX idx_products_brand ON products(store_id, brand) WHERE is_deleted = false;
+CREATE INDEX idx_products_sync ON products(store_id, sync_status) WHERE sync_status != 'synced';
+CREATE INDEX idx_products_updated ON products(store_id, updated_at DESC);
+CREATE INDEX idx_products_retail ON products(store_id, is_retail) WHERE is_deleted = false AND is_active = true;
+CREATE INDEX idx_products_backbar ON products(store_id, is_backbar) WHERE is_deleted = false AND is_active = true;
+
+-- Enable Row Level Security
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Store members can view own store products"
+  ON products FOR SELECT
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can insert own store products"
+  ON products FOR INSERT
+  WITH CHECK (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can update own store products"
+  ON products FOR UPDATE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can delete own store products"
+  ON products FOR DELETE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+-- Create function for auto-updating updated_at and incrementing version
+CREATE OR REPLACE FUNCTION update_products_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS products_updated_at_trigger ON products;
+CREATE TRIGGER products_updated_at_trigger
+  BEFORE UPDATE ON products
+  FOR EACH ROW
+  EXECUTE FUNCTION update_products_updated_at();
+
+-- Add comment for documentation
+COMMENT ON TABLE products IS 'Retail and backbar products for inventory management. Includes pricing, inventory levels, supplier info, and stock alerts.';
+
+-- ============================================
+-- GIFT CARD DENOMINATIONS TABLE (US-010)
+-- Preset gift card amounts for quick sale
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS gift_card_denominations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Multi-tenant isolation
+  tenant_id UUID NOT NULL,
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  location_id UUID,
+
+  -- Core fields
+  amount DECIMAL(10,2) NOT NULL,
+  label TEXT,
+
+  -- Status
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  display_order INTEGER NOT NULL DEFAULT 0,
+
+  -- Sync metadata
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  version INTEGER NOT NULL DEFAULT 1,
+  vector_clock JSONB NOT NULL DEFAULT '{}',
+  last_synced_version INTEGER NOT NULL DEFAULT 0,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Audit trail
+  created_by UUID,
+  created_by_device TEXT,
+  last_modified_by UUID,
+  last_modified_by_device TEXT,
+
+  -- Soft delete (tombstone pattern)
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  deleted_by_device TEXT,
+  tombstone_expires_at TIMESTAMPTZ
+);
+
+-- Add check constraint for valid sync_status
+ALTER TABLE gift_card_denominations ADD CONSTRAINT gift_card_denominations_sync_status_check
+CHECK (sync_status IN ('local', 'pending', 'synced', 'conflict', 'error'));
+
+-- Create indexes for common queries
+CREATE INDEX idx_gift_card_denominations_store_id ON gift_card_denominations(store_id);
+CREATE INDEX idx_gift_card_denominations_store_active ON gift_card_denominations(store_id, is_deleted) WHERE is_deleted = false;
+CREATE INDEX idx_gift_card_denominations_display_order ON gift_card_denominations(store_id, display_order);
+CREATE INDEX idx_gift_card_denominations_sync ON gift_card_denominations(store_id, sync_status) WHERE sync_status != 'synced';
+
+-- Enable Row Level Security
+ALTER TABLE gift_card_denominations ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Store members can view own store gift card denominations"
+  ON gift_card_denominations FOR SELECT
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can insert own store gift card denominations"
+  ON gift_card_denominations FOR INSERT
+  WITH CHECK (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can update own store gift card denominations"
+  ON gift_card_denominations FOR UPDATE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can delete own store gift card denominations"
+  ON gift_card_denominations FOR DELETE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+-- Create function for auto-updating updated_at and incrementing version
+CREATE OR REPLACE FUNCTION update_gift_card_denominations_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS gift_card_denominations_updated_at_trigger ON gift_card_denominations;
+CREATE TRIGGER gift_card_denominations_updated_at_trigger
+  BEFORE UPDATE ON gift_card_denominations
+  FOR EACH ROW
+  EXECUTE FUNCTION update_gift_card_denominations_updated_at();
+
+-- Add comment for documentation
+COMMENT ON TABLE gift_card_denominations IS 'Preset gift card amounts for quick sale (e.g., $25, $50, $100). Each denomination has an amount and optional label.';
+
+-- ============================================
+-- GIFT CARD SETTINGS TABLE (US-010)
+-- Per-salon gift card configuration
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS gift_card_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Multi-tenant isolation
+  tenant_id UUID NOT NULL,
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  location_id UUID,
+
+  -- Custom amount settings
+  allow_custom_amount BOOLEAN NOT NULL DEFAULT true,
+  min_amount DECIMAL(10,2) NOT NULL DEFAULT 10,
+  max_amount DECIMAL(10,2) NOT NULL DEFAULT 500,
+
+  -- Expiration
+  default_expiration_days INTEGER,
+
+  -- Online settings
+  online_enabled BOOLEAN NOT NULL DEFAULT false,
+  email_delivery_enabled BOOLEAN NOT NULL DEFAULT false,
+
+  -- Sync metadata
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  version INTEGER NOT NULL DEFAULT 1,
+  vector_clock JSONB NOT NULL DEFAULT '{}',
+  last_synced_version INTEGER NOT NULL DEFAULT 0,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Audit trail
+  created_by UUID,
+  created_by_device TEXT,
+  last_modified_by UUID,
+  last_modified_by_device TEXT,
+
+  -- Soft delete (tombstone pattern)
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  deleted_by_device TEXT,
+  tombstone_expires_at TIMESTAMPTZ,
+
+  -- One settings record per store
+  CONSTRAINT gift_card_settings_store_unique UNIQUE (store_id)
+);
+
+-- Add check constraint for valid sync_status
+ALTER TABLE gift_card_settings ADD CONSTRAINT gift_card_settings_sync_status_check
+CHECK (sync_status IN ('local', 'pending', 'synced', 'conflict', 'error'));
+
+-- Create indexes for common queries
+CREATE INDEX idx_gift_card_settings_store_id ON gift_card_settings(store_id);
+CREATE INDEX idx_gift_card_settings_sync ON gift_card_settings(store_id, sync_status) WHERE sync_status != 'synced';
+
+-- Enable Row Level Security
+ALTER TABLE gift_card_settings ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Store members can view own store gift card settings"
+  ON gift_card_settings FOR SELECT
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can insert own store gift card settings"
+  ON gift_card_settings FOR INSERT
+  WITH CHECK (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can update own store gift card settings"
+  ON gift_card_settings FOR UPDATE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can delete own store gift card settings"
+  ON gift_card_settings FOR DELETE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+-- Create function for auto-updating updated_at and incrementing version
+CREATE OR REPLACE FUNCTION update_gift_card_settings_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS gift_card_settings_updated_at_trigger ON gift_card_settings;
+CREATE TRIGGER gift_card_settings_updated_at_trigger
+  BEFORE UPDATE ON gift_card_settings
+  FOR EACH ROW
+  EXECUTE FUNCTION update_gift_card_settings_updated_at();
+
+-- Add comment for documentation
+COMMENT ON TABLE gift_card_settings IS 'Per-salon gift card configuration including custom amount limits, expiration settings, and online/email delivery options.';
