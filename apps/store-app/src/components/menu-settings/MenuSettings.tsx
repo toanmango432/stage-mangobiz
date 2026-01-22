@@ -244,7 +244,8 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
         return (
           <GiftCardsSection
             denominations={giftCardDenominations || []}
-            settings={giftCardSettings || undefined}
+            settings={giftCardSettings}
+            isLoading={isLoading}
             onCreateDenomination={createGiftCardDenomination}
             onUpdateDenomination={updateGiftCardDenomination}
             onDeleteDenomination={deleteGiftCardDenomination}
