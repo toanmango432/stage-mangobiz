@@ -3611,3 +3611,42 @@ Commit: N/A (no code changes needed)
 **Next story suggestion:** US-065 (Use staff override duration in ticket timer) - first Phase 5 implementation story after US-064
 
 ---
+
+## 2026-01-22 - US-065: Use staff override duration in ticket timer
+Commit: fe55f1d
+
+**Why this story?** US-064 (Display add-ons in ticket ServiceLineItem) was just completed. US-065 continues Phase 5 ticket integration work by ensuring ticket timers use staff-specific duration overrides (customDuration from StaffServiceAssignment).
+
+**Changes:**
+1. `apps/store-app/src/components/tickets/ServiceTicketCardRefactored.tsx:83-120`:
+   - Added `getTotalDuration()` helper function that calculates total duration from `checkoutServices` array
+   - Each service in `checkoutServices` already has staff-overridden duration (from `useCheckoutServices.effectiveDuration`)
+   - Falls back to `parseInt(ticket.duration) || 30` for backwards compatibility with legacy tickets
+   - Added `totalDurationMinutes` constant using `getTotalDuration()`
+   - Updated `useEffect` to use `totalDurationMinutes` instead of parsing `ticket.duration`
+   - Updated `timeRemaining` calculation to use `totalDurationMinutes`
+   - Updated `useEffect` dependency array to use `totalDurationMinutes` instead of `ticket.duration`
+
+**Data Flow Analysis:**
+- StaffServiceAssignment.customDuration → useCheckoutServices.effectiveDuration → Service.duration when added to ticket
+- ServiceTicketCardRefactored now reads from ticket.checkoutServices[].duration (which includes staff override)
+- Timer correctly reflects staff-specific service durations
+
+**Acceptance Criteria Verification:**
+- ✅ Check StaffServiceAssignment for customDuration - already applied via useCheckoutServices.effectiveDuration when services are added
+- ✅ If customDuration exists, use it instead of service.duration - checkoutServices stores the effective duration
+- ✅ Timer shows expected end time based on correct duration - getTotalDuration() sums checkoutServices durations
+- ✅ pnpm run typecheck passes (store-app compiles without errors)
+
+**Learnings:**
+- The staff override was already being applied at the source (useCheckoutServices.effectiveDuration → Service.duration)
+- The issue was that ServiceTicketCardRefactored was reading ticket.duration (a string like "30min") instead of summing checkoutServices[].duration
+- For multi-service tickets, the timer now correctly reflects the sum of all service durations
+- Pre-existing TS6310 error in @mango/utils is unrelated to catalog module
+
+**Patterns to sync:**
+- Pattern #26: Calculated Duration from Services - When a ticket has multiple services, calculate total duration by summing service.duration from checkoutServices array rather than using a single ticket.duration string.
+
+**Next story suggestion:** US-066 (Create catalogSyncService for Online Store) - continues Phase 5 module integrations
+
+---
