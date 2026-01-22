@@ -3,6 +3,9 @@
  *
  * Floating AI Assistant button that opens a chat panel powered by Mango Connect SDK.
  * Only renders when Connect is enabled and the aiAssistant feature is active.
+ *
+ * Note: SDK modules are rendered into a container div using the SDK's React instance
+ * to avoid React version conflicts between the host app and the SDK.
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -16,10 +19,12 @@ import { useConnectConfig } from '@/hooks/useConnectConfig';
  */
 export function AIAssistantPanel() {
   const [isOpen, setIsOpen] = useState(false);
-  const { sdkModule, loading, error, retry } = useConnectSDK();
+  const { sdkModule, loading, error, retry, renderInContainer } = useConnectSDK();
   const { config } = useConnectConfig();
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   // Close panel on Escape key
   useEffect(() => {
@@ -37,6 +42,35 @@ export function AIAssistantPanel() {
 
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
+
+  // Render SDK module into container when panel is open
+  useEffect(() => {
+    // Cleanup previous render
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+
+    // Don't render if panel is closed, no container, or SDK not loaded
+    if (!isOpen || !containerRef.current || !sdkModule?.AIAssistantModule) {
+      return;
+    }
+
+    // Render the AIAssistantModule into the container
+    const cleanup = renderInContainer(
+      containerRef.current,
+      sdkModule.AIAssistantModule
+    );
+    cleanupRef.current = cleanup;
+
+    // Cleanup on unmount or when panel closes
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
+    };
+  }, [isOpen, sdkModule, renderInContainer]);
 
   // Don't render if Connect is disabled or AI Assistant feature is off
   if (!config.enabled || !config.features.aiAssistant) {
@@ -76,7 +110,8 @@ export function AIAssistantPanel() {
       );
     }
 
-    return <sdkModule.AIAssistantModule />;
+    // Container for SDK module
+    return <div ref={containerRef} className="h-full w-full" />;
   }
 
   return (

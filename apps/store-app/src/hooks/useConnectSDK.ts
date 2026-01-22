@@ -4,17 +4,33 @@
  * React hook to access the Connect SDK context from ConnectSDKProvider.
  * Provides access to the SDK module, loading state, errors, and connection status.
  *
+ * IMPORTANT: Due to React version conflicts, SDK modules cannot be rendered
+ * directly as JSX components. Use the `renderInContainer` function instead.
+ *
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { sdkModule, loading, error, isReady, retry } = useConnectSDK();
+ *   const { sdkModule, loading, error, isReady, retry, renderInContainer } = useConnectSDK();
+ *   const containerRef = useRef<HTMLDivElement>(null);
+ *
+ *   useEffect(() => {
+ *     if (!containerRef.current || !sdkModule) return;
+ *
+ *     // Render SDK module into container using SDK's React
+ *     const cleanup = renderInContainer(
+ *       containerRef.current,
+ *       sdkModule.ConversationsModule
+ *     );
+ *
+ *     return cleanup || undefined;
+ *   }, [sdkModule, renderInContainer]);
  *
  *   if (loading) return <Spinner />;
  *   if (error) return <Error onRetry={retry} />;
  *   if (!sdkModule) return null;
  *
- *   // Render SDK modules as components
- *   return <sdkModule.ConversationsModule />;
+ *   // Provide a container for the SDK to render into
+ *   return <div ref={containerRef} className="h-full" />;
  * }
  * ```
  */

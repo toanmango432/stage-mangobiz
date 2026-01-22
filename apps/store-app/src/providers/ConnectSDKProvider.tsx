@@ -2,13 +2,15 @@
  * ConnectSDKProvider
  *
  * Provider component that loads the Mango Connect SDK globally and manages its lifecycle.
- * Provides SDK components to children via React context.
+ * Provides SDK module reference and render functions to children via React context.
+ *
+ * IMPORTANT: Due to React version conflicts between the host app (bundled React) and
+ * the SDK (loaded from CDN), SDK components CANNOT be rendered directly in JSX.
+ * Instead, use the `renderInContainer` function to mount SDK modules into isolated
+ * DOM containers.
  *
  * The SDK is loaded only when Connect is enabled. It reads client/appointment data
  * directly from Biz's Supabase database using the provided credentials.
- *
- * IMPORTANT: MangoConnectSDK is a React Provider component, not an imperative API.
- * The SDK modules (ConversationsModule, AIAssistantModule) must be rendered as children.
  */
 
 import {
@@ -18,7 +20,6 @@ import {
   useCallback,
   useMemo,
   useRef,
-  createElement,
   type ReactNode,
   type ComponentType,
 } from 'react';
@@ -60,10 +61,21 @@ interface MangoConnectSDKModule {
   SDK_VERSION?: string;
 }
 
-// Declare the SDK on window for module script loading
+// Declare globals for SDK and React from CDN
 declare global {
   interface Window {
     __MangoConnectSDKModule?: MangoConnectSDKModule;
+    __MangoConnectReact?: typeof import('react');
+    __MangoConnectReactDOM?: typeof import('react-dom/client');
+    __MangoConnectInitialized?: boolean;
+    __MangoConnectConfig?: {
+      authToken: string;
+      bizSupabaseUrl: string;
+      bizSupabaseKey: string;
+      onTokenRefresh?: () => Promise<string>;
+      onError?: (error: Error) => void;
+      onReady?: () => void;
+    };
   }
 }
 
@@ -76,12 +88,21 @@ export interface ConnectSDKContextType {
   loading: boolean;
   /** Error message if SDK failed to load */
   error: string | null;
-  /** Whether the SDK is ready (connected) */
+  /** Whether the SDK is ready (connected and initialized) */
   isReady: boolean;
   /** Number of unread conversations */
   unreadCount: number;
   /** Retry loading the SDK after an error */
   retry: () => void;
+  /**
+   * Render an SDK module into a container element.
+   * Use this instead of JSX to avoid React version conflicts.
+   * Returns a cleanup function to unmount the component.
+   */
+  renderInContainer: (
+    container: HTMLElement,
+    ModuleComponent: ComponentType
+  ) => (() => void) | null;
 }
 
 export const ConnectSDKContext = createContext<ConnectSDKContextType | null>(null);
@@ -200,7 +221,9 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
   }, [refreshToken]);
 
   /**
-   * Load the SDK as ES module using inline script
+   * Load the SDK and React from CDN using inline module script.
+   * Both SDK and React are loaded from the same source (esm.sh via import map)
+   * to ensure they share the same React instance.
    */
   const loadSDKModule = useCallback((): Promise<MangoConnectSDKModule> => {
     return new Promise((resolve, reject) => {
@@ -239,15 +262,21 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
         return;
       }
 
-      // Create inline module script that imports and exposes to window
+      // Create inline module script that imports SDK and React, exposing both to window
+      // This ensures SDK components use the same React instance when rendered
       const script = document.createElement('script');
       script.id = scriptId;
       script.type = 'module';
       script.textContent = `
         import * as SDK from '${sdkUrl}';
+        import * as React from 'react';
+        import * as ReactDOMClient from 'react-dom/client';
+
         window.__MangoConnectSDKModule = SDK;
+        window.__MangoConnectReact = React;
+        window.__MangoConnectReactDOM = ReactDOMClient;
         window.dispatchEvent(new CustomEvent('mango-connect-sdk-loaded'));
-        console.log('[ConnectSDKProvider] SDK module loaded, exports:', Object.keys(SDK));
+        console.log('[ConnectSDKProvider] SDK and React loaded, SDK exports:', Object.keys(SDK));
       `;
 
       const handleLoaded = () => {
@@ -292,6 +321,17 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
     try {
       const module = await loadSDKModule();
       setSdkModule(module);
+
+      // Store config for renderInContainer
+      window.__MangoConnectConfig = {
+        authToken: token,
+        bizSupabaseUrl: supabaseConfig.url,
+        bizSupabaseKey: supabaseConfig.anonKey,
+        onTokenRefresh: handleTokenRefresh,
+        onError: handleSDKError,
+        onReady: handleSDKReady,
+      };
+
       console.log('[ConnectSDKProvider] SDK module ready for use');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load Connect SDK';
@@ -301,7 +341,47 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
     } finally {
       setScriptLoading(false);
     }
-  }, [config.enabled, token, loadSDKModule]);
+  }, [config.enabled, token, loadSDKModule, handleTokenRefresh, handleSDKError, handleSDKReady]);
+
+  /**
+   * Render an SDK module into a container element using the SDK's React.
+   * This avoids React version conflicts by using the same React that the SDK uses.
+   */
+  const renderInContainer = useCallback((
+    container: HTMLElement,
+    ModuleComponent: ComponentType
+  ): (() => void) | null => {
+    const React = window.__MangoConnectReact;
+    const ReactDOM = window.__MangoConnectReactDOM;
+    const SDK = window.__MangoConnectSDKModule;
+    const sdkConfig = window.__MangoConnectConfig;
+
+    if (!React || !ReactDOM || !SDK || !sdkConfig) {
+      console.error('[ConnectSDKProvider] Cannot render: SDK or React not loaded');
+      return null;
+    }
+
+    try {
+      // Create the component tree: MangoConnectSDK provider wrapping the module
+      const element = React.createElement(
+        SDK.MangoConnectSDK,
+        sdkConfig,
+        React.createElement(ModuleComponent)
+      );
+
+      // Create React root and render
+      const root = ReactDOM.createRoot(container);
+      root.render(element);
+
+      // Return cleanup function
+      return () => {
+        root.unmount();
+      };
+    } catch (err) {
+      console.error('[ConnectSDKProvider] Render error:', err);
+      return null;
+    }
+  }, []);
 
   /**
    * Retry loading the SDK
@@ -323,6 +403,7 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
       setError(null);
       setUnreadCount(0);
       setIsReady(false);
+      window.__MangoConnectConfig = undefined;
       return;
     }
 
@@ -341,31 +422,13 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
     isReady,
     unreadCount,
     retry,
-  }), [sdkModule, configLoading, tokenLoading, scriptLoading, error, isReady, unreadCount, retry]);
+    renderInContainer,
+  }), [sdkModule, configLoading, tokenLoading, scriptLoading, error, isReady, unreadCount, retry, renderInContainer]);
 
   // ==================== RENDER ====================
 
-  // If SDK is loaded and Connect is enabled, wrap children with SDK provider
-  if (sdkModule && config.enabled && token) {
-    return (
-      <ConnectSDKContext.Provider value={contextValue}>
-        {createElement(
-          sdkModule.MangoConnectSDK,
-          {
-            authToken: token,
-            bizSupabaseUrl: supabaseConfig.url,
-            bizSupabaseKey: supabaseConfig.anonKey,
-            onTokenRefresh: handleTokenRefresh,
-            onError: handleSDKError,
-            onReady: handleSDKReady,
-          },
-          children
-        )}
-      </ConnectSDKContext.Provider>
-    );
-  }
-
-  // Otherwise, just provide context without SDK wrapper
+  // Just provide context - don't wrap children with SDK provider
+  // SDK modules should be rendered via renderInContainer to avoid React conflicts
   return (
     <ConnectSDKContext.Provider value={contextValue}>
       {children}

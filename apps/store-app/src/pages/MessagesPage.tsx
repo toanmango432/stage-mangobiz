@@ -3,8 +3,12 @@
  *
  * Page for viewing and managing client conversations via the Mango Connect SDK.
  * Renders the SDK's ConversationsModule when loaded, with loading and error states.
+ *
+ * Note: SDK modules are rendered into a container div using the SDK's React instance
+ * to avoid React version conflicts between the host app and the SDK.
  */
 
+import { useRef, useEffect } from 'react';
 import { AlertCircle, Loader2, MessageSquare } from 'lucide-react';
 import { useConnectSDK } from '@/hooks/useConnectSDK';
 import { Button } from '@/components/ui/Button';
@@ -16,7 +20,38 @@ import { Button } from '@/components/ui/Button';
  * Handles loading, error, and unloaded states gracefully.
  */
 export function MessagesPage() {
-  const { sdkModule, loading, error, retry } = useConnectSDK();
+  const { sdkModule, loading, error, retry, renderInContainer } = useConnectSDK();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  // Render SDK module into container when ready
+  useEffect(() => {
+    // Cleanup previous render
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+
+    // Don't render if no container, SDK not loaded, or SDK has no ConversationsModule
+    if (!containerRef.current || !sdkModule?.ConversationsModule) {
+      return;
+    }
+
+    // Render the ConversationsModule into the container
+    const cleanup = renderInContainer(
+      containerRef.current,
+      sdkModule.ConversationsModule
+    );
+    cleanupRef.current = cleanup;
+
+    // Cleanup on unmount
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
+    };
+  }, [sdkModule, renderInContainer]);
 
   // Loading state - show spinner while SDK loads
   if (loading) {
@@ -76,10 +111,10 @@ export function MessagesPage() {
     );
   }
 
-  // Render the SDK's ConversationsModule
+  // Render container for SDK module
   return (
     <main className="h-full flex flex-col" role="main" aria-label="Messages">
-      <sdkModule.ConversationsModule />
+      <div ref={containerRef} className="h-full w-full" />
     </main>
   );
 }
