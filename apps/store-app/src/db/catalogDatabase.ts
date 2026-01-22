@@ -26,7 +26,9 @@ import type {
   CatalogSettings,
   CategoryWithCount,
   ServiceWithVariants,
-  AddOnGroupWithOptions
+  AddOnGroupWithOptions,
+  BookingSequence,
+  CreateBookingSequenceInput
 } from '../types';
 import type { Product, CreateProductInput } from '../types/inventory';
 
@@ -967,5 +969,128 @@ export const productsDB = {
 
     const categories = new Set(products.map(p => p.category));
     return Array.from(categories).sort();
+  },
+};
+
+// ==================== BOOKING SEQUENCES ====================
+
+/**
+ * Booking Sequences database operations.
+ * Defines the order services should be performed during booking.
+ * Example: Cut → Color → Style
+ */
+export const bookingSequencesDB = {
+  /**
+   * Get all booking sequences for a store.
+   * @param includeDisabled - If true, includes disabled sequences
+   */
+  async getAll(storeId: string, includeDisabled: boolean = false): Promise<BookingSequence[]> {
+    if (!storeId) return [];
+
+    if (includeDisabled) {
+      return await db.bookingSequences
+        .where('storeId')
+        .equals(storeId)
+        .toArray();
+    }
+
+    return await db.bookingSequences
+      .where('storeId')
+      .equals(storeId)
+      .and(seq => seq.isEnabled === true)
+      .toArray();
+  },
+
+  /**
+   * Get a booking sequence by ID.
+   */
+  async getById(id: string): Promise<BookingSequence | undefined> {
+    return await db.bookingSequences.get(id);
+  },
+
+  /**
+   * Create a new booking sequence.
+   */
+  async create(
+    input: CreateBookingSequenceInput,
+    userId: string,
+    storeId: string,
+    tenantId: string = storeId,
+    deviceId: string = 'web-client'
+  ): Promise<BookingSequence> {
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
+    const sequence: BookingSequence = {
+      id: uuidv4(),
+      ...syncDefaults,
+      ...input,
+    };
+
+    await db.bookingSequences.add(sequence);
+    return sequence;
+  },
+
+  /**
+   * Update an existing booking sequence.
+   */
+  async update(
+    id: string,
+    updates: Partial<BookingSequence>,
+    userId: string,
+    deviceId: string = 'web-client'
+  ): Promise<BookingSequence | undefined> {
+    const sequence = await db.bookingSequences.get(id);
+    if (!sequence) return undefined;
+
+    const newVersion = sequence.version + 1;
+    const updated: BookingSequence = {
+      ...sequence,
+      ...updates,
+      version: newVersion,
+      vectorClock: {
+        ...sequence.vectorClock,
+        [deviceId]: newVersion,
+      },
+      updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
+      syncStatus: 'local',
+    };
+
+    await db.bookingSequences.put(updated);
+    return updated;
+  },
+
+  /**
+   * Delete a booking sequence (hard delete).
+   */
+  async delete(id: string): Promise<void> {
+    await db.bookingSequences.delete(id);
+  },
+
+  /**
+   * Enable a booking sequence.
+   */
+  async enable(id: string, userId: string, deviceId: string = 'web-client'): Promise<BookingSequence | undefined> {
+    return await this.update(id, { isEnabled: true }, userId, deviceId);
+  },
+
+  /**
+   * Disable a booking sequence.
+   */
+  async disable(id: string, userId: string, deviceId: string = 'web-client'): Promise<BookingSequence | undefined> {
+    return await this.update(id, { isEnabled: false }, userId, deviceId);
+  },
+
+  /**
+   * Update the service order for a booking sequence.
+   */
+  async updateServiceOrder(
+    id: string,
+    serviceOrder: string[],
+    userId: string,
+    deviceId: string = 'web-client'
+  ): Promise<BookingSequence | undefined> {
+    return await this.update(id, { serviceOrder }, userId, deviceId);
   },
 };
