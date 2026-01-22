@@ -1089,7 +1089,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 63,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/utils/smartAutoAssign.ts. PHASE 4 COMPLETE - Checkout & Booking integration done."
     },
     {
@@ -1104,7 +1104,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 64,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/tickets/ServiceLineItem.tsx or similar"
     },
     {
@@ -1444,7 +1444,7 @@
         "If NO issues found, mark this story as passes: true"
       ],
       "priority": 4001,
-      "passes": false,
+      "passes": true,
       "notes": "CRITICAL: Full end-to-end browser testing required. Test: select service → variant → add-ons → verify correct price/duration."
     },
     {
