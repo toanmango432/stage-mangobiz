@@ -584,3 +584,249 @@ CREATE TRIGGER service_packages_updated_at_trigger
 
 -- Add comment for documentation
 COMMENT ON TABLE service_packages IS 'Service packages/bundles for discounted service combinations. Services array stores PackageServiceItem[] as JSONB. Supports single-session or multiple-visits booking modes.';
+
+-- ============================================
+-- ADD-ON GROUPS TABLE (US-009)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS add_on_groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Multi-tenant isolation
+  tenant_id UUID NOT NULL,
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  location_id UUID,
+
+  -- Core fields
+  name TEXT NOT NULL,
+  description TEXT,
+
+  -- Selection rules
+  selection_mode TEXT NOT NULL DEFAULT 'single',
+  min_selections INTEGER NOT NULL DEFAULT 0,
+  max_selections INTEGER,
+  is_required BOOLEAN NOT NULL DEFAULT false,
+
+  -- Applicability (which services/categories this add-on group applies to)
+  applicable_to_all BOOLEAN NOT NULL DEFAULT false,
+  applicable_category_ids TEXT[] DEFAULT '{}',
+  applicable_service_ids TEXT[] DEFAULT '{}',
+
+  -- Status
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  online_booking_enabled BOOLEAN NOT NULL DEFAULT true,
+
+  -- Sync metadata
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  version INTEGER NOT NULL DEFAULT 1,
+  vector_clock JSONB NOT NULL DEFAULT '{}',
+  last_synced_version INTEGER NOT NULL DEFAULT 0,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Audit trail
+  created_by UUID,
+  created_by_device TEXT,
+  last_modified_by UUID,
+  last_modified_by_device TEXT,
+
+  -- Soft delete (tombstone pattern)
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  deleted_by_device TEXT,
+  tombstone_expires_at TIMESTAMPTZ
+);
+
+-- Add check constraints
+ALTER TABLE add_on_groups ADD CONSTRAINT add_on_groups_sync_status_check
+CHECK (sync_status IN ('local', 'pending', 'synced', 'conflict', 'error'));
+
+ALTER TABLE add_on_groups ADD CONSTRAINT add_on_groups_selection_mode_check
+CHECK (selection_mode IN ('single', 'multiple'));
+
+-- Create indexes for common queries
+CREATE INDEX idx_add_on_groups_store_id ON add_on_groups(store_id);
+CREATE INDEX idx_add_on_groups_store_active ON add_on_groups(store_id, is_deleted) WHERE is_deleted = false;
+CREATE INDEX idx_add_on_groups_display_order ON add_on_groups(store_id, display_order);
+CREATE INDEX idx_add_on_groups_sync ON add_on_groups(store_id, sync_status) WHERE sync_status != 'synced';
+CREATE INDEX idx_add_on_groups_updated ON add_on_groups(store_id, updated_at DESC);
+CREATE INDEX idx_add_on_groups_applicable_all ON add_on_groups(store_id, applicable_to_all) WHERE is_deleted = false AND is_active = true;
+
+-- Enable Row Level Security
+ALTER TABLE add_on_groups ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Store members can view own store add-on groups"
+  ON add_on_groups FOR SELECT
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can insert own store add-on groups"
+  ON add_on_groups FOR INSERT
+  WITH CHECK (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can update own store add-on groups"
+  ON add_on_groups FOR UPDATE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can delete own store add-on groups"
+  ON add_on_groups FOR DELETE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+-- Create function for auto-updating updated_at and incrementing version
+CREATE OR REPLACE FUNCTION update_add_on_groups_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS add_on_groups_updated_at_trigger ON add_on_groups;
+CREATE TRIGGER add_on_groups_updated_at_trigger
+  BEFORE UPDATE ON add_on_groups
+  FOR EACH ROW
+  EXECUTE FUNCTION update_add_on_groups_updated_at();
+
+-- Add comment for documentation
+COMMENT ON TABLE add_on_groups IS 'Add-on groups for upselling services. Each group has selection rules (single/multiple, min/max) and can be applied to all services or specific categories/services.';
+
+-- ============================================
+-- ADD-ON OPTIONS TABLE (US-009)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS add_on_options (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Multi-tenant isolation
+  tenant_id UUID NOT NULL,
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  location_id UUID,
+
+  -- Foreign key to add-on group
+  group_id UUID NOT NULL REFERENCES add_on_groups(id) ON DELETE CASCADE,
+
+  -- Core fields
+  name TEXT NOT NULL,
+  description TEXT,
+
+  -- Pricing & Duration
+  price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  duration INTEGER NOT NULL DEFAULT 0, -- minutes
+
+  -- Status
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  display_order INTEGER NOT NULL DEFAULT 0,
+
+  -- Sync metadata
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  version INTEGER NOT NULL DEFAULT 1,
+  vector_clock JSONB NOT NULL DEFAULT '{}',
+  last_synced_version INTEGER NOT NULL DEFAULT 0,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Audit trail
+  created_by UUID,
+  created_by_device TEXT,
+  last_modified_by UUID,
+  last_modified_by_device TEXT,
+
+  -- Soft delete (tombstone pattern)
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  deleted_by_device TEXT,
+  tombstone_expires_at TIMESTAMPTZ
+);
+
+-- Add check constraints
+ALTER TABLE add_on_options ADD CONSTRAINT add_on_options_sync_status_check
+CHECK (sync_status IN ('local', 'pending', 'synced', 'conflict', 'error'));
+
+-- Create indexes for common queries
+CREATE INDEX idx_add_on_options_store_id ON add_on_options(store_id);
+CREATE INDEX idx_add_on_options_group_id ON add_on_options(group_id);
+CREATE INDEX idx_add_on_options_store_active ON add_on_options(store_id, is_deleted) WHERE is_deleted = false;
+CREATE INDEX idx_add_on_options_display_order ON add_on_options(group_id, display_order);
+CREATE INDEX idx_add_on_options_sync ON add_on_options(store_id, sync_status) WHERE sync_status != 'synced';
+CREATE INDEX idx_add_on_options_updated ON add_on_options(store_id, updated_at DESC);
+
+-- Enable Row Level Security
+ALTER TABLE add_on_options ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Store members can view own store add-on options"
+  ON add_on_options FOR SELECT
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can insert own store add-on options"
+  ON add_on_options FOR INSERT
+  WITH CHECK (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can update own store add-on options"
+  ON add_on_options FOR UPDATE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Store members can delete own store add-on options"
+  ON add_on_options FOR DELETE
+  USING (
+    store_id IN (
+      SELECT unnest(store_ids) FROM members WHERE id = auth.uid()
+    )
+  );
+
+-- Create function for auto-updating updated_at and incrementing version
+CREATE OR REPLACE FUNCTION update_add_on_options_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS add_on_options_updated_at_trigger ON add_on_options;
+CREATE TRIGGER add_on_options_updated_at_trigger
+  BEFORE UPDATE ON add_on_options
+  FOR EACH ROW
+  EXECUTE FUNCTION update_add_on_options_updated_at();
+
+-- Add comment for documentation
+COMMENT ON TABLE add_on_options IS 'Individual add-on options within a group. Each option has a name, price, and duration that gets added to the service when selected.';
