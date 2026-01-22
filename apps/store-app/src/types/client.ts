@@ -399,7 +399,7 @@ export interface ReviewRequest {
 
 // ==================== LOYALTY REWARDS (PRD 2.3.7) ====================
 
-/** Loyalty Reward */
+/** Loyalty Reward - Client-specific reward instance */
 export interface LoyaltyReward {
   id: string;
   storeId: string;
@@ -415,6 +415,70 @@ export interface LoyaltyReward {
   earnedFrom: 'points' | 'tier' | 'referral' | 'manual';
   redeemedAt?: string;
   createdAt: string;
+  syncStatus: SyncStatus;
+}
+
+// ==================== LOYALTY PROGRAM CONFIGURATION (Phase 4) ====================
+
+/** Reward type for loyalty program configuration */
+export type RewardType = 'discount' | 'free_service' | 'free_product' | 'percentage';
+
+/** Loyalty Program - Store-level configuration */
+export interface LoyaltyProgram {
+  id: string;
+  storeId: string;
+  name: string;
+  pointsPerDollar: number;
+  eligibleCategories: {
+    services: boolean;
+    products: boolean;
+    giftCards: boolean;
+  };
+  includeTax: boolean;
+  pointsExpirationMonths: number | null; // null = never expires
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: SyncStatus;
+}
+
+/** Loyalty Tier Configuration - Program-level tier definition */
+export interface LoyaltyTierConfig {
+  id: string;
+  programId: string;
+  name: string;
+  thresholdPoints: number;
+  benefits: {
+    percentageDiscount?: number;
+    freeShipping?: boolean;
+    earlyAccess?: boolean;
+    priorityBooking?: boolean;
+    birthdayBonus?: number;
+    [key: string]: any; // Allow additional custom benefits
+  };
+  tierOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: SyncStatus;
+}
+
+/** Loyalty Reward Configuration - Program-level reward catalog */
+export interface LoyaltyRewardConfig {
+  id: string;
+  programId: string;
+  name: string;
+  pointsRequired: number;
+  rewardType: RewardType;
+  rewardValue: number; // dollar amount or percentage
+  eligibleItems: {
+    serviceIds?: string[];
+    productIds?: string[];
+    categoryIds?: string[];
+  };
+  expiresDays: number | null; // null = never expires
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 }
 
