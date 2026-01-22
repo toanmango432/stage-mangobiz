@@ -1870,3 +1870,97 @@ Phase 2 cannot be marked complete until US-P2F resolves them.
 **Next story suggestion:** US-P2F (FIX: Address Phase 2 Review Issues) - Depends on this review, will fix the 3 documented issues
 
 ---
+
+## 2026-01-22 - US-P2F: FIX Phase 2 Review Issues
+Commit: 174140f
+
+**Why this story?** US-P2R (Phase 2 review) found 3 issues that need to be fixed before Phase 2 can be marked complete. All 3 issues are well-documented and actionable.
+
+**Changes:**
+1. `apps/store-app/src/services/domain/catalogDataService.ts`:
+   - **P2-1 FIX:** Created bookingSequencesService with full Supabase routing
+     - Added imports for bookingSequencesTable and adapter functions
+     - Added bookingSequencesDB import from catalogDatabase
+     - Added BookingSequence and CreateBookingSequenceInput type imports
+     - Created bookingSequencesService with 9 methods:
+       - getAll(storeId, includeDisabled)
+       - getById(id)
+       - getEnabled(storeId)
+       - create(input, userId, storeId, tenantId?, deviceId?)
+       - update(id, updates, userId, deviceId?)
+       - delete(id, userId?, deviceId?)
+       - enable(id, userId?, deviceId?)
+       - disable(id, userId?, deviceId?)
+       - updateServiceOrder(id, serviceOrder, userId?, deviceId?)
+       - getUpdatedSince(storeId, since)
+     - All methods follow USE_SUPABASE routing pattern
+
+   - **P2-2 FIX:** Fixed productsService.restore fallback path
+     - Changed from simple `this.update(id, { isActive: true })` to full restore
+     - Now calls `productsDB.restore(id, effectiveUserId, effectiveDeviceId)`
+     - Properly increments version and updates vectorClock
+
+2. `apps/store-app/src/hooks/useCatalog.ts`:
+   - **P2-3 FIX:** Updated booking sequence mutations to use bookingSequencesService
+     - Added import for bookingSequencesService from catalogDataService
+     - Updated createBookingSequence to use bookingSequencesService.create
+     - Updated updateBookingSequence to use bookingSequencesService.update
+     - Updated deleteBookingSequence to use bookingSequencesService.delete (added userId/deviceId)
+     - Updated enableBookingSequence to use bookingSequencesService.enable
+     - Updated disableBookingSequence to use bookingSequencesService.disable
+     - Updated updateBookingSequenceOrder to use bookingSequencesService.updateServiceOrder
+     - Fixed dependency array for deleteBookingSequence (added userId, deviceId)
+     - Kept bookingSequencesDB import for useLiveQuery (reactivity still uses Dexie)
+
+**Verification:**
+- `pnpm run typecheck` (store-app) passes ✓
+- `pnpm test -- --run` → 3205 passed, 13 failed (all pre-existing failures)
+
+**Issue Resolution Summary:**
+- P2-1: [RESOLVED] bookingSequencesService now exists with full Supabase routing
+- P2-2: [RESOLVED] product restore properly calls productsDB.restore with sync metadata
+- P2-3: [RESOLVED] useCatalog mutations now route through bookingSequencesService
+
+**PHASE 2 DATA LAYER: COMPLETE** ✅
+
+**Learnings:**
+- useLiveQuery can still use Dexie directly for reactivity while mutations go through the service layer
+- The service layer handles routing (Supabase vs Dexie) while Dexie provides real-time UI updates
+- When Supabase is enabled, sync will keep Dexie in sync with Supabase, so the UI stays updated
+
+**Next story suggestion:** US-031 (Create ConfirmDialog component for menu-settings) - Phase 3 UI Components begins
+
+---
+
+## 2026-01-22 - US-031: Create ConfirmDialog shared component
+Commit: 413d338
+
+**Why this story?** First story in Phase 3 (priority 31), no dependencies. Starts the UI Components phase by creating a reusable confirmation dialog to replace browser confirm() calls.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/components/ConfirmDialog.tsx` (NEW):
+   - Created accessible confirmation dialog component wrapping Radix AlertDialog
+   - Props interface with: open, onOpenChange, title, description, confirmLabel, cancelLabel, variant, onConfirm, isLoading, icon
+   - variant='destructive' applies red button styling for delete confirmations
+   - Keyboard support: Escape closes (via Radix), Enter confirms (custom handler)
+   - Loading state with Loader2 spinner icon
+   - Async onConfirm support with try/catch error handling
+   - JSDoc documentation with usage example
+
+**Acceptance Criteria Verification:**
+- ✅ Created apps/store-app/src/components/menu-settings/components/ConfirmDialog.tsx
+- ✅ Uses AlertDialog from @radix-ui/react-alert-dialog (via @/components/ui/alert-dialog)
+- ✅ Props: open, onOpenChange, title, description, confirmLabel, cancelLabel, variant, onConfirm, isLoading
+- ✅ variant='destructive' uses red colors via buttonVariants({ variant: 'destructive' })
+- ✅ Accessible: Radix AlertDialog provides proper ARIA labels and focus management
+- ✅ Keyboard: Escape closes (Radix), Enter confirms (useEffect handler)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- Radix AlertDialog already provides Escape key handling and focus management
+- Custom Enter key handler needs to check if a button is focused to avoid double-triggering
+- preventDefault on AlertDialogAction click prevents auto-close before async operation completes
+
+**Next story suggestion:** US-032 (Create skeleton loader components for menu-settings) - Same folder, continues Phase 3 UI work
+
+---

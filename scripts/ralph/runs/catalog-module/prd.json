@@ -566,7 +566,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": "This replaces all browser confirm() calls in menu-settings."
     },
     {
@@ -1377,7 +1377,7 @@
         "PHASE 2 FULLY COMPLETE after this story passes"
       ],
       "priority": 2002,
-      "passes": false,
+      "passes": true,
       "dependencies": [
         "US-P2R"
       ],
