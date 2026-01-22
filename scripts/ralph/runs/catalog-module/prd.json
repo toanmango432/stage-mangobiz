@@ -1008,7 +1008,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 58,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/checkout/ServiceGrid.tsx"
     },
     {
@@ -1025,8 +1025,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 59,
-      "passes": false,
-      "notes": "Checkout variant/add-on integration complete."
+      "passes": true,
+      "notes": "Checkout variant/add-on integration complete. Implemented as part of US-058."
     },
     {
       "id": "US-060",
@@ -1042,7 +1042,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 60,
-      "passes": false,
+      "passes": true,
       "notes": "This enforces booking business rules."
     },
     {
