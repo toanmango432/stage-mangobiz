@@ -330,10 +330,13 @@ export type CreatePackageInput = Omit<ServicePackage,
 // ADD-ON GROUP & OPTIONS (Fresha-style)
 // ============================================
 
-export interface AddOnGroup {
-  id: string;
-  storeId: string;
-
+/**
+ * AddOnGroup - Represents a group of add-on options that can be selected for services
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface AddOnGroup extends BaseSyncableEntity {
   // Core fields
   name: string;
   description?: string;
@@ -353,16 +356,15 @@ export interface AddOnGroup {
   isActive: boolean;
   displayOrder: number;
   onlineBookingEnabled: boolean;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
-export interface AddOnOption {
-  id: string;
-  storeId: string;
+/**
+ * AddOnOption - Represents a single add-on option within an AddOnGroup
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface AddOnOption extends BaseSyncableEntity {
   groupId: string;
 
   // Core fields
@@ -376,19 +378,58 @@ export interface AddOnOption {
   // Status
   isActive: boolean;
   displayOrder: number;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new AddOnGroup
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateAddOnGroupInput = Omit<AddOnGroup,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
+/**
+ * Input type for creating a new AddOnOption
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateAddOnOptionInput = Omit<AddOnOption,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
@@ -598,12 +639,18 @@ export function toServiceAddOn(group: AddOnGroup, option: AddOnOption): ServiceA
 }
 
 /**
- * Convert legacy ServiceAddOn to AddOnGroup + AddOnOption
+ * Convert legacy ServiceAddOn to CreateAddOnGroupInput + CreateAddOnOptionInput
+ * Used for converting old flat add-on data to the new group/option structure
+ *
+ * Note: The returned objects are input types (not full entities) - they need
+ * to be passed through create() methods to get sync fields populated
  */
-export function fromServiceAddOn(addOn: ServiceAddOn, storeId: string): { group: Omit<AddOnGroup, 'id' | 'syncStatus'>; option: Omit<AddOnOption, 'id' | 'groupId' | 'syncStatus'> } {
+export function fromServiceAddOn(addOn: ServiceAddOn, _storeId: string): {
+  group: Omit<CreateAddOnGroupInput, 'displayOrder'> & { displayOrder: number };
+  option: Omit<CreateAddOnOptionInput, 'groupId' | 'displayOrder'> & { displayOrder: number };
+} {
   return {
     group: {
-      storeId,
       name: addOn.name,
       description: addOn.description,
       selectionMode: 'single',
@@ -616,19 +663,14 @@ export function fromServiceAddOn(addOn: ServiceAddOn, storeId: string): { group:
       isActive: addOn.isActive,
       displayOrder: addOn.displayOrder,
       onlineBookingEnabled: addOn.onlineBookingEnabled,
-      createdAt: addOn.createdAt,
-      updatedAt: addOn.updatedAt,
     },
     option: {
-      storeId,
       name: addOn.name,
       description: addOn.description,
       price: addOn.price,
       duration: addOn.duration,
       isActive: addOn.isActive,
       displayOrder: 0,
-      createdAt: addOn.createdAt,
-      updatedAt: addOn.updatedAt,
     },
   };
 }

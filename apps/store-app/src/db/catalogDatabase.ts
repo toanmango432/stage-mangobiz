@@ -443,37 +443,52 @@ export const addOnGroupsDB = {
     );
   },
 
-  async create(input: CreateAddOnGroupInput, storeId: string): Promise<AddOnGroup> {
-    const now = new Date().toISOString();
-
+  async create(
+    input: CreateAddOnGroupInput,
+    userId: string,
+    storeId: string,
+    tenantId: string = storeId,
+    deviceId: string = 'web-client'
+  ): Promise<AddOnGroup> {
     const maxOrder = await db.addOnGroups
       .where('storeId')
       .equals(storeId)
       .toArray()
       .then(groups => Math.max(0, ...groups.map(g => g.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const group: AddOnGroup = {
+      ...syncDefaults,
       id: uuidv4(),
-      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     await db.addOnGroups.add(group);
     return group;
   },
 
-  async update(id: string, updates: Partial<AddOnGroup>): Promise<AddOnGroup | undefined> {
+  async update(
+    id: string,
+    updates: Partial<AddOnGroup>,
+    userId: string,
+    deviceId: string = 'web-client'
+  ): Promise<AddOnGroup | undefined> {
     const group = await db.addOnGroups.get(id);
     if (!group) return undefined;
 
     const updated: AddOnGroup = {
       ...group,
       ...updates,
+      version: group.version + 1,
+      vectorClock: {
+        ...group.vectorClock,
+        [deviceId]: group.version + 1,
+      },
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
       syncStatus: 'local',
     };
 
@@ -507,37 +522,52 @@ export const addOnOptionsDB = {
     return await db.addOnOptions.get(id);
   },
 
-  async create(input: CreateAddOnOptionInput, storeId: string): Promise<AddOnOption> {
-    const now = new Date().toISOString();
-
+  async create(
+    input: CreateAddOnOptionInput,
+    userId: string,
+    storeId: string,
+    tenantId: string = storeId,
+    deviceId: string = 'web-client'
+  ): Promise<AddOnOption> {
     const maxOrder = await db.addOnOptions
       .where('groupId')
       .equals(input.groupId)
       .toArray()
       .then(opts => Math.max(0, ...opts.map(o => o.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const option: AddOnOption = {
+      ...syncDefaults,
       id: uuidv4(),
-      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     await db.addOnOptions.add(option);
     return option;
   },
 
-  async update(id: string, updates: Partial<AddOnOption>): Promise<AddOnOption | undefined> {
+  async update(
+    id: string,
+    updates: Partial<AddOnOption>,
+    userId: string,
+    deviceId: string = 'web-client'
+  ): Promise<AddOnOption | undefined> {
     const option = await db.addOnOptions.get(id);
     if (!option) return undefined;
 
     const updated: AddOnOption = {
       ...option,
       ...updates,
+      version: option.version + 1,
+      vectorClock: {
+        ...option.vectorClock,
+        [deviceId]: option.version + 1,
+      },
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
       syncStatus: 'local',
     };
 

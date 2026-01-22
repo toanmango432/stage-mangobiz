@@ -138,6 +138,94 @@ function createSeedPackage(
   };
 }
 
+/**
+ * Creates an AddOnGroup with all sync fields
+ */
+function createSeedAddOnGroup(
+  storeId: string,
+  name: string,
+  description: string,
+  selectionMode: 'single' | 'multiple',
+  minSelections: number,
+  maxSelections: number,
+  isRequired: boolean,
+  applicableToAll: boolean,
+  applicableCategoryIds: string[],
+  applicableServiceIds: string[],
+  displayOrder: number,
+  onlineBookingEnabled: boolean,
+  now: string,
+  tenantId: string = DEFAULT_TENANT_ID
+): AddOnGroup {
+  return {
+    id: uuidv4(),
+    storeId,
+    tenantId,
+    name,
+    description,
+    selectionMode,
+    minSelections,
+    maxSelections,
+    isRequired,
+    applicableToAll,
+    applicableCategoryIds,
+    applicableServiceIds,
+    isActive: true,
+    displayOrder,
+    onlineBookingEnabled,
+    syncStatus: 'synced' as SyncStatus,
+    version: 1,
+    vectorClock: { [DEFAULT_DEVICE_ID]: 1 },
+    lastSyncedVersion: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: 'system',
+    createdByDevice: DEFAULT_DEVICE_ID,
+    lastModifiedBy: 'system',
+    lastModifiedByDevice: DEFAULT_DEVICE_ID,
+    isDeleted: false,
+  };
+}
+
+/**
+ * Creates an AddOnOption with all sync fields
+ */
+function createSeedAddOnOption(
+  storeId: string,
+  groupId: string,
+  name: string,
+  description: string,
+  price: number,
+  duration: number,
+  displayOrder: number,
+  now: string,
+  tenantId: string = DEFAULT_TENANT_ID
+): AddOnOption {
+  return {
+    id: uuidv4(),
+    storeId,
+    tenantId,
+    groupId,
+    name,
+    description,
+    price,
+    duration,
+    isActive: true,
+    displayOrder,
+    syncStatus: 'synced' as SyncStatus,
+    version: 1,
+    vectorClock: { [DEFAULT_DEVICE_ID]: 1 },
+    lastSyncedVersion: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: 'system',
+    createdByDevice: DEFAULT_DEVICE_ID,
+    lastModifiedBy: 'system',
+    lastModifiedByDevice: DEFAULT_DEVICE_ID,
+    isDeleted: false,
+  };
+}
+
 // Category Color Palette (Fresha-inspired)
 const CATEGORY_COLORS = [
   '#F43F5E', // Rose
@@ -706,86 +794,74 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   const addOnOptions: AddOnOption[] = [];
 
   // Hair Add-ons Group
-  const hairAddOnsGroup: AddOnGroup = {
-    id: uuidv4(),
+  const hairAddOnsGroup = createSeedAddOnGroup(
     storeId,
-    name: 'Hair Enhancements',
-    description: 'Additional treatments for hair services',
-    selectionMode: 'multiple',
-    minSelections: 0,
-    maxSelections: 3,
-    isRequired: false,
-    applicableToAll: false,
-    applicableCategoryIds: [categories[0].id, categories[1].id],
-    applicableServiceIds: [],
-    isActive: true,
-    displayOrder: 1,
-    onlineBookingEnabled: true,
-    createdAt: now,
-    updatedAt: now,
-    syncStatus: 'synced',
-  };
+    'Hair Enhancements',
+    'Additional treatments for hair services',
+    'multiple',
+    0,
+    3,
+    false,
+    false,
+    [categories[0].id, categories[1].id],
+    [],
+    1,
+    true,
+    now
+  );
   addOnGroups.push(hairAddOnsGroup);
 
   addOnOptions.push(
-    { id: uuidv4(), storeId, groupId: hairAddOnsGroup.id, name: 'Scalp Massage', description: 'Relaxing scalp massage', price: 15, duration: 10, isActive: true, displayOrder: 1, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, groupId: hairAddOnsGroup.id, name: 'Deep Conditioning', description: 'Intensive treatment', price: 25, duration: 15, isActive: true, displayOrder: 2, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, groupId: hairAddOnsGroup.id, name: 'Gloss Treatment', description: 'High-shine gloss', price: 35, duration: 15, isActive: true, displayOrder: 3, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    createSeedAddOnOption(storeId, hairAddOnsGroup.id, 'Scalp Massage', 'Relaxing scalp massage', 15, 10, 1, now),
+    createSeedAddOnOption(storeId, hairAddOnsGroup.id, 'Deep Conditioning', 'Intensive treatment', 25, 15, 2, now),
+    createSeedAddOnOption(storeId, hairAddOnsGroup.id, 'Gloss Treatment', 'High-shine gloss', 35, 15, 3, now),
   );
 
   // Nail Add-ons Group
-  const nailAddOnsGroup: AddOnGroup = {
-    id: uuidv4(),
+  const nailAddOnsGroup = createSeedAddOnGroup(
     storeId,
-    name: 'Nail Extras',
-    description: 'Enhance your nail service',
-    selectionMode: 'multiple',
-    minSelections: 0,
-    maxSelections: 5,
-    isRequired: false,
-    applicableToAll: false,
-    applicableCategoryIds: [categories[2].id],
-    applicableServiceIds: [],
-    isActive: true,
-    displayOrder: 2,
-    onlineBookingEnabled: true,
-    createdAt: now,
-    updatedAt: now,
-    syncStatus: 'synced',
-  };
+    'Nail Extras',
+    'Enhance your nail service',
+    'multiple',
+    0,
+    5,
+    false,
+    false,
+    [categories[2].id],
+    [],
+    2,
+    true,
+    now
+  );
   addOnGroups.push(nailAddOnsGroup);
 
   addOnOptions.push(
-    { id: uuidv4(), storeId, groupId: nailAddOnsGroup.id, name: 'Paraffin Treatment', description: 'Moisturizing wax', price: 12, duration: 10, isActive: true, displayOrder: 1, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, groupId: nailAddOnsGroup.id, name: 'Nail Art (per nail)', description: 'Custom design', price: 5, duration: 5, isActive: true, displayOrder: 2, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, groupId: nailAddOnsGroup.id, name: 'Gel Removal', description: 'Safe gel polish removal', price: 10, duration: 10, isActive: true, displayOrder: 3, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    createSeedAddOnOption(storeId, nailAddOnsGroup.id, 'Paraffin Treatment', 'Moisturizing wax', 12, 10, 1, now),
+    createSeedAddOnOption(storeId, nailAddOnsGroup.id, 'Nail Art (per nail)', 'Custom design', 5, 5, 2, now),
+    createSeedAddOnOption(storeId, nailAddOnsGroup.id, 'Gel Removal', 'Safe gel polish removal', 10, 10, 3, now),
   );
 
   // Massage Add-ons Group
-  const massageAddOnsGroup: AddOnGroup = {
-    id: uuidv4(),
+  const massageAddOnsGroup = createSeedAddOnGroup(
     storeId,
-    name: 'Massage Enhancements',
-    description: 'Upgrade your massage experience',
-    selectionMode: 'multiple',
-    minSelections: 0,
-    maxSelections: 2,
-    isRequired: false,
-    applicableToAll: false,
-    applicableCategoryIds: [categories[3].id],
-    applicableServiceIds: [],
-    isActive: true,
-    displayOrder: 3,
-    onlineBookingEnabled: true,
-    createdAt: now,
-    updatedAt: now,
-    syncStatus: 'synced',
-  };
+    'Massage Enhancements',
+    'Upgrade your massage experience',
+    'multiple',
+    0,
+    2,
+    false,
+    false,
+    [categories[3].id],
+    [],
+    3,
+    true,
+    now
+  );
   addOnGroups.push(massageAddOnsGroup);
 
   addOnOptions.push(
-    { id: uuidv4(), storeId, groupId: massageAddOnsGroup.id, name: 'Hot Stone Enhancement', description: 'Add hot stones', price: 25, duration: 15, isActive: true, displayOrder: 1, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId, groupId: massageAddOnsGroup.id, name: 'Aromatherapy', description: 'Essential oil upgrade', price: 15, duration: 0, isActive: true, displayOrder: 2, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    createSeedAddOnOption(storeId, massageAddOnsGroup.id, 'Hot Stone Enhancement', 'Add hot stones', 25, 15, 1, now),
+    createSeedAddOnOption(storeId, massageAddOnsGroup.id, 'Aromatherapy', 'Essential oil upgrade', 15, 0, 2, now),
   );
 
   await db.addOnGroups.bulkAdd(addOnGroups);

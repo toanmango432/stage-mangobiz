@@ -49,6 +49,7 @@ import {
 } from '@/services/sqliteServices';
 
 import type { Service } from '@/types';
+import type { AddOnGroup, AddOnOption } from '@/types/catalog';
 
 // ==================== HELPERS ====================
 
@@ -307,20 +308,20 @@ export const addOnGroupsService = {
     return addOnGroupsDB.getById(id);
   },
 
-  async create(input: unknown, _userId: string, storeId: string) {
+  async create(input: unknown, userId: string, storeId: string) {
     if (USE_SQLITE) {
       return sqliteAddOnGroupsDB.create(input);
     }
-    // Dexie API: create(input, storeId) - no userId
-    return addOnGroupsDB.create(input as Parameters<typeof addOnGroupsDB.create>[0], storeId);
+    // Dexie API: create(input, userId, storeId)
+    return addOnGroupsDB.create(input as Parameters<typeof addOnGroupsDB.create>[0], userId, storeId);
   },
 
-  async update(id: string, updates: unknown, _userId: string) {
+  async update(id: string, updates: unknown, userId: string) {
     if (USE_SQLITE) {
       return sqliteAddOnGroupsDB.update(id, updates);
     }
-    // Dexie API: update(id, updates) - no userId
-    return addOnGroupsDB.update(id, updates as Partial<unknown>);
+    // Dexie API: update(id, updates, userId)
+    return addOnGroupsDB.update(id, updates as Partial<AddOnGroup>, userId);
   },
 
   async delete(id: string) {
@@ -349,20 +350,20 @@ export const addOnOptionsService = {
     return addOnOptionsDB.getById(id);
   },
 
-  async create(input: unknown, _userId: string, storeId: string) {
+  async create(input: unknown, userId: string, storeId: string) {
     if (USE_SQLITE) {
       return sqliteAddOnOptionsDB.create(input);
     }
-    // Dexie API: create(input, storeId) - no userId
-    return addOnOptionsDB.create(input as Parameters<typeof addOnOptionsDB.create>[0], storeId);
+    // Dexie API: create(input, userId, storeId)
+    return addOnOptionsDB.create(input as Parameters<typeof addOnOptionsDB.create>[0], userId, storeId);
   },
 
-  async update(id: string, updates: unknown, _userId: string) {
+  async update(id: string, updates: unknown, userId: string) {
     if (USE_SQLITE) {
       return sqliteAddOnOptionsDB.update(id, updates);
     }
-    // Dexie API: update(id, updates) - no userId
-    return addOnOptionsDB.update(id, updates as Partial<unknown>);
+    // Dexie API: update(id, updates, userId)
+    return addOnOptionsDB.update(id, updates as Partial<AddOnOption>, userId);
   },
 
   async delete(id: string) {

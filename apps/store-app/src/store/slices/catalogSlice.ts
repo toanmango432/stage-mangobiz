@@ -263,15 +263,15 @@ export const fetchAddOnGroupsWithOptions = createAsyncThunk(
 
 export const createAddOnGroup = createAsyncThunk(
   'catalog/createAddOnGroup',
-  async ({ input, storeId }: { input: CreateAddOnGroupInput; storeId: string }) => {
-    return await addOnGroupsDB.create(input, storeId);
+  async ({ input, userId, storeId }: { input: CreateAddOnGroupInput; userId: string; storeId: string }) => {
+    return await addOnGroupsDB.create(input, userId, storeId);
   }
 );
 
 export const updateAddOnGroup = createAsyncThunk(
   'catalog/updateAddOnGroup',
-  async ({ id, updates }: { id: string; updates: Partial<AddOnGroup> }) => {
-    return await addOnGroupsDB.update(id, updates);
+  async ({ id, updates, userId }: { id: string; updates: Partial<AddOnGroup>; userId: string }) => {
+    return await addOnGroupsDB.update(id, updates, userId);
   }
 );
 
@@ -286,15 +286,15 @@ export const deleteAddOnGroup = createAsyncThunk(
 // Add-on Options
 export const createAddOnOption = createAsyncThunk(
   'catalog/createAddOnOption',
-  async ({ input, storeId }: { input: CreateAddOnOptionInput; storeId: string }) => {
-    return await addOnOptionsDB.create(input, storeId);
+  async ({ input, userId, storeId }: { input: CreateAddOnOptionInput; userId: string; storeId: string }) => {
+    return await addOnOptionsDB.create(input, userId, storeId);
   }
 );
 
 export const updateAddOnOption = createAsyncThunk(
   'catalog/updateAddOnOption',
-  async ({ id, updates }: { id: string; updates: Partial<AddOnOption> }) => {
-    return await addOnOptionsDB.update(id, updates);
+  async ({ id, updates, userId }: { id: string; updates: Partial<AddOnOption>; userId: string }) => {
+    return await addOnOptionsDB.update(id, updates, userId);
   }
 );
 

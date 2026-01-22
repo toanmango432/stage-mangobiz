@@ -730,7 +730,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           isActive: data.isActive ?? true,
           displayOrder: data.displayOrder ?? 0,
           onlineBookingEnabled: data.onlineBookingEnabled ?? true,
-        }, storeId);
+        }, userId, storeId);
 
         const option = await addOnOptionsDB.create({
           groupId: group.id,
@@ -740,14 +740,14 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           duration: data.duration || 0,
           isActive: data.isActive ?? true,
           displayOrder: 0,
-        }, storeId);
+        }, userId, storeId);
 
         return toServiceAddOn(group, option);
       },
       'Add-on created',
       'Failed to create add-on'
     );
-  }, [storeId, withErrorHandling]);
+  }, [storeId, userId, withErrorHandling]);
 
   const updateAddOn = useCallback(async (id: string, data: Partial<ServiceAddOn>) => {
     return withErrorHandling(
@@ -769,7 +769,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           isActive: data.isActive,
           displayOrder: data.displayOrder,
           onlineBookingEnabled: data.onlineBookingEnabled,
-        });
+        }, userId);
 
         await addOnOptionsDB.update(id, {
           name: data.name,
@@ -777,7 +777,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           price: data.price,
           duration: data.duration,
           isActive: data.isActive,
-        });
+        }, userId);
 
         const updatedOption = await addOnOptionsDB.getById(id);
         const updatedGroup = await addOnGroupsDB.getById(option.groupId);
@@ -787,7 +787,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Add-on updated',
       'Failed to update add-on'
     );
-  }, [withErrorHandling]);
+  }, [userId, withErrorHandling]);
 
   const deleteAddOn = useCallback(async (id: string) => {
     return withErrorHandling(
@@ -830,7 +830,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           isActive: data.isActive ?? true,
           displayOrder: data.displayOrder ?? 0,
           onlineBookingEnabled: data.onlineBookingEnabled ?? true,
-        }, storeId);
+        }, userId, storeId);
         return group;
       },
       'Add-on group created',
@@ -841,13 +841,13 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
   const updateAddOnGroup = useCallback(async (id: string, data: Partial<AddOnGroup>) => {
     return withErrorHandling(
       async () => {
-        await addOnGroupsDB.update(id, data);
+        await addOnGroupsDB.update(id, data, userId);
         return await addOnGroupsDB.getById(id);
       },
       'Add-on group updated',
       'Failed to update add-on group'
     );
-  }, [withErrorHandling]);
+  }, [userId, withErrorHandling]);
 
   const deleteAddOnGroup = useCallback(async (id: string) => {
     return withErrorHandling(
@@ -880,24 +880,24 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           duration: data.duration || 0,
           isActive: data.isActive ?? true,
           displayOrder: data.displayOrder ?? 0,
-        }, storeId);
+        }, userId, storeId);
         return option;
       },
       'Option added',
       'Failed to add option'
     );
-  }, [storeId, withErrorHandling]);
+  }, [userId, storeId, withErrorHandling]);
 
   const updateAddOnOption = useCallback(async (id: string, data: Partial<AddOnOption>) => {
     return withErrorHandling(
       async () => {
-        await addOnOptionsDB.update(id, data);
+        await addOnOptionsDB.update(id, data, userId);
         return await addOnOptionsDB.getById(id);
       },
       'Option updated',
       'Failed to update option'
     );
-  }, [withErrorHandling]);
+  }, [userId, withErrorHandling]);
 
   const deleteAddOnOption = useCallback(async (id: string) => {
     return withErrorHandling(
