@@ -126,3 +126,49 @@ export {
   toAddOnOptionInsert,
   toAddOnOptionUpdate,
 } from './addOnOptionAdapter';
+
+// StaffServiceAssignment adapters
+export {
+  toStaffServiceAssignment,
+  toStaffServiceAssignments,
+  toStaffServiceAssignmentInsert,
+  toStaffServiceAssignmentUpdate,
+} from './staffServiceAssignmentAdapter';
+
+// CatalogSettings adapters
+export {
+  toCatalogSettings,
+  toCatalogSettingsInsert,
+  toCatalogSettingsUpdate,
+} from './catalogSettingsAdapter';
+
+// BookingSequence adapters
+export {
+  toBookingSequence,
+  toBookingSequences,
+  toBookingSequenceInsert,
+  toBookingSequenceUpdate,
+} from './bookingSequenceAdapter';
+
+// Product adapters (catalog_products table)
+export {
+  toProduct,
+  toProducts,
+  toProductInsert,
+  toProductUpdate,
+} from './productAdapter';
+
+// GiftCardDenomination adapters
+export {
+  toGiftCardDenomination,
+  toGiftCardDenominations,
+  toGiftCardDenominationInsert,
+  toGiftCardDenominationUpdate,
+} from './giftCardDenominationAdapter';
+
+// GiftCardSettings adapters
+export {
+  toGiftCardSettings,
+  toGiftCardSettingsInsert,
+  toGiftCardSettingsUpdate,
+} from './giftCardSettingsAdapter';
