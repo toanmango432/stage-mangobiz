@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   ArrowLeft,
@@ -7,7 +7,6 @@ import {
   Grid3X3,
   List,
   LayoutGrid,
-  MoreVertical,
   Settings,
   Users,
   Package,
@@ -33,6 +32,7 @@ import { GiftCardsSection } from './sections/GiftCardsSection';
 import { StaffPermissionsSection } from './sections/StaffPermissionsSection';
 import { MenuGeneralSettingsSection } from './sections/MenuGeneralSettingsSection';
 import { ArchivedServicesTab } from './ArchivedServicesTab';
+import { MoreOptionsDropdown } from './components';
 
 interface MenuSettingsProps {
   onBack?: () => void;
@@ -45,6 +45,9 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
   const currentUser = useSelector(selectCurrentUser);
   const userId = currentUser?.id || 'system';
 
+  // Bulk edit mode state
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+
   // Toast wrapper for useCatalog hook
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     if (type === 'success') {
@@ -52,6 +55,38 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     } else {
       toast.error(message);
     }
+  }, []);
+
+  // More Options handlers
+  const handleImportJson = useCallback(() => {
+    // TODO: Implement JSON import - create file input and parse JSON
+    toast('Import from JSON - Coming soon', { icon: '📥' });
+  }, []);
+
+  const handleImportCsv = useCallback(() => {
+    // TODO: Implement CSV import - create file input and parse CSV
+    toast('Import from CSV - Coming soon', { icon: '📥' });
+  }, []);
+
+  const handleExportJson = useCallback(() => {
+    // TODO: Implement JSON export - serialize catalog data to JSON file
+    toast('Export to JSON - Coming soon', { icon: '📤' });
+  }, []);
+
+  const handleExportCsv = useCallback(() => {
+    // TODO: Implement CSV export - serialize catalog data to CSV file
+    toast('Export to CSV - Coming soon', { icon: '📤' });
+  }, []);
+
+  const handleToggleBulkEdit = useCallback(() => {
+    setIsBulkEditMode((prev) => !prev);
+    toast(isBulkEditMode ? 'Bulk edit mode disabled' : 'Bulk edit mode enabled', {
+      icon: isBulkEditMode ? '✏️' : '📝',
+    });
+  }, [isBulkEditMode]);
+
+  const handlePrintMenu = useCallback(() => {
+    window.print();
   }, []);
 
   // Use the catalog hook for all data and actions
@@ -409,9 +444,15 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
               </div>
 
               {/* More Options */}
-              <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
-                <MoreVertical size={18} />
-              </button>
+              <MoreOptionsDropdown
+                onImportJson={handleImportJson}
+                onImportCsv={handleImportCsv}
+                onExportJson={handleExportJson}
+                onExportCsv={handleExportCsv}
+                onToggleBulkEdit={handleToggleBulkEdit}
+                isBulkEditActive={isBulkEditMode}
+                onPrintMenu={handlePrintMenu}
+              />
             </div>
           </div>
         </div>

@@ -17,6 +17,10 @@ export type { EmptyStateProps } from './EmptyState';
 // Editor components
 export { StaffAssignmentEditor } from './StaffAssignmentEditor';
 
+// Dropdown components
+export { MoreOptionsDropdown } from './MoreOptionsDropdown';
+export type { MoreOptionsDropdownProps } from './MoreOptionsDropdown';
+
 // Skeleton components (loading states)
 export {
   ServiceCardSkeleton,
