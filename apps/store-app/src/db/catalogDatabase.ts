@@ -164,9 +164,7 @@ export const menuServicesDB = {
     return { ...service, variants };
   },
 
-  async create(input: CreateMenuServiceInput, userId: string, storeId: string): Promise<MenuService> {
-    const now = new Date().toISOString();
-
+  async create(input: CreateMenuServiceInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<MenuService> {
     // Get next display order within category
     const maxOrder = await db.menuServices
       .where('[storeId+categoryId]')
@@ -174,16 +172,14 @@ export const menuServicesDB = {
       .toArray()
       .then(svcs => Math.max(0, ...svcs.map(s => s.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const service: MenuService = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      createdBy: userId,
-      lastModifiedBy: userId,
-      syncStatus: 'local',
+      variantCount: input.variantCount ?? 0,
     };
 
     await db.menuServices.add(service);

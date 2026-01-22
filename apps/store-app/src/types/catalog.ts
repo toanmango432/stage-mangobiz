@@ -108,9 +108,13 @@ export type CreateVariantInput = Omit<ServiceVariant,
 // MENU SERVICE (Enhanced Service)
 // ============================================
 
-export interface MenuService {
-  id: string;
-  storeId: string;
+/**
+ * MenuService - Represents a service in the catalog
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface MenuService extends BaseSyncableEntity {
   categoryId: string;
 
   // Core fields
@@ -138,6 +142,7 @@ export interface MenuService {
 
   // Variants
   hasVariants: boolean;
+  variantCount: number; // Number of variants for this service
   // Note: Variants stored in separate table for sync efficiency
 
   // Staff assignment
@@ -169,19 +174,10 @@ export interface MenuService {
   tags?: string[];
 
   // Visibility & Status
-  status: ServiceStatus;
+  status: ServiceStatus; // 'active' | 'inactive' | 'archived'
   displayOrder: number;
   showPriceOnline: boolean;
   allowCustomDuration: boolean;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
-
-  // Audit
-  createdBy?: string;
-  lastModifiedBy?: string;
 
   // === ARCHIVE FIELDS ===
   /**
@@ -201,8 +197,30 @@ export interface MenuService {
   archivedBy?: string;
 }
 
+/**
+ * Input type for creating a new MenuService
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateMenuServiceInput = Omit<MenuService,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================

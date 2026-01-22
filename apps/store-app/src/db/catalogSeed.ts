@@ -215,6 +215,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   const womensHaircut: MenuService = {
     id: uuidv4(),
     storeId,
+    ...syncFields,
     categoryId: hairCatId,
     name: "Women's Haircut",
     description: 'Consultation, shampoo, cut, and style',
@@ -222,6 +223,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     price: 65,
     duration: 60,
     hasVariants: true,
+    variantCount: 3,
     allStaffCanPerform: true,
     bookingAvailability: 'both',
     onlineBookingEnabled: true,
@@ -235,7 +237,6 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     updatedAt: now,
     createdBy: 'system',
     lastModifiedBy: 'system',
-    syncStatus: 'synced',
   };
   services.push(womensHaircut);
 
@@ -249,6 +250,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   services.push({
     id: uuidv4(),
     storeId,
+    ...syncFields,
     categoryId: hairCatId,
     name: "Men's Haircut",
     description: 'Classic cut with neck cleanup',
@@ -256,6 +258,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     price: 35,
     duration: 30,
     hasVariants: false,
+    variantCount: 0,
     allStaffCanPerform: true,
     bookingAvailability: 'both',
     onlineBookingEnabled: true,
@@ -269,13 +272,13 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     updatedAt: now,
     createdBy: 'system',
     lastModifiedBy: 'system',
-    syncStatus: 'synced',
   });
 
   // Blowout & Style - with variants
   const blowout: MenuService = {
     id: uuidv4(),
     storeId,
+    ...syncFields,
     categoryId: hairCatId,
     name: 'Blowout & Style',
     description: 'Shampoo and professional blowdry styling',
@@ -283,6 +286,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     price: 45,
     duration: 45,
     hasVariants: true,
+    variantCount: 3,
     allStaffCanPerform: true,
     bookingAvailability: 'both',
     onlineBookingEnabled: true,
@@ -296,7 +300,6 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     updatedAt: now,
     createdBy: 'system',
     lastModifiedBy: 'system',
-    syncStatus: 'synced',
   };
   services.push(blowout);
 
@@ -310,6 +313,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   services.push({
     id: uuidv4(),
     storeId,
+    ...syncFields,
     categoryId: hairCatId,
     name: 'Deep Conditioning Treatment',
     description: 'Intensive hydration and repair treatment',
@@ -319,6 +323,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     extraTime: 15,
     extraTimeType: 'processing',
     hasVariants: false,
+    variantCount: 0,
     allStaffCanPerform: true,
     bookingAvailability: 'both',
     onlineBookingEnabled: true,
@@ -332,7 +337,6 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     updatedAt: now,
     createdBy: 'system',
     lastModifiedBy: 'system',
-    syncStatus: 'synced',
   });
 
   // Hair Color (Category 1)
@@ -341,6 +345,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   const fullColor: MenuService = {
     id: uuidv4(),
     storeId,
+    ...syncFields,
     categoryId: colorCatId,
     name: 'Full Color',
     description: 'Single process all-over color',
@@ -350,6 +355,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     extraTime: 30,
     extraTimeType: 'processing',
     hasVariants: true,
+    variantCount: 3,
     allStaffCanPerform: false,
     bookingAvailability: 'both',
     onlineBookingEnabled: true,
@@ -364,7 +370,6 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     updatedAt: now,
     createdBy: 'system',
     lastModifiedBy: 'system',
-    syncStatus: 'synced',
   };
   services.push(fullColor);
 
@@ -381,6 +386,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       categoryId: nailCatId,
       name: 'Classic Manicure',
       description: 'Nail shaping, cuticle care, and polish',
@@ -388,6 +394,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       price: 28,
       duration: 30,
       hasVariants: false,
+      variantCount: 0,
       allStaffCanPerform: true,
       bookingAvailability: 'both',
       onlineBookingEnabled: true,
@@ -401,11 +408,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       categoryId: nailCatId,
       name: 'Gel Manicure',
       description: 'Long-lasting gel polish manicure',
@@ -413,6 +420,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       price: 45,
       duration: 45,
       hasVariants: false,
+      variantCount: 0,
       allStaffCanPerform: true,
       bookingAvailability: 'both',
       onlineBookingEnabled: true,
@@ -426,11 +434,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       categoryId: nailCatId,
       name: 'Deluxe Pedicure',
       description: 'Full pedicure with extended massage and mask',
@@ -438,6 +446,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       price: 55,
       duration: 60,
       hasVariants: false,
+      variantCount: 0,
       allStaffCanPerform: true,
       bookingAvailability: 'both',
       onlineBookingEnabled: true,
@@ -451,7 +460,6 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
   );
 
@@ -461,6 +469,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
   const swedishMassage: MenuService = {
     id: uuidv4(),
     storeId,
+    ...syncFields,
     categoryId: spaCatId,
     name: 'Swedish Massage',
     description: 'Classic relaxation massage',
@@ -468,6 +477,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     price: 85,
     duration: 60,
     hasVariants: true,
+    variantCount: 3,
     allStaffCanPerform: false,
     bookingAvailability: 'both',
     onlineBookingEnabled: true,
@@ -482,7 +492,6 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     updatedAt: now,
     createdBy: 'system',
     lastModifiedBy: 'system',
-    syncStatus: 'synced',
   };
   services.push(swedishMassage);
 
@@ -499,6 +508,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       categoryId: facialCatId,
       name: 'Express Facial',
       description: 'Quick refresh facial treatment',
@@ -506,6 +516,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       price: 65,
       duration: 30,
       hasVariants: false,
+      variantCount: 0,
       allStaffCanPerform: false,
       bookingAvailability: 'both',
       onlineBookingEnabled: true,
@@ -519,11 +530,11 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
     {
       id: uuidv4(),
       storeId,
+      ...syncFields,
       categoryId: facialCatId,
       name: 'Signature Facial',
       description: 'Full customized facial with extractions',
@@ -531,6 +542,7 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       price: 125,
       duration: 75,
       hasVariants: false,
+      variantCount: 0,
       allStaffCanPerform: false,
       bookingAvailability: 'both',
       onlineBookingEnabled: true,
@@ -545,7 +557,6 @@ export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
       updatedAt: now,
       createdBy: 'system',
       lastModifiedBy: 'system',
-      syncStatus: 'synced',
     },
   );
 
@@ -834,6 +845,7 @@ export async function migrateServicesToCatalog(storeId: string): Promise<{
     const menuService: MenuService = {
       id: legacyService.id, // Keep same ID for continuity
       storeId,
+      ...migrationSyncFields,
       categoryId,
       name: legacyService.name,
       description: legacyService.description || '',
@@ -841,6 +853,7 @@ export async function migrateServicesToCatalog(storeId: string): Promise<{
       price: legacyService.price,
       duration: legacyService.duration,
       hasVariants: false,
+      variantCount: 0,
       allStaffCanPerform: true,
       bookingAvailability: 'both',
       onlineBookingEnabled: true,
@@ -856,7 +869,6 @@ export async function migrateServicesToCatalog(storeId: string): Promise<{
       updatedAt: now,
       createdBy: 'migration',
       lastModifiedBy: 'migration',
-      syncStatus: 'local',
     };
 
     await db.menuServices.add(menuService);
