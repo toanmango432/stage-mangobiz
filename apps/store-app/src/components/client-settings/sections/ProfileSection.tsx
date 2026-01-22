@@ -18,9 +18,11 @@ import { StaffAlertBanner } from '../components/StaffAlertBanner';
 import { BlockClientModal } from '../components/BlockClientModal';
 import { ConsentManagement } from '@/components/clients/ConsentManagement';
 import { DataDeletionRequestModal } from '@/components/clients/DataDeletionRequestModal';
+import { FormDeliveryModal } from '@/components/forms/FormDeliveryModal';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectMemberId, selectMemberName, selectMemberRole, selectStoreId } from '@/store/slices/authSlice';
 import { exportClientData, createDataRequest } from '@/store/slices/clientsSlice';
+import { FileText } from 'lucide-react';
 
 interface ProfileSectionProps {
   client: EnhancedClient;
@@ -47,6 +49,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showDeletionModal, setShowDeletionModal] = useState(false);
+  const [showFormDeliveryModal, setShowFormDeliveryModal] = useState(false);
 
   // Check if user has permission to delete client data (managers/owners only)
   const canDeleteClientData = memberRole === 'owner' || memberRole === 'manager' || memberRole === 'admin';
@@ -334,25 +337,37 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
-              <div>
-                <p className="text-xs text-gray-500">Client since</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {formatDate(client.createdAt)}
-                </p>
+            <div className="flex items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Client since</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {formatDate(client.createdAt)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Total visits</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {client.visitSummary.totalVisits}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Total spent</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    ${client.visitSummary.totalSpent.toFixed(2)}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500">Total visits</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {client.visitSummary.totalVisits}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Total spent</p>
-                <p className="text-sm font-medium text-gray-900">
-                  ${client.visitSummary.totalSpent.toFixed(2)}
-                </p>
-              </div>
+
+              {/* Quick Actions */}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowFormDeliveryModal(true)}
+                icon={<FileText className="w-4 h-4" />}
+              >
+                Send Form
+              </Button>
             </div>
           </div>
         </div>
@@ -693,6 +708,14 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         onClose={handleCloseDeletionModal}
         client={clientForConsent}
         onDeletionComplete={handleDeletionComplete}
+      />
+
+      {/* Form Delivery Modal - Phase 3 Forms */}
+      <FormDeliveryModal
+        isOpen={showFormDeliveryModal}
+        onClose={() => setShowFormDeliveryModal(false)}
+        client={clientForConsent}
+        onSendComplete={() => setShowFormDeliveryModal(false)}
       />
     </div>
   );

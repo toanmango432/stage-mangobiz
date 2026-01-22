@@ -122,7 +122,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Add near existing action buttons. Use FileText icon from lucide-react."
     },
     {
