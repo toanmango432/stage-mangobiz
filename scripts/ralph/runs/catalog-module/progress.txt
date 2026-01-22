@@ -3086,3 +3086,35 @@ Commit: N/A (no code changes - review found no issues)
 **Next story suggestion:** US-055 (Create VariantSelector component for checkout) - First story in Phase 4: Checkout & Booking
 
 ---
+
+## 2026-01-22 - US-055: Create VariantSelector component for checkout
+Commit: 937787b
+
+**Why this story?** US-055 is the first story in Phase 4 (Checkout & Booking) with no explicit dependencies. It creates the VariantSelector component that will be used by US-058 and US-061 for checkout and booking flows.
+
+**Changes:**
+- apps/store-app/src/components/checkout/VariantSelector.tsx (NEW): Created VariantSelector component with:
+  - Props: service (MenuServiceWithEmbeddedVariants), onSelect(variantId, price, duration), initialVariantId?, className?
+  - RadioGroup-based variant selection using Radix UI
+  - Pre-selects default variant (or first variant if no default)
+  - Shows variant name, price ($X.XX format), duration (Xm format)
+  - Visual highlights: selected variant has border-primary, bg-primary/5, check icon
+  - "Default" badge shown on the default variant
+  - Calls onSelect callback on mount with default and on user selection
+
+**Acceptance Criteria Verification:**
+- ✅ Create apps/store-app/src/components/checkout/VariantSelector.tsx
+- ✅ Props: service (MenuServiceWithEmbeddedVariants), onSelect(variantId, price, duration)
+- ✅ Show variant options with name, price, duration
+- ✅ Pre-select default variant
+- ✅ Highlight selected variant
+- ✅ pnpm run typecheck passes (store-app compiles with no errors)
+
+**Learnings:**
+- RadioGroup from @radix-ui/react-radio-group provides accessible variant selection
+- EmbeddedVariant type has isDefault field for identifying default variant
+- MenuServiceWithEmbeddedVariants has embedded variants array ready for UI display
+
+**Next story suggestion:** US-056 (Create AddOnSelector component for checkout) - Follows same component creation pattern, no dependencies on US-055
+
+---

@@ -958,7 +958,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 55,
-      "passes": false,
+      "passes": true,
       "notes": "Only shown when service.hasVariants is true."
     },
     {
