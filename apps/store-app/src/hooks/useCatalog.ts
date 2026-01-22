@@ -82,7 +82,9 @@ export interface ArchiveServiceResult {
 
 interface UseCatalogOptions {
   storeId: string;
+  tenantId: string;
   userId?: string;
+  deviceId?: string;
   toast?: ToastFn;
 }
 
@@ -94,7 +96,7 @@ interface CatalogUIState {
   showInactive: boolean;
 }
 
-export function useCatalog({ storeId, userId = 'system', toast = defaultToast }: UseCatalogOptions) {
+export function useCatalog({ storeId, tenantId, userId = 'system', deviceId = 'web-client', toast = defaultToast }: UseCatalogOptions) {
   // ==================== UI STATE ====================
   const [ui, setUI] = useState<CatalogUIState>({
     activeTab: 'services',
@@ -267,8 +269,6 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     if (!isValidStoreId) return;
     if (catalogSettings === undefined) {
       // Check if we need to create default settings
-      const tenantId = storeId; // TODO: Get actual tenantId from auth context
-      const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
       catalogSettingsDB.get(storeId).then(existing => {
         if (!existing) {
           catalogSettingsDB.getOrCreate(storeId, userId, deviceId, tenantId);
@@ -277,7 +277,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
         console.warn('Failed to initialize catalog settings:', err);
       });
     }
-  }, [storeId, userId, catalogSettings, isValidStoreId]);
+  }, [storeId, userId, deviceId, tenantId, catalogSettings, isValidStoreId]);
 
   // Convert to MenuGeneralSettings for UI
   const settings = useMemo((): MenuGeneralSettings | null => {
@@ -932,14 +932,12 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
   // ==================== PRODUCT ACTIONS ====================
 
   const createProduct = useCallback(async (data: CreateProductInput) => {
-    // Get tenantId from auth (using storeId as fallback)
-    const tenantId = storeId; // TODO: Get actual tenantId from auth context
     return withErrorHandling(
       () => productsDB.create(data, storeId, tenantId),
       'Product created',
       'Failed to create product'
     );
-  }, [storeId, withErrorHandling]);
+  }, [storeId, tenantId, withErrorHandling]);
 
   const updateProduct = useCallback(async (id: string, data: Partial<Product>) => {
     return withErrorHandling(
@@ -987,7 +985,6 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           enablePackages: data.enablePackages ?? settings?.enablePackages ?? true,
           enableAddOns: data.enableAddOns ?? settings?.enableAddOns ?? true,
         };
-        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
         const updates = fromMenuGeneralSettings(merged);
         await catalogSettingsDB.update(storeId, updates, userId, deviceId);
         return merged;
@@ -995,7 +992,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Settings updated',
       'Failed to update settings'
     );
-  }, [storeId, userId, settings, withErrorHandling]);
+  }, [storeId, userId, deviceId, settings, withErrorHandling]);
 
   // ==================== GIFT CARD ACTIONS ====================
 
@@ -1007,8 +1004,6 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
         const maxOrder = giftCardDenominations.length > 0
           ? Math.max(...giftCardDenominations.map(d => d.displayOrder)) + 1
           : 0;
-        const tenantId = storeId; // TODO: Get actual tenantId from auth context
-        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
 
         const denomination: GiftCardDenomination = {
           id,
@@ -1036,7 +1031,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Denomination created',
       'Failed to create denomination'
     );
-  }, [storeId, userId, giftCardDenominations, withErrorHandling]);
+  }, [storeId, tenantId, userId, deviceId, giftCardDenominations, withErrorHandling]);
 
   const updateGiftCardDenomination = useCallback(async (id: string, data: Partial<GiftCardDenomination>) => {
     return withErrorHandling(
@@ -1044,7 +1039,6 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
         const existing = await db.giftCardDenominations.get(id);
         if (!existing) throw new Error('Denomination not found');
 
-        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
         const newVersion = existing.version + 1;
 
         await db.giftCardDenominations.update(id, {
@@ -1061,7 +1055,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Denomination updated',
       'Failed to update denomination'
     );
-  }, [userId, withErrorHandling]);
+  }, [userId, deviceId, withErrorHandling]);
 
   const deleteGiftCardDenomination = useCallback(async (id: string) => {
     return withErrorHandling(
@@ -1083,8 +1077,6 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           .equals(storeId)
           .first();
         const now = new Date().toISOString();
-        const tenantId = storeId; // TODO: Get actual tenantId from auth context
-        const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
 
         if (existing) {
           // Update using the actual record id
@@ -1132,28 +1124,25 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Gift card settings updated',
       'Failed to update gift card settings'
     );
-  }, [storeId, userId, withErrorHandling]);
+  }, [storeId, tenantId, userId, deviceId, withErrorHandling]);
 
   // ==================== BOOKING SEQUENCE ACTIONS ====================
 
   const createBookingSequence = useCallback(async (data: CreateBookingSequenceInput) => {
-    const tenantId = storeId; // TODO: Get actual tenantId from auth context
-    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
     return withErrorHandling(
       () => bookingSequencesDB.create(data, userId, storeId, tenantId, deviceId),
       'Booking sequence created',
       'Failed to create booking sequence'
     );
-  }, [storeId, userId, withErrorHandling]);
+  }, [storeId, tenantId, userId, deviceId, withErrorHandling]);
 
   const updateBookingSequence = useCallback(async (id: string, data: Partial<BookingSequence>) => {
-    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
     return withErrorHandling(
       () => bookingSequencesDB.update(id, data, userId, deviceId),
       'Booking sequence updated',
       'Failed to update booking sequence'
     );
-  }, [userId, withErrorHandling]);
+  }, [userId, deviceId, withErrorHandling]);
 
   const deleteBookingSequence = useCallback(async (id: string) => {
     return withErrorHandling(
@@ -1167,31 +1156,28 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
   }, [withErrorHandling]);
 
   const enableBookingSequence = useCallback(async (id: string) => {
-    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
     return withErrorHandling(
       () => bookingSequencesDB.enable(id, userId, deviceId),
       'Booking sequence enabled',
       'Failed to enable booking sequence'
     );
-  }, [userId, withErrorHandling]);
+  }, [userId, deviceId, withErrorHandling]);
 
   const disableBookingSequence = useCallback(async (id: string) => {
-    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
     return withErrorHandling(
       () => bookingSequencesDB.disable(id, userId, deviceId),
       'Booking sequence disabled',
       'Failed to disable booking sequence'
     );
-  }, [userId, withErrorHandling]);
+  }, [userId, deviceId, withErrorHandling]);
 
   const updateBookingSequenceOrder = useCallback(async (id: string, serviceOrder: string[]) => {
-    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
     return withErrorHandling(
       () => bookingSequencesDB.updateServiceOrder(id, serviceOrder, userId, deviceId),
       undefined, // No success toast for reorder
       'Failed to update service order'
     );
-  }, [userId, withErrorHandling]);
+  }, [userId, deviceId, withErrorHandling]);
 
   // ==================== RETURN ====================
 

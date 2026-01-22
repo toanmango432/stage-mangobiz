@@ -22,7 +22,7 @@ import toast from 'react-hot-toast';
 
 import type { CatalogTab } from '../../types/catalog';
 import { useCatalog } from '../../hooks/useCatalog';
-import { selectSalonId, selectCurrentUser } from '../../store/slices/authSlice';
+import { selectSalonId, selectCurrentUser, selectTenantId } from '../../store/slices/authSlice';
 
 import { CategoriesSection } from './sections/CategoriesSection';
 import { ServicesSection } from './sections/ServicesSection';
@@ -39,8 +39,9 @@ interface MenuSettingsProps {
 }
 
 export function MenuSettings({ onBack }: MenuSettingsProps) {
-  // Get storeId and userId from Redux auth state
+  // Get storeId, tenantId, and userId from Redux auth state
   const storeId = useSelector(selectSalonId) || '';
+  const tenantId = useSelector(selectTenantId) || storeId;
   const currentUser = useSelector(selectCurrentUser);
   const userId = currentUser?.id || 'system';
 
@@ -57,6 +58,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
   // Pass a placeholder storeId if empty to avoid hook order issues
   const catalog = useCatalog({
     storeId: storeId || 'placeholder',
+    tenantId: tenantId || 'placeholder',
     userId,
     toast: showToast,
   });

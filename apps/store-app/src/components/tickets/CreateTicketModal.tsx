@@ -38,7 +38,8 @@ export function CreateTicketModal({
   const storeId = useAppSelector(selectStoreId) || 'placeholder';
 
   // Services from catalog
-  const { services: catalogServices, categories } = useCatalog({ storeId });
+  const tenantId = useAppSelector((state) => state.auth.store?.tenantId) || storeId;
+  const { services: catalogServices, categories } = useCatalog({ storeId, tenantId });
 
   // Form state
   const [clientName, setClientName] = useState('');

@@ -56,7 +56,8 @@ export const AppointmentCard = memo(function AppointmentCard({
 
   // Get catalog services for price comparison
   const storeId = useAppSelector(selectStoreId) || 'default-store';
-  const { services: catalogServices } = useCatalog({ storeId });
+  const tenantId = useAppSelector((state) => state.auth.store?.tenantId) || storeId;
+  const { services: catalogServices } = useCatalog({ storeId, tenantId });
 
   const durationMinutes = useMemo(
     () =>

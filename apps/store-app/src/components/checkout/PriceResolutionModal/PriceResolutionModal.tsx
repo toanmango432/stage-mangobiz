@@ -60,7 +60,8 @@ export default function PriceResolutionModal({
   );
 
   const storeId = useAppSelector(selectStoreId) || '';
-  const { services: catalogServices } = useCatalog({ storeId });
+  const tenantId = useAppSelector((state) => state.auth.store?.tenantId) || storeId;
+  const { services: catalogServices } = useCatalog({ storeId, tenantId });
   const priceChanges = useAppSelector(selectServicePriceChanges(ticketId));
   const unresolvedServices = useAppSelector(selectUnresolvedPriceChanges(ticketId));
 
