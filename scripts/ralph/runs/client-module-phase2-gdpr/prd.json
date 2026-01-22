@@ -119,7 +119,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "This is irreversible - thunk should require confirmation flag. Follow existing thunk patterns."
     },
     {

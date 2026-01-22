@@ -79,6 +79,27 @@ export interface ExportClientDataResponse {
   timestamp: string;
 }
 
+/** Input for processing data deletion */
+export interface ProcessDataDeletionInput {
+  clientId: string;
+  storeId: string;
+  performedBy: string;
+  performedByName?: string;
+  requestId?: string;
+  /** Required confirmation flag - must be true to proceed with irreversible deletion */
+  confirmed: boolean;
+}
+
+/** Response from the process-data-deletion Edge Function */
+export interface ProcessDataDeletionResponse {
+  success: boolean;
+  message: string;
+  anonymizedFields: string[];
+  clearedFields: string[];
+  preservedData: string[];
+  timestamp: string;
+}
+
 // ==================== THUNKS ====================
 
 /**
@@ -412,6 +433,88 @@ export const exportClientData = createAsyncThunk<
         err instanceof Error
           ? err.message
           : 'An unexpected error occurred while exporting client data. Please try again.'
+      );
+    }
+  }
+);
+
+/**
+ * Process data deletion for GDPR/CCPA right to be forgotten requests
+ * Calls the process-data-deletion Edge Function to anonymize client PII
+ *
+ * IMPORTANT: This action is IRREVERSIBLE. The confirmed flag must be true.
+ *
+ * Returns the clientId on success so the reducer can remove from state.
+ */
+export const processDataDeletion = createAsyncThunk<
+  { clientId: string; response: ProcessDataDeletionResponse },
+  ProcessDataDeletionInput
+>(
+  'clients/gdpr/processDataDeletion',
+  async (
+    { clientId, storeId, performedBy, performedByName, requestId, confirmed },
+    { rejectWithValue }
+  ) => {
+    // Safety check: require explicit confirmation
+    if (!confirmed) {
+      return rejectWithValue(
+        'Data deletion requires explicit confirmation. Please confirm this irreversible action.'
+      );
+    }
+
+    // Validate required fields
+    if (!performedBy) {
+      return rejectWithValue(
+        'Staff member performing the deletion must be identified for audit purposes.'
+      );
+    }
+
+    try {
+      console.log('[processDataDeletion] Starting deletion for client:', clientId);
+
+      // Call the process-data-deletion Edge Function
+      const { data, error } = await supabase.functions.invoke('process-data-deletion', {
+        body: {
+          clientId,
+          storeId,
+          performedBy,
+          performedByName,
+          requestId,
+        },
+      });
+
+      if (error) {
+        console.error('[processDataDeletion] Edge Function error:', error);
+        return rejectWithValue(
+          error.message || 'Failed to process data deletion. Please try again.'
+        );
+      }
+
+      // Validate response structure
+      if (!data || !data.success) {
+        const errorMessage = data?.error || 'Data deletion failed. Please try again.';
+        console.error('[processDataDeletion] Deletion failed:', errorMessage);
+        return rejectWithValue(errorMessage);
+      }
+
+      console.log('[processDataDeletion] Deletion successful:', {
+        clientId,
+        anonymizedFields: data.anonymizedFields?.length,
+        clearedFields: data.clearedFields?.length,
+        preservedData: data.preservedData?.length,
+      });
+
+      // Return clientId so the reducer can remove from state
+      return {
+        clientId,
+        response: data as ProcessDataDeletionResponse,
+      };
+    } catch (err) {
+      console.error('[processDataDeletion] Unexpected error:', err);
+      return rejectWithValue(
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred while processing data deletion. Please try again.'
       );
     }
   }

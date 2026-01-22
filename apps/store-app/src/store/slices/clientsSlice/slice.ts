@@ -33,6 +33,7 @@ import {
   applyReferralCode,
   completeReferral,
 } from './thunks';
+import { processDataDeletion } from './gdprThunks';
 
 // ==================== SLICE ====================
 
@@ -572,6 +573,35 @@ export const clientsSlice = createSlice({
       })
       .addCase(completeReferral.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to complete referral';
+      });
+
+    // ==================== GDPR THUNKS REDUCERS ====================
+
+    // Process data deletion (GDPR right to be forgotten)
+    builder
+      .addCase(processDataDeletion.pending, (state) => {
+        state.saving = true;
+        state.error = null;
+      })
+      .addCase(processDataDeletion.fulfilled, (state, action) => {
+        state.saving = false;
+        const { clientId } = action.payload;
+        // Remove the anonymized client from the items array
+        state.items = state.items.filter(c => c.id !== clientId);
+        state.total -= 1;
+        // Clear selected client if it was the deleted one
+        if (state.selectedClient?.id === clientId) {
+          state.selectedClient = null;
+          state.selectedClientPatchTests = [];
+          state.selectedClientFormResponses = [];
+          state.selectedClientReferrals = [];
+          state.selectedClientReviews = [];
+          state.selectedClientRewards = [];
+        }
+      })
+      .addCase(processDataDeletion.rejected, (state, action) => {
+        state.saving = false;
+        state.error = action.payload as string || 'Failed to process data deletion';
       });
   },
 });
