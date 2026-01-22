@@ -94,3 +94,19 @@ export {
   toMenuServiceInsert,
   toMenuServiceUpdate,
 } from './menuServiceAdapter';
+
+// ServiceVariant adapters
+export {
+  toServiceVariant,
+  toServiceVariants,
+  toServiceVariantInsert,
+  toServiceVariantUpdate,
+} from './serviceVariantAdapter';
+
+// ServicePackage adapters
+export {
+  toServicePackage,
+  toServicePackages,
+  toServicePackageInsert,
+  toServicePackageUpdate,
+} from './servicePackageAdapter';

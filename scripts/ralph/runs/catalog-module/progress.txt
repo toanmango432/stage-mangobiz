@@ -80,7 +80,9 @@ export const entityTable = {
 - [x] US-009: add_on_groups and add_on_options tables created ✓
 - [x] US-010: All remaining tables created (staff_service_assignments, catalog_settings, booking_sequences, products, gift_card_denominations, gift_card_settings) ✓
 - [x] US-011: Supabase types added ✓
-- [ ] All adapters created and exported (US-012 to US-016)
+- [x] US-012: serviceCategoryAdapter.ts created ✓
+- [x] US-013: menuServiceAdapter.ts created ✓
+- [ ] All adapters created and exported (US-014 to US-016)
 - [ ] All table operations created and exported (US-017 to US-021)
 - [ ] `pnpm run typecheck` passes
 
@@ -786,5 +788,49 @@ Commit: a1ca37d
 - Pattern #7: SyncStatus Type Mismatch - App SyncStatus has 'syncing' for transient state, Supabase SyncStatus does not. Cast when writing to Supabase.
 
 **Next story suggestion:** US-013 (Create menuServiceAdapter.ts) - Same pattern, same folder, builds on this adapter work
+
+---
+
+## 2026-01-21 - US-013: Create menuServiceAdapter.ts
+Commit: 6bf2561
+
+**Why this story?** Highest priority incomplete story (priority 13). Continues the adapter pattern work from US-012, same folder (adapters are fresh in context).
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/adapters/menuServiceAdapter.ts` (NEW):
+   - Created `toMenuService(row)`: Converts MenuServiceRow → MenuService (40+ fields)
+   - Created `toMenuServices(rows)`: Batch conversion
+   - Created `toMenuServiceInsert(service, storeId, tenantId, userId?, deviceId?)`: App type → Supabase insert
+   - Created `toMenuServiceUpdate(updates, userId?, deviceId?)`: Partial updates → Supabase update
+   - Handles all 40+ MenuService fields:
+     - Core: name, description, sku
+     - Pricing: pricingType, price, priceMax, cost, taxable
+     - Duration: duration, extraTime, extraTimeType
+     - Client care: aftercareInstructions, requiresPatchTest
+     - Variants: hasVariants, variantCount
+     - Staff: allStaffCanPerform
+     - Booking: bookingAvailability, onlineBookingEnabled, requiresDeposit, depositAmount, depositPercentage
+     - Online limits: onlineBookingBufferMinutes, advanceBookingDaysMin/Max
+     - Additional: rebookReminderDays, turnWeight, commissionRate, color, images, tags
+     - Status: status, displayOrder, showPriceOnline, allowCustomDuration
+     - Archive: archivedAt, archivedBy
+   - Handles snake_case ↔ camelCase conversion
+   - Handles TEXT[] ↔ string[] for images and tags arrays
+   - Handles null → undefined for optional fields
+
+2. `apps/store-app/src/services/supabase/adapters/index.ts`:
+   - Added MenuService adapter exports: toMenuService, toMenuServices, toMenuServiceInsert, toMenuServiceUpdate
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- MenuService is the largest catalog type with ~40 fields - careful mapping required
+- TEXT[] arrays in PostgreSQL map directly to string[] in TypeScript - no parsing needed
+- turnWeight defaults to 1.0 when not provided (service.turnWeight ?? 1.0)
+- requiresPatchTest defaults to false when not provided (service.requiresPatchTest ?? false)
+
+**Next story suggestion:** US-014 (Create serviceVariantAdapter.ts and servicePackageAdapter.ts) - Same folder, continues adapter work
 
 ---

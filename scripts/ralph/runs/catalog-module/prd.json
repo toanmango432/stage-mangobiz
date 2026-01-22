@@ -266,7 +266,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "MenuService has ~40 fields. Map each one carefully."
     },
     {
