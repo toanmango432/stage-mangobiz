@@ -2063,3 +2063,83 @@ All three issues identified in US-P2R were already fixed in previous iterations:
 **Next story suggestion:** US-033 (Create ErrorState and EmptyState components) - First incomplete Phase 3 story
 
 ---
+
+## 2026-01-22 - US-033: Create ErrorState and EmptyState components
+Commit: 6cbc06e
+
+**Why this story?** First incomplete Phase 3 story (priority 33), no dependencies. Creates foundational UI components that will be used by later stories (US-035 through US-054) for error and empty state display.
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/components/ErrorState.tsx` (NEW):
+   - Created ErrorState component with title, message, onRetry props
+   - Uses AlertCircle icon from lucide-react
+   - Shows retry button with RefreshCw icon when onRetry provided
+   - Accessible with role="alert" and aria-live="polite"
+
+2. `apps/store-app/src/components/menu-settings/components/EmptyState.tsx` (NEW):
+   - Created EmptyState component with title, description, actionLabel, onAction props
+   - Uses Inbox icon from lucide-react
+   - Shows action button with Plus icon when actionLabel and onAction provided
+   - Optional showActionIcon prop to control Plus icon visibility
+
+3. `apps/store-app/src/components/menu-settings/components/index.ts`:
+   - Added exports for ErrorState and ErrorStateProps
+   - Added exports for EmptyState and EmptyStateProps
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+
+**Learnings:**
+- Followed ConfirmDialog pattern for consistent component structure
+- Both components use consistent styling with bg-muted/bg-destructive backgrounds
+- Accessible design with proper ARIA attributes for screen readers
+
+**Next story suggestion:** US-034 (Create useKeyboardDragDrop hook) - Next Phase 3 story by priority, creates infrastructure for keyboard-accessible drag-drop that US-037 and US-048 will depend on.
+
+---
+
+## 2026-01-22 - US-034: Create useKeyboardDragDrop hook
+Commit: 1589252
+
+**Why this story?** Next Phase 3 story by priority (priority 34), no dependencies. Creates UI infrastructure for keyboard-accessible drag-and-drop that will be used by US-037 (CategoriesSection) and US-048 (BookingSequenceSection).
+
+**Changes:**
+1. `apps/store-app/src/components/menu-settings/hooks/useKeyboardDragDrop.tsx` (NEW):
+   - Created useKeyboardDragDrop hook wrapping @dnd-kit
+   - Configures PointerSensor and KeyboardSensor for mouse/touch and keyboard support
+   - Provides getKeyboardHandleProps() for drag handles with:
+     - Arrow Up/Down keys for reordering
+     - Enter to confirm, Escape to cancel
+     - Proper aria-label and aria-describedby for accessibility
+   - Provides announcements object for screen reader announcements:
+     - onDragStart: Announces picked item and position
+     - onDragOver: Announces when over another item
+     - onDragEnd: Announces final position
+     - onDragCancel: Announces cancellation
+   - Exports helper components:
+     - KeyboardInstructions: Hidden instructions for screen readers
+     - LiveAnnouncer: Aria-live region for dynamic announcements
+   - Uses arrayMove from @dnd-kit/sortable for item reordering
+   - Supports both vertical and horizontal layouts
+
+2. `apps/store-app/src/components/menu-settings/hooks/index.ts` (NEW):
+   - Created barrel export file for hooks directory
+   - Exports useKeyboardDragDrop, KeyboardInstructions, LiveAnnouncer
+   - Exports DndContext, SortableContext, closestCenter from @dnd-kit
+   - Exports all related types
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+
+**Learnings:**
+- JSX in TypeScript requires .tsx extension, not .ts
+- event.currentTarget.blur() needs type assertion to HTMLElement for TypeScript
+- @dnd-kit's Announcements interface provides structured screen reader announcements
+- sortableKeyboardCoordinates from @dnd-kit/sortable handles keyboard navigation coordinate translation
+
+**Patterns to sync:**
+- Pattern #8: Keyboard Accessible Drag-Drop - Use @dnd-kit with KeyboardSensor and custom announcements for WCAG compliance
+
+**Next story suggestion:** US-035 (Replace browser confirm() in CategoriesSection) - Next Phase 3 story, will use the ConfirmDialog component from US-031
+
+---

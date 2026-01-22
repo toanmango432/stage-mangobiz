@@ -601,7 +601,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": "Simple presentational components."
     },
     {
@@ -618,7 +618,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "notes": "UI infrastructure for accessible drag-drop."
     },
     {
