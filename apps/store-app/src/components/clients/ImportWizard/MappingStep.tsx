@@ -74,7 +74,7 @@ const CLIENT_FIELDS = [
   { value: 'city', label: 'City', required: false },
   { value: 'state', label: 'State', required: false },
   { value: 'zipCode', label: 'Zip Code', required: false },
-  { value: 'referralSource', label: 'Referral Source', required: false },
+  { value: 'sourceDetails', label: 'Referral Source', required: false },
 ] as const;
 
 /** Common column name patterns for auto-detection */
@@ -90,7 +90,7 @@ const AUTO_DETECT_PATTERNS: Record<string, RegExp[]> = {
   city: [/^city$/i, /^town$/i],
   state: [/^state$/i, /^province$/i, /^region$/i],
   zipCode: [/^zip$/i, /^zip\s*code$/i, /^postal$/i, /^postal\s*code$/i],
-  referralSource: [/^referral$/i, /^source$/i, /^how\s*did\s*you\s*hear$/i],
+  sourceDetails: [/^referral$/i, /^source$/i, /^how\s*did\s*you\s*hear$/i],
 };
 
 // ==================== HELPERS ====================
