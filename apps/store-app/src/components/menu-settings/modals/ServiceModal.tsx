@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -13,10 +13,34 @@ import {
   AlertTriangle,
   CalendarClock,
   Package,
+  AlertCircle,
 } from 'lucide-react';
+import { z } from 'zod';
 import type { EmbeddedVariant, ServiceModalProps, ExtraTimeType } from '@/types/catalog';
 import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS, EXTRA_TIME_TYPES, REBOOK_REMINDER_OPTIONS, formatDuration } from '../constants';
 import { StaffAssignmentEditor } from '../components/StaffAssignmentEditor';
+
+// Zod schema for service form validation
+const serviceFormSchema = z.object({
+  name: z.string().min(1, 'Service name is required'),
+  categoryId: z.string().min(1, 'Category is required'),
+  price: z.number().min(0, 'Price must be 0 or greater'),
+  duration: z.number().min(5, 'Duration must be at least 5 minutes'),
+  advanceBookingDaysMin: z.number().min(0, 'Minimum days must be 0 or greater'),
+  advanceBookingDaysMax: z.number().min(1, 'Maximum days must be at least 1'),
+  depositPercentage: z.number().min(5, 'Deposit must be at least 5%').max(100, 'Deposit cannot exceed 100%'),
+  turnWeight: z.number().min(0, 'Turn weight must be 0 or greater').max(5, 'Turn weight cannot exceed 5'),
+  commissionRate: z.number().min(0, 'Commission must be 0% or greater').max(100, 'Commission cannot exceed 100%').optional(),
+}).refine(
+  (data) => data.advanceBookingDaysMax >= data.advanceBookingDaysMin,
+  {
+    message: 'Maximum days must be greater than or equal to minimum days',
+    path: ['advanceBookingDaysMax'],
+  }
+);
+
+type ServiceFormData = z.infer<typeof serviceFormSchema>;
+type ValidationErrors = Partial<Record<keyof ServiceFormData, string>>;
 
 // Staff assignment data shape (matches StaffAssignmentEditor)
 interface StaffAssignmentData {
@@ -84,6 +108,70 @@ export function ServiceModal({
   // Active Tab
   const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'booking' | 'advanced'>('basic');
 
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+  // Validate form data
+  const validateForm = useCallback((): boolean => {
+    const formData: ServiceFormData = {
+      name: name.trim(),
+      categoryId,
+      price,
+      duration,
+      advanceBookingDaysMin,
+      advanceBookingDaysMax,
+      depositPercentage,
+      turnWeight,
+      commissionRate,
+    };
+
+    const result = serviceFormSchema.safeParse(formData);
+
+    if (!result.success) {
+      const errors: ValidationErrors = {};
+      result.error.errors.forEach((err) => {
+        const path = err.path[0] as keyof ServiceFormData;
+        if (!errors[path]) {
+          errors[path] = err.message;
+        }
+      });
+      setValidationErrors(errors);
+      return false;
+    }
+
+    setValidationErrors({});
+    return true;
+  }, [name, categoryId, price, duration, advanceBookingDaysMin, advanceBookingDaysMax, depositPercentage, turnWeight, commissionRate]);
+
+  // Check if form is valid (for button disabled state)
+  const isFormValid = useMemo(() => {
+    const formData: ServiceFormData = {
+      name: name.trim(),
+      categoryId,
+      price,
+      duration,
+      advanceBookingDaysMin,
+      advanceBookingDaysMax,
+      depositPercentage,
+      turnWeight,
+      commissionRate,
+    };
+
+    const result = serviceFormSchema.safeParse(formData);
+    return result.success;
+  }, [name, categoryId, price, duration, advanceBookingDaysMin, advanceBookingDaysMax, depositPercentage, turnWeight, commissionRate]);
+
+  // Clear validation errors for a specific field on change
+  const clearFieldError = useCallback((field: keyof ValidationErrors) => {
+    setValidationErrors((prev) => {
+      if (prev[field]) {
+        const { [field]: _, ...rest } = prev;
+        return rest;
+      }
+      return prev;
+    });
+  }, []);
+
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -147,6 +235,7 @@ export function ServiceModal({
         setCommissionRate(undefined);
       }
       setActiveTab('basic');
+      setValidationErrors({}); // Clear validation errors when modal opens
     }
   }, [isOpen, service, categories]);
 
@@ -191,7 +280,7 @@ export function ServiceModal({
 
   // Handle save
   const handleSave = () => {
-    if (!name.trim() || !categoryId) return;
+    if (!validateForm()) return;
 
     onSave({
       name: name.trim(),
@@ -296,11 +385,24 @@ export function ServiceModal({
                 <input
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    clearFieldError('name');
+                  }}
                   placeholder="e.g., Women's Haircut"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                    validationErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
+                  aria-invalid={!!validationErrors.name}
+                  aria-describedby={validationErrors.name ? 'name-error' : undefined}
                   autoFocus
                 />
+                {validationErrors.name && (
+                  <p id="name-error" className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    {validationErrors.name}
+                  </p>
+                )}
               </div>
 
               {/* Category */}
@@ -378,10 +480,23 @@ export function ServiceModal({
                       min="0"
                       step="0.01"
                       value={price}
-                      onChange={(e) => setPrice(Number(e.target.value))}
-                      className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      onChange={(e) => {
+                        setPrice(Number(e.target.value));
+                        clearFieldError('price');
+                      }}
+                      className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                        validationErrors.price ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                      }`}
+                      aria-invalid={!!validationErrors.price}
+                      aria-describedby={validationErrors.price ? 'price-error' : undefined}
                     />
                   </div>
+                  {validationErrors.price && (
+                    <p id="price-error" className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle size={14} />
+                      {validationErrors.price}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -393,13 +508,26 @@ export function ServiceModal({
                   </label>
                   <select
                     value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    onChange={(e) => {
+                      setDuration(Number(e.target.value));
+                      clearFieldError('duration');
+                    }}
+                    className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                      validationErrors.duration ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                    }`}
+                    aria-invalid={!!validationErrors.duration}
+                    aria-describedby={validationErrors.duration ? 'duration-error' : undefined}
                   >
                     {DURATION_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
+                  {validationErrors.duration && (
+                    <p id="duration-error" className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle size={14} />
+                      {validationErrors.duration}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -664,9 +792,23 @@ export function ServiceModal({
                           type="number"
                           min={0}
                           value={advanceBookingDaysMin}
-                          onChange={(e) => setAdvanceBookingDaysMin(Number(e.target.value) || 0)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          onChange={(e) => {
+                            setAdvanceBookingDaysMin(Number(e.target.value) || 0);
+                            clearFieldError('advanceBookingDaysMin');
+                            clearFieldError('advanceBookingDaysMax');
+                          }}
+                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                            validationErrors.advanceBookingDaysMin ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                          }`}
+                          aria-invalid={!!validationErrors.advanceBookingDaysMin}
+                          aria-describedby={validationErrors.advanceBookingDaysMin ? 'advanceBookingDaysMin-error' : undefined}
                         />
+                        {validationErrors.advanceBookingDaysMin && (
+                          <p id="advanceBookingDaysMin-error" className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                            <AlertCircle size={12} />
+                            {validationErrors.advanceBookingDaysMin}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">Max Days in Advance</label>
@@ -674,9 +816,22 @@ export function ServiceModal({
                           type="number"
                           min={1}
                           value={advanceBookingDaysMax}
-                          onChange={(e) => setAdvanceBookingDaysMax(Number(e.target.value) || 90)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          onChange={(e) => {
+                            setAdvanceBookingDaysMax(Number(e.target.value) || 90);
+                            clearFieldError('advanceBookingDaysMax');
+                          }}
+                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                            validationErrors.advanceBookingDaysMax ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                          }`}
+                          aria-invalid={!!validationErrors.advanceBookingDaysMax}
+                          aria-describedby={validationErrors.advanceBookingDaysMax ? 'advanceBookingDaysMax-error' : undefined}
                         />
+                        {validationErrors.advanceBookingDaysMax && (
+                          <p id="advanceBookingDaysMax-error" className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                            <AlertCircle size={12} />
+                            {validationErrors.advanceBookingDaysMax}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1.5">
@@ -800,10 +955,24 @@ export function ServiceModal({
                     max={5}
                     step={0.1}
                     value={turnWeight}
-                    onChange={(e) => setTurnWeight(parseFloat(e.target.value) || 1.0)}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    onChange={(e) => {
+                      setTurnWeight(parseFloat(e.target.value) || 1.0);
+                      clearFieldError('turnWeight');
+                    }}
+                    className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                      validationErrors.turnWeight ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                    }`}
+                    aria-invalid={!!validationErrors.turnWeight}
+                    aria-describedby={validationErrors.turnWeight ? 'turnWeight-error' : undefined}
                   />
-                  <p className="text-xs text-gray-500 mt-1">0.0 - 5.0, default is 1.0</p>
+                  {validationErrors.turnWeight ? (
+                    <p id="turnWeight-error" className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      {validationErrors.turnWeight}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500 mt-1">0.0 - 5.0, default is 1.0</p>
+                  )}
                 </div>
 
                 <div>
@@ -816,11 +985,25 @@ export function ServiceModal({
                     max={100}
                     step={1}
                     value={commissionRate ?? ''}
-                    onChange={(e) => setCommissionRate(e.target.value ? parseFloat(e.target.value) : undefined)}
+                    onChange={(e) => {
+                      setCommissionRate(e.target.value ? parseFloat(e.target.value) : undefined);
+                      clearFieldError('commissionRate');
+                    }}
                     placeholder="Use default"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                      validationErrors.commissionRate ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                    }`}
+                    aria-invalid={!!validationErrors.commissionRate}
+                    aria-describedby={validationErrors.commissionRate ? 'commissionRate-error' : undefined}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Override staff default</p>
+                  {validationErrors.commissionRate ? (
+                    <p id="commissionRate-error" className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      {validationErrors.commissionRate}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500 mt-1">Override staff default</p>
+                  )}
                 </div>
               </div>
 
@@ -901,7 +1084,7 @@ export function ServiceModal({
             </button>
             <button
               onClick={handleSave}
-              disabled={!name.trim() || !categoryId}
+              disabled={!isFormValid}
               className="px-4 py-2 text-sm font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {service ? 'Save Changes' : 'Create Service'}
