@@ -1,10 +1,19 @@
 /**
  * ServiceCatalog - Service selection grid with category tabs and search
+ *
+ * @see US-061 - Variant selector integration for booking
  */
 
-import { Search, User, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Search, User, CheckCircle2, AlertCircle, Clock, DollarSign, Check, ChevronRight, X } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import type { Service, BookingGuest } from './types';
+import type { Service, BookingGuest, BookingVariant, ServiceWithVariantSelection } from './types';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 interface ServiceCatalogProps {
   services: Service[];
@@ -16,7 +25,8 @@ interface ServiceCatalogProps {
   filteredServices: Service[];
   activeStaffId: string | null;
   activeStaffName: string | null;
-  onAddService: (service: Service) => void;
+  /** Called when adding a service - includes variant selection if applicable */
+  onAddService: (service: Service, variantSelection?: { variantId: string; variantName: string; price: number; duration: number }) => void;
   onGoToStaffTab: () => void;
   justAddedService: string | null;
   bookingMode: 'individual' | 'group';
@@ -43,6 +53,62 @@ export function ServiceCatalog({
   bookingGuests,
 }: ServiceCatalogProps) {
   const activeGuest = bookingGuests.find(g => g.id === activeGuestId);
+
+  // Variant selection state
+  const [variantSheetOpen, setVariantSheetOpen] = useState(false);
+  const [selectedServiceForVariant, setSelectedServiceForVariant] = useState<Service | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+
+  /**
+   * Handle service card click - opens variant selector if service has variants
+   */
+  const handleServiceClick = useCallback((service: Service) => {
+    if (service.hasVariants && service.variants && service.variants.length > 0) {
+      // Service has variants - open variant selection sheet
+      setSelectedServiceForVariant(service);
+      // Pre-select default variant or first variant
+      const defaultVariant = service.variants.find(v => v.isDefault) || service.variants[0];
+      setSelectedVariantId(defaultVariant?.id || null);
+      setVariantSheetOpen(true);
+    } else {
+      // No variants - add service directly
+      onAddService(service);
+    }
+  }, [onAddService]);
+
+  /**
+   * Handle variant selection confirmation
+   */
+  const handleVariantConfirm = useCallback(() => {
+    if (!selectedServiceForVariant || !selectedVariantId) return;
+
+    const variant = selectedServiceForVariant.variants?.find(v => v.id === selectedVariantId);
+    if (variant) {
+      onAddService(selectedServiceForVariant, {
+        variantId: variant.id,
+        variantName: variant.name,
+        price: variant.price,
+        duration: variant.duration,
+      });
+    }
+
+    // Reset state and close sheet
+    setVariantSheetOpen(false);
+    setSelectedServiceForVariant(null);
+    setSelectedVariantId(null);
+  }, [selectedServiceForVariant, selectedVariantId, onAddService]);
+
+  /**
+   * Close variant sheet and reset state
+   */
+  const handleVariantSheetClose = useCallback(() => {
+    setVariantSheetOpen(false);
+    setSelectedServiceForVariant(null);
+    setSelectedVariantId(null);
+  }, []);
+
+  // Get currently selected variant details
+  const selectedVariant = selectedServiceForVariant?.variants?.find(v => v.id === selectedVariantId);
 
   return (
     <div className="space-y-3">
@@ -125,7 +191,7 @@ export function ServiceCatalog({
           {filteredServices.map(service => (
             <button
               key={service.id}
-              onClick={() => onAddService(service)}
+              onClick={() => handleServiceClick(service)}
               className={cn(
                 'text-left p-2.5 rounded-lg transition-all text-xs relative overflow-hidden group',
                 'bg-white border border-gray-200 hover:border-brand-500 hover:shadow-md hover:scale-[1.03] active:scale-[0.97]',
@@ -140,8 +206,22 @@ export function ServiceCatalog({
               <p className="font-medium text-gray-900 mb-1.5 line-clamp-2 leading-tight pr-4">{service.name}</p>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-gray-500">{service.duration}m</span>
-                <span className="font-bold text-gray-900">${service.price}</span>
+                <div className="flex items-center gap-1">
+                  {/* Show "from" prefix if service has variants */}
+                  {service.hasVariants && service.variants && service.variants.length > 0 && (
+                    <span className="text-[9px] text-gray-400">from</span>
+                  )}
+                  <span className="font-bold text-gray-900">${service.price}</span>
+                </div>
               </div>
+              {/* Variant badge */}
+              {service.hasVariants && service.variants && service.variants.length > 0 && (
+                <div className="absolute bottom-1 right-1">
+                  <span className="text-[8px] bg-brand-100 text-brand-700 px-1 py-0.5 rounded font-medium">
+                    {service.variants.length} options
+                  </span>
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -159,6 +239,109 @@ export function ServiceCatalog({
           </button>
         </div>
       )}
+
+      {/* Variant Selection Sheet */}
+      <Sheet open={variantSheetOpen} onOpenChange={setVariantSheetOpen}>
+        <SheetContent side="bottom" className="h-auto max-h-[80vh] rounded-t-xl">
+          {selectedServiceForVariant && (
+            <>
+              <SheetHeader className="pb-4 border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <SheetTitle className="text-lg font-semibold">
+                      {selectedServiceForVariant.name}
+                    </SheetTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Select an option
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleVariantSheetClose}
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+              </SheetHeader>
+
+              <div className="py-4 space-y-2 overflow-y-auto max-h-[40vh]">
+                {selectedServiceForVariant.variants?.map((variant) => (
+                  <button
+                    key={variant.id}
+                    onClick={() => setSelectedVariantId(variant.id)}
+                    className={cn(
+                      'w-full text-left p-3 rounded-lg border transition-all',
+                      selectedVariantId === variant.id
+                        ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm text-gray-900">
+                            {variant.name}
+                          </span>
+                          {variant.isDefault && (
+                            <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {variant.duration}m
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            ${variant.price.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      {selectedVariantId === variant.id && (
+                        <div className="ml-2 w-5 h-5 rounded-full bg-brand-500 flex items-center justify-center">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Footer with confirm button */}
+              <div className="pt-4 border-t">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-gray-600">Selected option:</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {selectedVariant ? (
+                      <>
+                        {selectedVariant.name} - ${selectedVariant.price.toFixed(2)} ({selectedVariant.duration}m)
+                      </>
+                    ) : (
+                      'None selected'
+                    )}
+                  </span>
+                </div>
+                <button
+                  onClick={handleVariantConfirm}
+                  disabled={!selectedVariantId}
+                  className={cn(
+                    'w-full py-3 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2',
+                    selectedVariantId
+                      ? 'bg-brand-600 text-white hover:bg-brand-700'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  )}
+                >
+                  Add to Appointment
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
