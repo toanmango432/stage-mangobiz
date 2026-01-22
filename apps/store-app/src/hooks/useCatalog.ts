@@ -19,7 +19,7 @@ import {
   catalogSettingsDB,
   appointmentsDB,
 } from '../db/database';
-import { productsDB } from '../db/catalogDatabase';
+import { productsDB, bookingSequencesDB } from '../db/catalogDatabase';
 import type {
   ServiceCategory,
   MenuService,
@@ -36,6 +36,8 @@ import type {
   CatalogViewMode,
   GiftCardDenomination,
   GiftCardSettings,
+  BookingSequence,
+  CreateBookingSequenceInput,
 } from '../types/catalog';
 import type { Product, CreateProductInput } from '../types/inventory';
 import {
@@ -320,6 +322,21 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     },
     [storeId],
     null as GiftCardSettings | null
+  );
+
+  // Booking Sequences (defines service order during booking)
+  const bookingSequences = useLiveQuery(
+    async () => {
+      if (!isValidStoreId) return [];
+      try {
+        return await bookingSequencesDB.getAll(storeId, ui.showInactive);
+      } catch (err) {
+        console.warn('Failed to load booking sequences:', err);
+        return [];
+      }
+    },
+    [storeId, ui.showInactive],
+    [] as BookingSequence[]
   );
 
   // ==================== FILTERED DATA ====================
@@ -1117,6 +1134,65 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     );
   }, [storeId, userId, withErrorHandling]);
 
+  // ==================== BOOKING SEQUENCE ACTIONS ====================
+
+  const createBookingSequence = useCallback(async (data: CreateBookingSequenceInput) => {
+    const tenantId = storeId; // TODO: Get actual tenantId from auth context
+    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
+    return withErrorHandling(
+      () => bookingSequencesDB.create(data, userId, storeId, tenantId, deviceId),
+      'Booking sequence created',
+      'Failed to create booking sequence'
+    );
+  }, [storeId, userId, withErrorHandling]);
+
+  const updateBookingSequence = useCallback(async (id: string, data: Partial<BookingSequence>) => {
+    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
+    return withErrorHandling(
+      () => bookingSequencesDB.update(id, data, userId, deviceId),
+      'Booking sequence updated',
+      'Failed to update booking sequence'
+    );
+  }, [userId, withErrorHandling]);
+
+  const deleteBookingSequence = useCallback(async (id: string) => {
+    return withErrorHandling(
+      async () => {
+        await bookingSequencesDB.delete(id);
+        return true;
+      },
+      'Booking sequence deleted',
+      'Failed to delete booking sequence'
+    );
+  }, [withErrorHandling]);
+
+  const enableBookingSequence = useCallback(async (id: string) => {
+    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
+    return withErrorHandling(
+      () => bookingSequencesDB.enable(id, userId, deviceId),
+      'Booking sequence enabled',
+      'Failed to enable booking sequence'
+    );
+  }, [userId, withErrorHandling]);
+
+  const disableBookingSequence = useCallback(async (id: string) => {
+    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
+    return withErrorHandling(
+      () => bookingSequencesDB.disable(id, userId, deviceId),
+      'Booking sequence disabled',
+      'Failed to disable booking sequence'
+    );
+  }, [userId, withErrorHandling]);
+
+  const updateBookingSequenceOrder = useCallback(async (id: string, serviceOrder: string[]) => {
+    const deviceId = 'web-client'; // TODO: Get actual deviceId from auth context
+    return withErrorHandling(
+      () => bookingSequencesDB.updateServiceOrder(id, serviceOrder, userId, deviceId),
+      undefined, // No success toast for reorder
+      'Failed to update service order'
+    );
+  }, [userId, withErrorHandling]);
+
   // ==================== RETURN ====================
 
   return {
@@ -1135,6 +1211,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     settings,
     giftCardDenominations,
     giftCardSettings,
+    bookingSequences,
 
     // UI State
     ui,
@@ -1198,6 +1275,14 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     updateGiftCardDenomination,
     deleteGiftCardDenomination,
     updateGiftCardSettings,
+
+    // Booking Sequence Actions
+    createBookingSequence,
+    updateBookingSequence,
+    deleteBookingSequence,
+    enableBookingSequence,
+    disableBookingSequence,
+    updateBookingSequenceOrder,
   };
 }
 
