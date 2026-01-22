@@ -22,6 +22,7 @@ import padDevicesReducer from './slices/padDevicesSlice';
 import padTransactionReducer from './slices/padTransactionSlice';
 import helpRequestsReducer from './slices/helpRequestsSlice';
 import portfolioReducer from './slices/portfolioSlice';
+import loyaltyReducer from './slices/loyaltySlice';
 // Note: teamStaffSyncMiddleware was REMOVED - staffSlice now derives from teamSlice directly
 // via team-derived selectors. See: src/store/slices/staffSlice.ts
 // Note: Catalog module uses useCatalog hook with Dexie live queries directly (no Redux)
@@ -53,6 +54,7 @@ export const store = configureStore({
     padTransaction: padTransactionReducer,
     helpRequests: helpRequestsReducer,
     portfolio: portfolioReducer,
+    loyalty: loyaltyReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

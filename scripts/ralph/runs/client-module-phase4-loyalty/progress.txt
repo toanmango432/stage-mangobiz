@@ -1,0 +1,82 @@
+# Ralph Progress - Client Module Phase 4: Loyalty, Reviews, Referrals
+# Started: 2026-01-22
+# Branch: ralph/client-module-phase2
+
+## Codebase Patterns (Persistent across iterations)
+
+### Edge Function Pattern
+- Location: `supabase/functions/`
+- Use Deno imports: `https://deno.land/std@0.168.0/http/server.ts`
+- Create Supabase client with `SUPABASE_SERVICE_ROLE_KEY` for admin operations
+- Return proper CORS headers
+
+### Redux Thunk Pattern
+- Use `createAsyncThunk` from `@reduxjs/toolkit`
+- Call Edge Functions via `supabase.functions.invoke()`
+- Use `rejectWithValue` for error handling
+- Export from slice index.ts
+
+### Settings Component Pattern
+- Follow existing settings components in `src/components/settings/`
+- Use Card, CardHeader, CardContent from ui/card
+- Include loading states on save buttons
+- Use Switch for toggle settings
+- Use Select for dropdown settings
+
+### Migration Pattern
+- Use `gen_random_uuid()` for UUID primary keys
+- Use `TIMESTAMPTZ` for all timestamp columns
+- Enable RLS with `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
+- Create store-scoped policies using staff.auth_user_id = auth.uid()
+- Add column comments for documentation
+
+---
+
+## Iteration Log
+
+=== Iteration 1 - US-034 ===
+Story: Create loyalty program database migration
+Status: ✅ Complete
+Commit: 42f01e1
+
+Implementation:
+- Created supabase/migrations/034_loyalty_program.sql
+- Added loyalty_programs table with points_per_dollar, eligible_categories, expiration
+- Added loyalty_tiers table with threshold_points, benefits, tier_order
+- Added loyalty_rewards table with reward_type, reward_value, eligible_items
+- Included RLS policies scoped to staff's store
+- Added triggers for updated_at columns
+- Followed existing migration patterns (sync fields, timestamps, comments)
+
+Files Changed:
+- supabase/migrations/034_loyalty_program.sql (new)
+
+Learnings:
+- Migration pattern: UUID primary keys with gen_random_uuid()
+- TIMESTAMPTZ for all timestamp columns
+- sync_status and sync_version on all tables
+- RLS policies use staff.auth_user_id = auth.uid()
+- Triggers use existing update_updated_at_column() function
+
+=== Iteration 2 - US-035 ===
+Story: Add loyalty program types
+Status: ✅ Complete
+Commit: 2d2f046
+
+Implementation:
+- Added RewardType union to packages/types/src/client.ts
+- Added LoyaltyProgram interface for store configuration
+- Added LoyaltyTierConfig interface (distinct from existing LoyaltyTier string union)
+- Added LoyaltyReward interface for redeemable rewards
+- All types include sync fields (syncStatus, syncVersion)
+- No as any casts introduced
+- Pre-existing typecheck errors unrelated to changes
+
+Files Changed:
+- packages/types/src/client.ts
+
+Learnings:
+- LoyaltyTier (string union) vs LoyaltyTierConfig (interface) distinction
+- Types package has pre-existing errors (unrelated to new types)
+- Use Record<string, any> for flexible JSONB fields
+

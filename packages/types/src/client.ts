@@ -728,8 +728,8 @@ export interface LoyaltyTierConfig {
   updatedAt: string;
 }
 
-/** Loyalty Reward Configuration (Phase 4) */
-export interface LoyaltyReward {
+/** Loyalty Reward Configuration (Phase 4) - Store-level reward definition */
+export interface LoyaltyRewardConfig {
   id: string;
   programId: string;
   name: string;
