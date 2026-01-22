@@ -50,6 +50,35 @@ export interface FetchDataRequestsInput {
   clientId?: string;
 }
 
+/** Input for exporting client data */
+export interface ExportClientDataInput {
+  clientId: string;
+  storeId: string;
+  performedBy?: string;
+  performedByName?: string;
+  requestId?: string;
+}
+
+/** Response from the export-client-data Edge Function */
+export interface ExportClientDataResponse {
+  success: boolean;
+  data: {
+    exportedAt: string;
+    exportVersion: string;
+    client: Record<string, unknown>;
+    appointments: Record<string, unknown>[];
+    tickets: Record<string, unknown>[];
+    transactions: Record<string, unknown>[];
+  };
+  downloadUrl: string;
+  summary: {
+    appointmentCount: number;
+    ticketCount: number;
+    transactionCount: number;
+  };
+  timestamp: string;
+}
+
 // ==================== THUNKS ====================
 
 /**
@@ -318,6 +347,71 @@ export const fetchDataRetentionLogs = createAsyncThunk<
     } catch (err) {
       return rejectWithValue(
         err instanceof Error ? err.message : 'Failed to fetch data retention logs'
+      );
+    }
+  }
+);
+
+/**
+ * Export client data for GDPR/CCPA data portability requests
+ * Calls the export-client-data Edge Function to generate a JSON export
+ * Returns a download URL for the exported data
+ */
+export const exportClientData = createAsyncThunk<
+  ExportClientDataResponse,
+  ExportClientDataInput
+>(
+  'clients/gdpr/exportClientData',
+  async (
+    { clientId, storeId, performedBy, performedByName, requestId },
+    { rejectWithValue }
+  ) => {
+    try {
+      // Call the export-client-data Edge Function
+      const { data, error } = await supabase.functions.invoke('export-client-data', {
+        body: {
+          clientId,
+          storeId,
+          performedBy,
+          performedByName,
+          requestId,
+        },
+      });
+
+      if (error) {
+        console.error('[exportClientData] Edge Function error:', error);
+        return rejectWithValue(
+          error.message || 'Failed to export client data. Please try again.'
+        );
+      }
+
+      // Validate response structure
+      if (!data || !data.success) {
+        const errorMessage = data?.error || 'Export failed. No data returned from server.';
+        console.error('[exportClientData] Export failed:', errorMessage);
+        return rejectWithValue(errorMessage);
+      }
+
+      // Validate download URL is present
+      if (!data.downloadUrl) {
+        console.error('[exportClientData] No download URL in response');
+        return rejectWithValue('Export completed but no download link was generated.');
+      }
+
+      console.log('[exportClientData] Export successful:', {
+        clientId,
+        appointmentCount: data.summary?.appointmentCount,
+        ticketCount: data.summary?.ticketCount,
+        transactionCount: data.summary?.transactionCount,
+      });
+
+      return data as ExportClientDataResponse;
+    } catch (err) {
+      console.error('[exportClientData] Unexpected error:', err);
+      return rejectWithValue(
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred while exporting client data. Please try again.'
       );
     }
   }

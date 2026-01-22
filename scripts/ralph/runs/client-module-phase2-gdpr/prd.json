@@ -103,7 +103,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing thunk patterns in the file."
     },
     {
