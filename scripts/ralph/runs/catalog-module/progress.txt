@@ -3118,3 +3118,44 @@ Commit: 937787b
 **Next story suggestion:** US-056 (Create AddOnSelector component for checkout) - Follows same component creation pattern, no dependencies on US-055
 
 ---
+
+## 2026-01-22 - US-056: Create AddOnSelector component for checkout
+Commit: 4cae1da
+
+**Why this story?** US-056 is the next Phase 4 story with no dependencies. US-055 (VariantSelector) was just completed and follows the same checkout component creation pattern.
+
+**Changes:**
+- apps/store-app/src/components/checkout/AddOnSelector.tsx (NEW): Created add-on selection component with:
+  - Props: serviceId, categoryId (optional), storeId, onAddOnsChange(selectedAddOns[])
+  - Loads applicable add-on groups via addOnGroupsService.getForService(storeId, serviceId, categoryId)
+  - Loads options for each group via addOnOptionsService.getByGroup(groupId)
+  - Filters by applicableToAll OR applicableServiceIds/CategoryIds (handled by getForService)
+  - Supports single selection mode (radio buttons) and multiple selection mode (checkboxes)
+  - Enforces minSelections validation with error display
+  - Enforces maxSelections by disabling unchecked options at max
+  - Shows "Required" badge and red border/error text for required groups
+  - Loading state with spinner, error state with alert icon
+  - Returns null if no applicable add-on groups (clean integration)
+  - SelectedAddOn interface exported for parent component use
+
+**Acceptance Criteria Verification:**
+- ✅ Create apps/store-app/src/components/checkout/AddOnSelector.tsx
+- ✅ Props: serviceId, categoryId, onAddOnsChange(selectedAddOns[])
+- ✅ Load applicable add-on groups via direct service call (addOnGroupsService.getForService)
+- ✅ Filter groups by applicableToAll OR applicableServiceIds/CategoryIds
+- ✅ Enforce minSelections/maxSelections per group
+- ✅ Show required groups prominently (Required badge + validation errors)
+- ✅ pnpm run typecheck passes (store-app compiles with no errors)
+
+**Learnings:**
+- addOnGroupsService.getForService() already handles applicability filtering in catalogDataService
+- Single vs multiple selection mode controlled by group.selectionMode ('single' | 'multiple')
+- Badge import must use capital B (@/components/ui/Badge) to match existing codebase convention
+- Component returns null when no add-on groups apply - caller doesn't need to check
+
+**Patterns to sync:**
+- Pattern #20: Add-On Group Selection Modes - Use selectionMode field to determine radio (single) vs checkbox (multiple) UI. Enforce maxSelections by disabling unchecked options when at limit.
+
+**Next story suggestion:** US-057 (Update useCheckoutServices to load variants and add-ons) - Required to integrate VariantSelector/AddOnSelector into checkout flow
+
+---

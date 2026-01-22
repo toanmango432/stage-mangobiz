@@ -976,7 +976,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 56,
-      "passes": false,
+      "passes": true,
       "notes": "Complex component - filter by applicability, enforce selection rules."
     },
     {
