@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { EnhancedClient, ClientGender, ClientSource, EmergencyContact } from '../types';
-import type { BlockReason } from '@/types';
+import type { BlockReason, Client } from '@/types';
 import { genderLabels, sourceLabels } from '../constants';
 import {
   Card,
@@ -16,6 +16,7 @@ import {
 } from '../components/SharedComponents';
 import { StaffAlertBanner } from '../components/StaffAlertBanner';
 import { BlockClientModal } from '../components/BlockClientModal';
+import { ConsentManagement } from '@/components/clients/ConsentManagement';
 
 interface ProfileSectionProps {
   client: EnhancedClient;
@@ -118,6 +119,34 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
     createdBy: typeof client.staffAlert === 'object' ? (client.staffAlert as any).createdBy : '',
     createdByName: typeof client.staffAlert === 'object' ? (client.staffAlert as any).createdByName : 'Staff',
   } : undefined;
+
+  // Convert EnhancedClient to Client type for ConsentManagement component
+  const clientForConsent: Client = useMemo(() => ({
+    id: client.id,
+    storeId: client.storeId,
+    firstName: client.firstName,
+    lastName: client.lastName,
+    displayName: client.displayName,
+    phone: client.contact.phone,
+    email: client.contact.email,
+    avatar: client.avatar,
+    gender: client.gender,
+    birthday: client.birthday,
+    isBlocked: client.isBlocked,
+    isVip: client.isVip,
+    communicationPreferences: client.communicationPreferences,
+    createdAt: client.createdAt,
+    updatedAt: client.updatedAt,
+    syncStatus: client.syncStatus,
+  }), [client]);
+
+  // Handle consent preference updates
+  const handleConsentChange = (updates: Partial<Client>) => {
+    // Map Client updates back to EnhancedClient format
+    if (updates.communicationPreferences) {
+      onChange({ communicationPreferences: updates.communicationPreferences });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -445,6 +474,12 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           </div>
         </div>
       </Card>
+
+      {/* Privacy & Consent - GDPR/CCPA Compliance */}
+      <ConsentManagement
+        client={clientForConsent}
+        onChange={handleConsentChange}
+      />
 
       {/* Block Client Modal */}
       {showBlockModal && (
