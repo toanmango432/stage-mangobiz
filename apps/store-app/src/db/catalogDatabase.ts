@@ -949,6 +949,37 @@ export const productsDB = {
   },
 
   /**
+   * Restore an archived product.
+   * Sets isActive=true, isDeleted=false, increments version, updates vectorClock.
+   * @param id - Product ID to restore
+   * @param userId - User performing the restore
+   * @param deviceId - Device performing the restore
+   */
+  async restore(id: string, userId: string, deviceId: string = 'web-client'): Promise<Product | undefined> {
+    const product = await db.products.get(id);
+    if (!product) return undefined;
+
+    const newVersion = product.version + 1;
+    const restored: Product = {
+      ...product,
+      isActive: true,
+      isDeleted: false,
+      version: newVersion,
+      vectorClock: {
+        ...product.vectorClock,
+        [deviceId]: newVersion,
+      },
+      updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
+      syncStatus: 'local',
+    };
+
+    await db.products.put(restored);
+    return restored;
+  },
+
+  /**
    * Hard delete a product (use with caution).
    */
   async hardDelete(id: string): Promise<void> {

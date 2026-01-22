@@ -311,3 +311,103 @@ async delete(id: string, userId: string, deviceId: string): Promise<void> {
 1. Audit trail (who/when/what device)
 2. Sync propagation (deleted records sync to other devices)
 3. Eventual cleanup (scheduled job can hard-delete expired tombstones)
+
+### Archive vs Soft Delete Pattern
+For user-visible archival vs sync-level deletion, use two distinct patterns:
+
+```typescript
+// Archive: User-visible, recoverable, status-based
+async archive(id: string, userId: string): Promise<Row> {
+  return supabase.from('table').update({
+    status: 'archived',
+    archived_at: new Date().toISOString(),
+    archived_by: userId,
+    sync_status: 'pending',
+    updated_at: new Date().toISOString(),
+  }).eq('id', id).select().single();
+}
+
+async restore(id: string): Promise<Row> {
+  return supabase.from('table').update({
+    status: 'active',
+    archived_at: null,
+    archived_by: null,
+    sync_status: 'pending',
+    updated_at: new Date().toISOString(),
+  }).eq('id', id).select().single();
+}
+
+// Soft Delete: Sync propagation, tombstone-based, eventual cleanup
+async delete(id: string, userId: string, deviceId: string): Promise<void> {
+  // ... tombstone pattern (see above)
+}
+```
+
+**Why:** Archive is a business concept (user can see and restore), while soft delete is a technical concern (sync propagation, eventual cleanup). Keep them separate for cleaner semantics.
+
+### Array Contains Filtering in PostgREST
+When filtering by "element in array" (e.g., serviceId in applicable_service_ids), PostgREST's array operators are limited. Use a fetch-then-filter pattern:
+```typescript
+async getForService(storeId: string, serviceId?: string, categoryId?: string): Promise<Row[]> {
+  // Fetch all active rows
+  const { data, error } = await supabase
+    .from('add_on_groups')
+    .select('*')
+    .eq('store_id', storeId)
+    .eq('is_deleted', false)
+    .eq('is_active', true);
+
+  if (error) throw error;
+  if (!data) return [];
+
+  // Filter in JavaScript for complex array contains logic
+  return data.filter((row) => {
+    if (row.applicable_to_all) return true;
+    if (serviceId && row.applicable_service_ids?.includes(serviceId)) return true;
+    if (categoryId && row.applicable_category_ids?.includes(categoryId)) return true;
+    return false;
+  });
+}
+```
+**Why:** PostgREST's `@>` (contains) and `<@` (contained by) operators work for exact matches but not "any element in my list is in your array" scenarios. JavaScript filtering is simpler and more flexible for these cases.
+
+### Settings Table Pattern (getOrCreate)
+For one-per-store settings tables, use getOrCreate pattern with sensible defaults:
+```typescript
+async getOrCreate(storeId: string, tenantId: string, userId?: string, deviceId?: string): Promise<SettingsRow> {
+  // Try to get existing settings
+  const existing = await this.get(storeId);
+  if (existing) return existing;
+
+  // Create with sensible defaults
+  const defaultSettings: SettingsInsert = {
+    tenant_id: tenantId,
+    store_id: storeId,
+    // Feature toggles default to ENABLED (permissive)
+    enable_packages: true,
+    enable_add_ons: true,
+    enable_variants: true,
+    // Amount limits default to REASONABLE values
+    min_amount: 10,
+    max_amount: 500,
+    // Sync metadata
+    sync_status: 'local',
+    version: 1,
+    vector_clock: {},
+    last_synced_version: 0,
+    // Audit
+    created_by: userId || null,
+    created_by_device: deviceId || null,
+  };
+
+  const { data, error } = await supabase
+    .from('settings_table')
+    .insert(defaultSettings)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+```
+**Why:** Settings tables have UNIQUE constraint on store_id. Default to enabled/permissive values so new stores work out-of-the-box. Include audit trail from creation.
