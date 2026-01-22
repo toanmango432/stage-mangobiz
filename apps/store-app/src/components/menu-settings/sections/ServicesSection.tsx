@@ -26,7 +26,7 @@ import type {
 import { formatDuration, formatPrice } from '../constants';
 import { ServiceModal } from '../modals/ServiceModal';
 import { ArchiveServiceModal } from '../modals/ArchiveServiceModal';
-import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ConfirmDialog, ServiceCardSkeleton, TableRowSkeleton } from '../components';
 import type { ServiceArchiveDependencies, ArchiveServiceResult } from '../../../hooks/useCatalog';
 
 interface ServicesSectionProps {
@@ -36,6 +36,8 @@ interface ServicesSectionProps {
   viewMode: CatalogViewMode;
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
+  /** When true, shows skeleton loaders instead of content */
+  isLoading?: boolean;
   // Action callbacks
   onCreate?: (data: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<MenuService | null>;
   onUpdate?: (id: string, data: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<MenuService | null | undefined>;
@@ -51,6 +53,7 @@ export function ServicesSection({
   viewMode,
   selectedCategoryId,
   onSelectCategory,
+  isLoading = false,
   onCreate,
   onUpdate,
   onDelete,
@@ -216,6 +219,45 @@ export function ServicesSection({
     if (service.pricingType === 'varies') return 'Price varies';
     if (service.pricingType === 'from') return `From ${formatPrice(service.price)}`;
     return formatPrice(service.price);
+  };
+
+  // Render skeleton loading state based on view mode
+  const renderSkeletons = () => {
+    const skeletonCount = 6;
+
+    if (viewMode === 'grid') {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: skeletonCount }).map((_, index) => (
+            <ServiceCardSkeleton key={index} />
+          ))}
+        </div>
+      );
+    }
+
+    if (viewMode === 'list') {
+      return (
+        <div className="space-y-2">
+          {Array.from({ length: skeletonCount }).map((_, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-xl border border-gray-200 p-4"
+            >
+              <TableRowSkeleton columns={5} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Compact view
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <TableRowSkeleton key={index} columns={3} />
+        ))}
+      </div>
+    );
   };
 
   // Render Grid View
@@ -590,7 +632,9 @@ export function ServicesSection({
         </div>
 
         {/* Content */}
-        {services.length > 0 ? (
+        {isLoading ? (
+          renderSkeletons()
+        ) : services.length > 0 ? (
           viewMode === 'grid' ? renderGridView() :
           viewMode === 'list' ? renderListView() :
           renderCompactView()
