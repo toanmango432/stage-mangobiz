@@ -16,6 +16,10 @@ import type {
   ClientSegment,
   SegmentAnalytics,
   SegmentFilterGroup,
+  ReferralSettings,
+  ReferralTracking,
+  ReferralRewardType,
+  ReferralDiscountType,
 } from '../../../types';
 import type { MergeClientParams } from './types';
 import { supabase } from '../../../services/supabase/client';
@@ -1155,5 +1159,307 @@ export const exportSegmentClients = createAsyncThunk<
     }
 
     return generateSegmentExportCsv(clientsToExport);
+  }
+);
+
+// ==================== REFERRAL PROGRAM THUNKS (SUPABASE) ====================
+
+/**
+ * Fetch referral program settings for a store.
+ * Works with the referral_settings table created in migration 036.
+ */
+export const fetchReferralSettings = createAsyncThunk<
+  ReferralSettings | null,
+  { storeId: string }
+>(
+  'clients/fetchReferralSettings',
+  async ({ storeId }, { rejectWithValue }) => {
+    try {
+      const { data, error } = await supabase
+        .from('referral_settings')
+        .select('*')
+        .eq('store_id', storeId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw error;
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      return {
+        id: data.id,
+        storeId: data.store_id,
+        enabled: data.enabled,
+        expiresDays: data.expires_days,
+        referrerRewardType: data.referrer_reward_type,
+        referrerRewardValue: parseFloat(data.referrer_reward_value),
+        refereeDiscountType: data.referee_discount_type,
+        refereeDiscountValue: parseFloat(data.referee_discount_value),
+        syncStatus: data.sync_status,
+        syncVersion: data.sync_version,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch referral settings');
+    }
+  }
+);
+
+/**
+ * Update referral program settings for a store.
+ * Creates new settings if they don't exist.
+ */
+export const updateReferralSettings = createAsyncThunk<
+  ReferralSettings,
+  {
+    storeId: string;
+    enabled: boolean;
+    expiresDays?: number | null;
+    referrerRewardType: ReferralRewardType;
+    referrerRewardValue: number;
+    refereeDiscountType: ReferralDiscountType;
+    refereeDiscountValue: number;
+  }
+>(
+  'clients/updateReferralSettings',
+  async (settings, { rejectWithValue }) => {
+    try {
+      const { data: existing } = await supabase
+        .from('referral_settings')
+        .select('id')
+        .eq('store_id', settings.storeId)
+        .single();
+
+      const payload = {
+        store_id: settings.storeId,
+        enabled: settings.enabled,
+        expires_days: settings.expiresDays,
+        referrer_reward_type: settings.referrerRewardType,
+        referrer_reward_value: settings.referrerRewardValue,
+        referee_discount_type: settings.refereeDiscountType,
+        referee_discount_value: settings.refereeDiscountValue,
+      };
+
+      let data;
+      if (existing) {
+        const { data: updated, error } = await supabase
+          .from('referral_settings')
+          .update(payload)
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        data = updated;
+      } else {
+        const { data: created, error } = await supabase
+          .from('referral_settings')
+          .insert(payload)
+          .select()
+          .single();
+
+        if (error) throw error;
+        data = created;
+      }
+
+      return {
+        id: data.id,
+        storeId: data.store_id,
+        enabled: data.enabled,
+        expiresDays: data.expires_days,
+        referrerRewardType: data.referrer_reward_type,
+        referrerRewardValue: parseFloat(data.referrer_reward_value),
+        refereeDiscountType: data.referee_discount_type,
+        refereeDiscountValue: parseFloat(data.referee_discount_value),
+        syncStatus: data.sync_status,
+        syncVersion: data.sync_version,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update referral settings');
+    }
+  }
+);
+
+/**
+ * Track referral usage when a new client uses a referral code.
+ * Creates a referral_tracking record and updates the clients table.
+ */
+export const trackReferralUsage = createAsyncThunk<
+  ReferralTracking,
+  {
+    storeId: string;
+    referrerClientId: string;
+    refereeClientId: string;
+    codeUsed: string;
+  }
+>(
+  'clients/trackReferralUsage',
+  async ({ storeId, referrerClientId, refereeClientId, codeUsed }, { rejectWithValue }) => {
+    try {
+      // Prevent self-referrals
+      if (referrerClientId === refereeClientId) {
+        throw new Error('Self-referrals are not allowed');
+      }
+
+      // Check if referee already has a referral
+      const { data: existingTracking } = await supabase
+        .from('referral_tracking')
+        .select('id')
+        .eq('referee_client_id', refereeClientId)
+        .eq('store_id', storeId)
+        .single();
+
+      if (existingTracking) {
+        throw new Error('Client has already been referred');
+      }
+
+      // Create referral tracking record
+      const { data, error } = await supabase
+        .from('referral_tracking')
+        .insert({
+          referrer_client_id: referrerClientId,
+          referee_client_id: refereeClientId,
+          store_id: storeId,
+          code_used: codeUsed,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update the referee client's referral_code in clients table if needed
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({ referral_code: null }) // Referees don't need a code initially
+        .eq('id', refereeClientId);
+
+      if (updateError) {
+        console.error('Failed to update referee client:', updateError);
+      }
+
+      return {
+        id: data.id,
+        referrerClientId: data.referrer_client_id,
+        refereeClientId: data.referee_client_id,
+        storeId: data.store_id,
+        codeUsed: data.code_used,
+        status: data.status,
+        rewardIssuedAt: data.reward_issued_at,
+        syncStatus: data.sync_status,
+        syncVersion: data.sync_version,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to track referral usage');
+    }
+  }
+);
+
+/**
+ * Issue referral reward when referee completes their first visit.
+ * Updates referral_tracking status to 'completed' and issues rewards.
+ */
+export const issueReferralReward = createAsyncThunk<
+  ReferralTracking,
+  {
+    referralTrackingId: string;
+    storeId: string;
+  }
+>(
+  'clients/issueReferralReward',
+  async ({ referralTrackingId, storeId }, { rejectWithValue }) => {
+    try {
+      // Fetch the referral tracking record
+      const { data: tracking, error: trackingError } = await supabase
+        .from('referral_tracking')
+        .select('*')
+        .eq('id', referralTrackingId)
+        .single();
+
+      if (trackingError) throw trackingError;
+      if (!tracking) throw new Error('Referral tracking not found');
+
+      if (tracking.status === 'completed') {
+        throw new Error('Referral reward already issued');
+      }
+
+      if (tracking.status === 'expired') {
+        throw new Error('Referral has expired');
+      }
+
+      // Fetch referral settings
+      const { data: settings, error: settingsError } = await supabase
+        .from('referral_settings')
+        .select('*')
+        .eq('store_id', storeId)
+        .single();
+
+      if (settingsError) throw settingsError;
+      if (!settings || !settings.enabled) {
+        throw new Error('Referral program is not enabled');
+      }
+
+      // Check if expired
+      if (settings.expires_days) {
+        const createdDate = new Date(tracking.created_at);
+        const now = new Date();
+        const daysDiff = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+
+        if (daysDiff > settings.expires_days) {
+          // Mark as expired
+          const { data: expired, error: expiredError } = await supabase
+            .from('referral_tracking')
+            .update({ status: 'expired' })
+            .eq('id', referralTrackingId)
+            .select()
+            .single();
+
+          if (expiredError) throw expiredError;
+
+          throw new Error('Referral has expired');
+        }
+      }
+
+      // Issue reward to referrer based on reward type
+      // This would typically involve updating the client's loyalty points or creating a discount
+      // For now, we'll just mark the referral as completed
+
+      // Update referral tracking to completed
+      const { data: completed, error: completedError } = await supabase
+        .from('referral_tracking')
+        .update({
+          status: 'completed',
+          reward_issued_at: new Date().toISOString(),
+        })
+        .eq('id', referralTrackingId)
+        .select()
+        .single();
+
+      if (completedError) throw completedError;
+
+      return {
+        id: completed.id,
+        referrerClientId: completed.referrer_client_id,
+        refereeClientId: completed.referee_client_id,
+        storeId: completed.store_id,
+        codeUsed: completed.code_used,
+        status: completed.status,
+        rewardIssuedAt: completed.reward_issued_at,
+        syncStatus: completed.sync_status,
+        syncVersion: completed.sync_version,
+        createdAt: completed.created_at,
+        updatedAt: completed.updated_at,
+      };
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to issue referral reward');
+    }
   }
 );

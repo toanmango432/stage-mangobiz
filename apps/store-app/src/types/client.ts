@@ -351,6 +351,48 @@ export interface Referral {
   syncStatus: SyncStatus;
 }
 
+// ==================== REFERRAL PROGRAM (PRD Client Module Phase 4) ====================
+
+/** Referral Reward Types */
+export type ReferralRewardType = 'points' | 'credit' | 'discount' | 'percentage';
+
+/** Referral Discount Types */
+export type ReferralDiscountType = 'percentage' | 'fixed';
+
+/** Referral Program Settings */
+export interface ReferralSettings {
+  id: string;
+  storeId: string;
+  enabled: boolean;
+  expiresDays?: number | null; // null = never expires
+  referrerRewardType: ReferralRewardType;
+  referrerRewardValue: number;
+  refereeDiscountType: ReferralDiscountType;
+  refereeDiscountValue: number;
+  syncStatus: SyncStatus;
+  syncVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Referral Tracking Status */
+export type ReferralTrackingStatus = 'pending' | 'completed' | 'expired';
+
+/** Referral Tracking Record */
+export interface ReferralTracking {
+  id: string;
+  referrerClientId: string;
+  refereeClientId: string;
+  storeId: string;
+  codeUsed: string;
+  status: ReferralTrackingStatus;
+  rewardIssuedAt?: string | null;
+  syncStatus: SyncStatus;
+  syncVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ==================== REVIEWS (PRD 2.3.9) ====================
 
 /** Client Review */
