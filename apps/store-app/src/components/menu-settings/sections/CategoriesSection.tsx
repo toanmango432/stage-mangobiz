@@ -21,6 +21,7 @@ import {
   EyeOff,
   Eye,
   Copy,
+  AlertTriangle,
 } from 'lucide-react';
 import type {
   ServiceCategory,
@@ -29,6 +30,7 @@ import type {
 } from '@/types/catalog';
 import { CATEGORY_COLORS } from '../constants';
 import { CategoryModal } from '../modals/CategoryModal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 interface CategoriesSectionProps {
   categories: CategoryWithCount[];
@@ -60,6 +62,15 @@ export function CategoriesSection({
   const [editingCategory, setEditingCategory] = useState<ServiceCategory | undefined>();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
+
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedCategoryToDelete, setSelectedCategoryToDelete] = useState<CategoryWithCount | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Error dialog state (for non-deletable categories)
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Filter categories by search
   const filteredCategories = categories.filter(cat =>
@@ -96,18 +107,31 @@ export function CategoriesSection({
     setEditingCategory(undefined);
   };
 
-  // Handle delete category
-  const handleDelete = async (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    const serviceCount = category ? getServiceCount(category) : 0;
+  // Handle delete category - opens confirmation dialog
+  const handleDeleteClick = (category: CategoryWithCount) => {
+    const serviceCount = getServiceCount(category);
     if (serviceCount > 0) {
-      alert(`Cannot delete category with ${serviceCount} services. Please move or delete services first.`);
+      // Show error dialog if category has services
+      setErrorMessage(`Cannot delete category with ${serviceCount} service${serviceCount > 1 ? 's' : ''}. Please move or delete services first.`);
+      setErrorDialogOpen(true);
       return;
     }
-    if (confirm('Are you sure you want to delete this category?')) {
-      if (onDelete) {
-        await onDelete(categoryId);
-      }
+    // Show delete confirmation dialog
+    setSelectedCategoryToDelete(category);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete action
+  const handleConfirmDelete = async () => {
+    if (!selectedCategoryToDelete || !onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(selectedCategoryToDelete.id);
+      setDeleteDialogOpen(false);
+      setSelectedCategoryToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -308,7 +332,7 @@ export function CategoriesSection({
                           <hr className="my-1" />
                           <button
                             onClick={() => {
-                              handleDelete(category.id);
+                              handleDeleteClick(category);
                               setExpandedMenuId(null);
                             }}
                             className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -362,6 +386,37 @@ export function CategoriesSection({
         }}
         category={editingCategory}
         onSave={handleSaveCategory}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) {
+            setSelectedCategoryToDelete(null);
+          }
+        }}
+        title="Delete Category"
+        description={`Are you sure you want to delete "${selectedCategoryToDelete?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+        icon={<Trash2 className="h-5 w-5 text-red-500" />}
+      />
+
+      {/* Error Dialog (for categories with services) */}
+      <ConfirmDialog
+        open={errorDialogOpen}
+        onOpenChange={setErrorDialogOpen}
+        title="Cannot Delete Category"
+        description={errorMessage}
+        confirmLabel="OK"
+        variant="default"
+        onConfirm={() => setErrorDialogOpen(false)}
+        icon={<AlertTriangle className="h-5 w-5 text-amber-500" />}
       />
     </div>
   );
