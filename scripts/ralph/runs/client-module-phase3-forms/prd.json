@@ -141,7 +141,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "This will be embedded in service edit modal. Use MultiSelect pattern if exists, or Combobox."
     },
     {
