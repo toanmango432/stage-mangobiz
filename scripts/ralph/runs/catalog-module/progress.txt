@@ -834,3 +834,45 @@ Commit: 6bf2561
 **Next story suggestion:** US-014 (Create serviceVariantAdapter.ts and servicePackageAdapter.ts) - Same folder, continues adapter work
 
 ---
+
+## 2026-01-21 - US-014: Create serviceVariantAdapter.ts and servicePackageAdapter.ts
+Commit: e80c3a1
+
+**Why this story?** Highest priority incomplete story (priority 14). Continues the adapter pattern work from US-012 and US-013, same folder (adapters are fresh in context).
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/adapters/serviceVariantAdapter.ts` (NEW):
+   - Created `toServiceVariant(row)`: Converts ServiceVariantRow → ServiceVariant
+   - Created `toServiceVariants(rows)`: Batch conversion
+   - Created `toServiceVariantInsert(variant, storeId, tenantId, userId?, deviceId?)`: App type → Supabase insert
+   - Created `toServiceVariantUpdate(updates, userId?, deviceId?)`: Partial updates → Supabase update
+   - Handles snake_case ↔ camelCase conversion for all fields
+   - Handles extraTime and extraTimeType optional fields
+
+2. `apps/store-app/src/services/supabase/adapters/servicePackageAdapter.ts` (NEW):
+   - Created `toServicePackage(row)`: Converts ServicePackageRow → ServicePackage
+   - Created `toServicePackages(rows)`: Batch conversion
+   - Created `toServicePackageInsert(pkg, storeId, tenantId, userId?, deviceId?)`: App type → Supabase insert
+   - Created `toServicePackageUpdate(updates, userId?, deviceId?)`: Partial updates → Supabase update
+   - Handles JSONB → PackageServiceItem[] parsing for services array
+   - Uses `as unknown as Json` cast for PackageServiceItem[] to satisfy Supabase Json type
+
+3. `apps/store-app/src/services/supabase/adapters/index.ts`:
+   - Added ServiceVariant adapter exports: toServiceVariant, toServiceVariants, toServiceVariantInsert, toServiceVariantUpdate
+   - Added ServicePackage adapter exports: toServicePackage, toServicePackages, toServicePackageInsert, toServicePackageUpdate
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- PackageServiceItem[] cannot be directly assigned to Supabase Json type due to index signature mismatch
+- Use `as unknown as Json` double cast for complex objects going into JSONB columns
+- ServiceVariant is simpler than MenuService - fewer fields to map
+
+**Patterns to sync:**
+- Pattern #8: JSONB Type Cast - When assigning TypeScript interfaces to Supabase Json fields, use `as unknown as Json` cast to bridge the type mismatch
+
+**Next story suggestion:** US-015 (Create addOnGroupAdapter.ts and addOnOptionAdapter.ts) - Same folder, continues adapter work
+
+---

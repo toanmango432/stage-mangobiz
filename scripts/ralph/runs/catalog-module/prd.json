@@ -281,7 +281,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Variants are simple. Packages need JSONB parsing for services array."
     },
     {
