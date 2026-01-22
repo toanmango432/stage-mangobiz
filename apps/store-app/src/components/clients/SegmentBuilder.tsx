@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Trash2, Users, Save, X, Filter, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Users, Save, X, Filter, Loader2, Eye } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectStoreId, selectMemberId } from '@/store/slices/authSlice';
 import { selectClients } from '@/store/slices/clientsSlice';
@@ -103,11 +103,13 @@ interface SegmentBuilderProps {
   onSave?: (segment: CustomSegment) => void;
   /** Callback when cancelled */
   onCancel?: () => void;
+  /** Callback when preview is requested */
+  onPreview?: (segment: CustomSegment, matchingClients: Client[]) => void;
 }
 
 // ==================== COMPONENT ====================
 
-export function SegmentBuilder({ initialSegment, onSave, onCancel }: SegmentBuilderProps) {
+export function SegmentBuilder({ initialSegment, onSave, onCancel, onPreview }: SegmentBuilderProps) {
   const dispatch = useAppDispatch();
   const storeId = useAppSelector(selectStoreId);
   const memberId = useAppSelector(selectMemberId);
@@ -361,6 +363,16 @@ export function SegmentBuilder({ initialSegment, onSave, onCancel }: SegmentBuil
       <div className="flex justify-end gap-2 pt-2 border-t">
         {onCancel && (
           <Button variant="outline" onClick={onCancel}><X className="w-4 h-4 mr-2" />Cancel</Button>
+        )}
+        {onPreview && conditions.length > 0 && (
+          <Button
+            variant="secondary"
+            onClick={() => onPreview(previewSegment, matchingClients)}
+            disabled={matchingClients.length === 0}
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Preview ({matchingClients.length})
+          </Button>
         )}
         <Button onClick={handleSave} disabled={isSaving}>
           {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
