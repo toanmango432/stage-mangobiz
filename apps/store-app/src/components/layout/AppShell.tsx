@@ -16,6 +16,7 @@ const Pending = lazy(() => import('../modules/Pending').then(m => ({ default: m.
 const TicketPanel = lazy(() => import('../checkout/TicketPanel'));
 const ClosedTickets = lazy(() => import('../modules/ClosedTickets').then(m => ({ default: m.ClosedTickets })));
 const More = lazy(() => import('../modules/More').then(m => ({ default: m.More })));
+const MessagesPage = lazy(() => import('../../pages/MessagesPage'));
 import { TicketPanelProvider, useTicketPanel } from '../../contexts/TicketPanelContext';
 
 // Lazy load less frequently used modules to reduce initial bundle size
@@ -376,6 +377,8 @@ function AppShellContent() {
         return <Suspense fallback={<ModuleLoader />}><ClosedTickets /></Suspense>;
       case 'more':
         return <Suspense fallback={<ModuleLoader />}><More onNavigate={setActiveModule} /></Suspense>;
+      case 'messages':
+        return <Suspense fallback={<ModuleLoader />}><MessagesPage /></Suspense>;
 
       // Lazy-loaded modules - wrapped in Suspense
       case 'transaction-records':

@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Calendar,
   LayoutGrid,
   Receipt,
   MoreHorizontal,
   Users,
-  Plus
+  Plus,
+  MessageSquare
 } from 'lucide-react';
+import { useConnectConfig } from '../../hooks/useConnectConfig';
+import { useConnectSDK } from '../../hooks/useConnectSDK';
 
 interface BottomNavBarProps {
   activeModule: string;
@@ -19,6 +22,13 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
   // Mobile: Show Team and Tickets separately (no Front Desk)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
+  // Connect integration state
+  const { config: connectConfig } = useConnectConfig();
+  const { unreadCount } = useConnectSDK();
+
+  // Check if Messages should be visible (Connect enabled + conversations feature)
+  const showMessages = connectConfig.enabled && connectConfig.features.conversations;
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -28,23 +38,42 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mobile: Book, Team, Tickets, Pending, +New, More
-  // Desktop: Book, Front Desk, Pending, +New, Closed, More
+  // Mobile: Book, Team, Tickets, [Messages], Pending, +New, More
+  // Desktop: Book, Front Desk, [Messages], Pending, +New, More
   // Note: +New opens the global ticket panel overlay (not navigation)
-  const modules = isMobile ? [
-    { id: 'book', label: 'Book', icon: Calendar },
-    { id: 'team', label: 'Team', icon: Users },
-    { id: 'tickets', label: 'Tickets', icon: Receipt },
-    { id: 'pending', label: 'Pending', icon: LayoutGrid, badge: pendingCount > 0 ? pendingCount : undefined },
-    { id: 'new-ticket', label: '+New', icon: Plus, isNewButton: true },
-    { id: 'more', label: 'More', icon: MoreHorizontal },
-  ] : [
-    { id: 'book', label: 'Book', icon: Calendar },
-    { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
-    { id: 'pending', label: 'Pending', icon: Receipt, badge: pendingCount },
-    { id: 'new-ticket', label: '+New', icon: Plus, isNewButton: true },
-    { id: 'more', label: 'More', icon: MoreHorizontal },
-  ];
+  // Note: Messages only visible if Connect is enabled and conversations feature is on
+  const modules = useMemo(() => {
+    const mobileModules = [
+      { id: 'book', label: 'Book', icon: Calendar },
+      { id: 'team', label: 'Team', icon: Users },
+      { id: 'tickets', label: 'Tickets', icon: Receipt },
+      ...(showMessages ? [{
+        id: 'messages',
+        label: 'Messages',
+        icon: MessageSquare,
+        badge: unreadCount > 0 ? unreadCount : undefined
+      }] : []),
+      { id: 'pending', label: 'Pending', icon: LayoutGrid, badge: pendingCount > 0 ? pendingCount : undefined },
+      { id: 'new-ticket', label: '+New', icon: Plus, isNewButton: true },
+      { id: 'more', label: 'More', icon: MoreHorizontal },
+    ];
+
+    const desktopModules = [
+      { id: 'book', label: 'Book', icon: Calendar },
+      { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
+      ...(showMessages ? [{
+        id: 'messages',
+        label: 'Messages',
+        icon: MessageSquare,
+        badge: unreadCount > 0 ? unreadCount : undefined
+      }] : []),
+      { id: 'pending', label: 'Pending', icon: Receipt, badge: pendingCount },
+      { id: 'new-ticket', label: '+New', icon: Plus, isNewButton: true },
+      { id: 'more', label: 'More', icon: MoreHorizontal },
+    ];
+
+    return isMobile ? mobileModules : desktopModules;
+  }, [isMobile, showMessages, unreadCount, pendingCount]);
 
   return (
     <nav
