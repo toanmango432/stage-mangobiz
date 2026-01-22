@@ -694,6 +694,58 @@ export interface SegmentAnalytics {
   lastUpdated: string;
 }
 
+// ==================== LOYALTY PROGRAM CONFIGURATION ====================
+
+export type RewardType = 'discount' | 'free_service' | 'free_product' | 'percentage';
+
+/** Loyalty Program Configuration (Phase 4) */
+export interface LoyaltyProgram {
+  id: string;
+  storeId: string;
+  name: string;
+  pointsPerDollar: number;
+  eligibleCategories: string[]; // 'services', 'products', 'gift_cards'
+  includeTax: boolean;
+  pointsExpirationMonths?: number; // null = never expire
+  isActive: boolean;
+  syncStatus: SyncStatus;
+  syncVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Loyalty Tier Configuration (Phase 4) */
+export interface LoyaltyTierConfig {
+  id: string;
+  programId: string;
+  name: string;
+  thresholdPoints: number;
+  benefits: Record<string, any>; // Flexible JSONB benefits
+  tierOrder: number;
+  syncStatus: SyncStatus;
+  syncVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Loyalty Reward Configuration (Phase 4) */
+export interface LoyaltyReward {
+  id: string;
+  programId: string;
+  name: string;
+  description?: string;
+  pointsRequired: number;
+  rewardType: RewardType;
+  rewardValue: number;
+  eligibleItems: string[]; // Service/product IDs
+  expiresDays?: number; // null = never expires
+  isActive: boolean;
+  syncStatus: SyncStatus;
+  syncVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ==================== BULK OPERATIONS ====================
 
 export interface BulkOperationResult {
