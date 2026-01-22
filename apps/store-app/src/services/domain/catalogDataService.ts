@@ -23,12 +23,19 @@ import { servicesDB } from '@/db/database';
 
 // SUPABASE: Import Supabase tables and adapters for cloud sync
 import { serviceCategoriesTable } from '@/services/supabase/tables/serviceCategoriesTable';
+import { menuServicesTable } from '@/services/supabase/tables/menuServicesTable';
 import {
   toServiceCategory,
   toServiceCategories,
   toServiceCategoryInsert,
   toServiceCategoryUpdate,
 } from '@/services/supabase/adapters/serviceCategoryAdapter';
+import {
+  toMenuService,
+  toMenuServices,
+  toMenuServiceInsert,
+  toMenuServiceUpdate,
+} from '@/services/supabase/adapters/menuServiceAdapter';
 
 // Catalog operations from Dexie
 import {
@@ -58,7 +65,14 @@ import {
 } from '@/services/sqliteServices';
 
 import type { Service } from '@/types';
-import type { AddOnGroup, AddOnOption, ServiceCategory, CreateCategoryInput } from '@/types/catalog';
+import type {
+  AddOnGroup,
+  AddOnOption,
+  ServiceCategory,
+  CreateCategoryInput,
+  MenuService,
+  CreateMenuServiceInput,
+} from '@/types/catalog';
 
 // ==================== HELPERS ====================
 
@@ -349,55 +363,242 @@ export const serviceCategoriesService = {
 
 /**
  * Menu Services data operations
+ *
+ * Routing priority:
+ * 1. SQLite (if USE_SQLITE=true, Electron only)
+ * 2. Supabase (if USE_SUPABASE=true and online)
+ * 3. Dexie/IndexedDB (default local-first storage)
  */
 export const menuServicesService = {
-  async getAll(storeId: string, includeInactive = false) {
+  async getAll(storeId: string, includeInactive = false): Promise<MenuService[]> {
+    // SQLite path (Electron)
     if (USE_SQLITE) {
-      return sqliteMenuServicesDB.getAll(storeId, includeInactive);
+      const result = await sqliteMenuServicesDB.getAll(storeId, includeInactive);
+      return result as MenuService[];
     }
+
+    // Supabase path (online-only devices with opt-in)
+    if (USE_SUPABASE) {
+      const rows = await menuServicesTable.getByStoreId(storeId, includeInactive);
+      return toMenuServices(rows);
+    }
+
+    // Dexie path (default local-first)
     return menuServicesDB.getAll(storeId, includeInactive);
   },
 
-  async getById(id: string) {
+  async getById(id: string): Promise<MenuService | undefined> {
+    // SQLite path
     if (USE_SQLITE) {
-      return sqliteMenuServicesDB.getById(id);
+      const result = await sqliteMenuServicesDB.getById(id);
+      return result as MenuService | undefined;
     }
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const row = await menuServicesTable.getById(id);
+      return row ? toMenuService(row) : undefined;
+    }
+
+    // Dexie path
     return menuServicesDB.getById(id);
   },
 
-  async getByCategory(storeId: string, categoryId: string) {
+  async getByCategoryId(storeId: string, categoryId: string): Promise<MenuService[]> {
+    // SQLite path
     if (USE_SQLITE) {
-      return sqliteMenuServicesDB.getByCategory(storeId, categoryId);
+      const result = await sqliteMenuServicesDB.getByCategory(storeId, categoryId);
+      return result as MenuService[];
     }
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await menuServicesTable.getByCategoryId(categoryId, false);
+      return toMenuServices(rows);
+    }
+
+    // Dexie path
     return menuServicesDB.getByCategory(storeId, categoryId);
   },
 
-  async create(input: unknown, userId: string, storeId: string) {
+  async create(
+    input: CreateMenuServiceInput,
+    userId: string,
+    storeId: string,
+    tenantId?: string,
+    deviceId?: string
+  ): Promise<MenuService> {
+    // SQLite path
     if (USE_SQLITE) {
-      return sqliteMenuServicesDB.create(input);
+      const result = await sqliteMenuServicesDB.create(input);
+      return result as MenuService;
     }
-    return menuServicesDB.create(input as Parameters<typeof menuServicesDB.create>[0], userId, storeId);
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const effectiveTenantId = tenantId || getTenantId() || storeId;
+      const effectiveDeviceId = deviceId || getDeviceId();
+      const insertData = toMenuServiceInsert(input, storeId, effectiveTenantId, userId, effectiveDeviceId);
+      const row = await menuServicesTable.create(insertData);
+      return toMenuService(row);
+    }
+
+    // Dexie path
+    return menuServicesDB.create(input, userId, storeId);
   },
 
-  async update(id: string, updates: unknown, userId: string) {
+  async update(
+    id: string,
+    updates: Partial<MenuService>,
+    userId: string,
+    deviceId?: string
+  ): Promise<MenuService | undefined> {
+    // SQLite path
     if (USE_SQLITE) {
-      return sqliteMenuServicesDB.update(id, updates);
+      const result = await sqliteMenuServicesDB.update(id, updates);
+      return result as MenuService | undefined;
     }
-    return menuServicesDB.update(id, updates as Partial<unknown>, userId);
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const effectiveDeviceId = deviceId || getDeviceId();
+      const updateData = toMenuServiceUpdate(updates, userId, effectiveDeviceId);
+      const row = await menuServicesTable.update(id, updateData);
+      return toMenuService(row);
+    }
+
+    // Dexie path
+    return menuServicesDB.update(id, updates, userId);
   },
 
-  async delete(id: string) {
+  async delete(id: string, userId?: string, deviceId?: string): Promise<void> {
+    // SQLite path
     if (USE_SQLITE) {
       return sqliteMenuServicesDB.delete(id);
     }
+
+    // Supabase path (soft delete with tombstone)
+    if (USE_SUPABASE) {
+      const effectiveUserId = userId || getUserId();
+      const effectiveDeviceId = deviceId || getDeviceId();
+      return menuServicesTable.delete(id, effectiveUserId, effectiveDeviceId);
+    }
+
+    // Dexie path
     return menuServicesDB.delete(id);
   },
 
-  async search(storeId: string, query: string) {
+  async archive(id: string, userId?: string): Promise<MenuService | undefined> {
+    // SQLite path
     if (USE_SQLITE) {
-      return sqliteMenuServicesDB.search(storeId, query);
+      // SQLite doesn't have archive, just delete
+      await sqliteMenuServicesDB.delete(id);
+      return undefined;
     }
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const effectiveUserId = userId || getUserId();
+      const row = await menuServicesTable.archive(id, effectiveUserId);
+      return toMenuService(row);
+    }
+
+    // Dexie path
+    return menuServicesDB.archive(id, userId || '');
+  },
+
+  async restore(id: string, userId?: string): Promise<MenuService | undefined> {
+    // SQLite path
+    if (USE_SQLITE) {
+      // SQLite doesn't have restore
+      return undefined;
+    }
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const row = await menuServicesTable.restore(id);
+      return toMenuService(row);
+    }
+
+    // Dexie path
+    const effectiveUserId = userId || getUserId();
+    return menuServicesDB.restore(id, effectiveUserId);
+  },
+
+  async search(storeId: string, query: string, limit = 50): Promise<MenuService[]> {
+    // SQLite path
+    if (USE_SQLITE) {
+      const result = await sqliteMenuServicesDB.search(storeId, query);
+      return result as MenuService[];
+    }
+
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await menuServicesTable.search(storeId, query, limit);
+      return toMenuServices(rows);
+    }
+
+    // Dexie path
     return menuServicesDB.search(storeId, query);
+  },
+
+  /**
+   * Get services updated since a specific time (for sync)
+   */
+  async getUpdatedSince(storeId: string, since: Date): Promise<MenuService[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await menuServicesTable.getUpdatedSince(storeId, since);
+      return toMenuServices(rows);
+    }
+
+    // Fallback: not available in SQLite/Dexie, return empty
+    return [];
+  },
+
+  /**
+   * Get services available for online booking
+   */
+  async getOnlineBookingServices(storeId: string): Promise<MenuService[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await menuServicesTable.getOnlineBookingServices(storeId);
+      return toMenuServices(rows);
+    }
+
+    // Fallback: filter from getAll
+    const all = await this.getAll(storeId, false);
+    return all.filter(s => s.onlineBookingEnabled && (s.bookingAvailability === 'online' || s.bookingAvailability === 'both'));
+  },
+
+  /**
+   * Get services with variants (hasVariants = true)
+   */
+  async getServicesWithVariants(storeId: string): Promise<MenuService[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await menuServicesTable.getServicesWithVariants(storeId);
+      return toMenuServices(rows);
+    }
+
+    // Fallback: filter from getAll
+    const all = await this.getAll(storeId, false);
+    return all.filter(s => s.hasVariants);
+  },
+
+  /**
+   * Get archived services only
+   */
+  async getArchivedServices(storeId: string): Promise<MenuService[]> {
+    // Supabase path
+    if (USE_SUPABASE) {
+      const rows = await menuServicesTable.getArchivedServices(storeId);
+      return toMenuServices(rows);
+    }
+
+    // Fallback: filter from getAll (includes archived)
+    const all = await this.getAll(storeId, true);
+    return all.filter(s => s.status === 'archived');
   },
 };
 
