@@ -510,7 +510,8 @@ export const productsService = {
 
   async getByBarcode(storeId: string, barcode: string) {
     if (USE_SQLITE) {
-      return sqliteProductsDB.getByBarcode(barcode);
+      // SQLite: storeId filter for multi-tenant isolation
+      return sqliteProductsDB.getByBarcode(storeId, barcode);
     }
     // Dexie API: getByBarcode(storeId, barcode)
     return productsDB.getByBarcode(storeId, barcode);
