@@ -82,9 +82,11 @@ export const entityTable = {
 - [x] US-011: Supabase types added ✓
 - [x] US-012: serviceCategoryAdapter.ts created ✓
 - [x] US-013: menuServiceAdapter.ts created ✓
-- [ ] All adapters created and exported (US-014 to US-016)
+- [x] US-014: serviceVariantAdapter.ts and servicePackageAdapter.ts created ✓
+- [x] US-015: addOnGroupAdapter.ts and addOnOptionAdapter.ts created ✓
+- [x] US-016: Remaining adapters (staffServiceAssignment, catalogSettings, bookingSequence, product, giftCardDenomination, giftCardSettings) ✓
 - [ ] All table operations created and exported (US-017 to US-021)
-- [ ] `pnpm run typecheck` passes
+- [x] `pnpm run typecheck` passes ✓
 
 **Review Story (US-P1R):**
 - [ ] Explore agent analyzes all Phase 1 files
@@ -94,7 +96,7 @@ export const entityTable = {
 **Fix Story (US-P1F):**
 - [ ] All Phase 1 Review Issues resolved
 
-- Status: In Progress (11/23 complete)
+- Status: In Progress (16/23 complete)
 
 ### Phase 2: Data Layer (US-022 to US-030 + US-P2R + US-P2F) - 11 stories
 **Implementation Stories (9):**
@@ -874,5 +876,117 @@ Commit: e80c3a1
 - Pattern #8: JSONB Type Cast - When assigning TypeScript interfaces to Supabase Json fields, use `as unknown as Json` cast to bridge the type mismatch
 
 **Next story suggestion:** US-015 (Create addOnGroupAdapter.ts and addOnOptionAdapter.ts) - Same folder, continues adapter work
+
+---
+
+## 2026-01-21 - US-015: Create addOnGroupAdapter.ts and addOnOptionAdapter.ts
+Commit: f57fe8f
+
+**Why this story?** Highest priority incomplete story (priority 15). Continues the adapter pattern work from US-012 through US-014, same folder (adapters are fresh in context).
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/adapters/addOnGroupAdapter.ts` (NEW):
+   - Created `toAddOnGroup(row)`: Converts AddOnGroupRow → AddOnGroup
+   - Created `toAddOnGroups(rows)`: Batch conversion
+   - Created `toAddOnGroupInsert(group, storeId, tenantId, userId?, deviceId?)`: App type → Supabase insert
+   - Created `toAddOnGroupUpdate(updates, userId?, deviceId?)`: Partial updates → Supabase update
+   - Handles snake_case ↔ camelCase conversion for all fields
+   - Handles TEXT[] → string[] for applicable_category_ids, applicable_service_ids (direct mapping)
+   - Handles selection rules: selectionMode, minSelections, maxSelections, isRequired
+
+2. `apps/store-app/src/services/supabase/adapters/addOnOptionAdapter.ts` (NEW):
+   - Created `toAddOnOption(row)`: Converts AddOnOptionRow → AddOnOption
+   - Created `toAddOnOptions(rows)`: Batch conversion
+   - Created `toAddOnOptionInsert(option, storeId, tenantId, userId?, deviceId?)`: App type → Supabase insert
+   - Created `toAddOnOptionUpdate(updates, userId?, deviceId?)`: Partial updates → Supabase update
+   - Handles foreign key: groupId ↔ group_id
+   - Handles pricing and duration fields
+
+3. `apps/store-app/src/services/supabase/adapters/index.ts`:
+   - Added AddOnGroup adapter exports: toAddOnGroup, toAddOnGroups, toAddOnGroupInsert, toAddOnGroupUpdate
+   - Added AddOnOption adapter exports: toAddOnOption, toAddOnOptions, toAddOnOptionInsert, toAddOnOptionUpdate
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- TEXT[] in PostgreSQL maps directly to string[] in TypeScript - no special parsing needed
+- Add-on types follow the same adapter pattern as other catalog types
+- Both adapters handle the full sync metadata (vectorClock, version, etc.) consistently
+
+**Next story suggestion:** US-016 (Create remaining catalog adapters) - Same folder, completes all adapter work for Phase 1
+
+---
+
+## 2026-01-21 - US-016: Create remaining catalog adapters
+Commit: 77579fd
+
+**Why this story?** Highest priority incomplete story (priority 16). Completes all adapter work for Phase 1, same folder as US-012-015 (adapters are fresh in context).
+
+**Changes:**
+1. `apps/store-app/src/services/supabase/adapters/staffServiceAssignmentAdapter.ts` (NEW):
+   - Created `toStaffServiceAssignment(row)`: Converts StaffServiceAssignmentRow → StaffServiceAssignment
+   - Created `toStaffServiceAssignments(rows)`: Batch conversion
+   - Created `toStaffServiceAssignmentInsert(assignment, storeId, tenantId, userId?, deviceId?)`
+   - Created `toStaffServiceAssignmentUpdate(updates, userId?, deviceId?)`
+   - Handles customPrice, customDuration, customCommissionRate optional fields
+
+2. `apps/store-app/src/services/supabase/adapters/catalogSettingsAdapter.ts` (NEW):
+   - Created `toCatalogSettings(row)`: Converts CatalogSettingsRow → CatalogSettings
+   - Created `toCatalogSettingsInsert(settings, storeId, tenantId, userId?, deviceId?)`
+   - Created `toCatalogSettingsUpdate(updates, userId?, deviceId?)`
+   - Handles all feature toggles (enablePackages, enableAddOns, enableVariants, etc.)
+   - Handles ExtraTimeType enum conversion
+
+3. `apps/store-app/src/services/supabase/adapters/bookingSequenceAdapter.ts` (NEW):
+   - Created `toBookingSequence(row)`: Converts BookingSequenceRow → BookingSequence
+   - Created `toBookingSequences(rows)`: Batch conversion
+   - Created `toBookingSequenceInsert(sequence, storeId, tenantId, userId?, deviceId?)`
+   - Created `toBookingSequenceUpdate(updates, userId?, deviceId?)`
+   - Handles JSONB → string[] for serviceOrder array
+
+4. `apps/store-app/src/services/supabase/adapters/productAdapter.ts` (NEW):
+   - Created `toProduct(row)`: Converts CatalogProductRow → Product
+   - Created `toProducts(rows)`: Batch conversion
+   - Created `toProductInsert(product, storeId, tenantId, userId?, deviceId?)`
+   - Created `toProductUpdate(updates, userId?, deviceId?)`
+   - Handles all inventory fields (sku, barcode, pricing, stock levels, supplier info)
+
+5. `apps/store-app/src/services/supabase/adapters/giftCardDenominationAdapter.ts` (NEW):
+   - Created `toGiftCardDenomination(row)`: Converts CatalogGiftCardDenominationRow → GiftCardDenomination
+   - Created `toGiftCardDenominations(rows)`: Batch conversion
+   - Created `toGiftCardDenominationInsert(denomination, storeId, tenantId, userId?, deviceId?)`
+   - Created `toGiftCardDenominationUpdate(updates, userId?, deviceId?)`
+   - Handles simple fields: amount, label, isActive, displayOrder
+
+6. `apps/store-app/src/services/supabase/adapters/giftCardSettingsAdapter.ts` (NEW):
+   - Created `toGiftCardSettings(row)`: Converts CatalogGiftCardSettingsRow → GiftCardSettings
+   - Created `toGiftCardSettingsInsert(settings, storeId, tenantId, userId?, deviceId?)`
+   - Created `toGiftCardSettingsUpdate(updates, userId?, deviceId?)`
+   - Handles custom amount limits, expiration, and online settings
+
+7. `apps/store-app/src/services/supabase/adapters/index.ts`:
+   - Added StaffServiceAssignment adapter exports
+   - Added CatalogSettings adapter exports
+   - Added BookingSequence adapter exports
+   - Added Product adapter exports
+   - Added GiftCardDenomination adapter exports
+   - Added GiftCardSettings adapter exports
+
+**Verification:**
+- `pnpm run typecheck` passes ✓
+- `pnpm test --run` - 3205 passed, 13 failed (all pre-existing failures unrelated to catalog module)
+
+**Learnings:**
+- All 6 adapters follow the same established pattern from US-012 through US-015
+- Product type comes from @/types/inventory (not catalog.ts)
+- GiftCard tables in Supabase are prefixed with `catalog_` to avoid collision with existing gift_cards tables
+- BookingSequence serviceOrder uses JSONB array - cast to `unknown as Json` when inserting
+
+**Patterns to sync:**
+- None new - all adapters follow Pattern #6 (Supabase Type Convention) and Pattern #8 (JSONB Type Cast)
+
+**Next story suggestion:** US-017 (Create serviceCategoriesTable.ts) - Next phase: Supabase CRUD operations for tables
 
 ---

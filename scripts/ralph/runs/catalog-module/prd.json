@@ -296,7 +296,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Arrays in Postgres come back as string[] - direct mapping."
     },
     {
@@ -315,7 +315,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Complete all adapters. Export from index.ts for easy imports."
     },
     {
