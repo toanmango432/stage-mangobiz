@@ -360,12 +360,20 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
 
       // Check if we should prompt for biometric enrollment - wrapped in try/catch
       try {
+        // Check biometric availability directly to avoid race condition with state
+        // (biometricCapability state may still be null if useEffect hasn't completed)
+        const currentBiometricCapability = biometricCapability ?? (await biometricService.isAvailable());
+
         const shouldPromptBiometric =
-          biometricCapability?.available &&
+          currentBiometricCapability.available &&
           !(await biometricService.hasCredential(memberSessionData.memberId)) &&
           !hasDismissedBiometricEnrollment(memberSessionData.memberId);
 
         if (shouldPromptBiometric) {
+          // Update state for modal to use
+          if (!biometricCapability) {
+            setBiometricCapability(currentBiometricCapability);
+          }
           setBiometricEnrollmentMember({
             memberId: memberSessionData.memberId,
             memberName: firstName || memberSessionData.memberName,
@@ -587,17 +595,29 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     setPinSetupMember(null);
 
     // Check for biometric enrollment after PIN setup
-    if (member && biometricCapability?.available) {
-      const hasCredential = await biometricService.hasCredential(member.memberId);
-      const hasDismissed = hasDismissedBiometricEnrollment(member.memberId);
+    if (member) {
+      try {
+        // Check biometric availability directly to avoid race condition with state
+        const currentBiometricCapability = biometricCapability ?? (await biometricService.isAvailable());
 
-      if (!hasCredential && !hasDismissed) {
-        setBiometricEnrollmentMember({
-          memberId: member.memberId,
-          memberName: member.name,
-        });
-        setShowBiometricEnrollment(true);
-        return;
+        if (currentBiometricCapability.available) {
+          const hasCredential = await biometricService.hasCredential(member.memberId);
+          const hasDismissed = hasDismissedBiometricEnrollment(member.memberId);
+
+          if (!hasCredential && !hasDismissed) {
+            if (!biometricCapability) {
+              setBiometricCapability(currentBiometricCapability);
+            }
+            setBiometricEnrollmentMember({
+              memberId: member.memberId,
+              memberName: member.name,
+            });
+            setShowBiometricEnrollment(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check biometric status after PIN setup:', err);
       }
     }
 
@@ -611,17 +631,29 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     setPinSetupMember(null);
 
     // Check for biometric enrollment after PIN skip
-    if (member && biometricCapability?.available) {
-      const hasCredential = await biometricService.hasCredential(member.memberId);
-      const hasDismissed = hasDismissedBiometricEnrollment(member.memberId);
+    if (member) {
+      try {
+        // Check biometric availability directly to avoid race condition with state
+        const currentBiometricCapability = biometricCapability ?? (await biometricService.isAvailable());
 
-      if (!hasCredential && !hasDismissed) {
-        setBiometricEnrollmentMember({
-          memberId: member.memberId,
-          memberName: member.name,
-        });
-        setShowBiometricEnrollment(true);
-        return;
+        if (currentBiometricCapability.available) {
+          const hasCredential = await biometricService.hasCredential(member.memberId);
+          const hasDismissed = hasDismissedBiometricEnrollment(member.memberId);
+
+          if (!hasCredential && !hasDismissed) {
+            if (!biometricCapability) {
+              setBiometricCapability(currentBiometricCapability);
+            }
+            setBiometricEnrollmentMember({
+              memberId: member.memberId,
+              memberName: member.name,
+            });
+            setShowBiometricEnrollment(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check biometric status after PIN skip:', err);
       }
     }
 
@@ -775,8 +807,20 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
       const cachedSession = memberAuthService.getCachedMemberSession();
 
       if (!cachedSession || cachedSession.memberId !== lastBiometricUserId) {
-        // No cached session, need to get fresh session from Supabase
-        setError('Session expired. Please log in with password.');
+        // No cached session - this happens when:
+        // 1. User logged out (session cleared but biometric credentials remain)
+        // 2. Session expired beyond grace period
+        // 3. Different user's credentials are stored
+
+        // Clear the stale biometric credentials so the button won't appear anymore
+        await biometricService.removeCredential(lastBiometricUserId);
+
+        // Clear the last biometric user so the Touch ID button won't show
+        biometricService.clearLastBiometricUser();
+        setLastBiometricUserId(null);
+        setBiometricEnabled(false);
+
+        setError('Your session has ended. Please log in with your password to re-enable Touch ID.');
         return;
       }
 
@@ -866,6 +910,19 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
       }
 
       dispatch(setAuthStatus('active'));
+
+      // Update storeAuthManager's internal state so isLoginRequired() returns false
+      storeAuthManager.setActiveSession(
+        {
+          storeId: primaryStore.storeId,
+          storeName: primaryStore.storeName,
+          storeLoginId: primaryStore.storeLoginId,
+          tenantId: primaryStore.tenantId,
+          tier: primaryStore.tier,
+          timezone: primaryStore.timezone,
+        },
+        memberSessionData
+      );
 
       memberAuthService.startGraceChecker();
 

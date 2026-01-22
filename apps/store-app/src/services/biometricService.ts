@@ -274,6 +274,17 @@ export const biometricService = {
       localStorage.setItem(WEB_LAST_USER_KEY, userId);
     }
   },
+
+  /**
+   * Clear the last biometric user (used when credentials become invalid)
+   */
+  clearLastBiometricUser(): void {
+    if (deviceManager.isNative()) {
+      localStorage.removeItem(`${NATIVE_CREDENTIAL_KEY}user`);
+    } else {
+      localStorage.removeItem(WEB_LAST_USER_KEY);
+    }
+  },
 };
 
 export default biometricService;

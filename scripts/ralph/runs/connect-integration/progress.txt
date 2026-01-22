@@ -16,4 +16,57 @@
 
 ## Progress Log
 
-(No iterations completed yet)
+## 2026-01-21 - US-003: Create useConnectConfig hook
+Commit: 2001546869307a9a24d59190fcfd39ebd268257d
+
+**Why this story?** US-003 has the lowest priority among unblocked stories (priority 3 vs US-004's priority 4), and its dependencies (US-001, US-002) were completed in previous iterations. Completing US-003 unblocks both US-005 and US-006.
+
+**Changes:**
+- apps/store-app/src/hooks/useConnectConfig.ts:1-108 (NEW): Created hook with config, loading, error, updateConfig, refresh
+
+**Learnings:**
+- Used selectStoreId from authSlice to get storeId (consistent with pattern in useTicketsCompat.ts, BookPage.tsx, etc.)
+- Followed useSystemConfig.ts pattern for hook structure with useCallback for stable references
+- Returns DEFAULT_CONNECT_CONFIG while loading (not null) to avoid null checks in consumers
+- Used storeService.patchConnectConfig for partial updates which handles merging
+
+**Pre-existing test failures documented:**
+- 21 test files failed (14 individual tests) - all MQTT/integration related, not from this change
+
+**Next story suggestion:** US-004 (JWT Edge Function) because it has no explicit dependencies and is needed by US-005 along with the just-completed US-003.
+
+---
+
+## 2026-01-21 - US-004: Create JWT token generator Edge Function
+Commit: 7be2e2844b5c3e73a6d7bdf8cec0a58c75e3d0c3
+
+**Why this story?** US-004 was the only unblocked story - it has no dependencies and US-005 depends on it. This follows the previous iteration's suggestion.
+
+**Changes:**
+- supabase/functions/generate-connect-token/index.ts:1-237 (NEW): Created Edge Function for JWT generation
+
+**Implementation Details:**
+- CORS headers follow exact pattern from auth/index.ts (lines 87-91)
+- POST-only endpoint, returns 405 for other methods
+- Validates Authorization header by verifying Supabase user JWT via supabase.auth.getUser()
+- Extracts: storeId, tenantId, memberId, memberEmail, memberName, role, permissions
+- Generates JWT with HMAC-SHA256 using MANGO_CONNECT_JWT_SECRET env var
+- Token expires in 1 hour (3600 seconds)
+- Returns { token: string, expiresAt: number }
+- Error responses use jsonResponse({ error: message }, statusCode) pattern
+- Logs errors with prefix [generate-connect-token]
+
+**Learnings:**
+- Used crypto.subtle.importKey and crypto.subtle.sign for HMAC-SHA256 (Web Crypto API)
+- Base64url encoding requires removing padding and replacing +/ with -_
+- Supabase Edge Functions run on Deno, use Deno.env.get() for env vars
+- Token payload includes standard JWT claims (iss, aud, sub, iat, exp) plus custom fields
+
+**Pre-existing issues documented:**
+- TypeScript monorepo typecheck has TS6310 errors (project reference configuration)
+- eslint command not found in some packages
+- Tests have MQTT/integration failures (same as previous iteration)
+
+**Next story suggestion:** US-005 (useConnectToken hook) because US-004 is now complete and US-005 depends on both US-003 ✅ and US-004 ✅, making it the next unblocked story in the dependency chain.
+
+---

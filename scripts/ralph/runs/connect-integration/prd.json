@@ -63,7 +63,7 @@
       "notes": "Follow pattern from apps/store-app/src/hooks/useSystemConfig.ts (174 lines). Use useCallback for stable function references. Get storeId from auth context or Redux store.",
       "dependencies": ["US-001", "US-002"],
       "priority": 3,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-004",
@@ -85,7 +85,7 @@
       ],
       "notes": "Follow structure from supabase/functions/auth/index.ts (567 lines). Use crypto.subtle.importKey and crypto.subtle.sign for HMAC-SHA256. Base64url encode JWT parts (header.payload.signature). Log errors with prefix [generate-connect-token].",
       "priority": 4,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-005",
