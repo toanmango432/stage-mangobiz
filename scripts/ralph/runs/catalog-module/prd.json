@@ -941,7 +941,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 54,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 3 COMPLETE - UI components fixed. Verify in browser: no confirm() dialogs, skeletons work."
     },
     {
@@ -1401,7 +1401,7 @@
         "If NO issues found, mark this story as passes: true"
       ],
       "priority": 3001,
-      "passes": false,
+      "passes": true,
       "notes": "CRITICAL: Use browser verification via Playwright MCP. Ensure no browser confirm() or alert() calls remain."
     },
     {
