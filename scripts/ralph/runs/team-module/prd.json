@@ -285,7 +285,7 @@
         "Document EVERY issue found, no matter how small"
       ],
       "priority": 10,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-P1X",
