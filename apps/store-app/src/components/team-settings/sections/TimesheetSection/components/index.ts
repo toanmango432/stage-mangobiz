@@ -7,3 +7,4 @@ export { AttendanceAlertsSection } from './AttendanceAlertsSection';
 export { TimesheetReportsSection } from './TimesheetReportsSection';
 export { TimesheetDetailModal } from './TimesheetDetailModal';
 export { ManualTimesheetModal } from './ManualTimesheetModal';
+export { DisputeTimesheetModal } from './DisputeTimesheetModal';

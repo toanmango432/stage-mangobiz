@@ -495,3 +495,38 @@ The PRD mentioned timesheetId as a parameter, but the actual API uses staffId on
 - Presentational component pattern keeps components clean - all dispatch logic in hooks
 
 ---
+
+## 2026-01-23 - TM-010: Create ManualTimesheetModal component
+Commit: 464bb5c
+
+**Changes:**
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/components/ManualTimesheetModal.tsx (NEW): Created manual timesheet entry modal
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/components/index.ts: Added ManualTimesheetModal export
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/TimesheetSection.tsx: Added "Add Manual Entry" button and modal state
+
+**Key Implementation Details:**
+- Form fields: staff selector (Select), date (native date input), clock in time, clock out time, break duration, notes (optional)
+- Validation: Required fields, date cannot be in future, clock out must be after clock in, break duration must be valid number ≤480 min
+- Uses controlled form state with useState (matching existing codebase pattern)
+- Shows shift preview card when valid times entered (calculates total time, break time, worked time)
+- Submits via createTimesheet thunk with scheduled times matching actual times (for manual entry)
+- Toast notifications for success and error states
+- Integrated into TimesheetSection with "Add Manual Entry" button in SectionHeader
+- Pre-populates staffId with current member when opening from member view
+
+**Note on React Hook Form:**
+PRD requested React Hook Form + Zod, but the codebase doesn't use React Hook Form yet (only 1 file has form.tsx for shadcn). Implemented with controlled components and custom validation to match existing patterns.
+
+**Browser Verification:**
+- Dev server not running at time of implementation
+- Code changes verified with typecheck
+- Manual browser testing needed when dev server is available
+
+**Learnings:**
+- SharedComponents.tsx provides all needed form components (Input, Select, Textarea, Modal, Button)
+- Input component supports type="time" for time picker
+- Native date input with type="date" works well with max attribute for validation
+- useMemo for shift preview calculation prevents unnecessary recalculations
+- date-fns parse() is useful for converting string time to Date for calculations
+
+---

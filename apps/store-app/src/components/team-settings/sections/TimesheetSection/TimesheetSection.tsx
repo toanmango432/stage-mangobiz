@@ -25,6 +25,7 @@ import {
   TimesheetReportsSection,
   TimesheetDetailModal,
   ManualTimesheetModal,
+  DisputeTimesheetModal,
 } from './components';
 
 // Hooks
@@ -42,6 +43,7 @@ export const TimesheetSection: React.FC<TimesheetSectionProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const [selectedTimesheetId, setSelectedTimesheetId] = useState<string | null>(null);
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
+  const [disputeTimesheetId, setDisputeTimesheetId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('staff');
 
   // Use custom hook for clock in/out and break actions
@@ -208,6 +210,19 @@ export const TimesheetSection: React.FC<TimesheetSectionProps> = ({
           onClose={() => setShowManualEntryModal(false)}
         />
       )}
+
+      {/* Dispute Timesheet Modal */}
+      {disputeTimesheetId && (() => {
+        const disputeTimesheet = sortedTimesheets.find((ts) => ts.id === disputeTimesheetId);
+        return disputeTimesheet ? (
+          <DisputeTimesheetModal
+            timesheet={disputeTimesheet}
+            memberName={memberName}
+            storeId={storeId}
+            onClose={() => setDisputeTimesheetId(null)}
+          />
+        ) : null;
+      })()}
     </div>
   );
 };

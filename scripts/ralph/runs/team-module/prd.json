@@ -390,7 +390,7 @@
         "Import UI components from @/components/ui"
       ],
       "priority": 14,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-011",
@@ -416,7 +416,7 @@
         "Manager will see disputes in separate review section"
       ],
       "priority": 15,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-012",
