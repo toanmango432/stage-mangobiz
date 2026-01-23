@@ -38,3 +38,5 @@ export {
 } from './scheduleDataService';
 export { syncQueueService } from './syncDataService';
 export { teamService } from './teamDataService';
+export { timesheetService } from './timesheetDataService';
+export { payrollService } from './payrollDataService';
