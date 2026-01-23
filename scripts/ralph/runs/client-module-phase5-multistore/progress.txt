@@ -40,3 +40,61 @@
 
 ## Iteration Log
 
+=================================================================
+Iteration 1 - US-052: Add multi-store types
+=================================================================
+
+Story: US-052 - Add multi-store types
+Priority: 3
+Status: COMPLETE ✅
+
+## What Was Done
+
+Added TypeScript interfaces for multi-store client sharing feature to apps/store-app/src/types/client.ts:
+
+1. **MangoIdentity** (lines 925-943)
+   - Central identity record for cross-brand client sharing
+   - Contains hashed phone/email (no cleartext PII)
+   - Tracks ecosystem opt-in consent
+   - Client-controlled sharing preferences
+
+2. **LinkedStore** (lines 949-967)
+   - Represents stores linked to a client's identity
+   - Tracks local client ID in each store
+   - Records link metadata (when, how, access level)
+
+3. **ProfileLinkRequest** (lines 974-999)
+   - Manages profile link requests between stores
+   - 24-hour expiration with approval workflow
+   - Status lifecycle: pending → approved/rejected/expired
+
+4. **LinkRequestStatus** (line 897)
+   - Union type for request statuses
+
+5. **SharingPreferences** (lines 903-918)
+   - Client-controlled data sharing settings
+   - Safety data always shared (required for compliance)
+
+6. **EcosystemConsentLog** (lines 1005-1019)
+   - Immutable audit log for GDPR compliance
+   - Tracks all consent actions with IP/user agent
+
+7. **EcosystemLookupResult** (lines 1025-1037)
+   - API response type for ecosystem lookups
+
+## Files Modified
+- apps/store-app/src/types/client.ts (added lines 891-1038)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-052 complete)
+
+## Quality Checks
+✅ All interfaces follow MULTI_STORE_CLIENT_SPEC.md
+✅ No 'as any' casts used
+✅ Proper TypeScript types with JSDoc comments
+✅ Follows existing code patterns
+
+## Commit
+967ba8e - feat: [client-module-phase5-multistore/US-052] Add multi-store types
+
+## Next Story
+US-053 (priority 4): Create identity-lookup Edge Function
+
