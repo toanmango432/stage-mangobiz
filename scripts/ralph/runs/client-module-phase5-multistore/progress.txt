@@ -310,3 +310,78 @@ US-057 (priority 8): Create multi-store thunks
 - Remaining: 13
 - Progress: 35%
 
+
+=================================================================
+Iteration 4 - US-057: Create multi-store thunks
+=================================================================
+
+Story: US-057 - Create multi-store thunks
+Priority: 8
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created multiStoreThunks.ts with 6 Redux thunks:
+
+1. **lookupEcosystemIdentity**
+   - Accepts phone or email
+   - Hashes identifiers using identityHash utils
+   - Calls identity-lookup Edge Function
+   - Returns EcosystemLookupResult
+
+2. **requestProfileLink**
+   - Gets store info from Redux state
+   - Calls identity-request-link Edge Function
+   - Returns requestId and expiresAt
+
+3. **respondToLinkRequest**
+   - Accepts requestId, action (approve/reject), localClientId
+   - Gets current staff ID from auth state
+   - Calls identity-approve-link Edge Function
+   - Returns success and linkId (if approved)
+
+4. **fetchLinkedStores**
+   - Fetches client's mango_identity_id
+   - Queries linked_stores table
+   - Converts snake_case to camelCase
+   - Returns LinkedStore array
+
+5. **fetchSafetyProfile**
+   - Calls identity-sync-safety Edge Function
+   - Returns unified SafetyData across all linked stores
+
+6. **optIntoEcosystem**
+   - Creates mango_identity with hashed identifiers
+   - Creates linked_stores record for current store
+   - Updates client.mango_identity_id
+   - Logs consent action to ecosystem_consent_log
+
+## Files Created/Modified
+- apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts (426 lines)
+- apps/store-app/src/store/slices/clientsSlice/index.ts (added export)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-057 complete)
+
+## Quality Checks
+✅ Follows existing thunk patterns (gdprThunks, thunks.ts)
+✅ Proper TypeScript types with generics
+✅ Uses rejectWithValue for error handling
+✅ Accesses Redux state via getState()
+✅ Hashes identifiers before Edge Function calls
+✅ Proper imports and exports
+
+## Commit
+828e62c - feat: [client-module-phase5-multistore/US-057] Create multi-store thunks
+
+## Next Story
+US-058 (priority 9): Create EcosystemLookupPrompt component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 8 (US-050 through US-057)
+- Remaining: 12
+- Progress: 40%
+
+## MILESTONE: Backend Infrastructure Complete!
+All backend work is done (database, Edge Functions, thunks).
+Remaining work is frontend UI components and integration.
+
