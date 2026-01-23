@@ -10,6 +10,32 @@ import { renderHook } from '@testing-library/react';
 import type { Client, BlockReason } from '../../../types/client';
 import type { SyncStatus } from '../../../types/common';
 
+// Mock Supabase client to avoid env var requirement in tests
+vi.mock('../../../services/supabase/client', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    })),
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+    },
+  },
+  getSupabase: vi.fn(),
+}));
+
+// Mock audit logger that imports supabase
+vi.mock('../../../services/audit/auditLogger', () => ({
+  auditLogger: {
+    log: vi.fn(),
+    logClientAction: vi.fn(),
+  },
+}));
+
 // Mock the database modules
 vi.mock('../../../db/database', () => ({
   clientsDB: {

@@ -505,19 +505,17 @@ export interface LoyaltyRewardConfig {
   id: string;
   programId: string;
   name: string;
+  description?: string;
   pointsRequired: number;
   rewardType: RewardType;
   rewardValue: number; // dollar amount or percentage
-  eligibleItems: {
-    serviceIds?: string[];
-    productIds?: string[];
-    categoryIds?: string[];
-  };
-  expiresDays: number | null; // null = never expires
+  eligibleItems: string[]; // Service/product IDs eligible for this reward
+  expiresDays?: number; // undefined = never expires
   isActive: boolean;
+  syncStatus: SyncStatus;
+  syncVersion?: number;
   createdAt: string;
   updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
 // ==================== MAIN CLIENT INTERFACE ====================
