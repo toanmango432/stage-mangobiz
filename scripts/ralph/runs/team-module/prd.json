@@ -135,7 +135,7 @@
         "Export pattern: export const dataService = { ...existing, team: teamService, timesheets: timesheetService, payRuns: payrollService }"
       ],
       "priority": 4,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-005",

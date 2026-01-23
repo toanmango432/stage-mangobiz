@@ -3,9 +3,13 @@
  *
  * Extracted from teamSlice.ts to reduce file size.
  * All team-related async operations (fetch, save, archive, delete).
+ *
+ * Uses dataService for unified data access - handles routing to
+ * Supabase/IndexedDB based on device mode internally.
  */
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
+import { dataService } from '@/services/dataService';
 import type { RootState } from '../../index';
 import type {
   TeamMemberSettings,
@@ -52,54 +56,19 @@ export const optimisticActions = {
 
 /**
  * Fetch all team members
- * Priority: Supabase (source of truth) -> IndexedDB (offline fallback)
+ * Uses dataService which handles Supabase/IndexedDB routing internally
  */
 export const fetchTeamMembers = createAsyncThunk(
   'team/fetchAll',
-  async (storeId: string | undefined, { rejectWithValue }) => {
-    const effectiveStoreId = storeId || 'default-store';
-
+  async (_storeId: string | undefined, { rejectWithValue }) => {
+    // Note: storeId parameter is ignored - dataService.team.getAll() uses
+    // the current store from Redux auth state internally
     try {
-      // Try Supabase first (source of truth for online operations)
-      const { fetchSupabaseMembers } = await import('../../../services/supabase/memberService');
-      const supabaseMembers = await fetchSupabaseMembers(effectiveStoreId);
-
-      if (supabaseMembers && supabaseMembers.length > 0) {
-        console.log('[teamSlice] Fetched', supabaseMembers.length, 'members from Supabase');
-
-        // Sync to IndexedDB for offline access
-        try {
-          const { teamDB } = await import('../../../db/teamOperations');
-          for (const member of supabaseMembers) {
-            await teamDB.upsertMember(member, 'system', 'system');
-          }
-          console.log('[teamSlice] Synced members to IndexedDB');
-        } catch (syncError) {
-          console.warn('[teamSlice] Failed to sync to IndexedDB:', syncError);
-          // Continue - Supabase data is still valid
-        }
-
-        return supabaseMembers;
-      }
-
-      // Fallback to IndexedDB if Supabase returns empty (might be offline)
-      console.log('[teamSlice] No Supabase data, falling back to IndexedDB');
-      const { teamDB } = await import('../../../db/teamOperations');
-      const members = await teamDB.getAllMembers(effectiveStoreId);
+      const members = await dataService.team.getAll();
+      console.log('[teamThunks] Fetched', members.length, 'members via dataService');
       return members;
     } catch (error) {
-      // If Supabase fails, try IndexedDB as offline fallback
-      console.warn('[teamSlice] Supabase failed, trying IndexedDB:', error);
-      try {
-        const { teamDB } = await import('../../../db/teamOperations');
-        const members = await teamDB.getAllMembers(effectiveStoreId);
-        if (members && members.length > 0) {
-          console.log('[teamSlice] Using IndexedDB fallback:', members.length, 'members');
-          return members;
-        }
-      } catch (indexedDBError) {
-        console.error('[teamSlice] IndexedDB also failed:', indexedDBError);
-      }
+      console.error('[teamThunks] Failed to fetch team members:', error);
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch team members');
     }
   }
@@ -112,8 +81,7 @@ export const fetchTeamMember = createAsyncThunk(
   'team/fetchOne',
   async (memberId: string, { rejectWithValue }) => {
     try {
-      const { teamDB } = await import('../../../db/teamOperations');
-      const member = await teamDB.getActiveMemberById(memberId);
+      const member = await dataService.team.getById(memberId);
       if (!member) {
         return rejectWithValue('Team member not found');
       }
@@ -135,7 +103,7 @@ export const fetchTeamMember = createAsyncThunk(
 export const saveTeamMember = createAsyncThunk(
   'team/save',
   async (
-    { member, context }: { member: TeamMemberSettings; context?: SyncContext },
+    { member, context: _context }: { member: TeamMemberSettings; context?: SyncContext },
     { dispatch, getState, rejectWithValue }
   ) => {
     const state = getState() as RootState;
@@ -172,23 +140,21 @@ export const saveTeamMember = createAsyncThunk(
     dispatch(optimisticActions.updateMemberOptimistic(member));
 
     try {
-      const { teamDB } = await import('../../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      const existing = await teamDB.getMemberById(member.id);
+      // Check if member exists via dataService
+      const existing = await dataService.team.getById(member.id);
 
       let savedMember: TeamMemberSettings;
 
       if (existing) {
-        savedMember = await teamDB.updateMember(member.id, member, ctx.userId, ctx.deviceId);
+        // Update existing member
+        const updated = await dataService.team.update(member.id, member);
+        if (!updated) {
+          throw new Error('Failed to update team member');
+        }
+        savedMember = updated;
       } else {
-        // Ensure required sync fields are set for new members
-        const newMember: TeamMemberSettings = {
-          ...member,
-          tenantId: member.tenantId || ctx.tenantId || 'default-tenant',
-          storeId: member.storeId || ctx.storeId || 'default-store',
-        };
-        await teamDB.createMember(newMember, ctx.userId, ctx.deviceId);
-        savedMember = (await teamDB.getMemberById(member.id))!;
+        // Create new member
+        savedMember = await dataService.team.create(member);
       }
 
       // 3. Clear pending operation on success
@@ -215,14 +181,15 @@ export const saveTeamMember = createAsyncThunk(
 export const archiveTeamMember = createAsyncThunk(
   'team/archive',
   async (
-    { memberId, context }: { memberId: string; context?: SyncContext },
+    { memberId, context: _context }: { memberId: string; context?: SyncContext },
     { rejectWithValue }
   ) => {
     try {
-      const { teamDB } = await import('../../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      const updated = await teamDB.archiveMember(memberId, ctx.userId, ctx.deviceId);
-      return updated;
+      const archived = await dataService.team.archive(memberId);
+      if (!archived) {
+        throw new Error('Failed to archive team member');
+      }
+      return archived;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to archive team member');
     }
@@ -235,14 +202,15 @@ export const archiveTeamMember = createAsyncThunk(
 export const restoreTeamMember = createAsyncThunk(
   'team/restore',
   async (
-    { memberId, context }: { memberId: string; context?: SyncContext },
+    { memberId, context: _context }: { memberId: string; context?: SyncContext },
     { rejectWithValue }
   ) => {
     try {
-      const { teamDB } = await import('../../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      const updated = await teamDB.restoreMember(memberId, ctx.userId, ctx.deviceId);
-      return updated;
+      const restored = await dataService.team.restore(memberId);
+      if (!restored) {
+        throw new Error('Failed to restore team member');
+      }
+      return restored;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to restore team member');
     }
@@ -255,13 +223,11 @@ export const restoreTeamMember = createAsyncThunk(
 export const deleteTeamMember = createAsyncThunk(
   'team/delete',
   async (
-    { memberId, context }: { memberId: string; context?: SyncContext },
+    { memberId, context: _context }: { memberId: string; context?: SyncContext },
     { rejectWithValue }
   ) => {
     try {
-      const { teamDB } = await import('../../../db/teamOperations');
-      const ctx = context || getDefaultSyncContext();
-      await teamDB.softDeleteMember(memberId, ctx.userId, ctx.deviceId);
+      await dataService.team.delete(memberId);
       return memberId;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete team member');

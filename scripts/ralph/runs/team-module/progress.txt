@@ -99,3 +99,24 @@ Commit: d21ed8a
 - Pay run statuses: draft, pending_approval, approved, processed, voided (not 'pending' as in PRD notes)
 
 ---
+
+## 2026-01-23 - TM-004: Add team namespaces to dataService.ts
+Commit: d201698
+
+**Changes:**
+- apps/store-app/src/services/domain/index.ts: Added exports for timesheetService and payrollService
+- apps/store-app/src/services/dataService.ts: Imported and added timesheets and payRuns namespaces
+
+**Key Implementation Details:**
+- teamService was already imported and exported (added in TM-001)
+- Added timesheetService and payrollService exports to domain/index.ts barrel file
+- Added timesheets: timesheetService to dataService export object
+- Added payRuns: payrollService to dataService export object
+- Maintained existing dataService structure and patterns
+
+**Learnings:**
+- Domain service barrel exports are at apps/store-app/src/services/domain/index.ts
+- dataService already had team: teamService added (line 1469), only needed timesheets and payRuns
+- Re-exports section at bottom of dataService.ts also needed updating for backward compatibility
+
+---
