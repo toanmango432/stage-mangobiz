@@ -159,7 +159,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Only shows if phone/email provided. Don't reveal which stores - just that a match exists."
     },
     {

@@ -385,3 +385,69 @@ US-058 (priority 9): Create EcosystemLookupPrompt component
 All backend work is done (database, Edge Functions, thunks).
 Remaining work is frontend UI components and integration.
 
+
+=================================================================
+Iteration 5 - US-058: Create EcosystemLookupPrompt component
+=================================================================
+
+Story: US-058 - Create EcosystemLookupPrompt component
+Priority: 9
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created EcosystemLookupPrompt component at apps/store-app/src/components/clients/EcosystemLookupPrompt.tsx (339 lines):
+
+1. **State Machine Design**
+   - 7 states: idle, loading, found, not-found, error, requesting, requested
+   - Clean state transitions with proper error handling
+   - Loading spinners for async operations
+
+2. **Privacy-Preserving UI**
+   - 'Check Mango Network' button for manual lookup
+   - Shows "This client may have visited other Mango locations" (no store names)
+   - Displays linked stores count without revealing which stores
+   - Info message when client hasn't opted in to sharing
+
+3. **Link Request Flow**
+   - 'Request Profile Link' button when match is found and canRequest=true
+   - Success state shows 24-hour expiration notice
+   - Skip/Continue buttons for dismissing prompts
+
+4. **Error Handling**
+   - Error state with retry option
+   - User-friendly error messages
+   - Skip option to continue without network check
+
+5. **Integration Points**
+   - Uses lookupEcosystemIdentity and requestProfileLink thunks
+   - Accepts phone/email props (only renders when provided)
+   - Callbacks: onLinkRequested, onDismiss
+
+## Files Created/Modified
+- apps/store-app/src/components/clients/EcosystemLookupPrompt.tsx (NEW - 339 lines)
+- apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts (fixed auth state references)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-058 complete)
+
+## Bug Fixes During Implementation
+- Fixed multiStoreThunks.ts: Changed `state.auth.currentStore?.id` to `state.auth.store?.storeId`
+- Fixed multiStoreThunks.ts: Changed `state.auth.currentUser?.id` to `state.auth.member?.memberId`
+- Fixed import: Changed `../../store` to `../../index` for RootState import
+
+## Quality Checks
+✅ Component follows existing patterns (ConsentManagement.tsx reference)
+✅ Uses existing UI components (Button, Spinner)
+✅ Privacy-focused messaging (no store names revealed)
+✅ pnpm run typecheck passes (no errors for component)
+✅ No forbidden strings
+✅ No 'as any' casts
+
+## Next Story
+US-059 (priority 10): Create ProfileLinkRequestFlow component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 9 (US-050 through US-058)
+- Remaining: 11
+- Progress: 45%
+

@@ -17,7 +17,7 @@ import type {
   ProfileLinkRequest,
   EcosystemLookupResult,
 } from '../../../types/client';
-import type { RootState } from '../../store';
+import type { RootState } from '../../index';
 
 // ==================== TYPES ====================
 
@@ -137,9 +137,9 @@ export const requestProfileLink = createAsyncThunk<
       const state = getState();
 
       // Get current store info from auth state
-      const storeId = state.auth.currentStore?.id;
-      const storeName = state.auth.currentStore?.name;
-      const staffId = state.auth.currentUser?.id;
+      const storeId = state.auth.store?.storeId;
+      const storeName = state.auth.store?.storeName;
+      const staffId = state.auth.member?.memberId;
 
       if (!storeId || !storeName) {
         throw new Error('Store information not available');
@@ -190,7 +190,7 @@ export const respondToLinkRequest = createAsyncThunk<
       const state = getState();
 
       // Get current user (performer)
-      const staffId = state.auth.currentUser?.id || 'unknown';
+      const staffId = state.auth.member?.memberId || 'unknown';
 
       // Call Edge Function
       const { data, error } = await supabase.functions.invoke('identity-approve-link', {
@@ -336,8 +336,8 @@ export const optIntoEcosystem = createAsyncThunk<
       } = params;
 
       const state = getState();
-      const storeId = state.auth.currentStore?.id;
-      const storeName = state.auth.currentStore?.name;
+      const storeId = state.auth.store?.storeId;
+      const storeName = state.auth.store?.storeName;
 
       if (!storeId || !storeName) {
         throw new Error('Store information not available');
