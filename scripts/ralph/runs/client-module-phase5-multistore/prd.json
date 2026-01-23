@@ -87,7 +87,7 @@
         "Prevent duplicate pending requests"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Target store must approve before data is shared. Follow existing Edge Function patterns."
     },
     {
