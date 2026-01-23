@@ -1,0 +1,1635 @@
+{
+  "branchName": "ralph/team-module",
+  "title": "Team Module Complete Implementation",
+  "description": "Complete the Team Module with dataService integration, timesheet workflows, payroll management, reviews integration, performance goals, achievements, and testing",
+  "phases": [
+    {
+      "id": 1,
+      "name": "Backend dataService Integration",
+      "description": "Create domain services and integrate team module with unified data layer"
+    },
+    {
+      "id": 2,
+      "name": "Timesheet Frontend Workflows",
+      "description": "Wire clock/break buttons, create manual entry and dispute modals"
+    },
+    {
+      "id": 3,
+      "name": "Payroll Frontend Management",
+      "description": "Create pay run modals and complete pay run lifecycle UI"
+    },
+    {
+      "id": 4,
+      "name": "Reviews & Ratings Integration",
+      "description": "Replace mock data with real Redux integration for reviews"
+    },
+    {
+      "id": 5,
+      "name": "Performance Goals",
+      "description": "Implement goal editing and metric calculations"
+    },
+    {
+      "id": 6,
+      "name": "Achievements System",
+      "description": "Create achievement persistence and trigger logic"
+    },
+    {
+      "id": 7,
+      "name": "Commission & Testing",
+      "description": "Wire commission settings and add comprehensive tests"
+    }
+  ],
+  "userStories": [
+    {
+      "id": "TM-001",
+      "title": "Create teamDataService.ts domain service",
+      "phase": 1,
+      "description": "As a developer, I need a domain service that routes team member CRUD operations through the unified dataService pattern for offline-first support.",
+      "filesToModify": [
+        "apps/store-app/src/services/domain/teamDataService.ts (NEW ~100 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create teamDataService.ts following staffDataService.ts pattern",
+        "Implement getAll(), getById(), getActive(), create(), update(), delete() methods",
+        "Route to IndexedDB/SQLite based on USE_SQLITE flag",
+        "Queue sync operations via queueSyncOperation helper",
+        "Export as teamService and default export",
+        "pnpm run typecheck passes",
+        "No forbidden strings: 'as any', 'void _', 'TODO:'"
+      ],
+      "notes": [
+        "Follow exact pattern from staffDataService.ts at apps/store-app/src/services/domain/staffDataService.ts",
+        "Import teamDB from @/db/teamOperations",
+        "Use getStoreId() helper to get current store from Redux"
+      ],
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "TM-002",
+      "title": "Create timesheetDataService.ts domain service",
+      "phase": 1,
+      "description": "As a developer, I need a domain service for timesheet operations including clock in/out, breaks, and timesheet CRUD.",
+      "filesToModify": [
+        "apps/store-app/src/services/domain/timesheetDataService.ts (NEW ~120 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create timesheetDataService.ts following staffDataService.ts pattern",
+        "Implement clockIn(), clockOut(), startBreak(), endBreak() methods",
+        "Implement getByStaffId(), getByDateRange(), create(), update(), approve(), reject() methods",
+        "Route to IndexedDB or Supabase timesheetsTable based on device mode",
+        "Queue sync operations for offline support",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Import from @/services/supabase/tables/timesheetsTable.ts",
+        "Import from @/db/timesheetOperations.ts if exists, or create basic stubs",
+        "Clock operations create new timesheet entries"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "TM-003",
+      "title": "Create payrollDataService.ts domain service",
+      "phase": 1,
+      "description": "As a developer, I need a domain service for payroll operations including pay run lifecycle management.",
+      "filesToModify": [
+        "apps/store-app/src/services/domain/payrollDataService.ts (NEW ~100 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create payrollDataService.ts following staffDataService.ts pattern",
+        "Implement getAll(), getById(), create(), update(), delete() for pay runs",
+        "Implement submit(), approve(), process(), void() for pay run lifecycle",
+        "Implement addAdjustment(), removeAdjustment() for pay run items",
+        "Route to payRunsTable from Supabase tables",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Import from @/services/supabase/tables/payRunsTable.ts",
+        "Pay run statuses: draft, pending, approved, processed, voided",
+        "Adjustments can be bonus, deduction, or reimbursement"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "TM-004",
+      "title": "Add team namespaces to dataService.ts",
+      "phase": 1,
+      "description": "As a developer, I need to integrate team, timesheet, and payroll domain services into the unified dataService for consistent data access.",
+      "filesToModify": [
+        "apps/store-app/src/services/dataService.ts (~30 lines to add)"
+      ],
+      "acceptanceCriteria": [
+        "Import teamService from ./domain/teamDataService",
+        "Import timesheetService from ./domain/timesheetDataService",
+        "Import payrollService from ./domain/payrollDataService",
+        "Add team, timesheets, and payRuns namespaces to dataService export",
+        "Maintain existing dataService structure and patterns",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow pattern of existing namespaces (clients, appointments, tickets)",
+        "dataService is at apps/store-app/src/services/dataService.ts",
+        "Export pattern: export const dataService = { ...existing, team: teamService, timesheets: timesheetService, payRuns: payrollService }"
+      ],
+      "priority": 4,
+      "passes": false
+    },
+    {
+      "id": "TM-005",
+      "title": "Refactor teamThunks to use dataService",
+      "phase": 1,
+      "description": "As a developer, I need to update team thunks to route through dataService instead of direct IndexedDB/Supabase calls.",
+      "filesToModify": [
+        "apps/store-app/src/store/slices/team/teamThunks.ts (~50 lines to modify)"
+      ],
+      "acceptanceCriteria": [
+        "Import dataService from @/services/dataService",
+        "Replace teamDB.getAllMembers with dataService.team.getAll()",
+        "Replace teamDB.getMemberById with dataService.team.getById()",
+        "Replace teamDB.createMember with dataService.team.create()",
+        "Replace teamDB.updateMember with dataService.team.update()",
+        "Remove direct Supabase fetchSupabaseMembers calls",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "teamThunks.ts is at apps/store-app/src/store/slices/team/teamThunks.ts",
+        "Keep optimistic update pattern intact",
+        "dataService handles Supabase vs IndexedDB routing internally"
+      ],
+      "priority": 5,
+      "passes": false
+    },
+    {
+      "id": "TM-006",
+      "title": "Refactor timesheetSlice to use dataService",
+      "phase": 1,
+      "description": "As a developer, I need to update timesheet slice thunks to route through dataService.",
+      "filesToModify": [
+        "apps/store-app/src/store/slices/timesheetSlice.ts (~40 lines to modify)"
+      ],
+      "acceptanceCriteria": [
+        "Import dataService from @/services/dataService",
+        "Replace direct timesheetsTable calls with dataService.timesheets methods",
+        "Update clockIn thunk to use dataService.timesheets.clockIn()",
+        "Update clockOut thunk to use dataService.timesheets.clockOut()",
+        "Update fetchTimesheets thunk to use dataService.timesheets.getByStaffId()",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "timesheetSlice.ts is at apps/store-app/src/store/slices/timesheetSlice.ts",
+        "Keep existing state shape and selectors unchanged",
+        "Only modify the data fetching layer"
+      ],
+      "priority": 6,
+      "passes": false
+    },
+    {
+      "id": "TM-007",
+      "title": "Refactor payrollSlice to use dataService",
+      "phase": 1,
+      "description": "As a developer, I need to update payroll slice thunks to route through dataService.",
+      "filesToModify": [
+        "apps/store-app/src/store/slices/payrollSlice.ts (~40 lines to modify)"
+      ],
+      "acceptanceCriteria": [
+        "Import dataService from @/services/dataService",
+        "Replace direct payRunsTable calls with dataService.payRuns methods",
+        "Update fetchPayRuns thunk to use dataService.payRuns.getAll()",
+        "Update createPayRun thunk to use dataService.payRuns.create()",
+        "Update updatePayRun thunk to use dataService.payRuns.update()",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "payrollSlice.ts is at apps/store-app/src/store/slices/payrollSlice.ts",
+        "Keep existing state shape and selectors unchanged",
+        "Only modify the data fetching layer"
+      ],
+      "priority": 7,
+      "passes": false
+    },
+    {
+      "id": "TM-P1R",
+      "title": "REVIEW: Phase 1 Backend Integration",
+      "phase": 1,
+      "description": "As a developer, I need to verify all Phase 1 dataService integration work is complete and working correctly.",
+      "filesToModify": [],
+      "acceptanceCriteria": [
+        "Run pnpm run typecheck - must pass with 0 errors",
+        "Verify teamDataService.ts exports all required methods",
+        "Verify timesheetDataService.ts exports all required methods",
+        "Verify payrollDataService.ts exports all required methods",
+        "Verify dataService.ts exports team, timesheets, payRuns namespaces",
+        "Verify teamThunks.ts imports and uses dataService",
+        "Verify timesheetSlice.ts imports and uses dataService",
+        "Verify payrollSlice.ts imports and uses dataService",
+        "Document any issues found in progress.txt"
+      ],
+      "notes": [
+        "This is a review story - read all Phase 1 files and verify",
+        "If issues found, document them clearly for TM-P1F",
+        "Use Explore agent pattern to verify comprehensively"
+      ],
+      "priority": 8,
+      "passes": false
+    },
+    {
+      "id": "TM-P1F",
+      "title": "FIX: Phase 1 Issues",
+      "phase": 1,
+      "description": "As a developer, I need to address any issues found during Phase 1 review.",
+      "filesToModify": [
+        "Any files with issues from TM-P1R review"
+      ],
+      "acceptanceCriteria": [
+        "All issues documented in TM-P1R are resolved",
+        "pnpm run typecheck passes",
+        "All dataService methods work correctly",
+        "If no issues found in TM-P1R, mark this story as passes: true immediately"
+      ],
+      "notes": [
+        "Read progress.txt for issues documented by TM-P1R",
+        "If TM-P1R found no issues, this story auto-passes",
+        "Fix each issue methodically"
+      ],
+      "priority": 9,
+      "passes": false
+    },
+    {
+      "id": "TM-P1V",
+      "title": "VALIDATE: Ultra Instinct Agent Review of Phase 1",
+      "phase": 1,
+      "description": "As a developer, I need comprehensive validation of all Phase 1 implementations using specialized agents to ensure code quality, patterns, and correctness.",
+      "filesToModify": [],
+      "acceptanceCriteria": [
+        "Launch Explore agent to analyze all new domain services (teamDataService, timesheetDataService, payrollDataService)",
+        "Launch Plan agent to verify dataService integration follows established patterns",
+        "Verify each domain service follows staffDataService.ts pattern exactly",
+        "Verify all thunks properly use dataService instead of direct DB calls",
+        "Verify no 'as any' type casts in any Phase 1 files",
+        "Verify no TODO comments left in production code",
+        "Verify all exports are properly typed",
+        "Verify error handling is consistent across all services",
+        "Verify sync queue operations are properly implemented",
+        "Create detailed findings report in progress.txt",
+        "pnpm run typecheck passes with 0 errors"
+      ],
+      "notes": [
+        "Use Task tool with subagent_type=Explore to comprehensively analyze implementation",
+        "Use Task tool with subagent_type=Plan to verify architecture decisions",
+        "Check for edge cases: empty arrays, null handling, error states",
+        "Verify IndexedDB/SQLite routing works correctly",
+        "This is a THOROUGH review - do not rush",
+        "Document EVERY issue found, no matter how small"
+      ],
+      "priority": 10,
+      "passes": false
+    },
+    {
+      "id": "TM-P1X",
+      "title": "FIX: Address All Agent-Found Issues in Phase 1",
+      "phase": 1,
+      "description": "As a developer, I need to fix all issues discovered by the Ultra Instinct agent validation to ensure Phase 1 is production-ready.",
+      "filesToModify": [
+        "Any files with issues identified in TM-P1V validation"
+      ],
+      "acceptanceCriteria": [
+        "All issues documented in TM-P1V findings are resolved",
+        "All pattern violations are corrected",
+        "All type safety issues are fixed (no 'as any')",
+        "All error handling is consistent",
+        "All edge cases are properly handled",
+        "pnpm run typecheck passes with 0 errors",
+        "Re-run validation to confirm all fixes are complete",
+        "If TM-P1V found no issues, mark this story as passes: true immediately"
+      ],
+      "notes": [
+        "Read progress.txt for the detailed findings from TM-P1V",
+        "Fix issues in order of severity: type errors first, then patterns, then edge cases",
+        "After fixing, verify the fix doesn't break other functionality",
+        "If a fix requires architectural changes, document the reasoning"
+      ],
+      "priority": 11,
+      "passes": false
+    },
+    {
+      "id": "TM-008",
+      "title": "Wire ClockButton to Redux timesheetSlice",
+      "phase": 2,
+      "description": "As a staff member, I want to clock in by clicking the Clock In button so my work hours are tracked.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/components/ClockButton.tsx (~30 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Import useAppDispatch and clockIn/clockOut thunks from timesheetSlice",
+        "onClick dispatches clockIn({ staffId: memberId }) when not clocked in",
+        "onClick dispatches clockOut({ staffId: memberId, clockOutTime: new Date() }) when clocked in",
+        "Show loading spinner during dispatch (use local loading state)",
+        "Handle errors with toast notification",
+        "Button text changes based on clock status",
+        "pnpm run typecheck passes",
+        "Verify in browser: button click creates timesheet entry"
+      ],
+      "notes": [
+        "ClockButton.tsx is at apps/store-app/src/components/team-settings/sections/TimesheetSection/components/ClockButton.tsx",
+        "Import clockIn, clockOut from @/store/slices/timesheetSlice",
+        "Use useAppDispatch from @/store/hooks"
+      ],
+      "priority": 12,
+      "passes": false
+    },
+    {
+      "id": "TM-009",
+      "title": "Wire BreakButton to Redux timesheetSlice",
+      "phase": 2,
+      "description": "As a staff member, I want to start/end breaks so my break time is tracked separately from work time.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/components/BreakButton.tsx (~30 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Import useAppDispatch and startBreak/endBreak thunks from timesheetSlice",
+        "onClick dispatches startBreak({ staffId, timesheetId }) when not on break",
+        "onClick dispatches endBreak({ staffId, timesheetId }) when on break",
+        "Show loading spinner during dispatch",
+        "Handle errors with toast notification",
+        "Button disabled when not clocked in",
+        "pnpm run typecheck passes",
+        "Verify in browser: button click updates break tracking"
+      ],
+      "notes": [
+        "BreakButton.tsx is at apps/store-app/src/components/team-settings/sections/TimesheetSection/components/BreakButton.tsx",
+        "May need to add startBreak/endBreak thunks to timesheetSlice if not exist",
+        "Get current timesheet ID from Redux state"
+      ],
+      "priority": 13,
+      "passes": false
+    },
+    {
+      "id": "TM-010",
+      "title": "Create ManualTimesheetModal component",
+      "phase": 2,
+      "description": "As a manager, I want to manually add timesheet entries for staff so I can correct missed clock-ins.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/components/ManualTimesheetModal.tsx (NEW ~150 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create modal with form fields: staff selector, date, clock in time, clock out time, break duration, notes",
+        "Use React Hook Form with Zod validation",
+        "Submit dispatches createTimesheet thunk with manual entry flag",
+        "Show validation errors inline",
+        "Close modal on successful save",
+        "Export as named and default export",
+        "pnpm run typecheck passes",
+        "Verify in browser: modal opens, form validates, saves correctly"
+      ],
+      "notes": [
+        "Follow pattern from existing modals in team-settings",
+        "Use date-fns for date/time handling",
+        "Import UI components from @/components/ui"
+      ],
+      "priority": 14,
+      "passes": false
+    },
+    {
+      "id": "TM-011",
+      "title": "Create DisputeTimesheetModal component",
+      "phase": 2,
+      "description": "As a staff member, I want to dispute a timesheet entry if it's incorrect so managers can review and correct it.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/components/DisputeTimesheetModal.tsx (NEW ~120 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create modal showing current timesheet details (read-only)",
+        "Include reason textarea (required, min 10 chars)",
+        "Include suggested correction fields (clock in, clock out, break time)",
+        "Submit dispatches disputeTimesheet thunk",
+        "Show loading state during submit",
+        "Close modal on successful submit with success toast",
+        "pnpm run typecheck passes",
+        "Verify in browser: modal opens, validates, submits dispute"
+      ],
+      "notes": [
+        "May need to add disputeTimesheet thunk to timesheetSlice",
+        "Dispute status: pending_review, approved, rejected",
+        "Manager will see disputes in separate review section"
+      ],
+      "priority": 15,
+      "passes": false
+    },
+    {
+      "id": "TM-012",
+      "title": "Add approval actions to TimesheetDetailModal",
+      "phase": 2,
+      "description": "As a manager, I want to approve or reject timesheet entries so staff hours are verified before payroll.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/components/TimesheetDetailModal.tsx (~40 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add Approve and Reject buttons in modal footer (visible to managers only)",
+        "Approve button dispatches approveTimesheet({ timesheetId }) thunk",
+        "Reject button opens confirmation dialog with reason input",
+        "Reject dispatches rejectTimesheet({ timesheetId, reason }) thunk",
+        "Hide action buttons if timesheet already approved/rejected",
+        "Show approval status badge in modal header",
+        "pnpm run typecheck passes",
+        "Verify in browser: approve/reject buttons work correctly"
+      ],
+      "notes": [
+        "TimesheetDetailModal.tsx is at apps/store-app/src/components/team-settings/sections/TimesheetSection/components/TimesheetDetailModal.tsx",
+        "Check user role from auth slice for manager permission",
+        "May need to add approveTimesheet/rejectTimesheet thunks"
+      ],
+      "priority": 16,
+      "passes": false
+    },
+    {
+      "id": "TM-013",
+      "title": "Implement bulk approval UI for timesheets",
+      "phase": 2,
+      "description": "As a manager, I want to approve multiple timesheets at once so I can efficiently process weekly timesheets.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/components/BulkApprovalBar.tsx (NEW ~80 lines)",
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/TimesheetSection.tsx (~30 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create BulkApprovalBar component with checkbox state management",
+        "Add checkbox to each timesheet row in RecentTimesheets",
+        "Show floating action bar when 1+ timesheets selected",
+        "Bar shows count selected and 'Approve Selected' button",
+        "Button dispatches bulkApproveTimesheets({ ids }) thunk",
+        "Clear selection after successful bulk approval",
+        "pnpm run typecheck passes",
+        "Verify in browser: can select multiple and bulk approve"
+      ],
+      "notes": [
+        "TimesheetSection.tsx manages selection state",
+        "Pass selection handlers down to RecentTimesheets",
+        "May need to add bulkApproveTimesheets thunk"
+      ],
+      "priority": 17,
+      "passes": false
+    },
+    {
+      "id": "TM-014",
+      "title": "Add real-time shift timer to TimesheetSection",
+      "phase": 2,
+      "description": "As a staff member, I want to see a live timer showing my current shift duration so I know how long I've been working.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/components/ShiftStatusCard.tsx (~40 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add live timer that updates every second when clocked in",
+        "Show format: HH:MM:SS for worked time",
+        "Show separate break time counter when on break",
+        "Use useEffect with setInterval for timer updates",
+        "Clear interval on component unmount",
+        "Show 'Not clocked in' message when off shift",
+        "pnpm run typecheck passes",
+        "Verify in browser: timer counts up in real-time"
+      ],
+      "notes": [
+        "ShiftStatusCard.tsx is at apps/store-app/src/components/team-settings/sections/TimesheetSection/components/ShiftStatusCard.tsx",
+        "Get clock in time from current active timesheet in Redux",
+        "Use date-fns differenceInSeconds for calculations"
+      ],
+      "priority": 18,
+      "passes": false
+    },
+    {
+      "id": "TM-P2R",
+      "title": "REVIEW: Phase 2 Timesheet Workflows",
+      "phase": 2,
+      "description": "As a developer, I need to verify all Phase 2 timesheet frontend work is complete and working.",
+      "filesToModify": [],
+      "acceptanceCriteria": [
+        "Run pnpm run typecheck - must pass",
+        "Verify ClockButton dispatches Redux actions correctly",
+        "Verify BreakButton dispatches Redux actions correctly",
+        "Verify ManualTimesheetModal form validation works",
+        "Verify DisputeTimesheetModal form validation works",
+        "Verify approval buttons appear for managers only",
+        "Verify bulk approval selects and approves multiple",
+        "Verify shift timer updates in real-time",
+        "Test in browser using Playwright MCP or manual testing",
+        "Document any issues in progress.txt"
+      ],
+      "notes": [
+        "This is a browser verification story",
+        "Open Store App to Team Settings > Timesheet tab",
+        "Test full clock in -> break -> clock out -> approve flow"
+      ],
+      "priority": 19,
+      "passes": false
+    },
+    {
+      "id": "TM-P2F",
+      "title": "FIX: Phase 2 Issues",
+      "phase": 2,
+      "description": "As a developer, I need to fix any issues found during Phase 2 review.",
+      "filesToModify": [
+        "Any files with issues from TM-P2R review"
+      ],
+      "acceptanceCriteria": [
+        "All issues from TM-P2R are resolved",
+        "pnpm run typecheck passes",
+        "All timesheet UI flows work correctly in browser",
+        "If no issues found, mark as passes: true immediately"
+      ],
+      "notes": [
+        "Read progress.txt for documented issues",
+        "Fix each issue methodically",
+        "Re-test in browser after fixes"
+      ],
+      "priority": 20,
+      "passes": false
+    },
+    {
+      "id": "TM-015",
+      "title": "Create CreatePayRunModal component",
+      "phase": 3,
+      "description": "As a manager, I want to create a new pay run so I can process payroll for a specific period.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PayrollSection/CreatePayRunModal.tsx (NEW ~180 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create modal with form: pay period start/end dates, pay date, staff selection",
+        "Auto-populate staff list from team members with employment type filter",
+        "Calculate preliminary totals from approved timesheets in date range",
+        "Use React Hook Form with Zod validation",
+        "Submit dispatches createPayRun thunk",
+        "Show loading state during creation",
+        "Close modal on success with navigation to pay run detail",
+        "pnpm run typecheck passes",
+        "Verify in browser: modal creates pay run correctly"
+      ],
+      "notes": [
+        "Create PayrollSection folder if doesn't exist",
+        "Date range defaults to current pay period (weekly/bi-weekly based on settings)",
+        "Staff list comes from team slice"
+      ],
+      "priority": 21,
+      "passes": false
+    },
+    {
+      "id": "TM-016",
+      "title": "Add action buttons to PayRunDetail",
+      "phase": 3,
+      "description": "As a manager, I want action buttons to progress pay runs through their lifecycle so I can manage payroll workflow.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PayrollSection.tsx (~60 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add Submit for Approval button (draft -> pending)",
+        "Add Approve button (pending -> approved) with confirmation",
+        "Add Process button (approved -> processed) with confirmation dialog",
+        "Add Void button (any -> voided) with reason input",
+        "Each button dispatches appropriate thunk (submitPayRun, approvePayRun, processPayRun, voidPayRun)",
+        "Show only valid actions based on current status",
+        "Disable buttons during processing",
+        "pnpm run typecheck passes",
+        "Verify in browser: can progress through pay run lifecycle"
+      ],
+      "notes": [
+        "PayrollSection.tsx is at apps/store-app/src/components/team-settings/sections/PayrollSection.tsx",
+        "Status flow: draft -> pending -> approved -> processed",
+        "Void can be called from any status before processed"
+      ],
+      "priority": 22,
+      "passes": false
+    },
+    {
+      "id": "TM-017",
+      "title": "Create AddAdjustmentModal component",
+      "phase": 3,
+      "description": "As a manager, I want to add adjustments to a pay run so I can include bonuses, deductions, or reimbursements.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PayrollSection/AddAdjustmentModal.tsx (NEW ~120 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create modal with form: adjustment type (bonus/deduction/reimbursement), amount, description, staff member",
+        "Type selector with icons and descriptions",
+        "Amount input with currency formatting",
+        "Description textarea (required)",
+        "Staff selector dropdown (only staff in current pay run)",
+        "Submit dispatches addAdjustment({ payRunId, adjustment }) thunk",
+        "Show validation errors inline",
+        "pnpm run typecheck passes",
+        "Verify in browser: can add adjustments to pay run"
+      ],
+      "notes": [
+        "Adjustments modify the pay run total for selected staff",
+        "Deductions are negative, bonuses and reimbursements are positive",
+        "Only allow adjustments on draft/pending pay runs"
+      ],
+      "priority": 23,
+      "passes": false
+    },
+    {
+      "id": "TM-018",
+      "title": "Implement pay run list filtering",
+      "phase": 3,
+      "description": "As a manager, I want to filter the pay run list by status so I can quickly find runs that need attention.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PayrollSection.tsx (~40 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add filter tabs/buttons: All, Draft, Pending, Approved, Processed, Voided",
+        "Clicking filter updates displayed pay runs list",
+        "Use local state for filter selection",
+        "Show count badge on each filter tab",
+        "Default to 'All' filter on mount",
+        "Filter works with existing search if present",
+        "pnpm run typecheck passes",
+        "Verify in browser: filter tabs show correct pay runs"
+      ],
+      "notes": [
+        "PayrollSection.tsx already has pay runs list",
+        "Use useMemo to filter pay runs based on selected status",
+        "Badge counts come from pay runs array length per status"
+      ],
+      "priority": 24,
+      "passes": false
+    },
+    {
+      "id": "TM-019",
+      "title": "Add Create Pay Run button to PayrollSection header",
+      "phase": 3,
+      "description": "As a manager, I want a clear button to create new pay runs so I can start the payroll process.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PayrollSection.tsx (~20 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add 'Create Pay Run' button in section header",
+        "Button styled with primary color and plus icon",
+        "Clicking opens CreatePayRunModal",
+        "Button disabled if there's already a draft pay run",
+        "Show tooltip explaining why disabled if applicable",
+        "pnpm run typecheck passes",
+        "Verify in browser: button opens create modal"
+      ],
+      "notes": [
+        "Use existing SectionHeader pattern if available",
+        "Import CreatePayRunModal and manage open state",
+        "Check payRuns for existing draft status"
+      ],
+      "priority": 25,
+      "passes": false
+    },
+    {
+      "id": "TM-020",
+      "title": "Show processing confirmation dialog",
+      "phase": 3,
+      "description": "As a manager, I want a confirmation dialog before processing pay runs so I don't accidentally finalize payments.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PayrollSection/ProcessConfirmDialog.tsx (NEW ~80 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create confirmation dialog component",
+        "Show pay run summary: period, total amount, staff count",
+        "Show warning that processing is irreversible",
+        "Require typing 'PROCESS' to confirm (safety measure)",
+        "Confirm button disabled until PROCESS typed",
+        "Cancel returns to pay run detail",
+        "Confirm dispatches processPayRun thunk",
+        "pnpm run typecheck passes",
+        "Verify in browser: cannot process without confirmation"
+      ],
+      "notes": [
+        "This is a safety feature to prevent accidental processing",
+        "Show clear warning about irreversibility",
+        "Use red color scheme for warning emphasis"
+      ],
+      "priority": 26,
+      "passes": false
+    },
+    {
+      "id": "TM-021",
+      "title": "Add staff pay history view",
+      "phase": 3,
+      "description": "As a staff member, I want to view my historical pay runs so I can review my past payments.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PayrollSection.tsx (~50 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add 'My Pay History' tab/view for non-manager users",
+        "Show list of processed pay runs where staff is included",
+        "Show pay period, gross pay, deductions, net pay",
+        "Click opens PayRunDetailModal in read-only mode",
+        "Filter only shows completed/processed runs",
+        "Sort by pay date descending (most recent first)",
+        "pnpm run typecheck passes",
+        "Verify in browser: staff can view their pay history"
+      ],
+      "notes": [
+        "Check auth role to determine manager vs staff view",
+        "Staff sees only their own pay run entries",
+        "Managers see full pay run management interface"
+      ],
+      "priority": 27,
+      "passes": false
+    },
+    {
+      "id": "TM-P3R",
+      "title": "REVIEW: Phase 3 Payroll Management",
+      "phase": 3,
+      "description": "As a developer, I need to verify all Phase 3 payroll management work is complete.",
+      "filesToModify": [],
+      "acceptanceCriteria": [
+        "Run pnpm run typecheck - must pass",
+        "Verify CreatePayRunModal creates pay runs correctly",
+        "Verify pay run lifecycle buttons work (submit, approve, process, void)",
+        "Verify AddAdjustmentModal adds adjustments to pay runs",
+        "Verify filter tabs show correct pay runs by status",
+        "Verify Create Pay Run button opens modal",
+        "Verify processing confirmation requires typing PROCESS",
+        "Verify staff can view their pay history",
+        "Test full lifecycle: create -> add staff -> add adjustments -> submit -> approve -> process",
+        "Document any issues in progress.txt"
+      ],
+      "notes": [
+        "This is comprehensive payroll testing",
+        "Test both manager and staff perspectives",
+        "Ensure processed pay runs are immutable"
+      ],
+      "priority": 28,
+      "passes": false
+    },
+    {
+      "id": "TM-P3F",
+      "title": "FIX: Phase 3 Issues",
+      "phase": 3,
+      "description": "As a developer, I need to fix any issues found during Phase 3 review.",
+      "filesToModify": [
+        "Any files with issues from TM-P3R review"
+      ],
+      "acceptanceCriteria": [
+        "All issues from TM-P3R are resolved",
+        "pnpm run typecheck passes",
+        "All payroll UI flows work correctly in browser",
+        "If no issues found, mark as passes: true immediately"
+      ],
+      "notes": [
+        "Read progress.txt for documented issues",
+        "Fix each issue methodically",
+        "Re-test complete lifecycle after fixes"
+      ],
+      "priority": 29,
+      "passes": false
+    },
+    {
+      "id": "TM-022",
+      "title": "Create staffRatingOperations.ts for IndexedDB",
+      "phase": 4,
+      "description": "As a developer, I need IndexedDB CRUD operations for staff ratings to support offline functionality.",
+      "filesToModify": [
+        "apps/store-app/src/db/staffRatingOperations.ts (NEW ~100 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create staffRatingOperations.ts following existing db operation patterns",
+        "Implement getAll(storeId), getByStaffId(staffId), getById(id)",
+        "Implement create(rating), update(id, data), delete(id)",
+        "Implement getAggregates(staffId) for summary statistics",
+        "Implement addResponse(ratingId, response) for staff responses",
+        "Use Dexie.js patterns from existing operations files",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow pattern from apps/store-app/src/db/teamOperations.ts",
+        "StaffRating type should include: id, staffId, clientId, rating, comment, categories, response, createdAt",
+        "Aggregates return: averageRating, totalReviews, distribution by star"
+      ],
+      "priority": 30,
+      "passes": false
+    },
+    {
+      "id": "TM-023",
+      "title": "Create staffRatingsDataService.ts domain service",
+      "phase": 4,
+      "description": "As a developer, I need a domain service for staff ratings that routes to appropriate storage.",
+      "filesToModify": [
+        "apps/store-app/src/services/domain/staffRatingsDataService.ts (NEW ~80 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create staffRatingsDataService.ts following staffDataService.ts pattern",
+        "Implement getByStaffId(), getAggregates(), addResponse() methods",
+        "Route to IndexedDB or Supabase staffRatingsTable based on device mode",
+        "Queue sync operations for offline support",
+        "Export as staffRatingsService and default export",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Import from @/services/supabase/tables/staffRatingsTable.ts",
+        "Import from @/db/staffRatingOperations.ts",
+        "Ratings are primarily read (created by client-facing apps)"
+      ],
+      "priority": 31,
+      "passes": false
+    },
+    {
+      "id": "TM-024",
+      "title": "Create staffRatingsSlice for Redux state",
+      "phase": 4,
+      "description": "As a developer, I need Redux state management for staff ratings to power the reviews UI.",
+      "filesToModify": [
+        "apps/store-app/src/store/slices/staffRatingsSlice.ts (NEW ~150 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create staffRatingsSlice with state: ratings, summary, loading, error",
+        "Create fetchRatingsByStaff thunk using dataService.staffRatings.getByStaffId()",
+        "Create fetchRatingSummary thunk using dataService.staffRatings.getAggregates()",
+        "Create addResponse thunk for staff to respond to reviews",
+        "Create selectors: selectStaffRatings, selectRatingSummary, selectRatingsLoading",
+        "Export slice, actions, and selectors",
+        "Add to store/index.ts combineReducers",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow pattern from other slices like timesheetSlice",
+        "State shape: { ratings: StaffRating[], summary: ReviewSummary | null, loading, error }",
+        "Make sure to add staffRatings to dataService first or use direct service"
+      ],
+      "priority": 32,
+      "passes": false
+    },
+    {
+      "id": "TM-025",
+      "title": "Wire ReviewsSection to Redux - replace mock data",
+      "phase": 4,
+      "description": "As a developer, I need to replace mock data in ReviewsSection with real data from Redux.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/ReviewsSection.tsx (~50 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Remove generateMockReviews and generateMockSummary functions",
+        "Import useAppDispatch, useAppSelector from @/store/hooks",
+        "Import fetchRatingsByStaff, fetchRatingSummary, selectStaffRatings, selectRatingSummary from staffRatingsSlice",
+        "Dispatch fetchRatingsByStaff(memberId) on mount via useEffect",
+        "Dispatch fetchRatingSummary(memberId) on mount",
+        "Replace const reviews = useMemo(() => generateMockReviews) with selector",
+        "Replace const summary = useMemo(() => generateMockSummary) with selector",
+        "Add loading and error states",
+        "pnpm run typecheck passes",
+        "Verify in browser: reviews load from real data (or show empty state)"
+      ],
+      "notes": [
+        "ReviewsSection.tsx is at apps/store-app/src/components/team-settings/sections/ReviewsSection.tsx",
+        "CRITICAL: Remove ALL mock data - no hardcoded reviews",
+        "If no reviews exist, show empty state message"
+      ],
+      "priority": 33,
+      "passes": false
+    },
+    {
+      "id": "TM-026",
+      "title": "Wire RatingDistribution to real aggregates data",
+      "phase": 4,
+      "description": "As a developer, I need the rating distribution component to display real aggregate data from the database.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/ReviewsSection.tsx (~20 lines)"
+      ],
+      "acceptanceCriteria": [
+        "RatingDistribution receives summary from selectRatingSummary selector",
+        "Show loading skeleton while fetching aggregates",
+        "Show placeholder if no reviews exist (averageRating: 0, totalReviews: 0)",
+        "Distribution bars calculate percentages from real data",
+        "Category averages show real calculated values",
+        "pnpm run typecheck passes",
+        "Verify in browser: distribution shows real data or placeholder"
+      ],
+      "notes": [
+        "RatingDistribution component is defined in ReviewsSection.tsx",
+        "Summary shape: { averageRating, totalReviews, distribution: {1-5: count}, categoryAverages }",
+        "Handle null summary gracefully"
+      ],
+      "priority": 34,
+      "passes": false
+    },
+    {
+      "id": "TM-027",
+      "title": "Implement response submission in ReviewsSection",
+      "phase": 4,
+      "description": "As a staff member, I want to respond to client reviews so clients know their feedback is valued.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/ReviewsSection.tsx (~30 lines)"
+      ],
+      "acceptanceCriteria": [
+        "handleRespond callback dispatches addResponse thunk",
+        "Pass reviewId and response text to thunk",
+        "Show loading state on Respond button during submission",
+        "Show success toast on successful response",
+        "Update local state to show response immediately (optimistic)",
+        "Handle errors with error toast",
+        "pnpm run typecheck passes",
+        "Verify in browser: can respond to reviews"
+      ],
+      "notes": [
+        "handleRespond is already defined but logs to console (TODO comment)",
+        "Replace console.log with actual dispatch",
+        "Response shape: { text, respondedAt, respondedBy }"
+      ],
+      "priority": 35,
+      "passes": false
+    },
+    {
+      "id": "TM-028",
+      "title": "Add review moderation controls for managers",
+      "phase": 4,
+      "description": "As a manager, I want to moderate reviews so inappropriate content can be hidden.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/ReviewsSection.tsx (~50 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add dropdown menu to ReviewCard for managers",
+        "Menu items: Flag as Inappropriate, Hide Review, Approve Review",
+        "Flag dispatches flagReview thunk with reason selection",
+        "Hide dispatches hideReview thunk (soft delete)",
+        "Approve dispatches approveReview thunk (if flagged)",
+        "Menu only visible to users with manager role",
+        "Hidden reviews show 'Hidden' badge but are still visible to managers",
+        "pnpm run typecheck passes",
+        "Verify in browser: managers see moderation controls"
+      ],
+      "notes": [
+        "Check auth slice for user role",
+        "May need to add moderation thunks to staffRatingsSlice",
+        "Use DropdownMenu from @/components/ui/dropdown-menu"
+      ],
+      "priority": 36,
+      "passes": false
+    },
+    {
+      "id": "TM-P4R",
+      "title": "REVIEW: Phase 4 Reviews Integration",
+      "phase": 4,
+      "description": "As a developer, I need to verify Phase 4 reviews integration is complete.",
+      "filesToModify": [],
+      "acceptanceCriteria": [
+        "Run pnpm run typecheck - must pass",
+        "Verify ReviewsSection displays real data from Redux (not mock)",
+        "Verify NO generateMockReviews or generateMockSummary functions exist",
+        "Verify RatingDistribution shows real aggregates",
+        "Verify response submission persists to database",
+        "Verify moderation controls visible for managers only",
+        "Test offline: reviews load from IndexedDB when offline",
+        "Document any issues in progress.txt"
+      ],
+      "notes": [
+        "CRITICAL: Must verify ALL mock data is removed",
+        "Grep for 'generateMock' to ensure none remain",
+        "Test with real staff member that has reviews (or empty state)"
+      ],
+      "priority": 37,
+      "passes": false
+    },
+    {
+      "id": "TM-P4F",
+      "title": "FIX: Phase 4 Issues",
+      "phase": 4,
+      "description": "As a developer, I need to fix any issues found during Phase 4 review.",
+      "filesToModify": [
+        "Any files with issues from TM-P4R review"
+      ],
+      "acceptanceCriteria": [
+        "All issues from TM-P4R are resolved",
+        "pnpm run typecheck passes",
+        "Reviews display correctly from real data",
+        "If no issues found, mark as passes: true immediately"
+      ],
+      "notes": [
+        "Read progress.txt for documented issues",
+        "Most common issue: forgetting to remove mock data imports"
+      ],
+      "priority": 38,
+      "passes": false
+    },
+    {
+      "id": "TM-029",
+      "title": "Create GoalEditModal form component",
+      "phase": 5,
+      "description": "As a manager, I want to set performance goals for staff so they have clear targets to achieve.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PerformanceSection/GoalEditModal.tsx (NEW ~150 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create modal with form fields: goal name, metric type, target value, period (weekly/monthly/quarterly)",
+        "Metric type options: revenue, appointments, average ticket, retention rate, reviews",
+        "Target value input with appropriate formatting per metric type",
+        "Use React Hook Form with Zod validation",
+        "Submit dispatches saveGoal thunk",
+        "Pre-populate form when editing existing goal",
+        "pnpm run typecheck passes",
+        "Verify in browser: can create and edit goals"
+      ],
+      "notes": [
+        "Create PerformanceSection folder if doesn't exist",
+        "Replace 'Coming soon...' message with actual form",
+        "Goal type definitions should match existing performance types"
+      ],
+      "priority": 39,
+      "passes": false
+    },
+    {
+      "id": "TM-030",
+      "title": "Persist goals to team member settings",
+      "phase": 5,
+      "description": "As a developer, I need to save performance goals with the team member settings in the database.",
+      "filesToModify": [
+        "apps/store-app/src/store/slices/team/teamThunks.ts (~30 lines)",
+        "apps/store-app/src/components/team-settings/types.ts (~20 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add goals: PerformanceGoal[] to TeamMemberSettings interface",
+        "Create saveGoal thunk that updates member.goals array",
+        "Create deleteGoal thunk that removes goal by id",
+        "Goals persist via saveTeamMember thunk (nested in member object)",
+        "Load goals when fetching team member",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Goals are stored as part of team member settings (not separate table)",
+        "PerformanceGoal shape: { id, name, metricType, targetValue, period, createdAt }",
+        "May need to extend existing types"
+      ],
+      "priority": 40,
+      "passes": false
+    },
+    {
+      "id": "TM-031",
+      "title": "Implement real-time metric calculations",
+      "phase": 5,
+      "description": "As a manager, I want to see actual progress towards goals calculated from real ticket/appointment data.",
+      "filesToModify": [
+        "apps/store-app/src/utils/performanceMetrics.ts (NEW ~100 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create performanceMetrics.ts utility file",
+        "Implement calculateRevenue(staffId, startDate, endDate) from completed tickets",
+        "Implement calculateAppointmentCount(staffId, startDate, endDate) from appointments",
+        "Implement calculateAverageTicket(staffId, startDate, endDate) from tickets",
+        "Implement calculateRetentionRate(staffId, period) from client return visits",
+        "Implement calculateGoalProgress(goal, staffId) that returns percentage",
+        "Use selectors from tickets and appointments slices",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "These are utility functions, not Redux thunks",
+        "Will be called from PerformanceSection component",
+        "Use existing ticket and appointment data from Redux store"
+      ],
+      "priority": 41,
+      "passes": false
+    },
+    {
+      "id": "TM-032",
+      "title": "Add goal templates for quick setup",
+      "phase": 5,
+      "description": "As a manager, I want preset goal templates so I can quickly assign common goals to staff.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PerformanceSection/GoalTemplates.ts (NEW ~60 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create GoalTemplates.ts with preset goal configurations",
+        "Templates: Sales Focus, Service Quality, Client Retention, High Volume, Balanced",
+        "Each template has 3-5 predefined goals with reasonable targets",
+        "Export GOAL_TEMPLATES array and applyTemplate() function",
+        "Templates can be selected in GoalEditModal",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Templates are just pre-filled goal arrays",
+        "Manager can modify after applying template",
+        "Consider realistic targets based on industry standards"
+      ],
+      "priority": 42,
+      "passes": false
+    },
+    {
+      "id": "TM-033",
+      "title": "Connect performance dashboard to calculated metrics",
+      "phase": 5,
+      "description": "As a manager, I want the performance dashboard to show real calculated metrics for each staff goal.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/PerformanceSection.tsx (~60 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Import calculateGoalProgress from @/utils/performanceMetrics",
+        "For each goal, calculate current progress percentage",
+        "Display progress bar showing current vs target",
+        "Show actual value and target value",
+        "Color code: green (>= 100%), yellow (>= 75%), red (< 75%)",
+        "Update calculations when date range changes",
+        "pnpm run typecheck passes",
+        "Verify in browser: metrics calculate from real data"
+      ],
+      "notes": [
+        "PerformanceSection.tsx is at apps/store-app/src/components/team-settings/sections/PerformanceSection.tsx",
+        "If no tickets/appointments exist, show 0 progress",
+        "Use useMemo for expensive calculations"
+      ],
+      "priority": 43,
+      "passes": false
+    },
+    {
+      "id": "TM-P5R",
+      "title": "REVIEW: Phase 5 Performance Goals",
+      "phase": 5,
+      "description": "As a developer, I need to verify Phase 5 performance goals work correctly.",
+      "filesToModify": [],
+      "acceptanceCriteria": [
+        "Run pnpm run typecheck - must pass",
+        "Verify GoalEditModal creates and edits goals",
+        "Verify goals persist when saving team member",
+        "Verify metric calculations return reasonable values",
+        "Verify progress bars show calculated progress",
+        "Verify templates apply correctly",
+        "Test: create goal -> view progress -> edit goal -> delete goal",
+        "Document any issues in progress.txt"
+      ],
+      "notes": [
+        "Test with staff member that has completed tickets",
+        "Verify calculations match expected values manually"
+      ],
+      "priority": 44,
+      "passes": false
+    },
+    {
+      "id": "TM-P5F",
+      "title": "FIX: Phase 5 Issues",
+      "phase": 5,
+      "description": "As a developer, I need to fix any issues found during Phase 5 review.",
+      "filesToModify": [
+        "Any files with issues from TM-P5R review"
+      ],
+      "acceptanceCriteria": [
+        "All issues from TM-P5R are resolved",
+        "pnpm run typecheck passes",
+        "Goals and metrics work correctly",
+        "If no issues found, mark as passes: true immediately"
+      ],
+      "notes": [
+        "Read progress.txt for documented issues",
+        "Calculation issues most common"
+      ],
+      "priority": 45,
+      "passes": false
+    },
+    {
+      "id": "TM-034",
+      "title": "Design achievements database schema",
+      "phase": 6,
+      "description": "As a developer, I need a database schema to store staff achievements for persistence.",
+      "filesToModify": [
+        "supabase/migrations/20260123000000_create_achievements_table.sql (NEW ~50 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create achievements table with: id, staff_id, store_id, achievement_type, awarded_at, metadata",
+        "achievement_type enum: first_sale, top_performer, perfect_week, milestone_100, etc.",
+        "Add RLS policies for store-level access",
+        "Create index on staff_id and store_id",
+        "Add foreign key to staff table",
+        "Migration runs without errors",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow existing migration naming pattern",
+        "Metadata JSONB stores achievement-specific details",
+        "RLS: staff can read their own, managers can read all in store"
+      ],
+      "priority": 46,
+      "passes": false
+    },
+    {
+      "id": "TM-035",
+      "title": "Create achievementsTable.ts Supabase operations",
+      "phase": 6,
+      "description": "As a developer, I need Supabase CRUD operations for the achievements table.",
+      "filesToModify": [
+        "apps/store-app/src/services/supabase/tables/achievementsTable.ts (NEW ~80 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create achievementsTable.ts following staffTable.ts pattern",
+        "Implement getByStaffId(staffId), getByStore(storeId), create(achievement)",
+        "Implement getRecent(staffId, limit) for recent achievements",
+        "Implement checkExists(staffId, achievementType) to prevent duplicates",
+        "Type safe with proper AchievementRow interface",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow pattern from staffTable.ts at apps/store-app/src/services/supabase/tables/staffTable.ts",
+        "AchievementRow uses snake_case (Supabase)",
+        "No update needed - achievements are immutable once awarded"
+      ],
+      "priority": 47,
+      "passes": false
+    },
+    {
+      "id": "TM-036",
+      "title": "Create achievementAdapter.ts type converter",
+      "phase": 6,
+      "description": "As a developer, I need a type adapter to convert between Supabase and app achievement types.",
+      "filesToModify": [
+        "apps/store-app/src/services/supabase/adapters/achievementAdapter.ts (NEW ~50 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create achievementAdapter.ts following existing adapter patterns",
+        "Export toAchievement(row: AchievementRow): Achievement",
+        "Export toAchievements(rows: AchievementRow[]): Achievement[]",
+        "Export toAchievementRow(achievement: Achievement): AchievementRow",
+        "Handle snake_case to camelCase conversion",
+        "Handle null/undefined metadata safely",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow pattern from apps/store-app/src/services/supabase/adapters/",
+        "Achievement type: { id, staffId, storeId, achievementType, awardedAt, metadata }",
+        "AchievementRow type: { id, staff_id, store_id, achievement_type, awarded_at, metadata }"
+      ],
+      "priority": 48,
+      "passes": false
+    },
+    {
+      "id": "TM-037",
+      "title": "Wire AchievementsSection to Redux - replace mock data",
+      "phase": 6,
+      "description": "As a developer, I need to replace mock achievements with real data from Redux/database.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/AchievementsSection.tsx (~60 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Remove generateMockAchievements function",
+        "Create achievementsSlice with state and thunks (or add to existing slice)",
+        "Import and use fetchAchievements thunk on mount",
+        "Replace mock data with selectAchievements selector",
+        "Add loading and error states",
+        "Show empty state if no achievements",
+        "pnpm run typecheck passes",
+        "Verify in browser: achievements load from database"
+      ],
+      "notes": [
+        "AchievementsSection.tsx is at apps/store-app/src/components/team-settings/sections/AchievementsSection.tsx",
+        "CRITICAL: Remove ALL mock data",
+        "May need to create achievementsSlice.ts"
+      ],
+      "priority": 49,
+      "passes": false
+    },
+    {
+      "id": "TM-038",
+      "title": "Implement achievement trigger logic",
+      "phase": 6,
+      "description": "As a developer, I need logic to automatically award achievements when staff meet criteria.",
+      "filesToModify": [
+        "apps/store-app/src/utils/achievementTriggers.ts (NEW ~120 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create achievementTriggers.ts with checkAndAward functions",
+        "Implement checkFirstSale(staffId) - first completed ticket",
+        "Implement checkMilestone(staffId, count) - 100/500/1000 tickets",
+        "Implement checkPerfectWeek(staffId) - all appointments completed",
+        "Implement checkTopPerformer(staffId) - highest revenue in period",
+        "Each function checks criteria and dispatches awardAchievement if met",
+        "Prevent duplicate awards using checkExists",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Triggers are called after relevant actions (ticket complete, etc.)",
+        "Use achievementsTable.checkExists() to prevent duplicates",
+        "Can be called from ticket completion thunks"
+      ],
+      "priority": 50,
+      "passes": false
+    },
+    {
+      "id": "TM-039",
+      "title": "Add achievement detail modal",
+      "phase": 6,
+      "description": "As a staff member, I want to click on an achievement badge to see details about when and how I earned it.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/AchievementsSection.tsx (~50 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create AchievementDetailModal component (inline or separate file)",
+        "Show achievement icon, name, description, and awarded date",
+        "Show criteria that was met to earn it",
+        "Show any relevant metadata (e.g., which milestone number)",
+        "Close on backdrop click or X button",
+        "Clicking achievement badge opens modal",
+        "pnpm run typecheck passes",
+        "Verify in browser: can click badge and see details"
+      ],
+      "notes": [
+        "Use Dialog/Modal from @/components/ui",
+        "Achievement descriptions should be encouraging",
+        "Format date nicely"
+      ],
+      "priority": 51,
+      "passes": false
+    },
+    {
+      "id": "TM-P6R",
+      "title": "REVIEW: Phase 6 Achievements System",
+      "phase": 6,
+      "description": "As a developer, I need to verify Phase 6 achievements system works correctly.",
+      "filesToModify": [],
+      "acceptanceCriteria": [
+        "Run pnpm run typecheck - must pass",
+        "Verify achievements table migration creates correctly",
+        "Verify achievementsTable.ts CRUD operations work",
+        "Verify AchievementsSection displays real data (not mock)",
+        "Verify NO generateMockAchievements function exists",
+        "Verify achievement triggers check criteria correctly",
+        "Verify detail modal shows achievement info",
+        "Test: manually trigger achievement -> verify appears",
+        "Document any issues in progress.txt"
+      ],
+      "notes": [
+        "May need to manually insert test achievement to verify display",
+        "Grep for 'generateMock' to ensure all removed"
+      ],
+      "priority": 52,
+      "passes": false
+    },
+    {
+      "id": "TM-P6F",
+      "title": "FIX: Phase 6 Issues",
+      "phase": 6,
+      "description": "As a developer, I need to fix any issues found during Phase 6 review.",
+      "filesToModify": [
+        "Any files with issues from TM-P6R review"
+      ],
+      "acceptanceCriteria": [
+        "All issues from TM-P6R are resolved",
+        "pnpm run typecheck passes",
+        "Achievements display and trigger correctly",
+        "If no issues found, mark as passes: true immediately"
+      ],
+      "notes": [
+        "Read progress.txt for documented issues",
+        "Migration issues require rollback and re-run"
+      ],
+      "priority": 53,
+      "passes": false
+    },
+    {
+      "id": "TM-040",
+      "title": "Wire commission changes to Redux for persistence",
+      "phase": 7,
+      "description": "As a manager, I want commission setting changes to persist immediately so staff rates are always accurate.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/CommissionSection.tsx (~40 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Import useAppDispatch from @/store/hooks",
+        "On commission rate change, dispatch updateTeamMember thunk",
+        "Include commission settings in member update payload",
+        "Show saving indicator while dispatch is pending",
+        "Show success toast on save complete",
+        "Handle errors with error toast",
+        "pnpm run typecheck passes",
+        "Verify in browser: commission changes persist after refresh"
+      ],
+      "notes": [
+        "CommissionSection.tsx is at apps/store-app/src/components/team-settings/sections/CommissionSection.tsx",
+        "Commission settings stored in team member settings object",
+        "Debounce saves to prevent too many requests"
+      ],
+      "priority": 54,
+      "passes": false
+    },
+    {
+      "id": "TM-041",
+      "title": "Add commission templates for quick setup",
+      "phase": 7,
+      "description": "As a manager, I want preset commission templates so I can quickly configure common commission structures.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/CommissionSection.tsx (~50 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add template dropdown at top of commission section",
+        "Templates: Flat Rate (50%), Tiered (40-50-60%), Product Focused (30% service, 10% product), etc.",
+        "Selecting template pre-fills commission settings",
+        "Show confirmation before overwriting existing settings",
+        "Manager can modify after applying template",
+        "pnpm run typecheck passes",
+        "Verify in browser: templates apply correctly"
+      ],
+      "notes": [
+        "Templates are predefined configurations",
+        "Store templates as constants, not database",
+        "Use Select component from UI library"
+      ],
+      "priority": 55,
+      "passes": false
+    },
+    {
+      "id": "TM-042",
+      "title": "Validate commission tiers for no gaps or overlaps",
+      "phase": 7,
+      "description": "As a manager, I want validation when setting tiered commissions so there are no gaps or overlaps.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/CommissionSection.tsx (~40 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Add validation for tiered commission ranges",
+        "Check for gaps: if tier 1 is 0-1000, tier 2 must start at 1001",
+        "Check for overlaps: tiers cannot have same range values",
+        "Show inline error message if validation fails",
+        "Disable save button until validation passes",
+        "Highlight invalid tier rows with red border",
+        "pnpm run typecheck passes",
+        "Verify in browser: cannot save invalid tier configuration"
+      ],
+      "notes": [
+        "Tiered commissions have ranges: 0-1000 = 40%, 1001-3000 = 50%, etc.",
+        "Validation runs on every tier change",
+        "Use Zod for validation schema"
+      ],
+      "priority": 56,
+      "passes": false
+    },
+    {
+      "id": "TM-043",
+      "title": "Add unit tests for timesheet thunks",
+      "phase": 7,
+      "description": "As a developer, I need unit tests for timesheet thunks to ensure clock in/out logic is correct.",
+      "filesToModify": [
+        "apps/store-app/src/store/slices/__tests__/timesheetSlice.test.ts (NEW ~150 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create test file following existing test patterns",
+        "Test clockIn thunk: creates timesheet entry",
+        "Test clockOut thunk: updates timesheet with end time",
+        "Test startBreak thunk: adds break to current timesheet",
+        "Test endBreak thunk: ends current break",
+        "Test fetchTimesheets thunk: loads timesheets for staff",
+        "Mock dataService calls appropriately",
+        "All tests pass: pnpm test -- --run timesheetSlice",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow existing test patterns in __tests__ folders",
+        "Use vitest for testing",
+        "Mock dataService with vi.mock()"
+      ],
+      "priority": 57,
+      "passes": false
+    },
+    {
+      "id": "TM-044",
+      "title": "Add unit tests for payroll thunks",
+      "phase": 7,
+      "description": "As a developer, I need unit tests for payroll thunks to ensure pay run logic is correct.",
+      "filesToModify": [
+        "apps/store-app/src/store/slices/__tests__/payrollSlice.test.ts (NEW ~150 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create test file following existing test patterns",
+        "Test createPayRun thunk: creates draft pay run",
+        "Test submitPayRun thunk: changes status to pending",
+        "Test approvePayRun thunk: changes status to approved",
+        "Test processPayRun thunk: changes status to processed",
+        "Test addAdjustment thunk: adds adjustment to pay run",
+        "Mock dataService calls appropriately",
+        "All tests pass: pnpm test -- --run payrollSlice",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow existing test patterns",
+        "Test status transitions carefully",
+        "Ensure processed pay runs are immutable"
+      ],
+      "priority": 58,
+      "passes": false
+    },
+    {
+      "id": "TM-045",
+      "title": "Add integration tests for Team Settings",
+      "phase": 7,
+      "description": "As a developer, I need integration tests to verify Team Settings tabs work together correctly.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/__tests__/TeamSettings.integration.test.tsx (NEW ~100 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Create integration test file",
+        "Test: switching between tabs preserves selected member",
+        "Test: saving profile updates are reflected in other tabs",
+        "Test: navigation to Team Settings with member ID pre-selects member",
+        "Test: loading states appear while fetching data",
+        "Use React Testing Library with Redux provider",
+        "All tests pass",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Integration tests test multiple components together",
+        "Use renderWithProviders helper if exists",
+        "Mock network calls with MSW or vi.mock"
+      ],
+      "priority": 59,
+      "passes": false
+    },
+    {
+      "id": "TM-046",
+      "title": "Add consistent error handling and loading states",
+      "phase": 7,
+      "description": "As a user, I want consistent loading spinners and error messages across all Team Settings sections.",
+      "filesToModify": [
+        "apps/store-app/src/components/team-settings/sections/*.tsx (~10 lines each)"
+      ],
+      "acceptanceCriteria": [
+        "Each section shows loading skeleton while fetching data",
+        "Each section shows error message if fetch fails",
+        "Error messages include retry button",
+        "Loading spinners use consistent component (Spinner or Skeleton)",
+        "Toast notifications for action errors (save, delete, etc.)",
+        "No raw 'Loading...' text strings",
+        "pnpm run typecheck passes",
+        "Verify in browser: loading and error states display correctly"
+      ],
+      "notes": [
+        "Audit all section components for consistency",
+        "Use Skeleton component from UI library for loading",
+        "Use toast from @/components/ui/use-toast for notifications"
+      ],
+      "priority": 60,
+      "passes": false
+    },
+    {
+      "id": "TM-047",
+      "title": "Update documentation for Team Module",
+      "phase": 7,
+      "description": "As a developer, I need updated documentation so future developers understand the Team Module.",
+      "filesToModify": [
+        "docs/modules/team/TEAM_MODULE.md (NEW or update, ~100 lines)"
+      ],
+      "acceptanceCriteria": [
+        "Document Team Module architecture overview",
+        "Document dataService integration pattern",
+        "Document timesheet workflow (clock in -> approve -> payroll)",
+        "Document pay run lifecycle (draft -> pending -> approved -> processed)",
+        "Document achievement trigger system",
+        "Include file structure overview",
+        "Include common troubleshooting tips",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow documentation style from other module docs",
+        "Include diagrams if helpful",
+        "Reference relevant PRD sections"
+      ],
+      "priority": 61,
+      "passes": false
+    },
+    {
+      "id": "TM-P7R",
+      "title": "FINAL REVIEW: Team Module Complete",
+      "phase": 7,
+      "description": "As a developer, I need to verify the entire Team Module is complete and production-ready.",
+      "filesToModify": [],
+      "acceptanceCriteria": [
+        "Run pnpm run typecheck - must pass with 0 errors",
+        "Run pnpm test -- --run - all tests pass",
+        "Verify all dataService domain services exist and work",
+        "Verify timesheet clock in/out/break flows work",
+        "Verify pay run full lifecycle works",
+        "Verify reviews display real data (NO mock data)",
+        "Verify achievements display real data (NO mock data)",
+        "Verify performance goals calculate from real data",
+        "Verify commission settings persist correctly",
+        "Grep codebase for 'generateMock' - should return NO results in team-settings",
+        "Document any remaining issues in progress.txt"
+      ],
+      "notes": [
+        "This is the final comprehensive review",
+        "Test end-to-end workflows manually in browser",
+        "Ensure no regressions from earlier phases"
+      ],
+      "priority": 62,
+      "passes": false
+    },
+    {
+      "id": "TM-P7F",
+      "title": "FINAL FIX: Address All Remaining Issues",
+      "phase": 7,
+      "description": "As a developer, I need to fix all remaining issues to complete the Team Module.",
+      "filesToModify": [
+        "Any files with issues from TM-P7R final review"
+      ],
+      "acceptanceCriteria": [
+        "All issues from TM-P7R are resolved",
+        "pnpm run typecheck passes",
+        "pnpm test -- --run passes",
+        "Team Module is production-ready",
+        "If no issues found, mark as passes: true immediately"
+      ],
+      "notes": [
+        "Read progress.txt for all documented issues",
+        "This is the final story - ensure quality",
+        "Once this passes, Team Module is complete"
+      ],
+      "priority": 63,
+      "passes": false
+    }
+  ]
+}

@@ -139,6 +139,7 @@ import {
   resourceBookingsService,
   staffSchedulesService,
   syncQueueService,
+  teamService,
 } from '@/services/domain';
 
 // API-FIRST: Import API client and endpoints
@@ -1434,6 +1435,7 @@ export {
   resourceBookingsService,
   staffSchedulesService,
   syncQueueService,
+  teamService,
 } from '@/services/domain';
 
 export const dataService = {
@@ -1464,6 +1466,7 @@ export const dataService = {
   appointments: appointmentsService,
   tickets: ticketsService,
   transactions: transactionsService,
+  team: teamService,
 
   // PR #2: Extended entity services (previously accessed directly via IndexedDB)
   patchTests: patchTestsService,

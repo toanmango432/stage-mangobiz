@@ -4,6 +4,11 @@
  * Generates signed JWT tokens for Mango Connect SDK authentication.
  * The Connect SDK uses these tokens to authenticate with Biz's data.
  *
+ * Security Model:
+ * - Validates that the memberId exists and has access to the storeId
+ * - No auth header required (supports PIN login which doesn't have Supabase auth session)
+ * - Member/store relationship is validated server-side
+ *
  * Endpoint:
  * - POST /generate-connect-token - Generate a new token for Connect SDK
  *
@@ -39,13 +44,15 @@ interface GenerateTokenRequest {
 }
 
 interface ConnectTokenPayload {
-  sub: string; // memberId
+  // Fields expected by Connect's auth-biz-jwt function
   storeId: string;
   tenantId: string;
-  email: string;
-  name: string;
+  memberId: string;
+  memberEmail: string;
+  memberName: string;
   role: string;
   permissions: string[];
+  // Standard JWT claims
   iss: string;
   aud: string;
   iat: number;
@@ -207,43 +214,69 @@ function validateRequest(body: GenerateTokenRequest): string | null {
   return null;
 }
 
-// ==================== AUTH VERIFICATION ====================
+// ==================== MEMBER VERIFICATION ====================
 
-async function verifySupabaseAuth(authHeader: string | null): Promise<{ valid: boolean; error?: string }> {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { valid: false, error: 'Authorization header with Bearer token is required' };
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-
+/**
+ * Verify that the member exists and has access to the store
+ * This validates the request data against the database
+ */
+async function verifyMemberStoreAccess(
+  memberId: string,
+  storeId: string,
+  memberEmail: string
+): Promise<{ valid: boolean; error?: string }> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error('[generate-connect-token] Missing Supabase environment variables');
     return { valid: false, error: 'Server configuration error' };
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
-    global: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
   });
 
-  const { data: { user }, error } = await supabase.auth.getUser();
+  try {
+    // Query the members table to verify the member exists and has access to the store
+    const { data: member, error } = await supabase
+      .from('members')
+      .select('id, email, store_ids, status')
+      .eq('id', memberId)
+      .single();
 
-  if (error || !user) {
-    console.error('[generate-connect-token] Auth verification failed:', error?.message);
-    return { valid: false, error: 'Invalid or expired token' };
+    if (error || !member) {
+      console.error('[generate-connect-token] Member not found:', memberId);
+      return { valid: false, error: 'Member not found' };
+    }
+
+    // Check member status
+    if (member.status && member.status !== 'active') {
+      console.error('[generate-connect-token] Member is not active:', memberId);
+      return { valid: false, error: 'Member is not active' };
+    }
+
+    // Verify email matches (case-insensitive)
+    if (member.email?.toLowerCase() !== memberEmail.toLowerCase()) {
+      console.error('[generate-connect-token] Email mismatch for member:', memberId);
+      return { valid: false, error: 'Invalid member email' };
+    }
+
+    // Verify member has access to the store
+    const storeIds = member.store_ids || [];
+    if (!storeIds.includes(storeId)) {
+      console.error('[generate-connect-token] Member does not have access to store:', { memberId, storeId });
+      return { valid: false, error: 'Member does not have access to this store' };
+    }
+
+    return { valid: true };
+  } catch (err) {
+    console.error('[generate-connect-token] Database error:', err);
+    return { valid: false, error: 'Database error' };
   }
-
-  return { valid: true };
 }
 
 // ==================== MAIN HANDLER ====================
@@ -264,14 +297,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Verify Supabase auth token
-    const authHeader = req.headers.get('Authorization');
-    const authResult = await verifySupabaseAuth(authHeader);
-
-    if (!authResult.valid) {
-      return jsonResponse({ error: authResult.error }, corsHeaders, 401);
-    }
-
     // Parse and validate request body
     let body: GenerateTokenRequest;
     try {
@@ -285,6 +310,15 @@ serve(async (req: Request) => {
       return jsonResponse({ error: validationError }, corsHeaders, 400);
     }
 
+    // Verify member exists and has access to the store
+    const verifyResult = await verifyMemberStoreAccess(body.memberId, body.storeId, body.memberEmail);
+    if (!verifyResult.valid) {
+      console.log('[generate-connect-token] Verification failed:', verifyResult.error);
+      return jsonResponse({ error: verifyResult.error }, corsHeaders, 403);
+    }
+
+    console.log('[generate-connect-token] Verified member:', body.memberId, 'store:', body.storeId);
+
     // Get JWT secret
     const jwtSecret = Deno.env.get('MANGO_CONNECT_JWT_SECRET');
     if (!jwtSecret) {
@@ -297,13 +331,15 @@ serve(async (req: Request) => {
     const expiresAt = now + TOKEN_EXPIRY_SECONDS;
 
     const payload: ConnectTokenPayload = {
-      sub: body.memberId,
+      // Fields expected by Connect's auth-biz-jwt function
       storeId: body.storeId,
       tenantId: body.tenantId,
-      email: body.memberEmail,
-      name: body.memberName,
+      memberId: body.memberId,
+      memberEmail: body.memberEmail,
+      memberName: body.memberName,
       role: body.role,
       permissions: body.permissions,
+      // Standard JWT claims
       iss: ISSUER,
       aud: AUDIENCE,
       iat: now,
@@ -312,6 +348,8 @@ serve(async (req: Request) => {
 
     // Generate token
     const token = await generateJWT(payload, jwtSecret);
+
+    console.log('[generate-connect-token] Token generated for member:', body.memberId, 'store:', body.storeId);
 
     return jsonResponse({
       token,

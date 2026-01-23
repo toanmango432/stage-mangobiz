@@ -37,3 +37,4 @@ export {
   staffSchedulesService,
 } from './scheduleDataService';
 export { syncQueueService } from './syncDataService';
+export { teamService } from './teamDataService';

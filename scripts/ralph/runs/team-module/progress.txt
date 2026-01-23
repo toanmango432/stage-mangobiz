@@ -1,0 +1,57 @@
+# Team Module Implementation Progress
+
+## Codebase Patterns (Reusable)
+
+### Domain Service Pattern
+- Follow staffDataService.ts for all new domain services
+- Use getStoreId() helper to get current store from Redux
+- Queue sync operations via queueSyncOperation helper
+- Route to IndexedDB/SQLite based on USE_SQLITE flag
+
+### Redux Thunk Pattern
+- Import dataService from @/services/dataService
+- Use createAsyncThunk for async operations
+- Include optimistic updates for UI responsiveness
+- Handle errors with rejectWithValue
+
+### Type Adapter Pattern
+- Supabase uses snake_case, app uses camelCase
+- Create toAppType() and toSupabaseRow() converters
+- Handle null/undefined safely
+- Place adapters in apps/store-app/src/services/supabase/adapters/
+
+### Mock Data Removal
+- CRITICAL: Remove ALL generateMock* functions
+- Replace with Redux selectors and real data
+- Add loading and error states when removing mock data
+- grep for 'generateMock' to verify removal
+
+---
+
+## Progress Log
+
+### Initialization
+- Created prd.json with 61 stories across 7 phases
+- Branch: ralph/team-module
+- Started: [timestamp will be added by Ralph]
+
+---
+
+## 2026-01-22 - TM-001: Create teamDataService.ts domain service
+Commit: c3fd869
+
+**Changes:**
+- apps/store-app/src/services/domain/teamDataService.ts (NEW): Created domain service following staffDataService.ts pattern
+
+**Key Implementation Details:**
+- Import teamDB from @/db/teamOperations (not database.ts since teamDB is not re-exported there)
+- Auth state uses `state.auth.user?.id` for userId and `state.auth.device?.id` for deviceId (not userId/deviceId directly)
+- Team members use IndexedDB only (no SQLite equivalent yet, unlike staffDataService)
+- Methods: getAll(), getById(), getActive(), getArchived(), getByEmail(), search(), getBookable(), getByRole(), create(), update(), archive(), restore(), delete(), getStats(), bulkCreate(), upsert()
+
+**Learnings:**
+- AuthState has `user: { id: string, ... } | null` not `userId: string`
+- AuthState has `device: { id: string, ... } | null` not `deviceId: string`
+- teamDB is exported from teamOperations.ts directly, not re-exported from database.ts like other DB operations
+
+---
