@@ -853,3 +853,70 @@ US-065 (priority 16): Create CrossLocationClientView component
 - Remaining: 5
 - Progress: 75%
 
+
+=================================================================
+Iteration 12 - US-065: Create CrossLocationClientView component
+=================================================================
+
+Story: US-065 - Create CrossLocationClientView component
+Priority: 16
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created CrossLocationClientView component at apps/store-app/src/components/clients/CrossLocationClientView.tsx (480 lines):
+
+1. **Organization Detection**
+   - Checks if client belongs to multi-location org
+   - Handles "not in org" state gracefully
+   - Handles "isolated mode" with appropriate message
+
+2. **Home Location Display**
+   - Blue banner showing client's home store
+   - Clear "Home" badge on location cards
+
+3. **Visit History**
+   - Fetches from cross_location_visits table
+   - Shows date, services performed, amount
+   - Highlights visits to current location
+   - Shows 10 most recent, with total count
+
+4. **Location Summaries**
+   - Aggregates visits by store
+   - Shows visit count, total spent, last visit
+   - Sorted by home first, then by visit count
+
+5. **Combined Balances (Org-Wide)**
+   - Loyalty points if loyaltyScope = 'organization'
+   - Wallet balance if giftCardScope = 'organization'
+   - Styled cards with "Combined across all locations" note
+
+6. **Data Source Indicator**
+   - Footer note explaining data source
+   - Shows current sharing mode
+
+7. **States**
+   - Loading, error, empty, isolated mode
+
+## Files Created
+- apps/store-app/src/components/clients/CrossLocationClientView.tsx (NEW - 480 lines)
+
+## Quality Checks
+✅ Shows client's home location
+✅ Shows visit history at other locations
+✅ Shows combined loyalty points (if org-wide)
+✅ Shows combined wallet balance (if org-wide)
+✅ Indicates which data is from other locations
+✅ No forbidden strings
+✅ pnpm run typecheck passes (no errors in component)
+✅ No 'as any' casts
+
+## Next Story
+US-066 (priority 17): Add cross-location view to client profile
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 16 (US-050 through US-065)
+- Remaining: 4
+- Progress: 80%
+

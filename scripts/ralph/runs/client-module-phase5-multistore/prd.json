@@ -291,7 +291,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Only shows if sharing mode is Full or Selective. Follow existing section patterns."
     },
     {
