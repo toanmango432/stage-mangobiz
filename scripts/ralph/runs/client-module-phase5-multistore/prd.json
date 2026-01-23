@@ -272,7 +272,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Add to Organization Settings section. Full = all client data shared across org locations."
     },
     {

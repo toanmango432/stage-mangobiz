@@ -708,3 +708,148 @@ US-063 (priority 14): Create organization sharing database migration
 - Remaining: 7
 - Progress: 65%
 
+
+=================================================================
+Iteration 10 - US-063: Create organization sharing database migration
+=================================================================
+
+Story: US-063 - Create organization sharing database migration
+Priority: 14
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created migration 038_org_client_sharing.sql for Tier 2 organization-level client sharing:
+
+1. **Organizations Table**
+   - id, name, slug, email, phone, website, business_type, timezone, status
+   - client_sharing_settings JSONB with sharingMode (full/selective/isolated)
+   - sharedCategories config (profiles, safetyData, visitHistory, staffNotes, loyaltyData, walletData)
+   - loyaltyScope, giftCardScope, membershipScope settings
+   - allowCrossLocationBooking flag
+
+2. **Stores Table Extension**
+   - Added organization_id column linking stores to organizations
+   - Index for efficient organization lookups
+
+3. **Clients Table Extensions**
+   - home_location_id: primary store for the client
+   - organization_id: denormalized org reference for performance
+   - organization_visible: flag for selective sharing control
+
+4. **Cross Location Visits Table**
+   - Tracks when clients visit stores other than their home location
+   - Records: client_id, organization_id, home_store_id, visiting_store_id
+   - visit_date, appointment_id, ticket_id, services_performed, total_amount
+   - Indexes for efficient queries by client, org, store, date
+
+5. **RLS Policies**
+   - organizations_select: store members can read their org
+   - organizations_update: only org admins (owner/admin role)
+   - cross_visits_select_visiting: see visits to your location
+   - cross_visits_select_home: see visits by your home clients
+   - cross_visits_insert: any org store can log visits
+   - clients_org_select: org clients visible based on sharing mode
+
+6. **Helper Function**
+   - can_access_org_client(p_client_id, p_store_id) SECURITY DEFINER
+   - Checks sharing mode and org membership for access control
+
+7. **Trigger**
+   - organizations_updated_at: auto-update timestamp on changes
+
+## Files Created/Modified
+- supabase/migrations/038_org_client_sharing.sql (NEW - 330 lines)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-063 complete)
+
+## Quality Checks
+✅ organizations table created with client_sharing_settings JSONB
+✅ home_location_id added to clients table
+✅ cross_location_visits table created with all required columns
+✅ RLS policies for org-scoped access
+✅ Migration file at correct location
+✅ Follows migration patterns (gen_random_uuid, TIMESTAMPTZ, comments)
+
+## Commit
+9b285d7 - feat: [client-module-phase5-multistore/US-063] Create organization sharing database migration
+
+## Next Story
+US-064 (priority 15): Create OrganizationClientSharing settings component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 14 (US-050 through US-063)
+- Remaining: 6
+- Progress: 70%
+
+
+=================================================================
+Iteration 11 - US-064: Create OrganizationClientSharing settings component
+=================================================================
+
+Story: US-064 - Create OrganizationClientSharing settings component
+Priority: 15
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created OrganizationClientSharing settings component at apps/store-app/src/components/settings/OrganizationClientSharing.tsx (500 lines):
+
+1. **Sharing Mode Selection**
+   - Dropdown with 3 modes: Full, Selective, Isolated
+   - Full mode: all categories auto-enabled
+   - Isolated mode: only safety data (always on)
+   - Selective mode: custom category selection
+
+2. **Safety Data Notice**
+   - Green info box explaining safety data always shared
+   - Shield icon for visual clarity
+
+3. **Data Category Toggles (Selective mode)**
+   - Basic Profile (name, phone, email)
+   - Safety Data (always on, disabled toggle)
+   - Visit History
+   - Staff Notes
+   - Loyalty Points
+   - Wallet & Credits
+
+4. **Scope Settings**
+   - Loyalty Points Scope: Per Location or Organization-Wide
+   - Gift Card Scope: Per Location or Organization-Wide
+   - Only shown when relevant categories are enabled
+
+5. **Cross-Location Booking Toggle**
+   - Allows clients to book at any org location
+
+6. **Admin Access Control**
+   - Only org owners/admins can modify settings
+   - Non-admins see read-only current mode
+   - Stores not in org see info message
+
+7. **Save/Cancel UI**
+   - Tracks changes with hasChanges state
+   - Save button with loading state
+   - Cancel button to revert changes
+
+## Files Created
+- apps/store-app/src/components/settings/OrganizationClientSharing.tsx (NEW - 500 lines)
+
+## Quality Checks
+✅ Sharing mode dropdown (Full, Selective, Isolated)
+✅ Toggles for loyalty/wallet sharing
+✅ Safety data always shared (no toggle, info shown)
+✅ Save button with loading state
+✅ Only visible/editable to org admins
+✅ No forbidden strings
+✅ pnpm run typecheck passes (no errors in component)
+✅ No 'as any' casts
+
+## Next Story
+US-065 (priority 16): Create CrossLocationClientView component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 15 (US-050 through US-064)
+- Remaining: 5
+- Progress: 75%
+
