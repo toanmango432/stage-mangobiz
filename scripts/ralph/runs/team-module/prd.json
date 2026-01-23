@@ -312,7 +312,7 @@
         "If a fix requires architectural changes, document the reasoning"
       ],
       "priority": 11,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-008",
