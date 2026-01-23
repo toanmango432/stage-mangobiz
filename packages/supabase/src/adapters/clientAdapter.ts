@@ -5,8 +5,7 @@
  */
 
 import type { ClientRow, ClientInsert, ClientUpdate, Json } from '../types';
-import type { Client, LoyaltyInfo, VisitSummary, ClientTag, ClientNote, ClientPreferences } from '@/types/client';
-import type { SyncStatus } from '@/types/common';
+import type { Client, LoyaltyInfo, VisitSummary, ClientTag, ClientNote, ClientPreferences, SyncStatus } from '@mango/types';
 
 /**
  * Convert Supabase ClientRow to app Client type

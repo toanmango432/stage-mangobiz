@@ -5,8 +5,7 @@
  */
 
 import type { ServiceRow, ServiceInsert, ServiceUpdate } from '../types';
-import type { Service } from '@/types/service';
-import type { SyncStatus } from '@/types/common';
+import type { Service, SyncStatus } from '@mango/types';
 
 /**
  * Convert Supabase ServiceRow to app Service type

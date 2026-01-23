@@ -7,8 +7,7 @@
  */
 
 import type { AppointmentRow, AppointmentInsert, AppointmentUpdate, Json } from '../types';
-import type { Appointment, AppointmentService, CreateAppointmentInput } from '@/types/appointment';
-import type { AppointmentStatus, BookingSource, SyncStatus } from '@/types/common';
+import type { Appointment, AppointmentService, CreateAppointmentInput, AppointmentStatus, BookingSource, SyncStatus } from '@mango/types';
 
 /**
  * Convert Supabase AppointmentRow to app Appointment type

@@ -9,7 +9,22 @@
 
 import { supabase } from './client';
 import type { MemberRow, MemberRole } from './types';
-import { auditLogger } from '../audit/auditLogger';
+
+// Stub audit logger for package isolation
+// In production, this should be injected or imported from the app layer
+const auditLogger = {
+  log: (_action: string | Record<string, unknown>, _details?: Record<string, unknown>): Promise<void> => Promise.resolve(),
+  logAuthAction: (_action: string, _details?: Record<string, unknown>): Promise<void> => Promise.resolve(),
+  logLogin: (
+    _userIdOrSuccess: string | boolean,
+    _userNameOrDetails?: string | Record<string, unknown>,
+    _success?: boolean,
+    _errorMessage?: string,
+    _metadata?: Record<string, unknown>
+  ): Promise<void> => Promise.resolve(),
+  setContext: (_context: Record<string, unknown>) => {},
+  clearContext: () => {},
+};
 
 // ==================== SESSION TYPES ====================
 

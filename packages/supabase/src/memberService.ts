@@ -5,7 +5,54 @@
 
 import { supabase } from './client';
 import type { MemberRow } from './types';
-import type { TeamMemberSettings, StaffRole } from '../../components/team-settings/types';
+
+// TeamMemberSettings types defined locally to avoid cross-package dependency
+type StaffRole = 'owner' | 'manager' | 'stylist' | 'receptionist' | 'junior_stylist';
+
+interface TeamMemberProfile {
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  email?: string;
+  phone?: string;
+  avatar?: string;
+  title?: string;
+  hireDate?: string;
+  [key: string]: unknown;
+}
+
+interface TeamMemberWorkingHours {
+  regularHours?: Array<{
+    dayOfWeek: number;
+    isWorking: boolean;
+    shifts?: Array<{ startTime: string; endTime: string }>;
+  }>;
+  timeOffRequests?: unknown[];
+  [key: string]: unknown;
+}
+
+interface TeamMemberCommission {
+  type?: string;
+  basePercentage?: number;
+  [key: string]: unknown;
+}
+
+interface TeamMemberSettings {
+  id: string;
+  storeId: string;
+  tenantId?: string;
+  isActive: boolean;
+  profile?: TeamMemberProfile;
+  role?: StaffRole;
+  workingHours?: TeamMemberWorkingHours;
+  services?: Array<{ serviceId: string; canPerform: boolean }>;
+  commission?: TeamMemberCommission;
+  syncStatus?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
 
 // Map Supabase member roles to TeamSettings roles
 const mapRole = (supabaseRole: MemberRow['role']): StaffRole => {

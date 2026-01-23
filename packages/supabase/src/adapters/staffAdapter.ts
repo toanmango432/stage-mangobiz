@@ -5,8 +5,8 @@
  */
 
 import type { StaffRow, StaffInsert, StaffUpdate, Json } from '../types';
-import type { Staff, StaffSchedule } from '@/types/staff';
-import type { StaffStatus, SyncStatus } from '@/types/common';
+import type { Staff, StaffStatus, SyncStatus } from '@mango/types';
+import type { StaffSchedule } from '@mango/types/staff';
 
 /**
  * Convert Supabase StaffRow to app Staff type

@@ -853,8 +853,8 @@ export const timesheetDB = {
       };
     }
 
-    const activeBreak = timesheet.breaks.find((b) => !b.endTime);
-    const totalBreakMinutes = timesheet.breaks.reduce((sum, b) => sum + b.duration, 0);
+    const activeBreak = timesheet.breaks.find((b: { endTime?: string | null }) => !b.endTime);
+    const totalBreakMinutes = timesheet.breaks.reduce((sum: number, b: { duration: number }) => sum + b.duration, 0);
 
     const clockInTime = new Date(timesheet.actualClockIn).getTime();
     const now = Date.now();

@@ -5,8 +5,7 @@
  */
 
 import type { TransactionRow, TransactionInsert, TransactionUpdate } from '../types';
-import type { Transaction } from '@/types/transaction';
-import type { TransactionStatus, PaymentMethod, SyncStatus } from '@/types/common';
+import type { Transaction, TransactionStatus, PaymentMethod, SyncStatus } from '@mango/types';
 
 /**
  * Convert Supabase TransactionRow to app Transaction type

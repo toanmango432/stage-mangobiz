@@ -2,10 +2,7 @@
   "extends": "../../tooling/tsconfig/react-library.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "skipLibCheck": true
   },
-  "include": ["src"],
-  "references": [
-    { "path": "../types" }
-  ]
+  "include": ["src", "../types/src"]
 }

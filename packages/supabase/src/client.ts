@@ -5,6 +5,8 @@
  * LOCAL-FIRST: Includes timeout wrapper and circuit breaker for resilience
  */
 
+/// <reference types="vite/client" />
+
 import { createClient } from '@supabase/supabase-js';
 
 // Environment variables - REQUIRED, no fallbacks for security

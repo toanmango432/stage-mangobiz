@@ -62,7 +62,7 @@ class SupabaseSyncService {
   private pendingCount: number = 0;
   private error: string | null = null;
   private listeners: Set<SyncListener> = new Set();
-  private syncInterval: NodeJS.Timeout | null = null;
+  private syncInterval: ReturnType<typeof setTimeout> | null = null;
   private realtimeChannel: RealtimeChannel | null = null;
   private storeId: string | null = null;
 

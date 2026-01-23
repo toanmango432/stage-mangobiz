@@ -5,8 +5,7 @@
  */
 
 import type { TicketRow, TicketInsert, TicketUpdate, Json } from '../types';
-import type { Ticket, TicketService, TicketProduct, Payment } from '@/types/Ticket';
-import type { TicketStatus, SyncStatus } from '@/types/common';
+import type { Ticket, TicketService, TicketProduct, Payment, TicketStatus, SyncStatus } from '@mango/types';
 
 /**
  * Convert Supabase TicketRow to app Ticket type
