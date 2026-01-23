@@ -231,8 +231,8 @@ export const PayRunList: React.FC<PayRunListProps> = ({
 
   // Fetch pay runs on mount
   useEffect(() => {
-    dispatch(fetchPayRuns(storeId));
-  }, [dispatch, storeId]);
+    dispatch(fetchPayRuns());
+  }, [dispatch]);
 
   const handleFilterChange = useCallback((filter: PayRunStatus | 'all') => {
     dispatch(setFilterStatus(filter));

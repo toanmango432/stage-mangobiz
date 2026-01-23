@@ -334,7 +334,7 @@ export const PayRunDetail: React.FC<PayRunDetailProps> = ({
   }, []);
 
   const handleSubmitForApproval = useCallback(async () => {
-    await dispatch(submitPayRunForApproval({ payRunId: payRun.id }));
+    await dispatch(submitPayRunForApproval(payRun.id));
   }, [dispatch, payRun.id]);
 
   const handleApprove = useCallback(async () => {

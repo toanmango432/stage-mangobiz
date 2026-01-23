@@ -172,13 +172,11 @@ export const PayRunAdjustmentModal: React.FC<PayRunAdjustmentModalProps> = ({
 
     try {
       await dispatch(addAdjustment({
-        params: {
-          payRunId,
-          staffId,
-          type: adjustmentType,
-          amount: finalAmount(),
-          description: fullDescription,
-        },
+        payRunId,
+        staffId,
+        type: adjustmentType,
+        amount: finalAmount(),
+        description: fullDescription,
       }));
       onSuccess?.();
       onClose();

@@ -434,8 +434,8 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
 
   // Fetch pay runs on mount
   useEffect(() => {
-    dispatch(fetchPayRuns(storeId));
-  }, [dispatch, storeId]);
+    dispatch(fetchPayRuns());
+  }, [dispatch]);
 
   // Filter pay runs that include this staff member
   const staffPayRuns = useMemo(() => {

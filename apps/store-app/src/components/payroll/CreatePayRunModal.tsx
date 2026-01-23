@@ -21,10 +21,8 @@ import {
   selectPayrollSubmitting,
 } from '../../store/slices/payrollSlice';
 import { selectAllStaff as selectStaffMembers } from '../../store/slices/staffSlice';
-import { selectMemberId } from '../../store/slices/authSlice';
 import type { PayPeriodType } from '../../types/payroll';
 import { getPayPeriodDates, formatPayPeriod } from '../../utils/payrollCalculation';
-import { deviceManager } from '../../services/deviceManager';
 
 // ============================================
 // TYPES
@@ -167,14 +165,12 @@ const StaffSelector: React.FC<StaffSelectorProps> = ({
 // ============================================
 
 export const CreatePayRunModal: React.FC<CreatePayRunModalProps> = ({
-  storeId,
   onClose,
   onSuccess,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const submitting = useSelector(selectPayrollSubmitting);
   const staffMembers = useSelector(selectStaffMembers);
-  const currentUserId = useSelector(selectMemberId);
 
   // State
   const [periodType, setPeriodType] = useState<PayPeriodType>('bi-weekly');
@@ -264,17 +260,10 @@ export const CreatePayRunModal: React.FC<CreatePayRunModalProps> = ({
 
     try {
       const result = await dispatch(createPayRun({
-        params: {
-          periodStart,
-          periodEnd,
-          periodType,
-          staffIds: Array.from(selectedStaffIds),
-        },
-        context: {
-          userId: currentUserId || 'system',
-          deviceId: deviceManager.getDeviceId(),
-          storeId,
-        },
+        periodStart,
+        periodEnd,
+        periodType,
+        staffIds: Array.from(selectedStaffIds),
       })).unwrap();
 
       if (result) {
@@ -284,7 +273,7 @@ export const CreatePayRunModal: React.FC<CreatePayRunModalProps> = ({
     } catch (error) {
       console.error('Failed to create pay run:', error);
     }
-  }, [dispatch, currentUserId, periodStart, periodEnd, periodType, selectedStaffIds, storeId, onSuccess, onClose]);
+  }, [dispatch, periodStart, periodEnd, periodType, selectedStaffIds, onSuccess, onClose]);
 
   // Handle escape key
   React.useEffect(() => {

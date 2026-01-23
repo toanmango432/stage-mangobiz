@@ -7,7 +7,7 @@ import type {
   CreatePayRunParams,
   AddAdjustmentParams,
 } from '../../types/payroll';
-import { SyncContext, getDefaultSyncContext } from '../utils/syncContext';
+import { dataService } from '@/services/dataService';
 
 // ============================================
 // STATE TYPES
@@ -65,10 +65,9 @@ const initialState: PayrollState = {
 // Fetch all pay runs for a store
 export const fetchPayRuns = createAsyncThunk(
   'payroll/fetchAll',
-  async (storeId: string, { rejectWithValue }) => {
+  async (_: void, { rejectWithValue }) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const payRuns = await payrollDB.getAllPayRuns(storeId);
+      const payRuns = await dataService.payRuns.getAll();
       return payRuns;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch pay runs');
@@ -80,12 +79,11 @@ export const fetchPayRuns = createAsyncThunk(
 export const fetchPayRunsByDateRange = createAsyncThunk(
   'payroll/fetchByDateRange',
   async (
-    { storeId, startDate, endDate }: { storeId: string; startDate: string; endDate: string },
+    { startDate, endDate }: { startDate: string; endDate: string },
     { rejectWithValue }
   ) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const payRuns = await payrollDB.getPayRunsByDateRange(storeId, startDate, endDate);
+      const payRuns = await dataService.payRuns.getByDateRange(startDate, endDate);
       return payRuns;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch pay runs');
@@ -96,13 +94,9 @@ export const fetchPayRunsByDateRange = createAsyncThunk(
 // Fetch pay runs by status
 export const fetchPayRunsByStatus = createAsyncThunk(
   'payroll/fetchByStatus',
-  async (
-    { storeId, status }: { storeId: string; status: PayRunStatus },
-    { rejectWithValue }
-  ) => {
+  async (status: PayRunStatus, { rejectWithValue }) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const payRuns = await payrollDB.getPayRunsByStatus(storeId, status);
+      const payRuns = await dataService.payRuns.getByStatus(status);
       return payRuns;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch pay runs');
@@ -113,21 +107,9 @@ export const fetchPayRunsByStatus = createAsyncThunk(
 // Create a new pay run
 export const createPayRun = createAsyncThunk(
   'payroll/create',
-  async (
-    { params, context }: { params: CreatePayRunParams; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (params: CreatePayRunParams, { rejectWithValue }) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      const id = await payrollDB.createPayRun(
-        params,
-        ctx.storeId || 'default-store',
-        ctx.userId,
-        ctx.deviceId,
-        ctx.tenantId
-      );
-      const payRun = await payrollDB.getPayRunById(id);
+      const payRun = await dataService.payRuns.create(params);
       return payRun;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to create pay run');
@@ -139,22 +121,11 @@ export const createPayRun = createAsyncThunk(
 export const updateStaffPayment = createAsyncThunk(
   'payroll/updateStaffPayment',
   async (
-    {
-      payRunId,
-      staffPayment,
-      context,
-    }: { payRunId: string; staffPayment: StaffPayment; context?: SyncContext },
+    { payRunId, staffPayment }: { payRunId: string; staffPayment: StaffPayment },
     { rejectWithValue }
   ) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      const payRun = await payrollDB.upsertStaffPayment(
-        payRunId,
-        staffPayment,
-        ctx.userId,
-        ctx.deviceId
-      );
+      const payRun = await dataService.payRuns.upsertStaffPayment(payRunId, staffPayment);
       return payRun;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to update staff payment');
@@ -165,14 +136,9 @@ export const updateStaffPayment = createAsyncThunk(
 // Add adjustment to staff payment
 export const addAdjustment = createAsyncThunk(
   'payroll/addAdjustment',
-  async (
-    { params, context }: { params: AddAdjustmentParams; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (params: AddAdjustmentParams, { rejectWithValue }) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      const payRun = await payrollDB.addAdjustment(params, ctx.userId, ctx.deviceId);
+      const payRun = await dataService.payRuns.addAdjustment(params);
       return payRun;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to add adjustment');
@@ -184,24 +150,11 @@ export const addAdjustment = createAsyncThunk(
 export const removeAdjustment = createAsyncThunk(
   'payroll/removeAdjustment',
   async (
-    {
-      payRunId,
-      staffId,
-      adjustmentId,
-      context,
-    }: { payRunId: string; staffId: string; adjustmentId: string; context?: SyncContext },
+    { payRunId, staffId, adjustmentId }: { payRunId: string; staffId: string; adjustmentId: string },
     { rejectWithValue }
   ) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      const payRun = await payrollDB.removeAdjustment(
-        payRunId,
-        staffId,
-        adjustmentId,
-        ctx.userId,
-        ctx.deviceId
-      );
+      const payRun = await dataService.payRuns.removeAdjustment(payRunId, staffId, adjustmentId);
       return payRun;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to remove adjustment');
@@ -212,14 +165,9 @@ export const removeAdjustment = createAsyncThunk(
 // Submit pay run for approval
 export const submitPayRunForApproval = createAsyncThunk(
   'payroll/submitForApproval',
-  async (
-    { payRunId, context }: { payRunId: string; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (payRunId: string, { rejectWithValue }) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      const payRun = await payrollDB.submitForApproval(payRunId, ctx.userId, ctx.deviceId);
+      const payRun = await dataService.payRuns.submit(payRunId);
       return payRun;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to submit pay run');
@@ -231,22 +179,11 @@ export const submitPayRunForApproval = createAsyncThunk(
 export const approvePayRun = createAsyncThunk(
   'payroll/approve',
   async (
-    {
-      payRunId,
-      approvalNotes,
-      context,
-    }: { payRunId: string; approvalNotes?: string; context?: SyncContext },
+    { payRunId, approvalNotes }: { payRunId: string; approvalNotes?: string },
     { rejectWithValue }
   ) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      const payRun = await payrollDB.approvePayRun(
-        payRunId,
-        approvalNotes,
-        ctx.userId,
-        ctx.deviceId
-      );
+      const payRun = await dataService.payRuns.approve(payRunId, approvalNotes);
       return payRun;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to approve pay run');
@@ -258,13 +195,11 @@ export const approvePayRun = createAsyncThunk(
 export const rejectPayRun = createAsyncThunk(
   'payroll/reject',
   async (
-    { payRunId, reason, context }: { payRunId: string; reason: string; context?: SyncContext },
+    { payRunId, reason }: { payRunId: string; reason: string },
     { rejectWithValue }
   ) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      const payRun = await payrollDB.rejectPayRun(payRunId, reason, ctx.userId, ctx.deviceId);
+      const payRun = await dataService.payRuns.reject(payRunId, reason);
       return payRun;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to reject pay run');
@@ -276,22 +211,11 @@ export const rejectPayRun = createAsyncThunk(
 export const processPayRun = createAsyncThunk(
   'payroll/process',
   async (
-    {
-      payRunId,
-      processingNotes,
-      context,
-    }: { payRunId: string; processingNotes?: string; context?: SyncContext },
+    { payRunId, processingNotes }: { payRunId: string; processingNotes?: string },
     { rejectWithValue }
   ) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      const payRun = await payrollDB.processPayRun(
-        payRunId,
-        processingNotes,
-        ctx.userId,
-        ctx.deviceId
-      );
+      const payRun = await dataService.payRuns.process(payRunId, processingNotes);
       return payRun;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to process pay run');
@@ -303,13 +227,11 @@ export const processPayRun = createAsyncThunk(
 export const voidPayRun = createAsyncThunk(
   'payroll/void',
   async (
-    { payRunId, reason, context }: { payRunId: string; reason: string; context?: SyncContext },
+    { payRunId, reason }: { payRunId: string; reason: string },
     { rejectWithValue }
   ) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      const payRun = await payrollDB.voidPayRun(payRunId, reason, ctx.userId, ctx.deviceId);
+      const payRun = await dataService.payRuns.void(payRunId, reason);
       return payRun;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to void pay run');
@@ -320,14 +242,9 @@ export const voidPayRun = createAsyncThunk(
 // Delete pay run
 export const deletePayRun = createAsyncThunk(
   'payroll/delete',
-  async (
-    { payRunId, context }: { payRunId: string; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (payRunId: string, { rejectWithValue }) => {
     try {
-      const { payrollDB } = await import('../../db/payrollOperations');
-      const ctx = context || getDefaultSyncContext();
-      await payrollDB.deletePayRun(payRunId, ctx.userId, ctx.deviceId);
+      await dataService.payRuns.delete(payRunId);
       return payRunId;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete pay run');
