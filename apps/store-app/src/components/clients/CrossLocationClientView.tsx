@@ -619,7 +619,7 @@ export const CrossLocationClientView: React.FC<CrossLocationClientViewProps> = (
       )}
 
       {/* Empty state for visits */}
-      {data.visits.length === 0 && data.sharingMode !== 'isolated' && (
+      {data.visits.length === 0 && (
         <div className="p-6 text-center rounded-lg border border-dashed border-gray-200">
           <CalendarIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
           <p className="text-sm text-gray-500">No cross-location visits recorded</p>
