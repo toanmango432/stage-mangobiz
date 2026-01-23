@@ -52,23 +52,14 @@ export const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({
   };
 
   const handleApprove = async () => {
-    await dispatch(
-      approveTimesheet({
-        timesheetId: timesheet.id,
-        context: { userId: 'manager', deviceId: 'web', storeId },
-      })
-    ).unwrap();
+    await dispatch(approveTimesheet(timesheet.id)).unwrap();
     onClose();
   };
 
   const handleDispute = async () => {
     if (disputeReason.trim()) {
       await dispatch(
-        disputeTimesheet({
-          timesheetId: timesheet.id,
-          reason: disputeReason,
-          context: { userId: 'manager', deviceId: 'web', storeId },
-        })
+        disputeTimesheet({ timesheetId: timesheet.id, reason: disputeReason })
       ).unwrap();
       onClose();
     }

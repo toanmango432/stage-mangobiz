@@ -129,7 +129,7 @@ export function useStaffActions({
     (staffId: number) => {
       const staffMember = findStaffByNumericId(staff, staffId);
       if (staffMember) {
-        dispatch(clockIn({ params: { staffId: staffMember.id } }));
+        dispatch(clockIn({ staffId: staffMember.id }));
       }
     },
     [staff, dispatch]
@@ -153,7 +153,7 @@ export function useStaffActions({
         return;
       }
 
-      dispatch(clockOut({ params: { staffId: staffMember.id } }));
+      dispatch(clockOut({ staffId: staffMember.id }));
     },
     [staff, serviceTickets, dispatch]
   );

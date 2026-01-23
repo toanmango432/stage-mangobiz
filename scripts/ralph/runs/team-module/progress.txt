@@ -120,3 +120,69 @@ Commit: d201698
 - Re-exports section at bottom of dataService.ts also needed updating for backward compatibility
 
 ---
+
+## 2026-01-23 - TM-005: Refactor teamThunks to use dataService
+Commit: 1591c12
+
+**Changes:**
+- apps/store-app/src/store/slices/team/teamThunks.ts: Refactored all main thunks to use dataService.team
+
+**Key Implementation Details:**
+- Imported dataService from @/services/dataService
+- Replaced fetchSupabaseMembers + teamDB fallback pattern with single dataService.team.getAll()
+- fetchTeamMember now uses dataService.team.getById()
+- saveTeamMember now uses dataService.team.create() and dataService.team.update()
+- archiveTeamMember now uses dataService.team.archive()
+- restoreTeamMember now uses dataService.team.restore()
+- deleteTeamMember now uses dataService.team.delete()
+- Removed complex Supabase-first-then-IndexedDB pattern from fetchTeamMembers
+- Kept optimistic update pattern intact (dispatch before async, rollback on failure)
+
+**Note on Time Off/Schedule Override Thunks:**
+- saveTimeOffRequest, deleteTimeOffRequest, saveScheduleOverride, deleteScheduleOverride still use teamDB directly
+- These are specialized nested operations that modify arrays within a member object
+- They don't fit cleanly into the dataService CRUD pattern
+- This is intentional and acceptable for now
+
+**Learnings:**
+- dataService.team.getAll() uses Redux auth state for storeId internally, so storeId param in thunk is now ignored
+- Nested operations (time off, schedule overrides) are better kept with direct teamDB access
+- The SyncContext parameter is now unused in main thunks (_context) since dataService handles userId/deviceId internally
+- Simplifies code significantly: from ~50 lines per thunk to ~10-15 lines
+
+---
+
+## 2026-01-23 - TM-006: Refactor timesheetSlice to use dataService
+Commit: e620cbf
+
+**Changes:**
+- apps/store-app/src/store/slices/timesheetSlice.ts: Refactored all thunks to use dataService.timesheets
+
+**Files Updated to Fix Call Sites:**
+- apps/store-app/src/components/frontdesk/MobileTeamSection.tsx: Updated clockIn/clockOut calls
+- apps/store-app/src/components/frontdesk/StaffSidebar/hooks/useStaffActions.ts: Updated clockIn/clockOut calls
+- apps/store-app/src/components/layout/ClockInOutButton.tsx: Updated clockIn/clockOut/fetchStaffShiftStatus calls
+- apps/store-app/src/components/team-settings/components/TimesheetDashboard.tsx: Updated fetchTimesheetsByDateRange/bulkApproveTimesheets/approveTimesheet/disputeTimesheet calls
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/components/TimesheetDetailModal.tsx: Updated approveTimesheet/disputeTimesheet calls
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/hooks/useTimesheetActions.ts: Updated all clock/break action calls
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/TimesheetSection.tsx: Updated fetchStaffShiftStatus/fetchTimesheetsByStaff calls
+
+**Key Implementation Details:**
+- Imported dataService from @/services/dataService
+- Removed all dynamic imports of timesheetDB
+- Removed SyncContext import and usage (no longer needed)
+- Simplified thunk signatures: removed { params, context } wrapper, thunks now take params directly
+- clockIn/clockOut/startBreak/endBreak thunks now take ClockInParams/ClockOutParams/StartBreakParams/EndBreakParams directly
+- approveTimesheet now takes timesheetId string directly (not object with context)
+- bulkApproveTimesheets now takes string[] directly
+- disputeTimesheet now takes { timesheetId, reason } (no context)
+- All fetch thunks removed storeId parameter (dataService handles internally)
+- Updated extraReducers to use action.meta.arg.staffId instead of action.meta.arg.params.staffId
+
+**Learnings:**
+- Breaking change: Simplifying thunk signatures requires updating ALL call sites across the codebase
+- Use grep to find all usages before refactoring: `grep -r "dispatch(clockIn" --include="*.ts" --include="*.tsx"`
+- dataService handles storeId/userId/deviceId internally, so thunks no longer need SyncContext parameter
+- Cleaner API: thunks now match their param types directly without nested wrapper objects
+
+---

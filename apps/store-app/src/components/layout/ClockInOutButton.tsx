@@ -241,20 +241,14 @@ export function ClockInOutButton() {
     try {
       if (shiftInfo.isClockedIn) {
         // Clock out
-        await dispatch(clockOut({
-          params: { staffId: targetStaff.id },
-          context: { userId: verifiedStaff?.memberId || targetStaff.id, deviceId: 'web', storeId },
-        })).unwrap();
+        await dispatch(clockOut({ staffId: targetStaff.id })).unwrap();
       } else {
         // Clock in
-        await dispatch(clockIn({
-          params: { staffId: targetStaff.id },
-          context: { userId: verifiedStaff?.memberId || targetStaff.id, deviceId: 'web', storeId },
-        })).unwrap();
+        await dispatch(clockIn({ staffId: targetStaff.id })).unwrap();
       }
 
       // Refresh status
-      await dispatch(fetchStaffShiftStatus({ storeId, staffId: targetStaff.id }));
+      await dispatch(fetchStaffShiftStatus({ staffId: targetStaff.id }));
 
       setStep('success');
 

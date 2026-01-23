@@ -279,9 +279,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
     if (!staffMember) return;
 
     dispatch(clockIn({
-      params: {
-        staffId: staffMember.id,
-      }
+      staffId: staffMember.id,
     }));
   }, [staff, dispatch]);
 
@@ -308,9 +306,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
     }
 
     dispatch(clockOut({
-      params: {
-        staffId: staffMember.id,
-      }
+      staffId: staffMember.id,
     }));
   }, [staff, serviceTickets, dispatch]);
 

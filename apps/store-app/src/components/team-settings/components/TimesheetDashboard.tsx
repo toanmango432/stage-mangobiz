@@ -501,7 +501,7 @@ export const TimesheetDashboard: React.FC<TimesheetDashboardProps> = ({
   useEffect(() => {
     const startDate = weekDays[0].date;
     const endDate = weekDays[6].date;
-    dispatch(fetchTimesheetsByDateRange({ storeId, startDate, endDate }));
+    dispatch(fetchTimesheetsByDateRange({ startDate, endDate }));
   }, [dispatch, storeId, weekDays]);
 
   // Filter timesheets by week
@@ -585,35 +585,21 @@ export const TimesheetDashboard: React.FC<TimesheetDashboardProps> = ({
       .map((ts) => ts.id);
 
     if (pendingIds.length > 0) {
-      await dispatch(
-        bulkApproveTimesheets({
-          timesheetIds: pendingIds,
-          context: { userId: 'manager', deviceId: 'web', storeId },
-        })
-      ).unwrap();
+      await dispatch(bulkApproveTimesheets(pendingIds)).unwrap();
       setSelectedStaffIds(new Set());
     }
-  }, [dispatch, weekTimesheets, selectedStaffIds, storeId]);
+  }, [dispatch, weekTimesheets, selectedStaffIds]);
 
   const handleApproveTimesheet = async () => {
     if (!selectedTimesheet) return;
-    await dispatch(
-      approveTimesheet({
-        timesheetId: selectedTimesheet.id,
-        context: { userId: 'manager', deviceId: 'web', storeId },
-      })
-    ).unwrap();
+    await dispatch(approveTimesheet(selectedTimesheet.id)).unwrap();
     setSelectedTimesheet(null);
   };
 
   const handleDisputeTimesheet = async (reason: string) => {
     if (!selectedTimesheet) return;
     await dispatch(
-      disputeTimesheet({
-        timesheetId: selectedTimesheet.id,
-        reason,
-        context: { userId: 'manager', deviceId: 'web', storeId },
-      })
+      disputeTimesheet({ timesheetId: selectedTimesheet.id, reason })
     ).unwrap();
     setSelectedTimesheet(null);
   };

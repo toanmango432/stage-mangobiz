@@ -70,9 +70,9 @@ export const TimesheetSection: React.FC<TimesheetSectionProps> = ({
 
   // Fetch initial data
   useEffect(() => {
-    dispatch(fetchStaffShiftStatus({ storeId, staffId: memberId }));
-    dispatch(fetchTimesheetsByStaff({ storeId, staffId: memberId }));
-  }, [dispatch, storeId, memberId]);
+    dispatch(fetchStaffShiftStatus({ staffId: memberId }));
+    dispatch(fetchTimesheetsByStaff({ staffId: memberId }));
+  }, [dispatch, memberId]);
 
   // Sort timesheets by date (most recent first)
   const sortedTimesheets = [...timesheets].sort((a, b) => b.date.localeCompare(a.date));

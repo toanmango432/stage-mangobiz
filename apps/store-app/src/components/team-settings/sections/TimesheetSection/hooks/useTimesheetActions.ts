@@ -36,58 +36,46 @@ export function useTimesheetActions({
   const handleClockIn = useCallback(async () => {
     setIsLoading(true);
     try {
-      await dispatch(clockIn({
-        params: { staffId: memberId },
-        context: { userId: memberId, deviceId: 'web', storeId },
-      })).unwrap();
+      await dispatch(clockIn({ staffId: memberId })).unwrap();
     } catch (error) {
       console.error('Failed to clock in:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [dispatch, memberId, storeId]);
+  }, [dispatch, memberId]);
 
   const handleClockOut = useCallback(async () => {
     setIsLoading(true);
     try {
-      await dispatch(clockOut({
-        params: { staffId: memberId },
-        context: { userId: memberId, deviceId: 'web', storeId },
-      })).unwrap();
+      await dispatch(clockOut({ staffId: memberId })).unwrap();
     } catch (error) {
       console.error('Failed to clock out:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [dispatch, memberId, storeId]);
+  }, [dispatch, memberId]);
 
   const handleStartBreak = useCallback(async (breakType: BreakType) => {
     setIsLoading(true);
     try {
-      await dispatch(startBreak({
-        params: { staffId: memberId, breakType },
-        context: { userId: memberId, deviceId: 'web', storeId },
-      })).unwrap();
+      await dispatch(startBreak({ staffId: memberId, breakType })).unwrap();
     } catch (error) {
       console.error('Failed to start break:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [dispatch, memberId, storeId]);
+  }, [dispatch, memberId]);
 
   const handleEndBreak = useCallback(async () => {
     setIsLoading(true);
     try {
-      await dispatch(endBreak({
-        params: { staffId: memberId },
-        context: { userId: memberId, deviceId: 'web', storeId },
-      })).unwrap();
+      await dispatch(endBreak({ staffId: memberId })).unwrap();
     } catch (error) {
       console.error('Failed to end break:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [dispatch, memberId, storeId]);
+  }, [dispatch, memberId]);
 
   return {
     isLoading,

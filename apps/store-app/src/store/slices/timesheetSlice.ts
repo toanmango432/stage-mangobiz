@@ -12,7 +12,7 @@ import type {
   CreateTimesheetParams,
 } from '../../types/timesheet';
 import { DEFAULT_OVERTIME_SETTINGS } from '../../types/timesheet';
-import { SyncContext, getDefaultSyncContext } from '../utils/syncContext';
+import { dataService } from '@/services/dataService';
 
 // ============================================
 // STATE TYPES
@@ -118,10 +118,9 @@ const initialState: TimesheetState = {
 // Fetch timesheets for a date
 export const fetchTimesheetsByDate = createAsyncThunk(
   'timesheet/fetchByDate',
-  async ({ storeId, date }: { storeId: string; date: string }, { rejectWithValue }) => {
+  async ({ date }: { date: string }, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const timesheets = await timesheetDB.getTimesheetsByDate(storeId, date);
+      const timesheets = await dataService.timesheets.getByDate(date);
       return { date, timesheets };
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch timesheets');
@@ -133,12 +132,11 @@ export const fetchTimesheetsByDate = createAsyncThunk(
 export const fetchTimesheetsByDateRange = createAsyncThunk(
   'timesheet/fetchByDateRange',
   async (
-    { storeId, startDate, endDate }: { storeId: string; startDate: string; endDate: string },
+    { startDate, endDate }: { startDate: string; endDate: string },
     { rejectWithValue }
   ) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const timesheets = await timesheetDB.getTimesheetsByDateRange(storeId, startDate, endDate);
+      const timesheets = await dataService.timesheets.getByDateRange(startDate, endDate);
       return timesheets;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch timesheets');
@@ -149,10 +147,9 @@ export const fetchTimesheetsByDateRange = createAsyncThunk(
 // Fetch timesheets for a staff member
 export const fetchTimesheetsByStaff = createAsyncThunk(
   'timesheet/fetchByStaff',
-  async ({ storeId, staffId }: { storeId: string; staffId: string }, { rejectWithValue }) => {
+  async ({ staffId }: { staffId: string }, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const timesheets = await timesheetDB.getTimesheetsByStaff(storeId, staffId);
+      const timesheets = await dataService.timesheets.getByStaffId(staffId);
       return { staffId, timesheets };
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch timesheets');
@@ -163,10 +160,9 @@ export const fetchTimesheetsByStaff = createAsyncThunk(
 // Fetch pending timesheets for approval
 export const fetchPendingTimesheets = createAsyncThunk(
   'timesheet/fetchPending',
-  async (storeId: string, { rejectWithValue }) => {
+  async (_: void, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const timesheets = await timesheetDB.getPendingTimesheets(storeId);
+      const timesheets = await dataService.timesheets.getPending();
       return timesheets;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch pending timesheets');
@@ -177,14 +173,9 @@ export const fetchPendingTimesheets = createAsyncThunk(
 // Clock in
 export const clockIn = createAsyncThunk(
   'timesheet/clockIn',
-  async (
-    { params, context }: { params: ClockInParams; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (params: ClockInParams, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.clockIn(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
+      const timesheet = await dataService.timesheets.clockIn(params);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to clock in');
@@ -195,14 +186,9 @@ export const clockIn = createAsyncThunk(
 // Clock out
 export const clockOut = createAsyncThunk(
   'timesheet/clockOut',
-  async (
-    { params, context }: { params: ClockOutParams; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (params: ClockOutParams, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.clockOut(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
+      const timesheet = await dataService.timesheets.clockOut(params);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to clock out');
@@ -213,14 +199,9 @@ export const clockOut = createAsyncThunk(
 // Start break
 export const startBreak = createAsyncThunk(
   'timesheet/startBreak',
-  async (
-    { params, context }: { params: StartBreakParams; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (params: StartBreakParams, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.startBreak(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
+      const timesheet = await dataService.timesheets.startBreak(params);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to start break');
@@ -231,14 +212,9 @@ export const startBreak = createAsyncThunk(
 // End break
 export const endBreak = createAsyncThunk(
   'timesheet/endBreak',
-  async (
-    { params, context }: { params: EndBreakParams; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (params: EndBreakParams, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.endBreak(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
+      const timesheet = await dataService.timesheets.endBreak(params);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to end break');
@@ -249,14 +225,9 @@ export const endBreak = createAsyncThunk(
 // Approve timesheet
 export const approveTimesheet = createAsyncThunk(
   'timesheet/approve',
-  async (
-    { timesheetId, context }: { timesheetId: string; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (timesheetId: string, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.approveTimesheet(timesheetId, ctx.userId, ctx.deviceId);
+      const timesheet = await dataService.timesheets.approve(timesheetId);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to approve timesheet');
@@ -267,14 +238,9 @@ export const approveTimesheet = createAsyncThunk(
 // Bulk approve timesheets
 export const bulkApproveTimesheets = createAsyncThunk(
   'timesheet/bulkApprove',
-  async (
-    { timesheetIds, context }: { timesheetIds: string[]; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (timesheetIds: string[], { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const ctx = context || getDefaultSyncContext();
-      await timesheetDB.bulkApproveTimesheets(timesheetIds, ctx.userId, ctx.deviceId);
+      await dataService.timesheets.bulkApprove(timesheetIds);
       return timesheetIds;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to approve timesheets');
@@ -285,14 +251,9 @@ export const bulkApproveTimesheets = createAsyncThunk(
 // Dispute timesheet
 export const disputeTimesheet = createAsyncThunk(
   'timesheet/dispute',
-  async (
-    { timesheetId, reason, context }: { timesheetId: string; reason: string; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async ({ timesheetId, reason }: { timesheetId: string; reason: string }, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.disputeTimesheet(timesheetId, reason, ctx.userId, ctx.deviceId);
+      const timesheet = await dataService.timesheets.reject(timesheetId, reason);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to dispute timesheet');
@@ -303,15 +264,9 @@ export const disputeTimesheet = createAsyncThunk(
 // Create timesheet (for scheduled shifts)
 export const createTimesheet = createAsyncThunk(
   'timesheet/create',
-  async (
-    { params, context }: { params: CreateTimesheetParams; context?: SyncContext },
-    { rejectWithValue }
-  ) => {
+  async (params: CreateTimesheetParams, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const ctx = context || getDefaultSyncContext();
-      const id = await timesheetDB.createTimesheet(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
-      const timesheet = await timesheetDB.getTimesheetById(id);
+      const timesheet = await dataService.timesheets.create(params);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to create timesheet');
@@ -322,10 +277,9 @@ export const createTimesheet = createAsyncThunk(
 // Fetch staff shift status
 export const fetchStaffShiftStatus = createAsyncThunk(
   'timesheet/fetchShiftStatus',
-  async ({ storeId, staffId }: { storeId: string; staffId: string }, { rejectWithValue }) => {
+  async ({ staffId }: { staffId: string }, { rejectWithValue }) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const status = await timesheetDB.getStaffShiftStatus(storeId, staffId);
+      const status = await dataService.timesheets.getShiftStatus(staffId);
       return { staffId, status };
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch shift status');
@@ -338,13 +292,11 @@ export const fetchTimesheetSummary = createAsyncThunk(
   'timesheet/fetchSummary',
   async (
     {
-      storeId,
       staffId,
       staffName,
       periodStart,
       periodEnd,
     }: {
-      storeId: string;
       staffId: string;
       staffName: string;
       periodStart: string;
@@ -353,9 +305,7 @@ export const fetchTimesheetSummary = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const { timesheetDB } = await import('../../db/timesheetOperations');
-      const summary = await timesheetDB.getTimesheetSummary(
-        storeId,
+      const summary = await dataService.timesheets.getSummary(
         staffId,
         staffName,
         periodStart,
@@ -597,7 +547,7 @@ const timesheetSlice = createSlice({
     // Clock in
     builder
       .addCase(clockIn.pending, (state, action) => {
-        state.loadingStaffId = action.meta.arg.params.staffId;
+        state.loadingStaffId = action.meta.arg.staffId;
         state.error = null;
       })
       .addCase(clockIn.fulfilled, (state, action) => {
@@ -626,7 +576,7 @@ const timesheetSlice = createSlice({
     // Clock out
     builder
       .addCase(clockOut.pending, (state, action) => {
-        state.loadingStaffId = action.meta.arg.params.staffId;
+        state.loadingStaffId = action.meta.arg.staffId;
         state.error = null;
       })
       .addCase(clockOut.fulfilled, (state, action) => {
@@ -652,7 +602,7 @@ const timesheetSlice = createSlice({
     // Start break
     builder
       .addCase(startBreak.pending, (state, action) => {
-        state.loadingStaffId = action.meta.arg.params.staffId;
+        state.loadingStaffId = action.meta.arg.staffId;
         state.error = null;
       })
       .addCase(startBreak.fulfilled, (state, action) => {
@@ -674,7 +624,7 @@ const timesheetSlice = createSlice({
     // End break
     builder
       .addCase(endBreak.pending, (state, action) => {
-        state.loadingStaffId = action.meta.arg.params.staffId;
+        state.loadingStaffId = action.meta.arg.staffId;
         state.error = null;
       })
       .addCase(endBreak.fulfilled, (state, action) => {

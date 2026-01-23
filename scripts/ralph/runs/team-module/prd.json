@@ -160,7 +160,7 @@
         "dataService handles Supabase vs IndexedDB routing internally"
       ],
       "priority": 5,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-006",
@@ -184,7 +184,7 @@
         "Only modify the data fetching layer"
       ],
       "priority": 6,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-007",
