@@ -530,3 +530,42 @@ PRD requested React Hook Form + Zod, but the codebase doesn't use React Hook For
 - date-fns parse() is useful for converting string time to Date for calculations
 
 ---
+
+## 2026-01-23 - TM-011: Create DisputeTimesheetModal component
+Commit: f0d6c34
+
+**Changes:**
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/components/DisputeTimesheetModal.tsx (NEW): Created dispute timesheet modal
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/components/index.ts: Added DisputeTimesheetModal export
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/TimesheetSection.tsx: Added disputeTimesheetId state and modal rendering
+
+**Key Implementation Details:**
+- Shows current timesheet details as read-only (member name, date, recorded times, total hours, break time)
+- Required reason textarea with 10 character minimum validation
+- Optional suggested correction fields: clock in time, clock out time, break duration (minutes)
+- Suggested correction preview card shows calculated total/break/worked time when corrections provided
+- Submits via disputeTimesheet thunk from timesheetSlice
+- Combines reason with suggested corrections in formatted string for dispute reason
+- Loading state during submit (isLoading from timesheetSlice)
+- Toast notifications for success and error states
+- Modal integrated into TimesheetSection with state for disputeTimesheetId
+
+**Architecture Note:**
+The DisputeTimesheetModal is a dedicated modal for disputing timesheets with suggested corrections. This complements the inline dispute form in TimesheetDetailModal by providing:
+1. Better UX with suggested correction fields
+2. 10 character minimum validation (per PRD acceptance criteria)
+3. Preview of suggested corrections before submission
+4. Standalone modal that can be opened directly without first viewing details
+
+**Browser Verification:**
+- Dev server not running at time of implementation
+- Code changes verified with typecheck
+- Manual browser testing needed when dev server is available
+
+**Learnings:**
+- disputeTimesheet thunk already exists in timesheetSlice (added in TM-006)
+- formatHours utility from @/utils/overtimeCalculation formats decimal hours
+- Card component accepts className for custom styling (bg-amber-50 for warning preview)
+- Modal with IIFE pattern used in JSX to find timesheet before rendering
+
+---

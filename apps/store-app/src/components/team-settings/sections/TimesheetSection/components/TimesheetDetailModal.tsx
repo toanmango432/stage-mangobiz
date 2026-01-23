@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Card, Badge, Button, Modal, Textarea } from '../../../components/SharedComponents';
 import type { AppDispatch } from '@/store';
 import {
   approveTimesheet,
-  disputeTimesheet,
+  rejectTimesheet,
   selectTimesheetLoading,
 } from '@/store/slices/timesheetSlice';
+import { selectMemberRole } from '@/store/slices/authSlice';
 import type { TimesheetDetailModalProps } from '../types';
 import { formatHours } from '@/utils/overtimeCalculation';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * Timesheet detail modal component
@@ -24,8 +26,13 @@ export const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const isLoading = useSelector(selectTimesheetLoading);
-  const [disputeReason, setDisputeReason] = useState('');
-  const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const memberRole = useSelector(selectMemberRole);
+  const { toast } = useToast();
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectForm, setShowRejectForm] = useState(false);
+
+  // Check if current user is a manager (can approve/reject timesheets)
+  const isManager = memberRole === 'owner' || memberRole === 'manager' || memberRole === 'admin';
 
   const timesheet = timesheets.find((ts) => ts.id === timesheetId);
 
@@ -52,16 +59,40 @@ export const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({
   };
 
   const handleApprove = async () => {
-    await dispatch(approveTimesheet(timesheet.id)).unwrap();
-    onClose();
+    try {
+      await dispatch(approveTimesheet(timesheet.id)).unwrap();
+      toast({
+        title: 'Timesheet Approved',
+        description: `Timesheet for ${memberName} has been approved.`,
+      });
+      onClose();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to approve timesheet',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDispute = async () => {
-    if (disputeReason.trim()) {
-      await dispatch(
-        disputeTimesheet({ timesheetId: timesheet.id, reason: disputeReason })
-      ).unwrap();
-      onClose();
+  const handleReject = async () => {
+    if (rejectReason.trim()) {
+      try {
+        await dispatch(
+          rejectTimesheet({ timesheetId: timesheet.id, reason: rejectReason })
+        ).unwrap();
+        toast({
+          title: 'Timesheet Rejected',
+          description: `Timesheet for ${memberName} has been rejected.`,
+        });
+        onClose();
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to reject timesheet',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -77,8 +108,8 @@ export const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({
       case 'disputed':
         return (
           <Badge variant="error" size="md">
-            <AlertCircle className="w-4 h-4 mr-1" />
-            Disputed
+            <XCircle className="w-4 h-4 mr-1" />
+            Rejected
           </Badge>
         );
       default:
@@ -182,32 +213,36 @@ export const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({
           </Card>
         )}
 
-        {/* Dispute Reason (if disputed) */}
+        {/* Rejection Reason (if rejected) */}
         {timesheet.status === 'disputed' && timesheet.disputeReason && (
           <Card className="bg-red-50 border-red-200">
-            <h4 className="font-medium text-red-800 mb-2">Dispute Reason</h4>
+            <h4 className="font-medium text-red-800 mb-2">Rejection Reason</h4>
             <p className="text-sm text-red-700">{timesheet.disputeReason}</p>
           </Card>
         )}
 
-        {/* Dispute Form */}
-        {showDisputeForm && timesheet.status === 'pending' && (
-          <Card>
+        {/* Reject Form (with confirmation) */}
+        {showRejectForm && timesheet.status === 'pending' && isManager && (
+          <Card className="bg-red-50 border-red-200">
+            <h4 className="font-medium text-red-800 mb-2">Reject Timesheet</h4>
+            <p className="text-sm text-gray-600 mb-3">
+              Please provide a reason for rejecting this timesheet. This action cannot be undone.
+            </p>
             <Textarea
-              label="Dispute Reason"
-              value={disputeReason}
-              onChange={setDisputeReason}
-              placeholder="Enter the reason for disputing this timesheet..."
+              label="Rejection Reason"
+              value={rejectReason}
+              onChange={setRejectReason}
+              placeholder="Enter the reason for rejecting this timesheet..."
               rows={3}
               required
             />
           </Card>
         )}
 
-        {/* Actions */}
-        {timesheet.status === 'pending' && (
+        {/* Actions (visible to managers only) */}
+        {timesheet.status === 'pending' && isManager && (
           <div className="flex gap-3 pt-4 border-t border-gray-100">
-            {!showDisputeForm ? (
+            {!showRejectForm ? (
               <>
                 <Button variant="primary" onClick={handleApprove} loading={isLoading} fullWidth>
                   <CheckCircle className="w-4 h-4 mr-2" />
@@ -215,25 +250,25 @@ export const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => setShowDisputeForm(true)}
+                  onClick={() => setShowRejectForm(true)}
                   fullWidth
                 >
-                  <AlertCircle className="w-4 h-4 mr-2" />
-                  Dispute
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
                 </Button>
               </>
             ) : (
               <>
                 <Button
                   variant="danger"
-                  onClick={handleDispute}
+                  onClick={handleReject}
                   loading={isLoading}
-                  disabled={!disputeReason.trim()}
+                  disabled={!rejectReason.trim()}
                   fullWidth
                 >
-                  Submit Dispute
+                  Confirm Rejection
                 </Button>
-                <Button variant="ghost" onClick={() => setShowDisputeForm(false)} fullWidth>
+                <Button variant="ghost" onClick={() => setShowRejectForm(false)} fullWidth>
                   Cancel
                 </Button>
               </>

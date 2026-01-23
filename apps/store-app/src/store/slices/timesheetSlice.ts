@@ -248,7 +248,7 @@ export const bulkApproveTimesheets = createAsyncThunk(
   }
 );
 
-// Dispute timesheet
+// Dispute timesheet (staff can flag their own timesheet for review)
 export const disputeTimesheet = createAsyncThunk(
   'timesheet/dispute',
   async ({ timesheetId, reason }: { timesheetId: string; reason: string }, { rejectWithValue }) => {
@@ -257,6 +257,19 @@ export const disputeTimesheet = createAsyncThunk(
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to dispute timesheet');
+    }
+  }
+);
+
+// Reject timesheet (manager action to deny a timesheet)
+export const rejectTimesheet = createAsyncThunk(
+  'timesheet/reject',
+  async ({ timesheetId, reason }: { timesheetId: string; reason: string }, { rejectWithValue }) => {
+    try {
+      const timesheet = await dataService.timesheets.reject(timesheetId, reason);
+      return timesheet;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to reject timesheet');
     }
   }
 );
@@ -674,6 +687,16 @@ const timesheetSlice = createSlice({
         state.timesheets[ts.id] = ts;
       })
       .addCase(disputeTimesheet.rejected, (state, action) => {
+        state.error = action.payload as string;
+      });
+
+    // Reject timesheet (manager action)
+    builder
+      .addCase(rejectTimesheet.fulfilled, (state, action) => {
+        const ts = action.payload;
+        state.timesheets[ts.id] = ts;
+      })
+      .addCase(rejectTimesheet.rejected, (state, action) => {
         state.error = action.payload as string;
       });
 
