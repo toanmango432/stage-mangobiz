@@ -29,18 +29,13 @@ export function ShadowDOMContainer({ cssUrl, children, className = '' }: ShadowD
   const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
   const [mountPoint, setMountPoint] = useState<HTMLDivElement | null>(null);
 
-  // Create shadow root on mount
+  // Create shadow root on mount - setState in effect is intentional for Shadow DOM initialization
   useEffect(() => {
     if (!hostRef.current) return;
 
-    // Check if shadow root already exists
-    if (hostRef.current.shadowRoot) {
-      setShadowRoot(hostRef.current.shadowRoot);
-      return;
-    }
-
-    // Create shadow root
-    const shadow = hostRef.current.attachShadow({ mode: 'open' });
+    // Get or create shadow root
+    const shadow = hostRef.current.shadowRoot ?? hostRef.current.attachShadow({ mode: 'open' });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShadowRoot(shadow);
   }, []);
 
@@ -49,7 +44,9 @@ export function ShadowDOMContainer({ cssUrl, children, className = '' }: ShadowD
     if (!shadowRoot) return;
 
     // Clear existing content
-    shadowRoot.innerHTML = '';
+    while (shadowRoot.firstChild) {
+      shadowRoot.removeChild(shadowRoot.firstChild);
+    }
 
     // Add CSS if URL provided
     if (cssUrl) {
@@ -59,18 +56,11 @@ export function ShadowDOMContainer({ cssUrl, children, className = '' }: ShadowD
       shadowRoot.appendChild(link);
     }
 
-    // Add base styles to ensure proper sizing
+    // Add base styles
     const baseStyles = document.createElement('style');
     baseStyles.textContent = `
-      :host {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-      .shadow-mount {
-        width: 100%;
-        height: 100%;
-      }
+      :host { display: block; width: 100%; height: 100%; }
+      .shadow-mount { width: 100%; height: 100%; }
     `;
     shadowRoot.appendChild(baseStyles);
 
@@ -78,12 +68,11 @@ export function ShadowDOMContainer({ cssUrl, children, className = '' }: ShadowD
     const mount = document.createElement('div');
     mount.className = 'shadow-mount';
     shadowRoot.appendChild(mount);
-    setMountPoint(mount);
 
-    // Cleanup
-    return () => {
-      setMountPoint(null);
-    };
+    // Setting state here is intentional - Shadow DOM setup requires synchronous
+    // mount point creation before we can portal children into it
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMountPoint(mount);
   }, [shadowRoot, cssUrl]);
 
   return (

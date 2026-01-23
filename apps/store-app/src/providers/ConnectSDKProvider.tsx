@@ -159,22 +159,6 @@ export function getSDKCSSUrl(): string {
   return DEFAULT_CSS_URL;
 }
 
-/**
- * Load SDK CSS stylesheet - DEPRECATED
- * CSS is now loaded inside ShadowDOMContainer to prevent global style conflicts.
- * Keeping this function for reference but it's no longer called.
- */
-function _loadCSSDeprecated(): void {
-  const cssUrl = getSDKCSSUrl();
-  const existingLink = document.querySelector(`link[href="${cssUrl}"]`);
-  if (existingLink) return;
-
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = cssUrl;
-  document.head.appendChild(link);
-}
-
 // ==================== PROVIDER ====================
 
 interface ConnectSDKProviderProps {

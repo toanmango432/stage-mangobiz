@@ -47,30 +47,21 @@ export function AIAssistantPanel() {
 
   // Render SDK module into container when panel is open
   useEffect(() => {
-    // Cleanup previous render
-    if (cleanupRef.current) {
-      cleanupRef.current();
-      cleanupRef.current = null;
-    }
-
     // Don't render if panel is closed, no container, or SDK not loaded
     if (!isOpen || !containerRef.current || !sdkModule?.AIAssistantModule) {
       return;
     }
 
     // Render the AIAssistantModule into the container
-    const cleanup = renderInContainer(
+    cleanupRef.current = renderInContainer(
       containerRef.current,
       sdkModule.AIAssistantModule
     );
-    cleanupRef.current = cleanup;
 
-    // Cleanup on unmount or when panel closes
+    // Cleanup on unmount or when dependencies change
     return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current();
-        cleanupRef.current = null;
-      }
+      cleanupRef.current?.();
+      cleanupRef.current = null;
     };
   }, [isOpen, sdkModule, renderInContainer]);
 
