@@ -622,6 +622,9 @@ export interface Client {
   createdAt: string;
   updatedAt: string;
   syncStatus: SyncStatus;
+
+  // Multi-store ecosystem (Phase 5)
+  mangoIdentityId?: string;
 }
 
 // ==================== LEGACY COMPATIBILITY ====================

@@ -635,3 +635,76 @@ US-062 (priority 13): Add ecosystem features to client profile
 - Remaining: 8
 - Progress: 60%
 
+
+=================================================================
+Iteration 9 - US-062: Add ecosystem features to client profile
+=================================================================
+
+Story: US-062 - Add ecosystem features to client profile
+Priority: 13
+Status: COMPLETE ✅
+
+## What Was Done
+
+Modified ProfileSection.tsx to add "Mango Network" collapsible section:
+
+1. **New Imports Added**
+   - LinkedStoresPanel component
+   - EcosystemConsentModal component
+   - fetchLinkedStores thunk
+
+2. **New State Variables**
+   - showEcosystemModal: controls modal visibility
+   - linkedStoresCount: number of linked stores
+   - ecosystemExpanded: collapsible section state
+
+3. **Mango Network Section**
+   - Collapsible card with expand/collapse toggle
+   - Header shows opt-in status and linked stores count
+   - "Active" badge when client is opted in
+   - Ecosystem status row with "Manage" button
+   - LinkedStoresPanel when opted in
+   - Info box explaining the Mango Network
+
+4. **EcosystemConsentModal Integration**
+   - Opens from "Manage" button
+   - onComplete callback refreshes linked stores count
+
+5. **Type Updates**
+   - Added mangoIdentityId to EnhancedClient type
+   - Added mangoIdentityId to Client type
+   - Added mangoIdentityId to clientForConsent mapping
+
+## Files Modified
+- apps/store-app/src/components/client-settings/sections/ProfileSection.tsx
+  - Added imports for LinkedStoresPanel, EcosystemConsentModal, fetchLinkedStores
+  - Added useEffect import
+  - Added state variables for ecosystem modal and linked stores
+  - Added useEffect to fetch linked stores count
+  - Added Mango Network collapsible section with LinkedStoresPanel
+  - Added EcosystemConsentModal at end
+  - Added NetworkIcon and ChevronIcon components
+- apps/store-app/src/components/client-settings/types.ts
+  - Added mangoIdentityId to EnhancedClient interface
+- apps/store-app/src/types/client.ts
+  - Added mangoIdentityId to Client interface
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-062 complete)
+
+## Quality Checks
+✅ Mango Network section added near privacy/consent section
+✅ Shows ecosystem opt-in status
+✅ Shows linked stores count
+✅ Manage button opens EcosystemConsentModal
+✅ LinkedStoresPanel imported and used
+✅ No forbidden strings
+✅ pnpm run typecheck passes for ProfileSection/EcosystemConsentModal
+
+## Next Story
+US-063 (priority 14): Create organization sharing database migration
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 13 (US-050 through US-062)
+- Remaining: 7
+- Progress: 65%
+

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { EnhancedClient, ClientGender, ClientSource, EmergencyContact } from '../types';
 import type { BlockReason, Client, StaffAlert } from '@/types';
 import { genderLabels, sourceLabels } from '../constants';
@@ -19,9 +19,12 @@ import { BlockClientModal } from '../components/BlockClientModal';
 import { ConsentManagement } from '@/components/clients/ConsentManagement';
 import { DataDeletionRequestModal } from '@/components/clients/DataDeletionRequestModal';
 import { FormDeliveryModal } from '@/components/forms/FormDeliveryModal';
+import { LinkedStoresPanel } from '@/components/clients/LinkedStoresPanel';
+import { EcosystemConsentModal } from '@/components/clients/EcosystemConsentModal';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectMemberId, selectMemberName, selectMemberRole, selectStoreId } from '@/store/slices/authSlice';
 import { exportClientData, createDataRequest } from '@/store/slices/clientsSlice';
+import { fetchLinkedStores } from '@/store/slices/clientsSlice/multiStoreThunks';
 import { FileText } from 'lucide-react';
 
 interface ProfileSectionProps {
@@ -50,9 +53,28 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showDeletionModal, setShowDeletionModal] = useState(false);
   const [showFormDeliveryModal, setShowFormDeliveryModal] = useState(false);
+  const [showEcosystemModal, setShowEcosystemModal] = useState(false);
+  const [linkedStoresCount, setLinkedStoresCount] = useState(0);
+  const [ecosystemExpanded, setEcosystemExpanded] = useState(false);
 
   // Check if user has permission to delete client data (managers/owners only)
   const canDeleteClientData = memberRole === 'owner' || memberRole === 'manager' || memberRole === 'admin';
+
+  // Fetch linked stores count for ecosystem section
+  useEffect(() => {
+    const loadLinkedStoresCount = async () => {
+      if (client.id) {
+        try {
+          const result = await dispatch(fetchLinkedStores({ clientId: client.id })).unwrap();
+          setLinkedStoresCount(result.length);
+        } catch (err) {
+          // Silently handle - client may not be part of ecosystem
+          console.debug('[ProfileSection] Could not fetch linked stores:', err);
+        }
+      }
+    };
+    loadLinkedStoresCount();
+  }, [dispatch, client.id]);
 
   // Export data state
   const [isExporting, setIsExporting] = useState(false);
@@ -165,6 +187,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
     createdAt: client.createdAt,
     updatedAt: client.updatedAt,
     syncStatus: client.syncStatus,
+    mangoIdentityId: client.mangoIdentityId,
   }), [client]);
 
   // Handle consent preference updates
@@ -598,6 +621,82 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         onChange={handleConsentChange}
       />
 
+      {/* Mango Network - Cross-Store Identity Sharing */}
+      <Card>
+        <button
+          onClick={() => setEcosystemExpanded(!ecosystemExpanded)}
+          className="w-full flex items-center justify-between p-0"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
+              <NetworkIcon className="w-5 h-5 text-cyan-600" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-semibold text-gray-900">Mango Network</h3>
+              <p className="text-sm text-gray-500">
+                {client.mangoIdentityId
+                  ? `Opted in${linkedStoresCount > 0 ? ` · ${linkedStoresCount} linked store${linkedStoresCount > 1 ? 's' : ''}` : ''}`
+                  : 'Not participating in cross-store sharing'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {client.mangoIdentityId && (
+              <Badge variant="success" size="sm">Active</Badge>
+            )}
+            <ChevronIcon className={`w-5 h-5 text-gray-400 transition-transform ${ecosystemExpanded ? 'rotate-180' : ''}`} />
+          </div>
+        </button>
+
+        {/* Collapsible Content */}
+        {ecosystemExpanded && (
+          <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
+            {/* Status Row */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="font-medium text-gray-900">Ecosystem Status</p>
+                <p className="text-sm text-gray-500">
+                  {client.mangoIdentityId
+                    ? 'Client can be recognized at other Mango locations'
+                    : 'Client is not linked to the Mango ecosystem'}
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowEcosystemModal(true)}
+              >
+                Manage
+              </Button>
+            </div>
+
+            {/* Linked Stores Panel - Only show if opted in */}
+            {client.mangoIdentityId && storeId && (
+              <LinkedStoresPanel
+                clientId={client.id}
+                currentStoreId={storeId}
+                onUnlink={() => {
+                  // Refresh linked stores count after unlink
+                  dispatch(fetchLinkedStores({ clientId: client.id }))
+                    .unwrap()
+                    .then((result) => setLinkedStoresCount(result.length))
+                    .catch(() => setLinkedStoresCount(0));
+                }}
+              />
+            )}
+
+            {/* Info Box */}
+            <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
+              <p className="text-xs text-cyan-700">
+                The Mango Network allows clients to share their safety information (allergies, blocks)
+                and optionally other preferences across participating Mango locations.
+                Safety data is always shared for client protection.
+              </p>
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Data Management - GDPR Data Portability */}
       <Card title="Data Management">
         <div className="space-y-4">
@@ -717,6 +816,20 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         client={clientForConsent}
         onSendComplete={() => setShowFormDeliveryModal(false)}
       />
+
+      {/* Ecosystem Consent Modal - Multi-Store Sharing */}
+      <EcosystemConsentModal
+        isOpen={showEcosystemModal}
+        onClose={() => setShowEcosystemModal(false)}
+        client={clientForConsent}
+        onComplete={() => {
+          // Refresh linked stores after opt-in/opt-out
+          dispatch(fetchLinkedStores({ clientId: client.id }))
+            .unwrap()
+            .then((result) => setLinkedStoresCount(result.length))
+            .catch(() => setLinkedStoresCount(0));
+        }}
+      />
     </div>
   );
 };
@@ -783,6 +896,20 @@ const LoadingSpinner: React.FC = () => (
 const TrashIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+// Network Icon (for Mango Network section)
+const NetworkIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+  </svg>
+);
+
+// Chevron Icon (for collapsible sections)
+const ChevronIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
   </svg>
 );
 
