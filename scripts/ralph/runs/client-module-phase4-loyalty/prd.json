@@ -1,0 +1,292 @@
+{
+  "project": "Mango POS - Client Module",
+  "branchName": "ralph/client-module-phase2",
+  "description": "Phase 4: Loyalty, Reviews, Referrals - Configurable loyalty programs, review automation, and referral tracking",
+  "userStories": [
+    {
+      "id": "US-034",
+      "title": "Create loyalty program database migration",
+      "description": "As a developer, I need database support for configurable loyalty programs.",
+      "acceptanceCriteria": [
+        "Create `loyalty_programs` table: id, store_id, name, points_per_dollar, eligible_categories (JSONB), include_tax, points_expiration_months, is_active",
+        "Create `loyalty_tiers` table: id, program_id, name, threshold_points, benefits (JSONB), tier_order",
+        "Create `loyalty_rewards` table: id, program_id, name, points_required, reward_type (discount/free_service/free_product), reward_value, eligible_items (JSONB), expires_days",
+        "Add RLS policies",
+        "Migration file created at supabase/migrations/034_loyalty_program.sql",
+        "Migration runs without errors"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Follow existing migration patterns. Default points_per_dollar = 1."
+    },
+    {
+      "id": "US-035",
+      "title": "Add loyalty program types",
+      "description": "As a developer, I need TypeScript types for loyalty configuration.",
+      "acceptanceCriteria": [
+        "Add `LoyaltyProgram` interface to apps/store-app/src/types/client.ts",
+        "Add `LoyaltyTierConfig` interface (not to confuse with existing LoyaltyTier)",
+        "Add `LoyaltyReward` interface with reward_type union",
+        "Add `RewardType = 'discount' | 'free_service' | 'free_product' | 'percentage'`",
+        "No `as any` casts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Keep separate from existing LoyaltyInfo on Client."
+    },
+    {
+      "id": "US-036",
+      "title": "Create loyalty program thunks",
+      "description": "As a developer, I need thunks for loyalty program management.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/store/slices/loyaltySlice/index.ts",
+        "Create `fetchLoyaltyProgram` thunk",
+        "Create `updateLoyaltyProgram` thunk",
+        "Create `fetchLoyaltyTiers` thunk",
+        "Create `createLoyaltyTier` thunk",
+        "Create `updateLoyaltyTier` thunk",
+        "Create `deleteLoyaltyTier` thunk",
+        "Create `fetchLoyaltyRewards` thunk",
+        "Create `createLoyaltyReward` thunk",
+        "Add slice with selectors",
+        "Export from store index",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Follow pattern from clientsSlice. Include loading/error states in slice."
+    },
+    {
+      "id": "US-037",
+      "title": "Create LoyaltyProgramSettings component",
+      "description": "As an owner, I want to configure the loyalty program.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/settings/LoyaltyProgramSettings.tsx",
+        "Points per dollar input (number)",
+        "Eligible categories checkboxes (Services, Products, Gift Cards)",
+        "Include tax toggle",
+        "Points expiration dropdown (Never, 6mo, 12mo, 24mo)",
+        "Enable/disable program toggle",
+        "Save button with loading state",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Follow existing settings component patterns. Add to Settings module navigation."
+    },
+    {
+      "id": "US-038",
+      "title": "Create LoyaltyTierConfig component",
+      "description": "As an owner, I want to configure loyalty tiers.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/settings/LoyaltyTierConfig.tsx",
+        "List existing tiers with drag-to-reorder",
+        "Add new tier button",
+        "Edit tier: name, threshold points, benefits (JSONB editor or checkboxes)",
+        "Delete tier with confirmation",
+        "Visual tier progression preview",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Use @dnd-kit for drag-and-drop reordering. Benefits: percentage_discount, free_shipping, early_access, etc."
+    },
+    {
+      "id": "US-039",
+      "title": "Create LoyaltyRewardConfig component",
+      "description": "As an owner, I want to configure loyalty rewards.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/settings/LoyaltyRewardConfig.tsx",
+        "List existing rewards",
+        "Add new reward form: name, points required, reward type, value",
+        "Reward types: Fixed discount ($X off), Percentage (X% off), Free service, Free product",
+        "Edit existing rewards",
+        "Delete reward with confirmation",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Follow existing list/form patterns. Validate points_required > 0."
+    },
+    {
+      "id": "US-040",
+      "title": "Create review request database migration",
+      "description": "As a developer, I need database support for review requests.",
+      "acceptanceCriteria": [
+        "Create `review_requests` table: id, client_id, appointment_id, store_id, status (pending/sent/completed/expired), sent_via (email/sms), sent_at, reminder_sent_at, review_platform, review_url, created_at",
+        "Create `review_settings` table: store_id, enabled, delay_hours, reminder_days, platforms (JSONB)",
+        "Add RLS policies",
+        "Migration file created at supabase/migrations/035_review_requests.sql",
+        "Migration runs without errors"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Follow existing migration patterns. platforms: {google: 'url', yelp: 'url', facebook: 'url'}."
+    },
+    {
+      "id": "US-041",
+      "title": "Create send-review-request Edge Function",
+      "description": "As a developer, I need an Edge Function to send review requests.",
+      "acceptanceCriteria": [
+        "Create supabase/functions/send-review-request/index.ts",
+        "Accept: client_id, appointment_id, store_id",
+        "Fetch client contact info and review settings",
+        "Send email/SMS with review platform links",
+        "Create review_request record",
+        "Handle multiple platforms (Google, Yelp, etc.)",
+        "Return success/error status"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Follow pattern from send-form Edge Function. Use same email/SMS providers."
+    },
+    {
+      "id": "US-042",
+      "title": "Create review request thunks",
+      "description": "As a developer, I need thunks for review request operations.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/store/slices/reviewsSlice/index.ts",
+        "Create `fetchReviewSettings` thunk",
+        "Create `updateReviewSettings` thunk",
+        "Create `sendReviewRequest` thunk (manual send)",
+        "Create `fetchReviewRequests` thunk (list for store)",
+        "Add slice with selectors",
+        "Export from store index",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Auto-send after checkout will be handled by checkout flow. These are for manual operations and settings."
+    },
+    {
+      "id": "US-043",
+      "title": "Create ReviewAutomationSettings component",
+      "description": "As an owner, I want to configure review request automation.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/settings/ReviewAutomationSettings.tsx",
+        "Enable/disable auto-send toggle",
+        "Delay after checkout (1hr, 2hr, 4hr, 24hr, 48hr)",
+        "Send reminder toggle with days setting",
+        "Platform URLs: Google, Yelp, Facebook (text inputs)",
+        "Test send button",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Follow existing settings patterns. Add to Settings module."
+    },
+    {
+      "id": "US-044",
+      "title": "Create referral program database migration",
+      "description": "As a developer, I need database support for referral tracking.",
+      "acceptanceCriteria": [
+        "Create `referral_settings` table: store_id, enabled, referrer_reward_type, referrer_reward_value, referee_discount_type, referee_discount_value, expires_days",
+        "Add `referral_code` column to clients table (unique per store)",
+        "Create `referral_tracking` table: id, referrer_client_id, referee_client_id, store_id, code_used, status (pending/completed/expired), reward_issued_at, created_at",
+        "Add RLS policies",
+        "Migration file created at supabase/migrations/036_referral_program.sql",
+        "Migration runs without errors"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Referral code format: {FIRSTNAME}{RANDOM4} e.g., JANE1234."
+    },
+    {
+      "id": "US-045",
+      "title": "Create referral thunks",
+      "description": "As a developer, I need thunks for referral operations.",
+      "acceptanceCriteria": [
+        "Enhance existing `generateClientReferralCode` if exists, or create",
+        "Create `fetchReferralSettings` thunk",
+        "Create `updateReferralSettings` thunk",
+        "Create `trackReferralUsage` thunk (when new client uses code)",
+        "Create `issueReferralReward` thunk (when referee completes first visit)",
+        "Add to apps/store-app/src/store/slices/clientsSlice/thunks.ts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Check if referral thunks already exist - enhance if so. Self-referral prevention: check email/phone match."
+    },
+    {
+      "id": "US-046",
+      "title": "Create ReferralProgramSettings component",
+      "description": "As an owner, I want to configure the referral program.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/settings/ReferralProgramSettings.tsx",
+        "Enable/disable toggle",
+        "Referrer reward: type (points/credit/discount), value",
+        "New client discount: type (percentage/fixed), value",
+        "Expiration days for referral codes",
+        "Save button with loading state",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Follow existing settings patterns."
+    },
+    {
+      "id": "US-047",
+      "title": "Create ReferralCard component for client profile",
+      "description": "As a staff member, I want to see and share client's referral code.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/ReferralCard.tsx",
+        "Display client's referral code prominently",
+        "Generate code button if none exists",
+        "Copy code to clipboard button",
+        "Share via SMS/Email buttons",
+        "Show referral stats: total referrals, successful conversions",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Add to LoyaltySection or create new section."
+    },
+    {
+      "id": "US-048",
+      "title": "Add ReferralCard to client profile",
+      "description": "As a staff member, I want referral info in the client profile.",
+      "acceptanceCriteria": [
+        "Import ReferralCard component in apps/store-app/src/components/client-settings/sections/LoyaltySection.tsx",
+        "Add below loyalty points display",
+        "Only show if referral program is enabled",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "LoyaltySection is large - only add import and JSX."
+    },
+    {
+      "id": "US-049",
+      "title": "Integrate review request into checkout flow",
+      "description": "As a system, I want to auto-send review requests after checkout.",
+      "acceptanceCriteria": [
+        "After successful checkout, check if review automation enabled",
+        "If enabled, schedule review request (use setTimeout or queue)",
+        "Don't block checkout completion",
+        "Log scheduled request",
+        "Modify apps/store-app/src/components/checkout/CheckoutComplete.tsx",
+        "No forbidden strings",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "This is fire-and-forget - don't wait for send. Delay is configured in review settings."
+    }
+  ]
+}

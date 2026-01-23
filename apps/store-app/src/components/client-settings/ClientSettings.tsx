@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { EnhancedClient, ClientSettingsSection, LoyaltyTier } from './types';
-import type { Client } from '../../types';
+import type { Client, ClientDataRequest, CustomSegment } from '../../types';
 import { clientSettingsTokens, tierLabels } from './constants';
 import { ClientList } from './components/ClientList';
 import { AddClient } from './components/AddClient';
@@ -15,9 +15,14 @@ import { NotesSection } from './sections/NotesSection';
 import { LoyaltySection } from './sections/LoyaltySection';
 import { WalletSection } from './sections/WalletSection';
 import { MembershipSection } from './sections/MembershipSection';
-import { ClientExportModal, ClientImportModal, exportClients } from './components/ClientDataExportImport';
+import { ClientExportModal, exportClients } from './components/ClientDataExportImport';
+import { ImportWizard } from '../clients/ImportWizard';
 import { BulkActionsToolbar } from './components/BulkActionsToolbar';
 import { MergeClientsModal } from './MergeClientsModal';
+import { DataRequestsPanel } from '../clients/DataRequestsPanel';
+import { DataDeletionRequestModal } from '../clients/DataDeletionRequestModal';
+import { SegmentBuilder } from '../clients/SegmentBuilder';
+import { SegmentPreview } from '../clients/SegmentPreview';
 import type { AppDispatch } from '../../store';
 import {
   fetchClientsFromSupabase,
@@ -32,6 +37,7 @@ import {
   selectClientsSaving,
   selectClientStats,
 } from '../../store/slices/clientsSlice';
+import { selectMemberRole, selectStoreId } from '../../store/slices/authSlice';
 // Note: Supabase thunks handle type conversion internally via adapters
 
 interface ClientSettingsProps {
@@ -154,6 +160,11 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
   const loading = useSelector(selectClientsLoading);
   const saving = useSelector(selectClientsSaving);
   const stats = useSelector(selectClientStats);
+  const memberRole = useSelector(selectMemberRole);
+  const storeId = useSelector(selectStoreId);
+
+  // Check if user has manager/owner role for Data Requests tab visibility
+  const canAccessDataRequests = memberRole === 'owner' || memberRole === 'manager' || memberRole === 'admin';
 
   // Local UI state
   const [activeSection, setActiveSection] = useState<ClientSettingsSection>('profile');
@@ -167,6 +178,11 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
+  const [showDeletionModal, setShowDeletionModal] = useState(false);
+  const [deletionRequest, setDeletionRequest] = useState<ClientDataRequest | null>(null);
+  const [selectedSegmentClients, setSelectedSegmentClients] = useState<Client[]>([]);
+  const [selectedSegment, setSelectedSegment] = useState<CustomSegment | null>(null);
+  const [showSegmentPreview, setShowSegmentPreview] = useState(false);
 
   // Convert clients to EnhancedClient format for UI
   const enhancedClients = useMemo(() => clients.map(clientToEnhanced), [clients]);
@@ -205,8 +221,8 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
     setHasUnsavedChanges(true);
   }, []);
 
-  // Section navigation items
-  const sectionNav: { id: ClientSettingsSection; label: string; icon: React.ReactNode }[] = [
+  // Section navigation items - base sections
+  const baseSectionNav: { id: ClientSettingsSection; label: string; icon: React.ReactNode }[] = [
     { id: 'profile', label: 'Profile', icon: <UserIcon className="w-5 h-5" /> },
     { id: 'preferences', label: 'Preferences', icon: <HeartIcon className="w-5 h-5" /> },
     { id: 'beauty-profile', label: 'Beauty Profile', icon: <SparklesIcon className="w-5 h-5" /> },
@@ -217,6 +233,16 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
     { id: 'notes', label: 'Notes & Tags', icon: <NoteIcon className="w-5 h-5" /> },
     { id: 'loyalty', label: 'Loyalty', icon: <StarIcon className="w-5 h-5" /> },
   ];
+
+  // Add Data Requests and Segments tabs only for managers/owners/admins
+  const sectionNav = useMemo(() => {
+    const navItems = [...baseSectionNav];
+    if (canAccessDataRequests) {
+      navItems.push({ id: 'data-requests' as ClientSettingsSection, label: 'Data Requests', icon: <DataRequestIcon className="w-5 h-5" /> });
+      navItems.push({ id: 'segments' as ClientSettingsSection, label: 'Segments', icon: <SegmentIcon className="w-5 h-5" /> });
+    }
+    return navItems;
+  }, [canAccessDataRequests]);
 
   const handleSelectClient = useCallback((clientId: string) => {
     const client = clients.find(c => c.id === clientId);
@@ -272,30 +298,6 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
       console.error('Failed to save changes:', error);
     }
   }, [dispatch, selectedClientFromStore, pendingUpdates]);
-
-  const handleImportClients = useCallback(async (importedClients: Partial<Client>[]) => {
-    for (const clientData of importedClients) {
-      try {
-        // Create client data - thunk converts to Supabase format internally
-        // Note: storeId/storeId and syncStatus are set automatically by dataService
-        const newClient = {
-          firstName: clientData.firstName || '',
-          lastName: clientData.lastName || '',
-          phone: clientData.phone || '',
-          email: clientData.email,
-          birthday: clientData.birthday,
-          gender: clientData.gender,
-          isBlocked: false,
-          isVip: false,
-        } as Omit<Client, 'id' | 'createdAt' | 'updatedAt'>;
-        await dispatch(createClientInSupabase(newClient)).unwrap();
-      } catch (error) {
-        console.error('Failed to import client:', error);
-      }
-    }
-    // Refresh client list from Supabase
-    dispatch(fetchClientsFromSupabase());
-  }, [dispatch]);
 
   // Bulk action handlers
   const handleSelectAll = useCallback(() => {
@@ -631,6 +633,55 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
                   onChange={handleUpdateClient}
                 />
               )}
+
+              {activeSection === 'data-requests' && canAccessDataRequests && storeId && (
+                <DataRequestsPanel
+                  storeId={storeId}
+                  onProcessDeletion={(request) => {
+                    setDeletionRequest(request);
+                    setShowDeletionModal(true);
+                  }}
+                />
+              )}
+
+              {activeSection === 'segments' && canAccessDataRequests && (
+                <div className="space-y-6">
+                  {showSegmentPreview && selectedSegment && selectedSegmentClients.length > 0 ? (
+                    <div className="space-y-4">
+                      <button
+                        onClick={() => {
+                          setShowSegmentPreview(false);
+                          setSelectedSegment(null);
+                        }}
+                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                      >
+                        <ArrowLeftIcon className="w-4 h-4" />
+                        Back to Segment Builder
+                      </button>
+                      <SegmentPreview
+                        segment={selectedSegment}
+                        clients={selectedSegmentClients}
+                        onClientClick={(client) => {
+                          dispatch(selectClient(client));
+                          setActiveSection('profile');
+                        }}
+                        onSendMessage={() => {
+                          // TODO: Open bulk message modal
+                          alert('Bulk messaging coming soon');
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <SegmentBuilder
+                      onPreview={(segment, filteredClients) => {
+                        setSelectedSegment(segment);
+                        setSelectedSegmentClients(filteredClients);
+                        setShowSegmentPreview(true);
+                      }}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </main>
         )}
@@ -667,13 +718,16 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
         />
       )}
 
-      {/* Import Modal */}
-      {showImportModal && (
-        <ClientImportModal
-          onImport={handleImportClients}
-          onClose={() => setShowImportModal(false)}
-        />
-      )}
+      {/* Import Wizard Modal */}
+      <ImportWizard
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onComplete={() => {
+          // Refresh client list from Supabase after import
+          dispatch(fetchClientsFromSupabase());
+          setShowImportModal(false);
+        }}
+      />
 
       {/* Merge Clients Modal */}
       <MergeClientsModal
@@ -682,6 +736,25 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
         primaryClientId={selectedClientFromStore?.id}
         onMergeComplete={handleMergeComplete}
       />
+
+      {/* Data Deletion Request Modal (GDPR) */}
+      {showDeletionModal && deletionRequest && (
+        <DataDeletionRequestModal
+          isOpen={showDeletionModal}
+          onClose={() => {
+            setShowDeletionModal(false);
+            setDeletionRequest(null);
+          }}
+          client={clients.find(c => c.id === deletionRequest.clientId) || null}
+          request={deletionRequest}
+          onDeletionComplete={(clientId) => {
+            // Refresh client list after deletion
+            dispatch(fetchClientsFromSupabase());
+            setShowDeletionModal(false);
+            setDeletionRequest(null);
+          }}
+        />
+      )}
 
       {/* Bulk Actions Toolbar */}
       <BulkActionsToolbar
@@ -779,6 +852,19 @@ const ImportIcon: React.FC<{ className?: string }> = ({ className }) => (
 const MergeIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+  </svg>
+);
+
+const DataRequestIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const SegmentIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 6v12M16 6v12" />
   </svg>
 );
 

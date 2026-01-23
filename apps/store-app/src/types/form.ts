@@ -105,6 +105,43 @@ export interface FormSection {
   };
 }
 
+// ==================== FORM DELIVERY ====================
+
+/** Form delivery method (email or SMS) */
+export type FormDeliveryMethod = 'email' | 'sms';
+
+/** Form delivery status */
+export type FormDeliveryStatus = 'pending' | 'sent' | 'delivered' | 'failed' | 'bounced';
+
+/** Form delivery record - tracks sent form links */
+export interface FormDelivery {
+  id: string;
+  storeId: string;
+  formTemplateId: string;
+  clientId: string;
+  appointmentId?: string;
+  formSubmissionId?: string;
+  deliveryMethod: FormDeliveryMethod;
+  /** Unique token for secure form link */
+  token: string;
+  /** Email address used for delivery (if email method) */
+  deliveryEmail?: string;
+  /** Phone number used for delivery (if SMS method) */
+  deliveryPhone?: string;
+  sentAt: string;
+  openedAt?: string;
+  completedAt?: string;
+  expiresAt: string;
+  deliveryStatus: FormDeliveryStatus;
+  deliveryError?: string;
+  /** External message ID from email/SMS provider */
+  messageId?: string;
+  reminderSentAt?: string;
+  reminderCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ==================== FORM TEMPLATE ====================
 
 /** Form send mode */

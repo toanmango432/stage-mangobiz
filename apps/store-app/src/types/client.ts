@@ -4,6 +4,21 @@ import { SyncStatus } from './common';
 
 export type BlockReason = 'no_show' | 'late_cancellation' | 'inappropriate_behavior' | 'non_payment' | 'other';
 
+// GDPR Data Request Types
+export type DataRequestType = 'export' | 'delete' | 'access';
+export type DataRequestStatus = 'pending' | 'processing' | 'completed' | 'rejected';
+
+// Data Retention Action Types (matches database CHECK constraint)
+export type DataRetentionAction =
+  | 'data_exported'
+  | 'data_deleted'
+  | 'data_accessed'
+  | 'consent_updated'
+  | 'consent_marketing_granted'
+  | 'consent_marketing_revoked'
+  | 'consent_data_processing_granted'
+  | 'consent_data_processing_revoked';
+
 export type ClientGender = 'female' | 'male' | 'non_binary' | 'prefer_not_to_say';
 
 export type LoyaltyTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'vip';
@@ -336,6 +351,48 @@ export interface Referral {
   syncStatus: SyncStatus;
 }
 
+// ==================== REFERRAL PROGRAM (PRD Client Module Phase 4) ====================
+
+/** Referral Reward Types */
+export type ReferralRewardType = 'points' | 'credit' | 'discount' | 'percentage';
+
+/** Referral Discount Types */
+export type ReferralDiscountType = 'percentage' | 'fixed';
+
+/** Referral Program Settings */
+export interface ReferralSettings {
+  id: string;
+  storeId: string;
+  enabled: boolean;
+  expiresDays?: number | null; // null = never expires
+  referrerRewardType: ReferralRewardType;
+  referrerRewardValue: number;
+  refereeDiscountType: ReferralDiscountType;
+  refereeDiscountValue: number;
+  syncStatus: SyncStatus;
+  syncVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Referral Tracking Status */
+export type ReferralTrackingStatus = 'pending' | 'completed' | 'expired';
+
+/** Referral Tracking Record */
+export interface ReferralTracking {
+  id: string;
+  referrerClientId: string;
+  refereeClientId: string;
+  storeId: string;
+  codeUsed: string;
+  status: ReferralTrackingStatus;
+  rewardIssuedAt?: string | null;
+  syncStatus: SyncStatus;
+  syncVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ==================== REVIEWS (PRD 2.3.9) ====================
 
 /** Client Review */
@@ -384,7 +441,7 @@ export interface ReviewRequest {
 
 // ==================== LOYALTY REWARDS (PRD 2.3.7) ====================
 
-/** Loyalty Reward */
+/** Loyalty Reward - Client-specific reward instance */
 export interface LoyaltyReward {
   id: string;
   storeId: string;
@@ -401,6 +458,64 @@ export interface LoyaltyReward {
   redeemedAt?: string;
   createdAt: string;
   syncStatus: SyncStatus;
+}
+
+// ==================== LOYALTY PROGRAM CONFIGURATION (Phase 4) ====================
+
+/** Reward type for loyalty program configuration */
+export type RewardType = 'discount' | 'free_service' | 'free_product' | 'percentage';
+
+/** Loyalty Program - Store-level configuration */
+export interface LoyaltyProgram {
+  id: string;
+  storeId: string;
+  name: string;
+  pointsPerDollar: number;
+  eligibleCategories: string[]; // 'services', 'products', 'gift_cards'
+  includeTax: boolean;
+  pointsExpirationMonths: number | null; // null = never expires
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: SyncStatus;
+}
+
+/** Loyalty Tier Configuration - Program-level tier definition */
+export interface LoyaltyTierConfig {
+  id: string;
+  programId: string;
+  name: string;
+  thresholdPoints: number;
+  benefits: {
+    percentageDiscount?: number;
+    freeShipping?: boolean;
+    earlyAccess?: boolean;
+    priorityBooking?: boolean;
+    birthdayBonus?: number;
+    [key: string]: any; // Allow additional custom benefits
+  };
+  tierOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: SyncStatus;
+}
+
+/** Loyalty Reward Configuration - Program-level reward catalog */
+export interface LoyaltyRewardConfig {
+  id: string;
+  programId: string;
+  name: string;
+  description?: string;
+  pointsRequired: number;
+  rewardType: RewardType;
+  rewardValue: number; // dollar amount or percentage
+  eligibleItems: string[]; // Service/product IDs eligible for this reward
+  expiresDays?: number; // undefined = never expires
+  isActive: boolean;
+  syncStatus: SyncStatus;
+  syncVersion?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ==================== MAIN CLIENT INTERFACE ====================
@@ -457,6 +572,7 @@ export interface Client {
   sourceDetails?: string;
   referredByClientId?: string;
   referredByClientName?: string;
+  referralCode?: string; // Unique referral code for this client (migration 036)
 
   // Beauty Profiles
   hairProfile?: HairProfile;
@@ -493,10 +609,20 @@ export interface Client {
   // Status flags
   isVip: boolean;
 
+  // GDPR Consent (PRD Phase 2 - GDPR Compliance)
+  consentMarketing?: boolean;
+  consentMarketingAt?: string;
+  consentDataProcessing?: boolean;
+  consentDataProcessingAt?: string;
+  dataDeletionRequestedAt?: string;
+
   // System fields
   createdAt: string;
   updatedAt: string;
   syncStatus: SyncStatus;
+
+  // Multi-store ecosystem (Phase 5)
+  mangoIdentityId?: string;
 }
 
 // ==================== LEGACY COMPATIBILITY ====================
@@ -582,7 +708,8 @@ export type ClientSettingsSection =
   | 'membership'
   | 'notes'
   | 'loyalty'
-  | 'documents';
+  | 'documents'
+  | 'data-requests';
 
 export interface ClientFilters {
   searchQuery: string;
@@ -709,4 +836,203 @@ export interface BulkOperationResult {
   processedCount: number;
   failedCount: number;
   errors?: { clientId: string; error: string }[];
+}
+
+// ==================== GDPR/CCPA COMPLIANCE ====================
+
+/**
+ * Client Data Request - Tracks GDPR/CCPA data requests
+ * PRD Phase 2 - GDPR Compliance
+ */
+export interface ClientDataRequest {
+  id: string;
+  clientId: string;
+  storeId: string;
+
+  // Request type and status
+  requestType: DataRequestType;
+  status: DataRequestStatus;
+
+  // Processing metadata
+  requestedAt: string;
+  processedAt?: string;
+  processedBy?: string;
+
+  // Additional information
+  notes?: string;
+  exportUrl?: string;  // URL to download exported data (for export requests)
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Data Retention Log - Immutable audit log for GDPR/CCPA data actions
+ * Required for compliance auditing
+ */
+export interface DataRetentionLog {
+  id: string;
+  clientId?: string;  // Nullable - keep log even if client deleted
+  storeId: string;
+
+  // Action details
+  action: DataRetentionAction;
+  fieldsAffected?: string[];  // Array of field names that were modified
+
+  // Actor information
+  performedBy?: string;
+  performedByName?: string;
+
+  // Timestamps
+  performedAt: string;
+  createdAt: string;
+}
+
+// ==================== MULTI-STORE CLIENT SHARING (PHASE 5) ====================
+
+/**
+ * Link Request Status
+ * Tracks the lifecycle of a profile link request between stores
+ */
+export type LinkRequestStatus = 'pending' | 'approved' | 'rejected' | 'expired';
+
+/**
+ * Sharing Preferences
+ * Client-controlled data sharing settings for ecosystem linking
+ */
+export interface SharingPreferences {
+  /** Share basic profile info (name, contact) */
+  basicInfo: boolean;
+
+  /** Share client preferences (preferred staff, communication prefs) */
+  preferences: boolean;
+
+  /** Share visit history across stores */
+  visitHistory: boolean;
+
+  /** Share loyalty points balance */
+  loyaltyData: boolean;
+
+  /** ALWAYS shared regardless of preferences (required for safety) */
+  safetyData?: boolean;  // Always true if opted in
+}
+
+/**
+ * Mango Identity
+ * Central identity record for cross-brand client sharing
+ * Reference: docs/architecture/MULTI_STORE_CLIENT_SPEC.md (Tier 1)
+ */
+export interface MangoIdentity {
+  id: string;
+
+  // Hashed identifiers (no cleartext PII)
+  hashedPhone: string;
+  hashedEmail?: string;
+
+  // Ecosystem consent
+  ecosystemOptIn: boolean;
+  optInDate?: string;
+  optOutDate?: string;
+
+  // Client-controlled sharing preferences
+  sharingPreferences: SharingPreferences;
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Linked Store
+ * Represents a store linked to a client's Mango identity
+ */
+export interface LinkedStore {
+  id: string;
+  mangoIdentityId: string;
+
+  // Store information
+  storeId: string;
+  storeName: string;
+
+  // Local client reference
+  localClientId: string;
+
+  // Link metadata
+  linkedAt: string;
+  linkedBy: 'client' | 'request_approved';
+  accessLevel: 'full' | 'basic';
+
+  // Sync tracking
+  lastSyncAt?: string;
+}
+
+/**
+ * Profile Link Request
+ * Request to link client profiles between independent stores
+ * Expires after 24 hours
+ */
+export interface ProfileLinkRequest {
+  id: string;
+
+  // Requesting store info
+  requestingStoreId: string;
+  requestingStoreName: string;
+  requestingStaffId?: string;
+
+  // Target identity
+  mangoIdentityId: string;
+
+  // Request status
+  status: LinkRequestStatus;
+
+  // Timestamps
+  requestedAt: string;
+  respondedAt?: string;
+  expiresAt: string;
+
+  // Approval mechanism
+  approvalToken?: string;
+
+  // Notification tracking
+  notificationSentAt?: string;
+  notificationMethod?: 'sms' | 'email' | 'both';
+}
+
+/**
+ * Ecosystem Consent Log
+ * Immutable audit log for ecosystem consent actions (GDPR compliance)
+ */
+export interface EcosystemConsentLog {
+  id: string;
+  mangoIdentityId: string;
+
+  // Action details
+  action: 'opt_in' | 'opt_out' | 'update_preferences' | 'link_store' | 'unlink_store';
+  details?: Record<string, unknown>;
+
+  // Audit metadata
+  ipAddress?: string;
+  userAgent?: string;
+
+  // Timestamp
+  createdAt: string;
+}
+
+/**
+ * Ecosystem Lookup Result
+ * Response from ecosystem identity lookup
+ */
+export interface EcosystemLookupResult {
+  /** Whether a matching identity exists */
+  exists: boolean;
+
+  /** Whether the client has opted into ecosystem sharing */
+  canRequest: boolean;
+
+  /** Identity ID (only if canRequest is true) */
+  identityId?: string;
+
+  /** Number of stores linked (only if canRequest is true) */
+  linkedStoresCount?: number;
 }

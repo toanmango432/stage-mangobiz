@@ -1,12 +1,85 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { EnhancedClient } from '../types';
 import { Card, Badge, EmptyState, CalendarIcon } from '../components/SharedComponents';
+import { CrossLocationClientView } from '../../clients/CrossLocationClientView';
+import { useAppSelector } from '@/store/hooks';
+import { supabase } from '@/services/supabase/client';
 
 interface HistorySectionProps {
   client: EnhancedClient;
 }
 
+// Tab types for history section
+type HistoryTab = 'this-location' | 'other-locations';
+
+// Building icon for tab
+const BuildingIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+    />
+  </svg>
+);
+
 export const HistorySection: React.FC<HistorySectionProps> = ({ client }) => {
+  const storeId = useAppSelector((state) => state.auth.store?.storeId);
+  const [activeTab, setActiveTab] = useState<HistoryTab>('this-location');
+  const [hasOrgLocations, setHasOrgLocations] = useState(false);
+  const [orgSharingEnabled, setOrgSharingEnabled] = useState(false);
+
+  // Check if client is in a multi-location org with sharing enabled
+  useEffect(() => {
+    async function checkOrgStatus() {
+      if (!storeId) return;
+
+      try {
+        // Get store's org
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('organization_id')
+          .eq('id', storeId)
+          .single();
+
+        if (!storeData?.organization_id) {
+          setHasOrgLocations(false);
+          return;
+        }
+
+        // Check if org has multiple locations
+        const { count } = await supabase
+          .from('stores')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', storeData.organization_id);
+
+        if (!count || count <= 1) {
+          setHasOrgLocations(false);
+          return;
+        }
+
+        setHasOrgLocations(true);
+
+        // Check if sharing is enabled (not isolated)
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('client_sharing_settings')
+          .eq('id', storeData.organization_id)
+          .single();
+
+        const settings = orgData?.client_sharing_settings as Record<string, unknown> || {};
+        const sharingMode = (settings.sharingMode as string) || 'isolated';
+
+        setOrgSharingEnabled(sharingMode !== 'isolated');
+      } catch (err) {
+        console.error('[HistorySection] Failed to check org status:', err);
+      }
+    }
+
+    checkOrgStatus();
+  }, [storeId]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -35,8 +108,48 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ client }) => {
     ? daysSinceVisit > client.visitSummary.visitFrequency * 1.5
     : false;
 
+  // Show tabs only if org has multiple locations
+  const showLocationTabs = hasOrgLocations && orgSharingEnabled;
+
   return (
     <div className="space-y-6">
+      {/* Location Tabs - Only show if org has multiple locations with sharing */}
+      {showLocationTabs && (
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-6">
+            <button
+              onClick={() => setActiveTab('this-location')}
+              className={`pb-3 px-1 border-b-2 text-sm font-medium transition-colors ${
+                activeTab === 'this-location'
+                  ? 'border-purple-600 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              This Location
+            </button>
+            <button
+              onClick={() => setActiveTab('other-locations')}
+              className={`pb-3 px-1 border-b-2 text-sm font-medium transition-colors flex items-center gap-2 ${
+                activeTab === 'other-locations'
+                  ? 'border-purple-600 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BuildingIcon className="w-4 h-4" />
+              Other Locations
+            </button>
+          </nav>
+        </div>
+      )}
+
+      {/* Other Locations Tab Content */}
+      {showLocationTabs && activeTab === 'other-locations' && (
+        <CrossLocationClientView clientId={client.id} className="mt-4" />
+      )}
+
+      {/* This Location Tab Content (default) */}
+      {(!showLocationTabs || activeTab === 'this-location') && (
+        <>
       {/* Visit Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="text-center">
@@ -230,6 +343,8 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ client }) => {
           description="Appointment history will appear here as the client visits"
         />
       </Card>
+        </>
+      )}
     </div>
   );
 };

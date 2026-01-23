@@ -309,6 +309,9 @@ export interface EnhancedClient {
   createdAt: string;
   updatedAt: string;
   syncStatus: SyncStatus;
+
+  // Multi-store ecosystem (Phase 5)
+  mangoIdentityId?: string;
 }
 
 // UI State Types
@@ -322,7 +325,9 @@ export type ClientSettingsSection =
   | 'notes'
   | 'loyalty'
   | 'membership'
-  | 'documents';
+  | 'documents'
+  | 'data-requests'
+  | 'segments';
 
 export interface ClientSettingsUIState {
   selectedClientId: string | null;

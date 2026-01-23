@@ -1,0 +1,1050 @@
+# Ralph Progress - Client Module Phase 5: Multi-Store Client Sharing
+# Started: TBD (after Phase 4)
+# Branch: ralph/client-module-phase2
+
+## Codebase Patterns (Persistent across iterations)
+
+### Edge Function Pattern
+- Location: `supabase/functions/`
+- Use Deno imports: `https://deno.land/std@0.168.0/http/server.ts`
+- Create Supabase client with `SUPABASE_SERVICE_ROLE_KEY` for admin operations
+- Return proper CORS headers
+
+### Redux Thunk Pattern
+- Use `createAsyncThunk` from `@reduxjs/toolkit`
+- Call Edge Functions via `supabase.functions.invoke()`
+- Use `rejectWithValue` for error handling
+- Export from slice index.ts
+
+### Identity Hashing Pattern (NEW)
+- Use Web Crypto API for SHA-256 hashing
+- Normalize phone: strip formatting, last 10 digits, add +1
+- Normalize email: lowercase, trim
+- Salt from VITE_ECOSYSTEM_SALT environment variable
+- Hash format: hex string
+
+### Multi-Store RLS Pattern (NEW)
+- Cross-store queries require identity link verification
+- Use auth.uid() to get current user
+- Join through linked_stores table
+- Safety data has relaxed RLS (always readable for linked stores)
+
+### Migration Pattern
+- Use `gen_random_uuid()` for UUID primary keys
+- Use `TIMESTAMPTZ` for all timestamp columns
+- Enable RLS with `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
+- Create store-scoped policies using staff.auth_user_id = auth.uid()
+- Add column comments for documentation
+
+---
+
+## Iteration Log
+
+=================================================================
+Iteration 1 - US-052: Add multi-store types
+=================================================================
+
+Story: US-052 - Add multi-store types
+Priority: 3
+Status: COMPLETE ✅
+
+## What Was Done
+
+Added TypeScript interfaces for multi-store client sharing feature to apps/store-app/src/types/client.ts:
+
+1. **MangoIdentity** (lines 925-943)
+   - Central identity record for cross-brand client sharing
+   - Contains hashed phone/email (no cleartext PII)
+   - Tracks ecosystem opt-in consent
+   - Client-controlled sharing preferences
+
+2. **LinkedStore** (lines 949-967)
+   - Represents stores linked to a client's identity
+   - Tracks local client ID in each store
+   - Records link metadata (when, how, access level)
+
+3. **ProfileLinkRequest** (lines 974-999)
+   - Manages profile link requests between stores
+   - 24-hour expiration with approval workflow
+   - Status lifecycle: pending → approved/rejected/expired
+
+4. **LinkRequestStatus** (line 897)
+   - Union type for request statuses
+
+5. **SharingPreferences** (lines 903-918)
+   - Client-controlled data sharing settings
+   - Safety data always shared (required for compliance)
+
+6. **EcosystemConsentLog** (lines 1005-1019)
+   - Immutable audit log for GDPR compliance
+   - Tracks all consent actions with IP/user agent
+
+7. **EcosystemLookupResult** (lines 1025-1037)
+   - API response type for ecosystem lookups
+
+## Files Modified
+- apps/store-app/src/types/client.ts (added lines 891-1038)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-052 complete)
+
+## Quality Checks
+✅ All interfaces follow MULTI_STORE_CLIENT_SPEC.md
+✅ No 'as any' casts used
+✅ Proper TypeScript types with JSDoc comments
+✅ Follows existing code patterns
+
+## Commit
+967ba8e - feat: [client-module-phase5-multistore/US-052] Add multi-store types
+
+## Next Story
+US-053 (priority 4): Create identity-lookup Edge Function
+
+
+## Progress Update - $(date)
+
+### Completed Stories (US-050 through US-054):
+1. ✅ US-050: Created multi-store identity database migration (037_mango_identities.sql)
+   - mango_identities table with hashed identifiers
+   - linked_stores, profile_link_requests, ecosystem_consent_log tables
+   - RLS policies for privacy protection
+   
+2. ✅ US-051: Created identity hashing utility (apps/store-app/src/utils/identityHash.ts)
+   - Phone/email normalization functions
+   - SHA-256 hashing with salt from environment
+   - Web Crypto API for browser compatibility
+
+3. ✅ US-052: Added multi-store types (apps/store-app/src/types/client.ts)
+   - MangoIdentity, LinkedStore, ProfileLinkRequest interfaces
+   - SharingPreferences, EcosystemConsentLog types
+   - LinkRequestStatus union type
+
+4. ✅ US-053: Created identity-lookup Edge Function
+   - Privacy-preserving lookup by hashed identifiers
+   - Returns existence and opt-in status only
+   - No actual client data exposed
+
+5. ✅ US-054: Created identity-request-link Edge Function
+   - 24-hour expiring link requests
+   - Duplicate request prevention
+   - Secure approval token generation
+
+### Key Patterns Learned:
+- Edge Functions use Deno runtime with explicit version pinning
+- All Edge Functions need CORS headers and OPTIONS handling
+- Service role key required for RLS bypass in Edge Functions
+- Migration files should have detailed comments and column documentation
+- Type adapters separate database schema from app types
+
+### Next Steps (US-055+):
+- identity-approve-link Edge Function
+- identity-sync-safety Edge Function  
+- Multi-store Redux thunks
+- UI components for ecosystem features
+
+
+=================================================================
+Iteration Continued - US-053: Create identity-lookup Edge Function  
+=================================================================
+
+Story: US-053 - Create identity-lookup Edge Function
+Priority: 4
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created Edge Function at supabase/functions/identity-lookup/index.ts:
+
+1. **Privacy-Preserving Lookup**
+   - Accepts hashed_phone or hashed_email (no cleartext PII)
+   - Returns existence and opt-in status only
+   - Does NOT return actual client data
+
+2. **Response Based on Opt-In Status**
+   - If not found: `{exists: false, canRequest: false}`
+   - If found but not opted in: `{exists: true, canRequest: false}`
+   - If opted in: `{exists: true, canRequest: true, identityId, linkedStoresCount}`
+
+3. **Audit Logging**
+   - Logs all lookup attempts with timestamp
+   - Records whether identity was found
+   - Maintains privacy (doesn't log hashed values)
+
+4. **Security**
+   - Uses service role key (backend-only access)
+   - CORS headers configured
+   - Input validation for required fields
+
+## Files Created
+- supabase/functions/identity-lookup/index.ts (206 lines)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-053 complete)
+
+## Quality Checks
+✅ Follows existing Edge Function patterns
+✅ Privacy-preserving (no PII returned)
+✅ Proper error handling and logging
+✅ Input validation
+
+## Commit
+1b46cd0 - feat: [client-module-phase5-multistore/US-053] Create identity-lookup Edge Function
+
+## Notes
+- identity-request-link function was also created (US-054)
+- Both US-053 and US-054 are now complete
+
+## Next Story
+US-055 (priority 6): Create identity-approve-link Edge Function
+
+
+=================================================================
+Iteration 2 - US-055: Create identity-approve-link Edge Function
+=================================================================
+
+Story: US-055 - Create identity-approve-link Edge Function
+Priority: 6
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created Edge Function at supabase/functions/identity-approve-link/index.ts:
+
+1. **Request Processing**
+   - Accepts requestId, action (approve/reject), performedBy, localClientId
+   - Validates request exists and is pending
+   - Checks request hasn't expired (24-hour window)
+   - Updates request status and responded_at timestamp
+
+2. **Approval Workflow**
+   - Creates linked_stores record with:
+     * mango_identity_id
+     * store_id (requesting store)
+     * store_name
+     * local_client_id (in requesting store)
+     * linked_by: 'request_approved'
+     * access_level: 'basic' (can be upgraded)
+   - Returns linkId for reference
+
+3. **GDPR Compliance**
+   - Logs all actions to ecosystem_consent_log
+   - Records: action type, requestId, store info, performedBy
+   - Immutable audit trail
+
+4. **Safety Data Handling**
+   - Added note that safety data will be synced via identity-sync-safety function
+   - Per spec: safety data is ALWAYS shared on approval
+
+## Files Created
+- supabase/functions/identity-approve-link/index.ts (349 lines)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-055 complete)
+
+## Quality Checks
+✅ Follows existing Edge Function patterns
+✅ Input validation and error handling
+✅ GDPR audit logging
+✅ Expiration check prevents stale approvals
+✅ Prevents duplicate processing
+
+## Commit
+a20f4be - feat: [client-module-phase5-multistore/US-055] Create identity-approve-link Edge Function
+
+## Next Story
+US-056 (priority 7): Create identity-sync-safety Edge Function
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 6 (US-050 through US-055)
+- Remaining: 14
+- Progress: 30%
+
+
+=================================================================
+Iteration 3 - US-056: Create identity-sync-safety Edge Function
+=================================================================
+
+Story: US-056 - Create identity-sync-safety Edge Function
+Priority: 7
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created Edge Function at supabase/functions/identity-sync-safety/index.ts:
+
+1. **Safety Data Aggregation**
+   - Fetches all linked_stores for an identity
+   - Retrieves client safety data from each store
+   - Aggregates: allergies, block status, block reasons, staff alerts
+
+2. **Data Merging Logic**
+   - Allergies: Merged and deduplicated across stores
+   - Blocked status: TRUE if blocked in ANY store (safety-first approach)
+   - Block reasons: Collected with store name attribution
+   - Staff alerts: Collected with [StoreName] prefix
+
+3. **Source Attribution**
+   - Returns sources array showing which stores contributed data
+   - Per-store flags: hasAllergies, isBlocked, hasStaffAlert
+   - Enables traceability of safety information
+
+4. **Read-Only Operation**
+   - Does NOT modify any client data
+   - Returns unified view for display purposes
+   - Always accessible regardless of sharing_preferences (safety critical)
+
+## Files Created
+- supabase/functions/identity-sync-safety/index.ts (310 lines)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-056 complete)
+
+## Quality Checks
+✅ Proper allergy parsing and deduplication
+✅ Safety-first approach (blocked anywhere = blocked everywhere)
+✅ Source attribution for audit trail
+✅ Error handling and logging
+
+## Commit
+8706927 - feat: [client-module-phase5-multistore/US-056] Create identity-sync-safety Edge Function
+
+## Next Story
+US-057 (priority 8): Create multi-store thunks
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 7 (US-050 through US-056)
+- Remaining: 13
+- Progress: 35%
+
+
+=================================================================
+Iteration 4 - US-057: Create multi-store thunks
+=================================================================
+
+Story: US-057 - Create multi-store thunks
+Priority: 8
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created multiStoreThunks.ts with 6 Redux thunks:
+
+1. **lookupEcosystemIdentity**
+   - Accepts phone or email
+   - Hashes identifiers using identityHash utils
+   - Calls identity-lookup Edge Function
+   - Returns EcosystemLookupResult
+
+2. **requestProfileLink**
+   - Gets store info from Redux state
+   - Calls identity-request-link Edge Function
+   - Returns requestId and expiresAt
+
+3. **respondToLinkRequest**
+   - Accepts requestId, action (approve/reject), localClientId
+   - Gets current staff ID from auth state
+   - Calls identity-approve-link Edge Function
+   - Returns success and linkId (if approved)
+
+4. **fetchLinkedStores**
+   - Fetches client's mango_identity_id
+   - Queries linked_stores table
+   - Converts snake_case to camelCase
+   - Returns LinkedStore array
+
+5. **fetchSafetyProfile**
+   - Calls identity-sync-safety Edge Function
+   - Returns unified SafetyData across all linked stores
+
+6. **optIntoEcosystem**
+   - Creates mango_identity with hashed identifiers
+   - Creates linked_stores record for current store
+   - Updates client.mango_identity_id
+   - Logs consent action to ecosystem_consent_log
+
+## Files Created/Modified
+- apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts (426 lines)
+- apps/store-app/src/store/slices/clientsSlice/index.ts (added export)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-057 complete)
+
+## Quality Checks
+✅ Follows existing thunk patterns (gdprThunks, thunks.ts)
+✅ Proper TypeScript types with generics
+✅ Uses rejectWithValue for error handling
+✅ Accesses Redux state via getState()
+✅ Hashes identifiers before Edge Function calls
+✅ Proper imports and exports
+
+## Commit
+828e62c - feat: [client-module-phase5-multistore/US-057] Create multi-store thunks
+
+## Next Story
+US-058 (priority 9): Create EcosystemLookupPrompt component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 8 (US-050 through US-057)
+- Remaining: 12
+- Progress: 40%
+
+## MILESTONE: Backend Infrastructure Complete!
+All backend work is done (database, Edge Functions, thunks).
+Remaining work is frontend UI components and integration.
+
+
+=================================================================
+Iteration 5 - US-058: Create EcosystemLookupPrompt component
+=================================================================
+
+Story: US-058 - Create EcosystemLookupPrompt component
+Priority: 9
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created EcosystemLookupPrompt component at apps/store-app/src/components/clients/EcosystemLookupPrompt.tsx (339 lines):
+
+1. **State Machine Design**
+   - 7 states: idle, loading, found, not-found, error, requesting, requested
+   - Clean state transitions with proper error handling
+   - Loading spinners for async operations
+
+2. **Privacy-Preserving UI**
+   - 'Check Mango Network' button for manual lookup
+   - Shows "This client may have visited other Mango locations" (no store names)
+   - Displays linked stores count without revealing which stores
+   - Info message when client hasn't opted in to sharing
+
+3. **Link Request Flow**
+   - 'Request Profile Link' button when match is found and canRequest=true
+   - Success state shows 24-hour expiration notice
+   - Skip/Continue buttons for dismissing prompts
+
+4. **Error Handling**
+   - Error state with retry option
+   - User-friendly error messages
+   - Skip option to continue without network check
+
+5. **Integration Points**
+   - Uses lookupEcosystemIdentity and requestProfileLink thunks
+   - Accepts phone/email props (only renders when provided)
+   - Callbacks: onLinkRequested, onDismiss
+
+## Files Created/Modified
+- apps/store-app/src/components/clients/EcosystemLookupPrompt.tsx (NEW - 339 lines)
+- apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts (fixed auth state references)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-058 complete)
+
+## Bug Fixes During Implementation
+- Fixed multiStoreThunks.ts: Changed `state.auth.currentStore?.id` to `state.auth.store?.storeId`
+- Fixed multiStoreThunks.ts: Changed `state.auth.currentUser?.id` to `state.auth.member?.memberId`
+- Fixed import: Changed `../../store` to `../../index` for RootState import
+
+## Quality Checks
+✅ Component follows existing patterns (ConsentManagement.tsx reference)
+✅ Uses existing UI components (Button, Spinner)
+✅ Privacy-focused messaging (no store names revealed)
+✅ pnpm run typecheck passes (no errors for component)
+✅ No forbidden strings
+✅ No 'as any' casts
+
+## Next Story
+US-059 (priority 10): Create ProfileLinkRequestFlow component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 9 (US-050 through US-058)
+- Remaining: 11
+- Progress: 45%
+
+
+=================================================================
+Iteration 6 - US-059: Create ProfileLinkRequestFlow component
+=================================================================
+
+Story: US-059 - Create ProfileLinkRequestFlow component
+Priority: 10
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created ProfileLinkRequestFlow component at apps/store-app/src/components/clients/ProfileLinkRequestFlow.tsx (380 lines):
+
+1. **Dual-Tab Interface**
+   - Incoming tab: requests from other stores to link to our clients
+   - Outgoing tab: requests we've sent to other stores
+   - Badge showing pending incoming count
+
+2. **Request List Display**
+   - Store name (requesting store)
+   - Status badge (pending, approved, rejected, expired)
+   - Timestamps (requested, responded)
+   - Time remaining for pending requests
+
+3. **Action Buttons**
+   - Approve/Reject for incoming pending requests
+   - Loading states during processing
+   - Automatic refresh after action
+
+4. **Confirmation Dialog**
+   - Modal overlay with action confirmation
+   - Clear explanation of what approval/rejection means
+   - Cancel option
+
+5. **States**
+   - Loading, empty, error states handled
+   - Success feedback after action
+   - Refresh button
+
+## New Thunk Added
+
+Added `fetchLinkRequests` thunk to multiStoreThunks.ts:
+- Accepts type: 'incoming' | 'outgoing' | 'all'
+- Queries profile_link_requests table
+- For incoming: finds identities linked to current store
+- Converts snake_case to camelCase
+
+## Files Created/Modified
+- apps/store-app/src/components/clients/ProfileLinkRequestFlow.tsx (NEW - 380 lines)
+- apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts (added fetchLinkRequests thunk)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-059 complete)
+
+## Quality Checks
+✅ Follows DataRequestsPanel.tsx pattern
+✅ Uses existing UI components (Button, Spinner)
+✅ Confirmation dialog before approve/reject
+✅ Success/error feedback
+✅ pnpm run typecheck passes
+✅ No forbidden strings
+✅ No 'as any' casts (except for database row mapping)
+
+## Next Story
+US-060 (priority 11): Create LinkedStoresPanel component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 10 (US-050 through US-059)
+- Remaining: 10
+- Progress: 50%
+
+
+=================================================================
+Iteration 7 - US-060: Create LinkedStoresPanel component
+=================================================================
+
+Story: US-060 - Create LinkedStoresPanel component
+Priority: 11
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created LinkedStoresPanel component at apps/store-app/src/components/clients/LinkedStoresPanel.tsx (320 lines):
+
+1. **Store List Display**
+   - Store name with icon
+   - "This Store" badge for current store
+   - Access level badge (Full Access / Safety Only)
+   - Link date
+
+2. **Shared Data Indicators**
+   - Shield icon for safety data (always shown)
+   - Star icon for loyalty data (only for full access)
+
+3. **Unlink Functionality**
+   - Unlink button (only for other stores, not current)
+   - Confirmation dialog before unlink
+   - Logs unlink action to ecosystem_consent_log
+
+4. **States**
+   - Loading state with spinner
+   - Empty state with message
+   - Error state with retry button
+
+## Files Created/Modified
+- apps/store-app/src/components/clients/LinkedStoresPanel.tsx (NEW - 320 lines)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-060 complete)
+
+## Quality Checks
+✅ Shows store name and link date
+✅ Shows what data is shared (safety, loyalty)
+✅ Unlink button with confirmation dialog
+✅ Empty state if no links
+✅ pnpm run typecheck passes
+✅ No forbidden strings
+
+## Next Story
+US-061 (priority 12): Create EcosystemConsentModal component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 11 (US-050 through US-060)
+- Remaining: 9
+- Progress: 55%
+
+
+=================================================================
+Iteration 8 - US-061: Create EcosystemConsentModal component
+=================================================================
+
+Story: US-061 - Create EcosystemConsentModal component
+Priority: 12
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created EcosystemConsentModal component at apps/store-app/src/components/clients/EcosystemConsentModal.tsx (400 lines):
+
+1. **Ecosystem Explanation**
+   - Clear description of what the Mango Network is
+   - Benefits of joining
+
+2. **Sharing Preference Checkboxes**
+   - Safety Data (always shared - marked as required)
+   - Basic Profile (name, phone, email)
+   - Preferences (staff, notes, communication prefs)
+   - Visit History (past appointments)
+   - Loyalty Points (balance, tier status)
+
+3. **Opt In / Opt Out Buttons**
+   - Opt In button (creates mango_identity via thunk)
+   - Opt Out button with confirmation step
+   - Loading states during processing
+
+4. **Current Status Display**
+   - Green badge when opted in
+   - Shows phone requirement warning if missing
+
+5. **Opt Out Confirmation**
+   - Separate confirmation view
+   - Lists consequences (unlink all stores, stop sharing)
+   - Cancel option
+
+## Files Created/Modified
+- apps/store-app/src/components/clients/EcosystemConsentModal.tsx (NEW - 400 lines)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-061 complete)
+
+## Quality Checks
+✅ Explains ecosystem sharing clearly
+✅ Preference checkboxes for each data type
+✅ Safety data marked as "Always Shared"
+✅ Opt In / Opt Out buttons
+✅ Confirmation for opt-out
+✅ pnpm run typecheck passes
+✅ No forbidden strings
+
+## Next Story
+US-062 (priority 13): Add ecosystem features to client profile
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 12 (US-050 through US-061)
+- Remaining: 8
+- Progress: 60%
+
+
+=================================================================
+Iteration 9 - US-062: Add ecosystem features to client profile
+=================================================================
+
+Story: US-062 - Add ecosystem features to client profile
+Priority: 13
+Status: COMPLETE ✅
+
+## What Was Done
+
+Modified ProfileSection.tsx to add "Mango Network" collapsible section:
+
+1. **New Imports Added**
+   - LinkedStoresPanel component
+   - EcosystemConsentModal component
+   - fetchLinkedStores thunk
+
+2. **New State Variables**
+   - showEcosystemModal: controls modal visibility
+   - linkedStoresCount: number of linked stores
+   - ecosystemExpanded: collapsible section state
+
+3. **Mango Network Section**
+   - Collapsible card with expand/collapse toggle
+   - Header shows opt-in status and linked stores count
+   - "Active" badge when client is opted in
+   - Ecosystem status row with "Manage" button
+   - LinkedStoresPanel when opted in
+   - Info box explaining the Mango Network
+
+4. **EcosystemConsentModal Integration**
+   - Opens from "Manage" button
+   - onComplete callback refreshes linked stores count
+
+5. **Type Updates**
+   - Added mangoIdentityId to EnhancedClient type
+   - Added mangoIdentityId to Client type
+   - Added mangoIdentityId to clientForConsent mapping
+
+## Files Modified
+- apps/store-app/src/components/client-settings/sections/ProfileSection.tsx
+  - Added imports for LinkedStoresPanel, EcosystemConsentModal, fetchLinkedStores
+  - Added useEffect import
+  - Added state variables for ecosystem modal and linked stores
+  - Added useEffect to fetch linked stores count
+  - Added Mango Network collapsible section with LinkedStoresPanel
+  - Added EcosystemConsentModal at end
+  - Added NetworkIcon and ChevronIcon components
+- apps/store-app/src/components/client-settings/types.ts
+  - Added mangoIdentityId to EnhancedClient interface
+- apps/store-app/src/types/client.ts
+  - Added mangoIdentityId to Client interface
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-062 complete)
+
+## Quality Checks
+✅ Mango Network section added near privacy/consent section
+✅ Shows ecosystem opt-in status
+✅ Shows linked stores count
+✅ Manage button opens EcosystemConsentModal
+✅ LinkedStoresPanel imported and used
+✅ No forbidden strings
+✅ pnpm run typecheck passes for ProfileSection/EcosystemConsentModal
+
+## Next Story
+US-063 (priority 14): Create organization sharing database migration
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 13 (US-050 through US-062)
+- Remaining: 7
+- Progress: 65%
+
+
+=================================================================
+Iteration 10 - US-063: Create organization sharing database migration
+=================================================================
+
+Story: US-063 - Create organization sharing database migration
+Priority: 14
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created migration 038_org_client_sharing.sql for Tier 2 organization-level client sharing:
+
+1. **Organizations Table**
+   - id, name, slug, email, phone, website, business_type, timezone, status
+   - client_sharing_settings JSONB with sharingMode (full/selective/isolated)
+   - sharedCategories config (profiles, safetyData, visitHistory, staffNotes, loyaltyData, walletData)
+   - loyaltyScope, giftCardScope, membershipScope settings
+   - allowCrossLocationBooking flag
+
+2. **Stores Table Extension**
+   - Added organization_id column linking stores to organizations
+   - Index for efficient organization lookups
+
+3. **Clients Table Extensions**
+   - home_location_id: primary store for the client
+   - organization_id: denormalized org reference for performance
+   - organization_visible: flag for selective sharing control
+
+4. **Cross Location Visits Table**
+   - Tracks when clients visit stores other than their home location
+   - Records: client_id, organization_id, home_store_id, visiting_store_id
+   - visit_date, appointment_id, ticket_id, services_performed, total_amount
+   - Indexes for efficient queries by client, org, store, date
+
+5. **RLS Policies**
+   - organizations_select: store members can read their org
+   - organizations_update: only org admins (owner/admin role)
+   - cross_visits_select_visiting: see visits to your location
+   - cross_visits_select_home: see visits by your home clients
+   - cross_visits_insert: any org store can log visits
+   - clients_org_select: org clients visible based on sharing mode
+
+6. **Helper Function**
+   - can_access_org_client(p_client_id, p_store_id) SECURITY DEFINER
+   - Checks sharing mode and org membership for access control
+
+7. **Trigger**
+   - organizations_updated_at: auto-update timestamp on changes
+
+## Files Created/Modified
+- supabase/migrations/038_org_client_sharing.sql (NEW - 330 lines)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-063 complete)
+
+## Quality Checks
+✅ organizations table created with client_sharing_settings JSONB
+✅ home_location_id added to clients table
+✅ cross_location_visits table created with all required columns
+✅ RLS policies for org-scoped access
+✅ Migration file at correct location
+✅ Follows migration patterns (gen_random_uuid, TIMESTAMPTZ, comments)
+
+## Commit
+9b285d7 - feat: [client-module-phase5-multistore/US-063] Create organization sharing database migration
+
+## Next Story
+US-064 (priority 15): Create OrganizationClientSharing settings component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 14 (US-050 through US-063)
+- Remaining: 6
+- Progress: 70%
+
+
+=================================================================
+Iteration 11 - US-064: Create OrganizationClientSharing settings component
+=================================================================
+
+Story: US-064 - Create OrganizationClientSharing settings component
+Priority: 15
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created OrganizationClientSharing settings component at apps/store-app/src/components/settings/OrganizationClientSharing.tsx (500 lines):
+
+1. **Sharing Mode Selection**
+   - Dropdown with 3 modes: Full, Selective, Isolated
+   - Full mode: all categories auto-enabled
+   - Isolated mode: only safety data (always on)
+   - Selective mode: custom category selection
+
+2. **Safety Data Notice**
+   - Green info box explaining safety data always shared
+   - Shield icon for visual clarity
+
+3. **Data Category Toggles (Selective mode)**
+   - Basic Profile (name, phone, email)
+   - Safety Data (always on, disabled toggle)
+   - Visit History
+   - Staff Notes
+   - Loyalty Points
+   - Wallet & Credits
+
+4. **Scope Settings**
+   - Loyalty Points Scope: Per Location or Organization-Wide
+   - Gift Card Scope: Per Location or Organization-Wide
+   - Only shown when relevant categories are enabled
+
+5. **Cross-Location Booking Toggle**
+   - Allows clients to book at any org location
+
+6. **Admin Access Control**
+   - Only org owners/admins can modify settings
+   - Non-admins see read-only current mode
+   - Stores not in org see info message
+
+7. **Save/Cancel UI**
+   - Tracks changes with hasChanges state
+   - Save button with loading state
+   - Cancel button to revert changes
+
+## Files Created
+- apps/store-app/src/components/settings/OrganizationClientSharing.tsx (NEW - 500 lines)
+
+## Quality Checks
+✅ Sharing mode dropdown (Full, Selective, Isolated)
+✅ Toggles for loyalty/wallet sharing
+✅ Safety data always shared (no toggle, info shown)
+✅ Save button with loading state
+✅ Only visible/editable to org admins
+✅ No forbidden strings
+✅ pnpm run typecheck passes (no errors in component)
+✅ No 'as any' casts
+
+## Next Story
+US-065 (priority 16): Create CrossLocationClientView component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 15 (US-050 through US-064)
+- Remaining: 5
+- Progress: 75%
+
+
+=================================================================
+Iteration 12 - US-065: Create CrossLocationClientView component
+=================================================================
+
+Story: US-065 - Create CrossLocationClientView component
+Priority: 16
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created CrossLocationClientView component at apps/store-app/src/components/clients/CrossLocationClientView.tsx (480 lines):
+
+1. **Organization Detection**
+   - Checks if client belongs to multi-location org
+   - Handles "not in org" state gracefully
+   - Handles "isolated mode" with appropriate message
+
+2. **Home Location Display**
+   - Blue banner showing client's home store
+   - Clear "Home" badge on location cards
+
+3. **Visit History**
+   - Fetches from cross_location_visits table
+   - Shows date, services performed, amount
+   - Highlights visits to current location
+   - Shows 10 most recent, with total count
+
+4. **Location Summaries**
+   - Aggregates visits by store
+   - Shows visit count, total spent, last visit
+   - Sorted by home first, then by visit count
+
+5. **Combined Balances (Org-Wide)**
+   - Loyalty points if loyaltyScope = 'organization'
+   - Wallet balance if giftCardScope = 'organization'
+   - Styled cards with "Combined across all locations" note
+
+6. **Data Source Indicator**
+   - Footer note explaining data source
+   - Shows current sharing mode
+
+7. **States**
+   - Loading, error, empty, isolated mode
+
+## Files Created
+- apps/store-app/src/components/clients/CrossLocationClientView.tsx (NEW - 480 lines)
+
+## Quality Checks
+✅ Shows client's home location
+✅ Shows visit history at other locations
+✅ Shows combined loyalty points (if org-wide)
+✅ Shows combined wallet balance (if org-wide)
+✅ Indicates which data is from other locations
+✅ No forbidden strings
+✅ pnpm run typecheck passes (no errors in component)
+✅ No 'as any' casts
+
+## Next Story
+US-066 (priority 17): Add cross-location view to client profile
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 16 (US-050 through US-065)
+- Remaining: 4
+- Progress: 80%
+
+
+=================================================================
+Iteration 13 - US-066: Add cross-location view to client profile
+=================================================================
+
+Story: US-066 - Add cross-location view to client profile
+Priority: 17
+Status: COMPLETE ✅
+
+## What Was Done
+
+Modified HistorySection.tsx to add "Other Locations" tab:
+
+1. **Tab Navigation**
+   - Added "This Location" and "Other Locations" tabs
+   - Purple highlight for active tab
+   - Building icon for Other Locations tab
+
+2. **Conditional Display**
+   - Tabs only show if:
+     - Store is part of an organization
+     - Organization has multiple locations
+     - Sharing mode is not "isolated"
+   - Uses useEffect to check org status on mount
+
+3. **CrossLocationClientView Integration**
+   - Shows when "Other Locations" tab is active
+   - Passes client.id for data fetching
+   - Wrapped in conditional rendering
+
+4. **Original Content Preserved**
+   - This Location tab shows original HistorySection content
+   - Wrapped in fragment for conditional rendering
+
+## Files Modified
+- apps/store-app/src/components/client-settings/sections/HistorySection.tsx
+  - Added imports: useState, useEffect, CrossLocationClientView, useAppSelector, supabase
+  - Added HistoryTab type
+  - Added BuildingIcon component
+  - Added state: activeTab, hasOrgLocations, orgSharingEnabled
+  - Added useEffect for org status check
+  - Added tab navigation UI
+  - Added conditional CrossLocationClientView rendering
+  - Wrapped original content in conditional fragment
+
+## Quality Checks
+✅ Modified HistorySection.tsx
+✅ Added 'Other Locations' tab
+✅ Shows CrossLocationClientView component
+✅ Only shows if org has multiple locations and sharing enabled
+✅ No forbidden strings
+✅ pnpm run typecheck passes
+
+## Next Story
+US-067 (priority 18): Create org client sharing thunks
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 17 (US-050 through US-066)
+- Remaining: 3
+- Progress: 85%
+
+
+=================================================================
+Iteration 14 - US-067: Create org client sharing thunks
+=================================================================
+
+Story: US-067 - Create org client sharing thunks
+Priority: 18
+Status: COMPLETE ✅
+
+## What Was Done
+
+Added organization-level thunks to multiStoreThunks.ts:
+
+1. **fetchCrossLocationVisits**
+   - Fetches visits to other org locations for a client
+   - Joins with stores table to get store names
+   - Returns up to 100 most recent visits
+   - Handles clients not in organization
+
+2. **fetchOrgClientSharing**
+   - Fetches organization client sharing settings
+   - Accepts optional organizationId (defaults to current store's org)
+   - Returns settings with defaults for missing fields
+   - Ensures safetyData is always true
+
+3. **updateOrgClientSharing**
+   - Updates organization client sharing settings
+   - Requires owner or admin role
+   - Ensures safety data always shared
+   - Returns success flag
+
+4. **getOrgWideLoyalty**
+   - Gets combined loyalty points across all org locations
+   - Checks if org-wide loyalty is enabled
+   - Returns breakdown by store
+   - Handles clients not linked to ecosystem
+
+## New Types Added
+- CrossLocationVisit
+- OrgClientSharingSettings
+- OrgWideLoyaltyResult
+- Various parameter interfaces
+
+## Files Modified
+- apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts
+  - Added new type definitions
+  - Added 4 organization-level thunks
+  - ~250 new lines of code
+
+## Quality Checks
+✅ fetchCrossLocationVisits thunk created
+✅ fetchOrgClientSharing thunk created
+✅ updateOrgClientSharing thunk created
+✅ getOrgWideLoyalty thunk created
+✅ pnpm run typecheck passes (no errors in file)
+✅ Already exported via index.ts
+
+## Next Story
+US-068 (priority 19): Add multi-store unit tests
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 18 (US-050 through US-067)
+- Remaining: 2
+- Progress: 90%
+

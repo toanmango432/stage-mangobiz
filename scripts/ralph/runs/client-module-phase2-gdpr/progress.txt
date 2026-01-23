@@ -1,0 +1,680 @@
+# Ralph Progress - Client Module Phase 2: GDPR Compliance
+# Started: 2026-01-21
+# Branch: ralph/client-module-phase2
+
+## Codebase Patterns (Persistent across iterations)
+
+### Edge Function Pattern
+- Location: `supabase/functions/`
+- Use Deno imports: `https://deno.land/std@0.168.0/http/server.ts`
+- Create Supabase client with `SUPABASE_SERVICE_ROLE_KEY` for admin operations
+- Return proper CORS headers
+
+### Redux Thunk Pattern
+- Use `createAsyncThunk` from `@reduxjs/toolkit`
+- Call Edge Functions via `supabase.functions.invoke()`
+- Use `rejectWithValue` for error handling
+- Export from slice index.ts
+
+### Modal Component Pattern
+- Follow `MergeClientsModal.tsx` for confirmation flows
+- Use Dialog from `@/components/ui/dialog`
+- Include loading, error, and success states
+- Type confirmation for destructive actions
+
+### Migration Pattern (NEW)
+- Use `gen_random_uuid()` for UUID primary keys
+- Use `TIMESTAMPTZ` for all timestamp columns
+- Enable RLS with `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
+- Create store-scoped policies using staff.auth_user_id = auth.uid()
+- Add column comments for documentation
+
+---
+
+## Iteration Log
+
+### Iteration 1 - US-001: Create GDPR database migration
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `supabase/migrations/032_gdpr_compliance.sql`
+
+**Changes Made:**
+1. Created `client_data_requests` table with:
+   - id (UUID), client_id, store_id
+   - request_type (export/delete/access)
+   - status (pending/processing/completed/rejected)
+   - requested_at, processed_at, processed_by
+   - notes, export_url
+   - created_at, updated_at
+
+2. Created `data_retention_logs` table with:
+   - id (UUID), client_id (nullable for deleted clients), store_id
+   - action (data_exported, data_deleted, consent_updated, etc.)
+   - fields_affected (JSONB)
+   - performed_by, performed_by_name, performed_at
+
+3. Added consent columns to clients table:
+   - consent_marketing (boolean, default false)
+   - consent_marketing_at (timestamptz)
+   - consent_data_processing (boolean, default true)
+   - consent_data_processing_at (timestamptz)
+   - data_deletion_requested_at (timestamptz)
+
+4. Added RLS policies for store-scoped access
+5. Created indexes for efficient queries
+6. Added updated_at trigger for client_data_requests
+
+**Learnings:**
+- data_retention_logs uses ON DELETE SET NULL for client_id to preserve audit trail
+- No UPDATE/DELETE policies on audit logs to ensure immutability
+- Partial indexes (WHERE status = 'pending') save space for common queries
+
+---
+
+### Iteration 2 - US-002: Add GDPR types to client types
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/types/client.ts`
+
+**Changes Made:**
+1. Added GDPR type aliases in "ENUMS & BASIC TYPES" section:
+   - `DataRequestType = 'export' | 'delete' | 'access'`
+   - `DataRequestStatus = 'pending' | 'processing' | 'completed' | 'rejected'`
+   - `DataRetentionAction` - 8 action types matching DB CHECK constraint
+
+2. Added new interfaces in "GDPR/CCPA COMPLIANCE" section:
+   - `ClientDataRequest` - matches client_data_requests table schema
+   - `DataRetentionLog` - matches data_retention_logs table schema
+
+3. Added consent fields to `Client` interface:
+   - `consentMarketing?: boolean`
+   - `consentMarketingAt?: string`
+   - `consentDataProcessing?: boolean`
+   - `consentDataProcessingAt?: string`
+   - `dataDeletionRequestedAt?: string`
+
+**Learnings:**
+- GDPR types use camelCase to match app conventions (vs snake_case in DB)
+- `DataRetentionLog.clientId` is optional (nullable) to preserve logs after client deletion
+- `fieldsAffected` stored as `string[]` in TypeScript vs JSONB in PostgreSQL
+- Pre-existing type errors in `@mango/types` package are unrelated to client types
+
+---
+
+### Iteration 3 - US-003: Create GDPR thunks file
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/store/slices/clientsSlice/gdprThunks.ts`
+
+**Files Modified:**
+- `apps/store-app/src/store/slices/clientsSlice/index.ts`
+
+**Changes Made:**
+1. Created `gdprThunks.ts` with 5 async thunks:
+   - `createDataRequest` - Creates export/delete/access request in client_data_requests
+   - `fetchDataRequests` - Fetches requests for a store, with optional status/client filters
+   - `updateDataRequestStatus` - Updates request status, processed_at, processed_by
+   - `logDataRetention` - Creates immutable audit log entry in data_retention_logs
+   - `fetchDataRetentionLogs` - Fetches audit logs for compliance auditing
+
+2. Added TypeScript interfaces for thunk inputs:
+   - `CreateDataRequestInput`
+   - `UpdateDataRequestStatusInput`
+   - `LogDataRetentionInput`
+   - `FetchDataRequestsInput`
+
+3. Exported all thunks from slice index.ts
+
+**Implementation Details:**
+- All thunks follow `createAsyncThunk` pattern with proper error handling via `rejectWithValue`
+- Direct Supabase client usage (not dataService) since these are new tables
+- Snake_case to camelCase conversion for all returned data
+- No `as any` casts - all types are properly defined
+
+**Learnings:**
+- GDPR tables use direct Supabase queries since they're not in dataService yet
+- Store-app typecheck passes independently even when @mango/types has pre-existing errors
+- The `Record<string, unknown>` type works well for dynamic update objects
+
+---
+
+### Iteration 4 - US-004: Create data export Edge Function
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `supabase/functions/export-client-data/index.ts`
+
+**Changes Made:**
+1. Created new Edge Function for GDPR data export with:
+   - POST endpoint accepting clientId, storeId, performedBy, performedByName, requestId
+   - Fetches client profile, appointments, tickets, and transactions
+   - Converts all snake_case DB fields to camelCase for JSON output
+   - Returns base64 encoded data URL for download
+
+2. Export data structure includes:
+   - `exportedAt` timestamp
+   - `exportVersion` (1.0)
+   - `client` - full profile with consent fields
+   - `appointments` - all appointments for client
+   - `tickets` - all tickets with services/products
+   - `transactions` - all payment transactions
+
+3. GDPR compliance features:
+   - Logs export action to `data_retention_logs` table
+   - Updates `client_data_requests` status if requestId provided
+   - Includes `fieldsAffected` array in audit log
+   - Returns summary counts in response
+
+4. Error handling:
+   - Validates required parameters (clientId, storeId)
+   - Returns 404 if client not found
+   - Continues export even if logging fails
+   - Proper CORS headers for cross-origin requests
+
+**Implementation Details:**
+- Follows existing Edge Function patterns from `clients/index.ts`
+- Uses `btoa(unescape(encodeURIComponent(jsonString)))` for base64 encoding
+- All type converters defined locally (no external type imports in Deno)
+- Console logging for debugging with `[export-client-data]` prefix
+
+**Learnings:**
+- Edge Functions use Deno runtime - can verify with `deno check`
+- Base64 data URLs work well for small-medium exports
+- Non-critical operations (logging) should not block main functionality
+- Type converters must be duplicated in Edge Functions (no shared types)
+
+---
+
+### Iteration 5 - US-005: Create data deletion Edge Function
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `supabase/functions/process-data-deletion/index.ts`
+
+**Changes Made:**
+1. Created new Edge Function for GDPR data deletion with:
+   - POST endpoint accepting clientId, storeId, performedBy, performedByName, requestId
+   - Validates required parameters (clientId, storeId, performedBy)
+   - Returns 404 if client not found
+
+2. PII Anonymization:
+   - `first_name` → 'DELETED'
+   - `last_name` → 'DELETED'
+   - `email` → 'deleted_{clientId}@removed.local'
+   - `phone` → '0000000000'
+   - `nickname` → null
+   - `display_name` → 'DELETED USER'
+
+3. Sensitive Data Cleared (set to null):
+   - address, emergency_contacts, staff_alert, notes
+   - hair_profile, skin_profile, nail_profile, medical_info
+   - preferences, avatar, birthday, anniversary
+   - referred_by_client_id, referred_by_client_name, source_details
+
+4. Communication Preferences Disabled:
+   - All allowEmail, allowSms, allowPhone, allowMarketing set to false
+   - doNotContact set to true
+
+5. GDPR Fields Updated:
+   - data_deletion_requested_at set to current timestamp
+   - consent_marketing and consent_data_processing set to false
+
+6. Related Records Anonymized:
+   - Appointments: client_name → 'DELETED USER', notes cleared
+   - Tickets: client_name → 'DELETED USER', notes cleared
+   - Form responses: deleted (contain signatures/PII)
+   - Client notes: deleted
+
+7. Audit Logging:
+   - Logs deletion to data_retention_logs with 'data_deleted' action
+   - fields_affected contains all anonymized and cleared fields
+   - Updates client_data_requests status to 'completed' if requestId provided
+
+**Preserved Data (for accounting):**
+- id, store_id (identification)
+- loyalty_info (points balance)
+- visit_summary (counts)
+- membership (status)
+- transactions (amounts, dates)
+- is_blocked, is_vip flags
+
+**Learnings:**
+- GDPR deletion = anonymization, not hard delete (preserve financial records)
+- Related records (appointments, tickets) must also be anonymized
+- Form responses contain PII (signatures) and should be fully deleted
+- performedBy is required for audit trail (unlike export which was optional)
+
+---
+
+### Iteration 6 - US-008: Create DataRequestsPanel component
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/components/clients/DataRequestsPanel.tsx`
+
+**Changes Made:**
+1. Created DataRequestsPanel component with:
+   - Fetches data requests for a store via `fetchDataRequests` thunk
+   - Displays list of requests with status badges (Pending/Processing/Completed/Rejected)
+   - Shows request type with icons (Export/Delete/Access)
+   - Shows request date and processed date
+   - Filter tabs: All/Pending/Processing/Completed/Rejected
+   - Pending count badge on filter tab
+
+2. Actions:
+   - Process button for export/access requests (triggers `exportClientData`)
+   - Process button for deletion requests (delegates to parent via `onProcessDeletion`)
+   - Reject button to mark request as rejected
+   - Download link for completed exports
+
+3. States:
+   - Loading state with spinner on initial fetch
+   - Empty state with icon and message when no requests
+   - Error state with red banner and error message
+   - Processing state on individual request actions
+
+4. UI Components:
+   - Local Badge and Button components (following SharedComponents pattern)
+   - Icons: Download, Trash, Eye, Clock, CheckCircle, XCircle, Refresh, DocumentText
+   - Tailwind styling with cyan accent colors
+
+**Implementation Details:**
+- Uses `useEffect` to fetch on mount and when storeId changes
+- Local state for requests, loading, error, statusFilter, processingId
+- `handleProcessExport` updates status to processing, calls export, then completed
+- `handleReject` updates status to rejected
+- `onProcessDeletion` callback allows parent to handle deletion confirmation modal
+- Date formatting with Intl.DateTimeFormat
+
+**Learnings:**
+- Component uses local state instead of Redux for requests list (simpler for panel)
+- Deletion actions delegate to parent for confirmation modal integration
+- Export download URL stored in request.exportUrl after processing
+- Filter state is local to panel (not persisted)
+
+---
+
+### Iteration 7 - US-009: Create DataDeletionRequestModal component
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/components/clients/DataDeletionRequestModal.tsx`
+
+**Changes Made:**
+1. Created DataDeletionRequestModal component following MergeClientsModal pattern:
+   - Uses Dialog from @/components/ui/dialog
+   - Red color scheme for destructive action
+   - AlertTriangle icon for warnings
+
+2. Warning and Confirmation:
+   - Prominent red warning banner: "This action cannot be undone!"
+   - Requires typing "DELETE" to confirm (case-insensitive, converts to uppercase)
+   - Shows client name and summary information
+
+3. Data Impact Display (two columns):
+   - "Will Be Anonymized/Removed": name, email, phone, profiles, notes, forms
+   - "Will Be Preserved": transactions, visit stats, loyalty, membership, gift cards
+
+4. States:
+   - Default: shows warning, data impact, confirmation input
+   - Processing: spinner and disabled inputs
+   - Success: green checkmark with completion message
+   - Error: red banner with error details
+
+5. Integration:
+   - Calls `processDataDeletion` thunk with confirmed=true
+   - Uses `selectMemberId` and `selectCurrentUser` for audit trail
+   - `onDeletionComplete` callback for parent to handle post-deletion
+   - Optional `request` prop to link to data request record
+
+**Implementation Details:**
+- Follows MergeClientsModal.tsx pattern exactly for dialog structure
+- Uses lucide-react icons: AlertTriangle, Trash2, Shield, FileText, CheckCircle, XCircle
+- Success state auto-closes after 1.5 seconds
+- Lists all data categories from process-data-deletion Edge Function
+
+**Learnings:**
+- Dialog component from ui/ handles open/close state properly
+- Reusing patterns from MergeClientsModal ensures consistency
+- Success state delay gives user visual confirmation before close
+- Separating anonymized vs preserved data helps user understand GDPR compliance
+
+---
+
+### Iteration 8 - US-010: Create ConsentManagement component
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/components/clients/ConsentManagement.tsx`
+
+**Changes Made:**
+1. Created ConsentManagement component with:
+   - Shield icon header with "Privacy & Consent" title
+   - Do Not Contact master toggle (red variant) at top
+   - Communication Preferences section: SMS, Email, Phone, Photo
+   - GDPR Consent section: Marketing, Data Processing
+   - Each toggle shows "Enabled" badge and timestamp when enabled
+
+2. Consent Items Configuration:
+   - Defined as array with id, label, description, field, timestampField
+   - `isCommunicationPref` flag differentiates client fields vs communicationPreferences fields
+   - `logActionGranted` and `logActionRevoked` for GDPR audit actions
+
+3. Toggle Component:
+   - Inline Toggle component with label, description, timestamp
+   - Supports 'default' (cyan) and 'danger' (red) variants
+   - Shows "Enabled" badge with checkmark when checked
+   - Displays "Last updated: {date}" when timestamp available
+
+4. State Management:
+   - `handleConsentChange` updates Supabase via `updateClientInSupabase`
+   - Logs GDPR changes via `logDataRetention` thunk
+   - Success message shows briefly (2 seconds) after save
+   - Do Not Contact toggle disables all communication preferences
+
+5. Type Safety:
+   - Type-safe getConsentValue using switch statement
+   - Builds complete CommunicationPreferences object for updates
+   - Uses selectMemberId and selectCurrentUser for audit info
+
+**Implementation Details:**
+- Icons defined inline: ShieldIcon, BellOffIcon, CheckIcon, ClockIcon
+- GDPR section has gray background for visual distinction
+- Info note at bottom explains auto-save and compliance logging
+- readOnly prop disables all interactions
+
+**Learnings:**
+- CommunicationPreferences has required boolean fields, need to spread complete object
+- Switch statement is more type-safe than dynamic property access
+- Marketing consent respects Do Not Contact (disabled when DNC enabled)
+- Data Processing defaults to true (required for service)
+
+---
+
+### Iteration 9 - US-011: Add ConsentManagement to ProfileSection
+**Date:** 2026-01-21
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/components/client-settings/sections/ProfileSection.tsx`
+
+**Changes Made:**
+1. Added imports:
+   - `useMemo` from React
+   - `Client` type from `@/types`
+   - `ConsentManagement` component from `@/components/clients/ConsentManagement`
+
+2. Added type conversion logic:
+   - Created `clientForConsent` using useMemo to convert EnhancedClient to Client
+   - Maps contact.phone and contact.email to top-level fields
+   - Passes communicationPreferences directly
+   - Only includes fields needed by ConsentManagement
+
+3. Added consent change handler:
+   - `handleConsentChange` receives Client updates
+   - Maps communicationPreferences back to EnhancedClient format
+   - Calls parent `onChange` handler
+
+4. Added ConsentManagement section:
+   - Placed after "Client Status" card, before "Block Client Modal"
+   - Passes `clientForConsent` and `handleConsentChange` as props
+   - Component renders its own card styling (no wrapper needed)
+
+**Implementation Details:**
+- EnhancedClient and Client types have different structures (EnhancedClient has nested contact object)
+- useMemo prevents unnecessary re-renders when client object changes
+- ConsentManagement is self-contained with its own card/section styling
+- No Collapsible needed - component has its own header
+
+**Learnings:**
+- Type conversion between similar interfaces is cleaner with useMemo
+- ConsentManagement already handles its own Card styling
+- Only need to forward communicationPreferences updates (other fields handled by other sections)
+
+---
+
+### Iteration 10 - US-012: Add Data Requests tab to ClientSettings
+**Date:** 2026-01-22
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/components/client-settings/ClientSettings.tsx`
+- `apps/store-app/src/components/client-settings/types.ts`
+
+**Changes Made:**
+1. Added 'data-requests' to ClientSettingsSection type union
+
+2. Added imports to ClientSettings.tsx:
+   - DataRequestsPanel from clients folder
+   - DataDeletionRequestModal for deletion flow
+   - selectMemberRole, selectStoreId from authSlice
+
+3. Added role-based access control:
+   - canAccessDataRequests computed from memberRole
+   - Tab only visible to 'owner', 'manager', or 'admin' roles
+
+4. Added Data Requests tab to section navigation:
+   - Uses useMemo to conditionally include tab based on role
+   - DataRequestIcon for visual identification
+
+5. Added DataRequestsPanel to section content:
+   - Renders when activeSection === 'data-requests'
+   - Passes storeId and onProcessDeletion callback
+
+6. Integrated DataDeletionRequestModal:
+   - State: showDeletionModal, deletionRequest
+   - Triggered by onProcessDeletion callback from panel
+   - Finds client from clients list by ID
+   - Refreshes client list after successful deletion
+
+**Implementation Details:**
+- Used useMemo for sectionNav to avoid recreating array on every render
+- DataRequestIcon uses document-text SVG pattern (matches DocumentTextIcon in DataRequestsPanel)
+- Modal lookup for client uses `clients.find(c => c.id === deletionRequest.clientId)`
+- Pre-existing @mango/types errors are unrelated to this implementation
+
+**Learnings:**
+- Role-based access uses selectMemberRole from authSlice
+- Data Requests tab pattern: conditionally add to sectionNav array
+- When DataRequestsPanel triggers deletion, it delegates to parent for modal handling
+- Client lookup from Redux state is efficient for small-to-medium client lists
+
+---
+
+### Iteration 11 - US-013: Add Export Client Data button to profile
+**Date:** 2026-01-22
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/components/client-settings/sections/ProfileSection.tsx`
+
+**Changes Made:**
+1. Added imports:
+   - `useCallback` from React
+   - `useAppDispatch`, `useAppSelector` from `@/store/hooks`
+   - `selectMemberId`, `selectMemberName`, `selectStoreId` from authSlice
+   - `exportClientData`, `createDataRequest` from clientsSlice
+
+2. Added state management:
+   - `isExporting` - loading state during export
+   - `exportSuccess` - success feedback flag
+   - `exportError` - error message state
+   - `downloadUrl` - URL for downloading exported data
+
+3. Implemented `handleExportData` callback:
+   - Validates storeId and memberId are present
+   - Creates a data request record with type 'export'
+   - Calls `exportClientData` thunk with request ID
+   - Stores download URL on success
+   - Shows success message for 10 seconds
+   - Handles errors gracefully
+
+4. Implemented `handleDownload` callback:
+   - Creates temporary anchor element
+   - Triggers download with proper filename: `client-data-{clientId}.json`
+
+5. Added "Data Management" Card after ConsentManagement:
+   - Description text about GDPR/CCPA compliance
+   - Success message banner with Download button (green)
+   - Error message banner with dismiss button (red)
+   - Export button with loading state and Download icon
+
+6. Added new icons:
+   - DownloadIcon - for export button and download action
+   - CheckCircleIcon - for success feedback
+   - XCircleIcon - for error feedback
+   - XIcon - for dismissing error
+   - LoadingSpinner - animated spinner during export
+
+**Implementation Details:**
+- Uses `useCallback` to memoize handlers and prevent unnecessary re-renders
+- Download uses `document.createElement('a')` pattern for cross-browser compatibility
+- Success message auto-clears after 10 seconds
+- Button shows "Exporting..." with spinner during processing
+- Creates data request before export for audit trail
+
+**Quality Verification:**
+- `pnpm run typecheck` on store-app passes (pre-existing @mango/types errors are unrelated)
+- No `as any` casts added (pre-existing ones are unchanged)
+- No forbidden strings ("Test Client") added
+- File increased from 522 to 704 lines
+
+**Learnings:**
+- Base64 data URL from Edge Function can be used directly for download
+- Creating a data request before export links the audit trail
+- Download filename should include clientId for traceability
+- Auto-clearing success messages improve UX without persistent banners
+
+---
+
+### Iteration 12 - US-014: Add Delete Client Data button to profile
+**Date:** 2026-01-22
+**Status:** COMPLETED
+
+**Files Modified:**
+- `apps/store-app/src/components/client-settings/sections/ProfileSection.tsx`
+
+**Changes Made:**
+1. Added imports:
+   - `DataDeletionRequestModal` from `@/components/clients/DataDeletionRequestModal`
+   - `selectMemberRole` from authSlice
+
+2. Added role-based access control:
+   - `memberRole` selector from Redux
+   - `canDeleteClientData` computed for owner/manager/admin roles
+   - Delete button only visible when `canDeleteClientData` is true
+
+3. Added state management:
+   - `showDeletionModal` - controls modal visibility
+   - `handleOpenDeletionModal` - opens the deletion modal
+   - `handleCloseDeletionModal` - closes the deletion modal
+   - `handleDeletionComplete` - handles successful deletion callback
+
+4. Added Delete Client Data button:
+   - Placed in Data Management card after Export button
+   - Red/destructive styling: `bg-red-50 border-red-200` background
+   - Uses `variant="danger"` on Button component
+   - TrashIcon for visual indication
+
+5. Added DataDeletionRequestModal:
+   - Placed after BlockClientModal in JSX
+   - Passes `clientForConsent` (reuses existing conversion)
+   - Handles `onDeletionComplete` callback
+
+6. Added TrashIcon component for delete button
+
+**Implementation Details:**
+- Reuses `clientForConsent` memoized value from ConsentManagement integration
+- Role check follows same pattern as ClientSettings Data Requests tab
+- Modal uses same Dialog pattern as existing modals
+- Button follows destructive action pattern from Block Client section
+
+**Quality Verification:**
+- `pnpm run typecheck` on store-app passes
+- No new `as any` casts added (pre-existing ones unchanged)
+- No forbidden strings ("Test Client") added
+- File increased from 704 to 763 lines
+
+**Learnings:**
+- Role-based UI visibility uses `selectMemberRole` with string comparison
+- Reusing existing `clientForConsent` memo avoids duplicate type conversion
+- DataDeletionRequestModal handles its own state internally (processing, success, error)
+- Destructive actions should use red color scheme and clear warning text
+
+---
+
+### Iteration 13 - US-015: Add GDPR unit tests
+**Date:** 2026-01-22
+**Status:** COMPLETED
+
+**Files Created:**
+- `apps/store-app/src/store/slices/clientsSlice/__tests__/gdprThunks.test.ts`
+
+**Changes Made:**
+1. Created comprehensive test file with 32 unit tests covering:
+   - `createDataRequest` thunk (3 tests)
+   - `exportClientData` thunk (5 tests)
+   - `processDataDeletion` thunk (6 tests)
+   - Data anonymization integrity (2 tests)
+   - `updateDataRequestStatus` thunk (4 tests)
+   - `logDataRetention` thunk (4 tests)
+   - `fetchDataRequests` thunk (3 tests)
+   - GDPR type validation (5 tests)
+
+2. Test Coverage includes:
+   - Success cases for all thunks
+   - Error handling (Supabase errors, Edge Function errors)
+   - Validation (confirmed flag, performedBy required)
+   - Mock Edge Function responses
+   - Snake_case to camelCase conversion verification
+   - GDPR field categorization (PII, sensitive, preserved)
+
+3. Mock Setup:
+   - `mockSupabaseFrom` for Supabase query builder
+   - `mockSupabaseFunctionsInvoke` for Edge Functions
+   - `createQueryBuilderMock` helper for chainable Supabase mocks
+   - Database mocks (clientsDB, etc.)
+
+4. Test Utilities:
+   - `createMockDataRequest` - Factory for ClientDataRequest
+   - `createMockRetentionLog` - Factory for DataRetentionLog
+   - `createTestStore` - Redux store with proper thunk types
+
+**Quality Verification:**
+- All 32 tests pass with `npx vitest run`
+- No `as any` casts added
+- No forbidden strings ("Test Client") in test file
+- TypeScript typecheck passes
+- Test duration: ~80ms
+
+**Learnings:**
+- vi.mock hoisting requires mock functions defined before vi.mock()
+- Chainable mock pattern works well for Supabase query builder
+- fetchDataRequests needs different mock (returns array, not single)
+- Test structure follows merge.test.ts pattern for consistency
+
+---
+
+## PHASE 2 COMPLETE
+
+All 15 user stories for GDPR/CCPA compliance have been implemented:
+- Database migration with new tables and consent fields
+- TypeScript types for GDPR features
+- Redux thunks for data requests, export, deletion, and consent
+- Edge Functions for export and deletion processing
+- UI components: DataRequestsPanel, DataDeletionRequestModal, ConsentManagement
+- Integration into ClientSettings and ProfileSection
+- Role-based access control for data management features
+- Comprehensive unit test coverage
+

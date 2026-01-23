@@ -5,4 +5,5 @@
 
 export { FormBuilder } from './FormBuilder';
 export { FormCompletionPortal } from './FormCompletionPortal';
+export { FormDeliveryModal } from './FormDeliveryModal';
 export { SignatureCapture } from './SignatureCapture';

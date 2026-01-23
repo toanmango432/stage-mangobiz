@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { EnhancedClient, ClientSource, ClientGender } from '../types';
 import { defaultClient, sourceLabels, genderLabels } from '../constants';
 import { Button, Input, Select, Textarea, Toggle, XIcon } from './SharedComponents';
+import { EcosystemLookupPrompt } from '../../clients/EcosystemLookupPrompt';
 
 interface AddClientProps {
   onClose: () => void;
@@ -31,8 +32,64 @@ export const AddClient: React.FC<AddClientProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Ecosystem lookup state
+  const [showEcosystemPrompt, setShowEcosystemPrompt] = useState(false);
+  const [ecosystemDismissed, setEcosystemDismissed] = useState(false);
+  const [lookupPhone, setLookupPhone] = useState('');
+  const [lookupEmail, setLookupEmail] = useState('');
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced ecosystem lookup trigger
+  const triggerEcosystemLookup = useCallback((phone: string, email: string) => {
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Reset if user dismissed but changed input
+    if (ecosystemDismissed) {
+      setEcosystemDismissed(false);
+    }
+
+    // Only trigger if we have valid phone or email
+    const hasValidPhone = phone.trim().length >= 10;
+    const hasValidEmail = email.trim().includes('@');
+
+    if (!hasValidPhone && !hasValidEmail) {
+      setShowEcosystemPrompt(false);
+      return;
+    }
+
+    // Debounce the lookup (500ms)
+    debounceTimerRef.current = setTimeout(() => {
+      setLookupPhone(hasValidPhone ? phone.trim() : '');
+      setLookupEmail(hasValidEmail ? email.trim() : '');
+      setShowEcosystemPrompt(true);
+    }, 500);
+  }, [ecosystemDismissed]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [field]: value };
+
+      // Trigger ecosystem lookup when phone or email changes
+      if ((field === 'phone' || field === 'email') && typeof value === 'string') {
+        const newPhone = field === 'phone' ? value : prev.phone;
+        const newEmail = field === 'email' ? value : prev.email;
+        triggerEcosystemLookup(newPhone, newEmail);
+      }
+
+      return newData;
+    });
     // Clear error when field is edited
     if (errors[field]) {
       setErrors((prev) => {
@@ -196,6 +253,24 @@ export const AddClient: React.FC<AddClientProps> = ({
                 type="email"
                 error={errors.email}
               />
+
+              {/* Ecosystem Lookup Prompt - shown when phone/email entered */}
+              {showEcosystemPrompt && !ecosystemDismissed && (
+                <EcosystemLookupPrompt
+                  phone={lookupPhone || undefined}
+                  email={lookupEmail || undefined}
+                  onLinkRequested={(identityId, requestId) => {
+                    // Store the link request info (could be used later)
+                    console.log(`[AddClient] Link requested: identity=${identityId}, request=${requestId}`);
+                    // User can continue creating the client
+                  }}
+                  onDismiss={() => {
+                    setEcosystemDismissed(true);
+                    setShowEcosystemPrompt(false);
+                  }}
+                  className="mt-2"
+                />
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <Input

@@ -1,0 +1,338 @@
+{
+  "project": "Mango POS - Client Module",
+  "branchName": "ralph/client-module-phase2",
+  "description": "Phase 3: Forms, Segments, Import/Export - Form delivery, PDF generation, segment builder, client import wizard",
+  "userStories": [
+    {
+      "id": "US-016",
+      "title": "Create form delivery database migration",
+      "description": "As a developer, I need database support for form delivery tracking.",
+      "acceptanceCriteria": [
+        "Create `form_deliveries` table: id, form_template_id, client_id, appointment_id, delivery_method (email/sms), sent_at, opened_at, completed_at, expires_at, token (unique link)",
+        "Add `auto_send_form_ids` array column to services table",
+        "Add `form_frequency` column to form_templates ('every_time' | 'once')",
+        "Add RLS policies",
+        "Migration file created at supabase/migrations/033_form_delivery.sql",
+        "Migration runs without errors"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Follow pattern from existing migrations. Token should be UUID for secure form links."
+    },
+    {
+      "id": "US-017",
+      "title": "Add form delivery types",
+      "description": "As a developer, I need TypeScript types for form delivery.",
+      "acceptanceCriteria": [
+        "Add `FormDeliveryMethod = 'email' | 'sms'` to apps/store-app/src/types/form.ts",
+        "Add `FormFrequency = 'every_time' | 'once'`",
+        "Add `FormDelivery` interface with all fields from migration",
+        "Update `FormTemplate` interface with frequency field",
+        "No `as any` casts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Follow existing type patterns in form.ts"
+    },
+    {
+      "id": "US-018",
+      "title": "Create send-form Edge Function",
+      "description": "As a developer, I need an Edge Function to send forms via email/SMS.",
+      "acceptanceCriteria": [
+        "Create supabase/functions/send-form/index.ts",
+        "Accept: client_id, form_template_id, delivery_method, appointment_id (optional)",
+        "Generate unique token for form link",
+        "Create form_delivery record",
+        "Send email via Resend/SendGrid with form link",
+        "Send SMS via Twilio with short link (if SMS method)",
+        "Set expiration to 24 hours",
+        "Return delivery record on success"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Use environment variables for email/SMS API keys. Follow pattern from send-gift-card-email function. Form link format: {BASE_URL}/forms/complete/{token}"
+    },
+    {
+      "id": "US-019",
+      "title": "Create generate-form-pdf Edge Function",
+      "description": "As a developer, I need an Edge Function to generate PDF from completed forms.",
+      "acceptanceCriteria": [
+        "Create supabase/functions/generate-form-pdf/index.ts",
+        "Accept: form_submission_id",
+        "Fetch form template and submission data",
+        "Generate PDF with form title, client info, all responses",
+        "Include signature image if present",
+        "Include timestamp and submission metadata",
+        "Upload PDF to Supabase Storage",
+        "Return public URL for download"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Use @react-pdf/renderer or pdf-lib for PDF generation. Store in form-submissions bucket. Follow existing Edge Function patterns."
+    },
+    {
+      "id": "US-020",
+      "title": "Add form delivery thunks",
+      "description": "As a developer, I need thunks for form delivery operations.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/store/slices/formsSlice/deliveryThunks.ts",
+        "Create `sendFormToClient` thunk (calls send-form Edge Function)",
+        "Create `fetchFormDeliveries` thunk (gets deliveries for client/appointment)",
+        "Create `generateFormPdf` thunk (calls generate-form-pdf Edge Function)",
+        "Create `checkFormCompletion` thunk (checks if client completed required forms)",
+        "Export from formsSlice index",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Follow pattern from existing thunks. Handle loading/error states."
+    },
+    {
+      "id": "US-021",
+      "title": "Create FormDeliveryModal component",
+      "description": "As a staff member, I want to send forms to clients.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/forms/FormDeliveryModal.tsx",
+        "Select form template from dropdown",
+        "Select delivery method (Email/SMS/Both)",
+        "Show client contact info (email/phone)",
+        "Warning if contact info missing for selected method",
+        "Preview of form link",
+        "Send button with loading state",
+        "Success confirmation with 'Copy Link' option",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Follow modal pattern from MergeClientsModal. Use existing Select, Button components."
+    },
+    {
+      "id": "US-022",
+      "title": "Add Send Form button to client profile",
+      "description": "As a staff member, I want to send forms from the client profile.",
+      "acceptanceCriteria": [
+        "Add 'Send Form' button in ProfileSection.tsx profile actions",
+        "Button opens FormDeliveryModal",
+        "Pass client data to modal",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Add near existing action buttons. Use FileText icon from lucide-react."
+    },
+    {
+      "id": "US-023",
+      "title": "Create ServiceFormConfig component",
+      "description": "As a manager, I want to configure auto-send forms for services.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/services/ServiceFormConfig.tsx",
+        "Multi-select dropdown for form templates",
+        "Show selected forms as tags/chips",
+        "Remove form from selection",
+        "Save updates service.auto_send_form_ids",
+        "Info text explaining auto-send behavior",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "This will be embedded in service edit modal. Use MultiSelect pattern if exists, or Combobox."
+    },
+    {
+      "id": "US-024",
+      "title": "Create SegmentBuilder component",
+      "description": "As a manager, I want to build custom client segments.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/SegmentBuilder.tsx",
+        "Add filter conditions (field, operator, value)",
+        "Support fields: lastVisit, totalSpend, visitCount, loyaltyTier, tags, services",
+        "Support operators: equals, contains, greaterThan, lessThan, between, isEmpty",
+        "AND/OR group logic with visual nesting",
+        "Live count of matching clients",
+        "Save segment with name and description",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Follow pattern from existing filter components. Use existing createCustomSegment thunk for saving. Keep under 300 lines - split if needed."
+    },
+    {
+      "id": "US-025",
+      "title": "Create SegmentPreview component",
+      "description": "As a manager, I want to preview clients in a segment.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/SegmentPreview.tsx",
+        "Display list of matching clients (name, phone, last visit)",
+        "Show total count",
+        "Pagination for large segments",
+        "'Export Segment' button",
+        "'Send Message' button (opens bulk message modal)",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Follow pattern from client list components. Use existing fetchClientsByCustomSegment thunk."
+    },
+    {
+      "id": "US-026",
+      "title": "Create ImportWizard component - Step 1 (Upload)",
+      "description": "As a manager, I want to upload a CSV file for client import.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/ImportWizard/UploadStep.tsx",
+        "Drag-and-drop file upload zone",
+        "Accept CSV and Excel files (.csv, .xlsx, .xls)",
+        "Parse file and detect columns",
+        "Show file name and row count",
+        "'Continue' button to next step",
+        "Error handling for invalid files",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Use papaparse for CSV parsing. Use xlsx library for Excel files. Follow existing file upload patterns."
+    },
+    {
+      "id": "US-027",
+      "title": "Create ImportWizard component - Step 2 (Mapping)",
+      "description": "As a manager, I want to map CSV columns to client fields.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/ImportWizard/MappingStep.tsx",
+        "Show source columns from uploaded file",
+        "Dropdown to map each to client field",
+        "Required fields highlighted (firstName, lastName)",
+        "Auto-detect common column names (Name, Phone, Email)",
+        "Preview first 3 rows with mapping applied",
+        "'Back' and 'Continue' buttons",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Client fields: firstName, lastName, email, phone, birthday, tags, notes. Show validation errors for required fields."
+    },
+    {
+      "id": "US-028",
+      "title": "Create ImportWizard component - Step 3 (Preview & Import)",
+      "description": "As a manager, I want to preview and confirm the import.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/ImportWizard/PreviewStep.tsx",
+        "Show import summary: total rows, valid rows, invalid rows",
+        "Highlight duplicate detection (by phone or email)",
+        "Options for duplicates: Skip, Update, Create New",
+        "Download invalid rows as CSV for correction",
+        "'Import' button with confirmation",
+        "Progress bar during import",
+        "Success summary with counts",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Use bulkUpdateClients thunk for import. Batch imports in groups of 50 for performance."
+    },
+    {
+      "id": "US-029",
+      "title": "Create ImportWizard container component",
+      "description": "As a developer, I need a container for the import wizard steps.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/ImportWizard/ImportWizard.tsx",
+        "Create apps/store-app/src/components/clients/ImportWizard/index.ts",
+        "Multi-step wizard with step indicator",
+        "Manage state across steps (file, mapping, options)",
+        "Render correct step component",
+        "Handle cancel/close",
+        "Reset state on close",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Follow existing modal patterns. Use useState for wizard state."
+    },
+    {
+      "id": "US-030",
+      "title": "Add ImportWizard to ClientSettings",
+      "description": "As a manager, I want to access the import wizard from client settings.",
+      "acceptanceCriteria": [
+        "Add 'Import Clients' button in ClientSettings.tsx header actions",
+        "Button opens ImportWizard modal",
+        "Only visible to managers/owners",
+        "Refresh client list after successful import",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Add near existing export button. Use Upload icon from lucide-react."
+    },
+    {
+      "id": "US-031",
+      "title": "Enhance export with full client data",
+      "description": "As a manager, I want to export clients with all related data.",
+      "acceptanceCriteria": [
+        "Modify apps/store-app/src/components/client-settings/components/ClientDataExportImport.tsx",
+        "Add checkboxes for data to include: Profile, Appointments, Transactions, Forms, Notes",
+        "Export selected data as CSV or JSON",
+        "Include loyalty points and tier in export",
+        "Include visit summary statistics",
+        "Progress indicator for large exports",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Enhance existing export functionality. Use existing exportSegmentClients thunk as base."
+    },
+    {
+      "id": "US-032",
+      "title": "Add SegmentBuilder to ClientSettings",
+      "description": "As a manager, I want to access segment builder from client settings.",
+      "acceptanceCriteria": [
+        "Add 'Segments' tab to ClientSettings.tsx tab list",
+        "Show SegmentBuilder when tab selected",
+        "List existing custom segments",
+        "'Create New Segment' button",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Add as new tab alongside existing tabs. Follow existing tab pattern."
+    },
+    {
+      "id": "US-033",
+      "title": "Add Phase 3 unit tests",
+      "description": "As a developer, I need tests for Phase 3 functionality.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/store/slices/formsSlice/__tests__/deliveryThunks.test.ts",
+        "Test sendFormToClient thunk",
+        "Test generateFormPdf thunk",
+        "Test fetchFormDeliveries thunk",
+        "Test segment filter logic",
+        "All tests pass with pnpm test",
+        "No forbidden strings"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Follow existing test patterns in __tests__/ folder. Mock Edge Function calls. Test both success and error cases."
+    }
+  ]
+}

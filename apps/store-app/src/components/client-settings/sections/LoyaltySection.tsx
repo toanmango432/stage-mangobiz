@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { EnhancedClient, LoyaltyTier } from '../types';
 import type { LoyaltyReward } from '@/types';
 import { tierLabels, clientSettingsTokens } from '../constants';
@@ -7,6 +7,9 @@ import { ReferralTrackingCard } from '../components/ReferralTrackingCard';
 import { ClientReviewsCard } from '../components/ClientReviewsCard';
 import { PointsAdjustmentModal } from '../components/PointsAdjustmentModal';
 import { AvailableRewardsCard } from '../components/AvailableRewardsCard';
+import { ReferralCard } from '@/components/clients/ReferralCard';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { fetchReferralSettings } from '@/store/slices/clientsSlice';
 
 interface LoyaltySectionProps {
   client: EnhancedClient;
@@ -14,7 +17,26 @@ interface LoyaltySectionProps {
 }
 
 export const LoyaltySection: React.FC<LoyaltySectionProps> = ({ client, onChange }) => {
+  const dispatch = useAppDispatch();
+  const storeId = useAppSelector((state) => state.auth.store?.storeId || state.auth.storeId);
   const [showPointsModal, setShowPointsModal] = useState<'add' | 'redeem' | null>(null);
+  const [referralProgramEnabled, setReferralProgramEnabled] = useState(false);
+
+  // Fetch referral program settings on mount
+  useEffect(() => {
+    const loadReferralSettings = async () => {
+      if (!storeId) return;
+
+      try {
+        const result = await dispatch(fetchReferralSettings({ storeId })).unwrap();
+        setReferralProgramEnabled(result?.enabled || false);
+      } catch (error) {
+        // If no settings exist or error, assume disabled
+        setReferralProgramEnabled(false);
+      }
+    };
+    loadReferralSettings();
+  }, [dispatch, storeId]);
 
   const updateLoyaltyInfo = (field: string, value: any) => {
     onChange({
@@ -196,6 +218,11 @@ export const LoyaltySection: React.FC<LoyaltySectionProps> = ({ client, onChange
           </div>
         </div>
       </Card>
+
+      {/* Referral Program */}
+      {referralProgramEnabled && (
+        <ReferralCard client={client} />
+      )}
 
       {/* Points Management */}
       <Card title="Points Management" description="Add or redeem loyalty points">
