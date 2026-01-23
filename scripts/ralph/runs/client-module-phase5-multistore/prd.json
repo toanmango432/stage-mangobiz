@@ -104,7 +104,7 @@
         "Return success/error"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Safety data always shared on approval (per spec). Other data based on sharing_preferences."
     },
     {
