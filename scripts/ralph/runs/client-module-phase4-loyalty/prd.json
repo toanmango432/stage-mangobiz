@@ -252,7 +252,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Add to LoyaltySection or create new section."
     },
     {
@@ -268,7 +268,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "LoyaltySection is large - only add import and JSX."
     },
     {
@@ -285,7 +285,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "This is fire-and-forget - don't wait for send. Delay is configured in review settings."
     }
   ]

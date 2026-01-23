@@ -1,0 +1,367 @@
+{
+  "project": "Mango POS - Client Module",
+  "branchName": "ralph/client-module-phase2",
+  "description": "Phase 5: Multi-Store Client Sharing - Cross-store identity, ecosystem linking, and organization-level client sharing",
+  "userStories": [
+    {
+      "id": "US-050",
+      "title": "Create multi-store identity database migration",
+      "description": "As a developer, I need database tables for cross-store client identity.",
+      "acceptanceCriteria": [
+        "Create `mango_identities` table: id, hashed_phone (unique), hashed_email, ecosystem_opt_in, sharing_preferences (JSONB), created_at, updated_at",
+        "Create `linked_stores` table: id, identity_id, store_id, client_id, link_status (active/revoked), linked_at, revoked_at",
+        "Create `profile_link_requests` table: id, requesting_store_id, target_store_id, identity_id, status (pending/approved/rejected/expired), requested_at, responded_at, expires_at",
+        "Create `ecosystem_consent_log` table: id, identity_id, action, store_id, ip_address, timestamp",
+        "Add `mango_identity_id` column to clients table",
+        "Add RLS policies (cross-store read for linked identities)",
+        "Migration file created at supabase/migrations/037_mango_identities.sql",
+        "Migration runs without errors"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Follow MULTI_STORE_CLIENT_SPEC.md exactly. Hashed values use SHA-256 with salt."
+    },
+    {
+      "id": "US-051",
+      "title": "Create identity hashing utility",
+      "description": "As a developer, I need utilities for secure phone/email hashing.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/utils/identityHash.ts",
+        "Create `normalizePhone(phone: string): string` - strips formatting, adds country code",
+        "Create `normalizeEmail(email: string): string` - lowercase, trim",
+        "Create `hashIdentifier(value: string, salt: string): string` - SHA-256 hash",
+        "Create `hashPhone(phone: string): string` - normalize + hash",
+        "Create `hashEmail(email: string): string` - normalize + hash",
+        "Use VITE_ECOSYSTEM_SALT environment variable",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Use Web Crypto API for hashing. Salt must be consistent across all stores."
+    },
+    {
+      "id": "US-052",
+      "title": "Add multi-store types",
+      "description": "As a developer, I need TypeScript types for multi-store features.",
+      "acceptanceCriteria": [
+        "Add `MangoIdentity` interface to apps/store-app/src/types/client.ts",
+        "Add `LinkedStore` interface",
+        "Add `ProfileLinkRequest` interface with status union",
+        "Add `LinkRequestStatus = 'pending' | 'approved' | 'rejected' | 'expired'`",
+        "Add `SharingPreferences` interface (share_safety, share_loyalty, share_preferences)",
+        "Add `EcosystemConsentLog` interface",
+        "No `as any` casts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Follow MULTI_STORE_CLIENT_SPEC.md for exact field names."
+    },
+    {
+      "id": "US-053",
+      "title": "Create identity-lookup Edge Function",
+      "description": "As a developer, I need an Edge Function to lookup clients by hashed identifier.",
+      "acceptanceCriteria": [
+        "Create supabase/functions/identity-lookup/index.ts",
+        "Accept: hashed_phone or hashed_email",
+        "Query mango_identities table",
+        "Return identity_id and linked stores (if ecosystem_opt_in = true)",
+        "Return null if not found or not opted in",
+        "Do NOT return actual client data - just existence",
+        "Log lookup attempt"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "This is privacy-preserving - only returns if match exists. Follow existing Edge Function patterns."
+    },
+    {
+      "id": "US-054",
+      "title": "Create identity-request-link Edge Function",
+      "description": "As a developer, I need an Edge Function to request profile linking.",
+      "acceptanceCriteria": [
+        "Create supabase/functions/identity-request-link/index.ts",
+        "Accept: requesting_store_id, target_store_id, identity_id",
+        "Create profile_link_request with 24-hour expiration",
+        "Notify target store (via email or in-app notification)",
+        "Return request_id on success",
+        "Prevent duplicate pending requests"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Target store must approve before data is shared. Follow existing Edge Function patterns."
+    },
+    {
+      "id": "US-055",
+      "title": "Create identity-approve-link Edge Function",
+      "description": "As a developer, I need an Edge Function to approve/reject link requests.",
+      "acceptanceCriteria": [
+        "Create supabase/functions/identity-approve-link/index.ts",
+        "Accept: request_id, action (approve/reject), performed_by",
+        "Update request status",
+        "If approved, create linked_stores record",
+        "If approved, share safety data (allergies, blocks) immediately",
+        "Log consent action",
+        "Return success/error"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Safety data always shared on approval (per spec). Other data based on sharing_preferences."
+    },
+    {
+      "id": "US-056",
+      "title": "Create identity-sync-safety Edge Function",
+      "description": "As a developer, I need an Edge Function to sync safety data across linked stores.",
+      "acceptanceCriteria": [
+        "Create supabase/functions/identity-sync-safety/index.ts",
+        "Accept: identity_id",
+        "Fetch all linked stores for identity",
+        "Collect safety data: allergies, blocked status, staff alerts",
+        "Merge and return unified safety profile",
+        "Do NOT sync other data without explicit preference"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Safety data is ALWAYS synced regardless of preferences. This is a read operation for display."
+    },
+    {
+      "id": "US-057",
+      "title": "Create multi-store thunks",
+      "description": "As a developer, I need thunks for multi-store operations.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts",
+        "Create `lookupEcosystemIdentity` thunk (calls identity-lookup)",
+        "Create `requestProfileLink` thunk (calls identity-request-link)",
+        "Create `respondToLinkRequest` thunk (calls identity-approve-link)",
+        "Create `fetchLinkedStores` thunk (for a client)",
+        "Create `fetchSafetyProfile` thunk (calls identity-sync-safety)",
+        "Create `optIntoEcosystem` thunk (set ecosystem_opt_in = true)",
+        "Export from clientsSlice index",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Follow existing thunk patterns. Hash identifiers before calling Edge Functions."
+    },
+    {
+      "id": "US-058",
+      "title": "Create EcosystemLookupPrompt component",
+      "description": "As a staff member, I want to check if a new client exists at other Mango stores.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/EcosystemLookupPrompt.tsx",
+        "Display when creating new client",
+        "'Check Mango Network' button",
+        "If match found, show: 'This client may have visited other Mango locations'",
+        "Option to request profile link",
+        "If no match, continue with new profile",
+        "Privacy-focused messaging",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Only shows if phone/email provided. Don't reveal which stores - just that a match exists."
+    },
+    {
+      "id": "US-059",
+      "title": "Create ProfileLinkRequestFlow component",
+      "description": "As a staff member, I want to request and manage profile links.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/ProfileLinkRequestFlow.tsx",
+        "Show pending link requests for current store",
+        "Approve/Reject buttons for incoming requests",
+        "Show status of outgoing requests",
+        "Display requesting store info (name only)",
+        "Confirmation dialog before approve/reject",
+        "Success/error feedback",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Split into separate components if > 250 lines. Follow existing modal/list patterns."
+    },
+    {
+      "id": "US-060",
+      "title": "Create LinkedStoresPanel component",
+      "description": "As a staff member, I want to see stores linked to a client.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/LinkedStoresPanel.tsx",
+        "List stores linked to client's identity",
+        "Show store name and link date",
+        "Show what data is shared (safety, loyalty, etc.)",
+        "'Unlink' button with confirmation",
+        "Empty state if no links",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Add to client profile as collapsible section."
+    },
+    {
+      "id": "US-061",
+      "title": "Create EcosystemConsentModal component",
+      "description": "As a staff member, I want to manage client's ecosystem opt-in.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/EcosystemConsentModal.tsx",
+        "Explain what ecosystem sharing means",
+        "Checkboxes for sharing preferences: Safety data, Loyalty points, Preferences",
+        "'Opt In' / 'Opt Out' buttons",
+        "Show current status",
+        "Confirmation for opt-out (will unlink all stores)",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Safety data sharing is mandatory if opted in. Other preferences are optional."
+    },
+    {
+      "id": "US-062",
+      "title": "Add ecosystem features to client profile",
+      "description": "As a staff member, I want ecosystem info in the client profile.",
+      "acceptanceCriteria": [
+        "Modify apps/store-app/src/components/client-settings/sections/ProfileSection.tsx",
+        "Add 'Mango Network' collapsible section",
+        "Show ecosystem opt-in status",
+        "Show linked stores count",
+        "'Manage' button opens EcosystemConsentModal",
+        "Import and use LinkedStoresPanel",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "Add near privacy/consent section."
+    },
+    {
+      "id": "US-063",
+      "title": "Create organization sharing database migration",
+      "description": "As a developer, I need database support for org-level client sharing.",
+      "acceptanceCriteria": [
+        "Add `client_sharing_settings` JSONB column to organizations table",
+        "Add `home_location_id` column to clients table",
+        "Create `cross_location_visits` table: id, client_id, visiting_store_id, home_store_id, appointment_id, created_at",
+        "Add RLS policies for org-scoped access",
+        "Migration file created at supabase/migrations/038_org_client_sharing.sql",
+        "Migration runs without errors"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "sharing_settings: {mode: 'full'|'selective'|'isolated', share_loyalty: boolean, share_wallet: boolean}."
+    },
+    {
+      "id": "US-064",
+      "title": "Create OrganizationClientSharing settings component",
+      "description": "As an org admin, I want to configure client sharing between locations.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/settings/OrganizationClientSharing.tsx",
+        "Sharing mode dropdown: Full, Selective, Isolated",
+        "Toggles for: Share loyalty points, Share wallet/credits",
+        "Safety data always shared (no toggle, just info)",
+        "Per-location override option",
+        "Save button with loading state",
+        "Only visible to org admins",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "Add to Organization Settings section. Full = all client data shared across org locations."
+    },
+    {
+      "id": "US-065",
+      "title": "Create CrossLocationClientView component",
+      "description": "As a staff member, I want to see client info from other org locations.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/components/clients/CrossLocationClientView.tsx",
+        "Show client's home location",
+        "Show visit history at other locations",
+        "Show combined loyalty points (if org-wide)",
+        "Show combined wallet balance (if org-wide)",
+        "Indicate which data is from other locations",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Only shows if sharing mode is Full or Selective. Follow existing section patterns."
+    },
+    {
+      "id": "US-066",
+      "title": "Add cross-location view to client profile",
+      "description": "As a staff member, I want cross-location info in profiles.",
+      "acceptanceCriteria": [
+        "Modify apps/store-app/src/components/client-settings/sections/HistorySection.tsx",
+        "Add 'Other Locations' tab or section",
+        "Show CrossLocationClientView component",
+        "Only show if org has multiple locations and sharing enabled",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "HistorySection is large - minimal additions only."
+    },
+    {
+      "id": "US-067",
+      "title": "Create org client sharing thunks",
+      "description": "As a developer, I need thunks for org-level client operations.",
+      "acceptanceCriteria": [
+        "Add to apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts",
+        "Create `fetchCrossLocationVisits` thunk",
+        "Create `fetchOrgClientSharing` thunk (get settings)",
+        "Create `updateOrgClientSharing` thunk (update settings)",
+        "Create `getOrgWideLoyalty` thunk (combined points across org)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "Add to existing multiStoreThunks.ts file."
+    },
+    {
+      "id": "US-068",
+      "title": "Add multi-store unit tests",
+      "description": "As a developer, I need tests for multi-store functionality.",
+      "acceptanceCriteria": [
+        "Create apps/store-app/src/store/slices/clientsSlice/__tests__/multiStoreThunks.test.ts",
+        "Test identity hashing normalization",
+        "Test lookupEcosystemIdentity thunk",
+        "Test requestProfileLink thunk",
+        "Test respondToLinkRequest thunk",
+        "Test org sharing permission checks",
+        "All tests pass with pnpm test",
+        "No forbidden strings"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "Mock Edge Function calls. Test both success and error cases."
+    },
+    {
+      "id": "US-069",
+      "title": "Add ecosystem lookup to new client flow",
+      "description": "As a staff member, I want automatic ecosystem check when adding clients.",
+      "acceptanceCriteria": [
+        "Modify apps/store-app/src/components/client-settings/components/AddClientModal.tsx",
+        "When phone or email entered, trigger ecosystem lookup",
+        "Show EcosystemLookupPrompt if match found",
+        "Allow continuing without linking",
+        "Debounce lookup calls (500ms)",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using agent-browser skill"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "Don't block client creation. This is a helpful prompt, not a requirement."
+    }
+  ]
+}

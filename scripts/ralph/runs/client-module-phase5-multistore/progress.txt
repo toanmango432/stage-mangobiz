@@ -1,0 +1,42 @@
+# Ralph Progress - Client Module Phase 5: Multi-Store Client Sharing
+# Started: TBD (after Phase 4)
+# Branch: ralph/client-module-phase2
+
+## Codebase Patterns (Persistent across iterations)
+
+### Edge Function Pattern
+- Location: `supabase/functions/`
+- Use Deno imports: `https://deno.land/std@0.168.0/http/server.ts`
+- Create Supabase client with `SUPABASE_SERVICE_ROLE_KEY` for admin operations
+- Return proper CORS headers
+
+### Redux Thunk Pattern
+- Use `createAsyncThunk` from `@reduxjs/toolkit`
+- Call Edge Functions via `supabase.functions.invoke()`
+- Use `rejectWithValue` for error handling
+- Export from slice index.ts
+
+### Identity Hashing Pattern (NEW)
+- Use Web Crypto API for SHA-256 hashing
+- Normalize phone: strip formatting, last 10 digits, add +1
+- Normalize email: lowercase, trim
+- Salt from VITE_ECOSYSTEM_SALT environment variable
+- Hash format: hex string
+
+### Multi-Store RLS Pattern (NEW)
+- Cross-store queries require identity link verification
+- Use auth.uid() to get current user
+- Join through linked_stores table
+- Safety data has relaxed RLS (always readable for linked stores)
+
+### Migration Pattern
+- Use `gen_random_uuid()` for UUID primary keys
+- Use `TIMESTAMPTZ` for all timestamp columns
+- Enable RLS with `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
+- Create store-scoped policies using staff.auth_user_id = auth.uid()
+- Add column comments for documentation
+
+---
+
+## Iteration Log
+
