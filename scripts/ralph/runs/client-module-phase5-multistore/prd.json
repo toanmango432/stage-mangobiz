@@ -308,7 +308,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "HistorySection is large - minimal additions only."
     },
     {

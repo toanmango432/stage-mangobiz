@@ -920,3 +920,65 @@ US-066 (priority 17): Add cross-location view to client profile
 - Remaining: 4
 - Progress: 80%
 
+
+=================================================================
+Iteration 13 - US-066: Add cross-location view to client profile
+=================================================================
+
+Story: US-066 - Add cross-location view to client profile
+Priority: 17
+Status: COMPLETE ✅
+
+## What Was Done
+
+Modified HistorySection.tsx to add "Other Locations" tab:
+
+1. **Tab Navigation**
+   - Added "This Location" and "Other Locations" tabs
+   - Purple highlight for active tab
+   - Building icon for Other Locations tab
+
+2. **Conditional Display**
+   - Tabs only show if:
+     - Store is part of an organization
+     - Organization has multiple locations
+     - Sharing mode is not "isolated"
+   - Uses useEffect to check org status on mount
+
+3. **CrossLocationClientView Integration**
+   - Shows when "Other Locations" tab is active
+   - Passes client.id for data fetching
+   - Wrapped in conditional rendering
+
+4. **Original Content Preserved**
+   - This Location tab shows original HistorySection content
+   - Wrapped in fragment for conditional rendering
+
+## Files Modified
+- apps/store-app/src/components/client-settings/sections/HistorySection.tsx
+  - Added imports: useState, useEffect, CrossLocationClientView, useAppSelector, supabase
+  - Added HistoryTab type
+  - Added BuildingIcon component
+  - Added state: activeTab, hasOrgLocations, orgSharingEnabled
+  - Added useEffect for org status check
+  - Added tab navigation UI
+  - Added conditional CrossLocationClientView rendering
+  - Wrapped original content in conditional fragment
+
+## Quality Checks
+✅ Modified HistorySection.tsx
+✅ Added 'Other Locations' tab
+✅ Shows CrossLocationClientView component
+✅ Only shows if org has multiple locations and sharing enabled
+✅ No forbidden strings
+✅ pnpm run typecheck passes
+
+## Next Story
+US-067 (priority 18): Create org client sharing thunks
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 17 (US-050 through US-066)
+- Remaining: 3
+- Progress: 85%
+
