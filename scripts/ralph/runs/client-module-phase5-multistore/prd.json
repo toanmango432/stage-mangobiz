@@ -139,7 +139,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing thunk patterns. Hash identifiers before calling Edge Functions."
     },
     {
