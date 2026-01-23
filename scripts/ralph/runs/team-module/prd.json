@@ -233,7 +233,7 @@
         "Use Explore agent pattern to verify comprehensively"
       ],
       "priority": 8,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-P1F",
@@ -255,7 +255,7 @@
         "Fix each issue methodically"
       ],
       "priority": 9,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-P1V",
