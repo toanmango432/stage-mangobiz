@@ -982,3 +982,69 @@ US-067 (priority 18): Create org client sharing thunks
 - Remaining: 3
 - Progress: 85%
 
+
+=================================================================
+Iteration 14 - US-067: Create org client sharing thunks
+=================================================================
+
+Story: US-067 - Create org client sharing thunks
+Priority: 18
+Status: COMPLETE ✅
+
+## What Was Done
+
+Added organization-level thunks to multiStoreThunks.ts:
+
+1. **fetchCrossLocationVisits**
+   - Fetches visits to other org locations for a client
+   - Joins with stores table to get store names
+   - Returns up to 100 most recent visits
+   - Handles clients not in organization
+
+2. **fetchOrgClientSharing**
+   - Fetches organization client sharing settings
+   - Accepts optional organizationId (defaults to current store's org)
+   - Returns settings with defaults for missing fields
+   - Ensures safetyData is always true
+
+3. **updateOrgClientSharing**
+   - Updates organization client sharing settings
+   - Requires owner or admin role
+   - Ensures safety data always shared
+   - Returns success flag
+
+4. **getOrgWideLoyalty**
+   - Gets combined loyalty points across all org locations
+   - Checks if org-wide loyalty is enabled
+   - Returns breakdown by store
+   - Handles clients not linked to ecosystem
+
+## New Types Added
+- CrossLocationVisit
+- OrgClientSharingSettings
+- OrgWideLoyaltyResult
+- Various parameter interfaces
+
+## Files Modified
+- apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts
+  - Added new type definitions
+  - Added 4 organization-level thunks
+  - ~250 new lines of code
+
+## Quality Checks
+✅ fetchCrossLocationVisits thunk created
+✅ fetchOrgClientSharing thunk created
+✅ updateOrgClientSharing thunk created
+✅ getOrgWideLoyalty thunk created
+✅ pnpm run typecheck passes (no errors in file)
+✅ Already exported via index.ts
+
+## Next Story
+US-068 (priority 19): Add multi-store unit tests
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 18 (US-050 through US-067)
+- Remaining: 2
+- Progress: 90%
+

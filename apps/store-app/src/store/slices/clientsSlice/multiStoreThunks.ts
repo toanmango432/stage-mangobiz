@@ -61,6 +61,65 @@ interface FetchLinkRequestsParams {
   type: 'incoming' | 'outgoing' | 'all';
 }
 
+interface FetchCrossLocationVisitsParams {
+  clientId: string;
+}
+
+interface FetchOrgClientSharingParams {
+  organizationId?: string; // If not provided, uses current store's org
+}
+
+interface UpdateOrgClientSharingParams {
+  organizationId: string;
+  settings: OrgClientSharingSettings;
+}
+
+interface GetOrgWideLoyaltyParams {
+  clientId: string;
+}
+
+interface OrgClientSharingSettings {
+  sharingMode: 'full' | 'selective' | 'isolated';
+  sharedCategories: {
+    profiles: boolean;
+    safetyData: boolean;
+    visitHistory: boolean;
+    staffNotes: boolean;
+    loyaltyData: boolean;
+    walletData: boolean;
+  };
+  loyaltyScope: 'location' | 'organization';
+  giftCardScope: 'location' | 'organization';
+  membershipScope: 'location' | 'organization';
+  allowCrossLocationBooking: boolean;
+}
+
+interface CrossLocationVisit {
+  id: string;
+  clientId: string;
+  organizationId: string;
+  homeStoreId: string;
+  homeStoreName: string;
+  visitingStoreId: string;
+  visitingStoreName: string;
+  visitDate: string;
+  servicesPerformed: string[];
+  totalAmount: number;
+  appointmentId?: string;
+  ticketId?: string;
+  createdAt: string;
+}
+
+interface OrgWideLoyaltyResult {
+  totalPoints: number;
+  breakdown: Array<{
+    storeId: string;
+    storeName: string;
+    points: number;
+    lastEarned?: string;
+  }>;
+}
+
 interface SafetyData {
   allergies: string[];
   isBlocked: boolean;
@@ -505,6 +564,345 @@ export const fetchLinkRequests = createAsyncThunk<
       console.error('[fetchLinkRequests] Unexpected error:', error);
       return rejectWithValue(
         error instanceof Error ? error.message : 'Failed to fetch link requests'
+      );
+    }
+  }
+);
+
+// ==================== ORGANIZATION-LEVEL THUNKS ====================
+
+/**
+ * Fetch cross-location visits for a client
+ * Returns visits to other org locations
+ */
+export const fetchCrossLocationVisits = createAsyncThunk<
+  CrossLocationVisit[],
+  FetchCrossLocationVisitsParams,
+  { rejectValue: string; state: RootState }
+>(
+  'clients/fetchCrossLocationVisits',
+  async (params, { getState, rejectWithValue }) => {
+    try {
+      const { clientId } = params;
+      const state = getState();
+      const storeId = state.auth.store?.storeId;
+
+      if (!storeId) {
+        throw new Error('Store information not available');
+      }
+
+      // Get client's organization
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('organization_id')
+        .eq('id', clientId)
+        .single();
+
+      if (clientError || !clientData?.organization_id) {
+        console.error('[fetchCrossLocationVisits] Client not in organization');
+        return [];
+      }
+
+      // Fetch cross-location visits
+      const { data, error } = await supabase
+        .from('cross_location_visits')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('organization_id', clientData.organization_id)
+        .order('visit_date', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error('[fetchCrossLocationVisits] Error:', error);
+        throw error;
+      }
+
+      // Get store names
+      const storeIds = new Set<string>();
+      (data || []).forEach(v => {
+        storeIds.add(v.home_store_id);
+        storeIds.add(v.visiting_store_id);
+      });
+
+      const { data: stores } = await supabase
+        .from('stores')
+        .select('id, name')
+        .in('id', Array.from(storeIds));
+
+      const storeNames: Record<string, string> = {};
+      (stores || []).forEach(s => {
+        storeNames[s.id] = s.name;
+      });
+
+      // Convert to camelCase
+      return (data || []).map((row) => ({
+        id: row.id,
+        clientId: row.client_id,
+        organizationId: row.organization_id,
+        homeStoreId: row.home_store_id,
+        homeStoreName: storeNames[row.home_store_id] || 'Unknown',
+        visitingStoreId: row.visiting_store_id,
+        visitingStoreName: storeNames[row.visiting_store_id] || 'Unknown',
+        visitDate: row.visit_date,
+        servicesPerformed: row.services_performed || [],
+        totalAmount: row.total_amount || 0,
+        appointmentId: row.appointment_id,
+        ticketId: row.ticket_id,
+        createdAt: row.created_at,
+      }));
+    } catch (error) {
+      console.error('[fetchCrossLocationVisits] Unexpected error:', error);
+      return rejectWithValue(
+        error instanceof Error ? error.message : 'Failed to fetch cross-location visits'
+      );
+    }
+  }
+);
+
+/**
+ * Fetch organization client sharing settings
+ */
+export const fetchOrgClientSharing = createAsyncThunk<
+  OrgClientSharingSettings | null,
+  FetchOrgClientSharingParams,
+  { rejectValue: string; state: RootState }
+>(
+  'clients/fetchOrgClientSharing',
+  async (params, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const storeId = state.auth.store?.storeId;
+      let { organizationId } = params;
+
+      // If no org ID provided, get it from the store
+      if (!organizationId) {
+        if (!storeId) {
+          throw new Error('Store information not available');
+        }
+
+        const { data: storeData, error: storeError } = await supabase
+          .from('stores')
+          .select('organization_id')
+          .eq('id', storeId)
+          .single();
+
+        if (storeError || !storeData?.organization_id) {
+          console.log('[fetchOrgClientSharing] Store not in organization');
+          return null;
+        }
+
+        organizationId = storeData.organization_id;
+      }
+
+      // Fetch organization settings
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('client_sharing_settings')
+        .eq('id', organizationId)
+        .single();
+
+      if (error) {
+        console.error('[fetchOrgClientSharing] Error:', error);
+        throw error;
+      }
+
+      // Return settings with defaults for any missing fields
+      const settings = data?.client_sharing_settings as Partial<OrgClientSharingSettings> || {};
+      return {
+        sharingMode: settings.sharingMode || 'isolated',
+        sharedCategories: {
+          profiles: settings.sharedCategories?.profiles ?? false,
+          safetyData: true, // Always true
+          visitHistory: settings.sharedCategories?.visitHistory ?? false,
+          staffNotes: settings.sharedCategories?.staffNotes ?? false,
+          loyaltyData: settings.sharedCategories?.loyaltyData ?? false,
+          walletData: settings.sharedCategories?.walletData ?? false,
+        },
+        loyaltyScope: settings.loyaltyScope || 'location',
+        giftCardScope: settings.giftCardScope || 'location',
+        membershipScope: settings.membershipScope || 'location',
+        allowCrossLocationBooking: settings.allowCrossLocationBooking ?? false,
+      };
+    } catch (error) {
+      console.error('[fetchOrgClientSharing] Unexpected error:', error);
+      return rejectWithValue(
+        error instanceof Error ? error.message : 'Failed to fetch org client sharing settings'
+      );
+    }
+  }
+);
+
+/**
+ * Update organization client sharing settings
+ * Requires owner or admin role
+ */
+export const updateOrgClientSharing = createAsyncThunk<
+  { success: boolean },
+  UpdateOrgClientSharingParams,
+  { rejectValue: string; state: RootState }
+>(
+  'clients/updateOrgClientSharing',
+  async (params, { getState, rejectWithValue }) => {
+    try {
+      const { organizationId, settings } = params;
+      const state = getState();
+      const memberRole = state.auth.member?.role;
+
+      // Check permissions
+      if (memberRole !== 'owner' && memberRole !== 'admin') {
+        throw new Error('Only organization owners and admins can update sharing settings');
+      }
+
+      // Ensure safety data is always shared
+      const settingsToSave = {
+        ...settings,
+        sharedCategories: {
+          ...settings.sharedCategories,
+          safetyData: true,
+        },
+      };
+
+      // Update organization
+      const { error } = await supabase
+        .from('organizations')
+        .update({ client_sharing_settings: settingsToSave })
+        .eq('id', organizationId);
+
+      if (error) {
+        console.error('[updateOrgClientSharing] Error:', error);
+        throw error;
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('[updateOrgClientSharing] Unexpected error:', error);
+      return rejectWithValue(
+        error instanceof Error ? error.message : 'Failed to update org client sharing settings'
+      );
+    }
+  }
+);
+
+/**
+ * Get organization-wide loyalty points for a client
+ * Aggregates points from all org locations
+ */
+export const getOrgWideLoyalty = createAsyncThunk<
+  OrgWideLoyaltyResult,
+  GetOrgWideLoyaltyParams,
+  { rejectValue: string; state: RootState }
+>(
+  'clients/getOrgWideLoyalty',
+  async (params, { getState, rejectWithValue }) => {
+    try {
+      const { clientId } = params;
+      const state = getState();
+      const storeId = state.auth.store?.storeId;
+
+      if (!storeId) {
+        throw new Error('Store information not available');
+      }
+
+      // Get client's organization and mango identity
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('organization_id, mango_identity_id')
+        .eq('id', clientId)
+        .single();
+
+      if (clientError || !clientData) {
+        throw new Error('Client not found');
+      }
+
+      // Check if org-wide loyalty is enabled
+      if (clientData.organization_id) {
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('client_sharing_settings')
+          .eq('id', clientData.organization_id)
+          .single();
+
+        const settings = orgData?.client_sharing_settings as Partial<OrgClientSharingSettings> || {};
+
+        if (settings.loyaltyScope !== 'organization') {
+          // Return only this store's points
+          const { data: localLoyalty } = await supabase
+            .from('loyalty_balances')
+            .select('points')
+            .eq('client_id', clientId)
+            .single();
+
+          return {
+            totalPoints: localLoyalty?.points || 0,
+            breakdown: [{
+              storeId,
+              storeName: state.auth.store?.storeName || 'This Store',
+              points: localLoyalty?.points || 0,
+            }],
+          };
+        }
+      }
+
+      // Get all linked clients for this identity
+      if (!clientData.mango_identity_id) {
+        // Not linked to ecosystem, return local points
+        const { data: localLoyalty } = await supabase
+          .from('loyalty_balances')
+          .select('points')
+          .eq('client_id', clientId)
+          .single();
+
+        return {
+          totalPoints: localLoyalty?.points || 0,
+          breakdown: [{
+            storeId,
+            storeName: state.auth.store?.storeName || 'This Store',
+            points: localLoyalty?.points || 0,
+          }],
+        };
+      }
+
+      // Get linked stores
+      const { data: linkedStores } = await supabase
+        .from('linked_stores')
+        .select('store_id, store_name, local_client_id')
+        .eq('mango_identity_id', clientData.mango_identity_id);
+
+      if (!linkedStores || linkedStores.length === 0) {
+        return { totalPoints: 0, breakdown: [] };
+      }
+
+      // Get loyalty balances for all linked clients
+      const clientIds = linkedStores.map(ls => ls.local_client_id).filter(Boolean);
+
+      const { data: loyaltyData } = await supabase
+        .from('loyalty_balances')
+        .select('client_id, points, last_earned_at')
+        .in('client_id', clientIds);
+
+      // Build breakdown
+      const clientToPoints: Record<string, { points: number; lastEarned?: string }> = {};
+      (loyaltyData || []).forEach(l => {
+        clientToPoints[l.client_id] = {
+          points: l.points || 0,
+          lastEarned: l.last_earned_at,
+        };
+      });
+
+      const breakdown = linkedStores.map(ls => ({
+        storeId: ls.store_id,
+        storeName: ls.store_name,
+        points: ls.local_client_id ? (clientToPoints[ls.local_client_id]?.points || 0) : 0,
+        lastEarned: ls.local_client_id ? clientToPoints[ls.local_client_id]?.lastEarned : undefined,
+      }));
+
+      const totalPoints = breakdown.reduce((sum, b) => sum + b.points, 0);
+
+      return { totalPoints, breakdown };
+    } catch (error) {
+      console.error('[getOrgWideLoyalty] Unexpected error:', error);
+      return rejectWithValue(
+        error instanceof Error ? error.message : 'Failed to get org-wide loyalty'
       );
     }
   }
