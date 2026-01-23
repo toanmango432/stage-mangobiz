@@ -451,3 +451,73 @@ US-059 (priority 10): Create ProfileLinkRequestFlow component
 - Remaining: 11
 - Progress: 45%
 
+
+=================================================================
+Iteration 6 - US-059: Create ProfileLinkRequestFlow component
+=================================================================
+
+Story: US-059 - Create ProfileLinkRequestFlow component
+Priority: 10
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created ProfileLinkRequestFlow component at apps/store-app/src/components/clients/ProfileLinkRequestFlow.tsx (380 lines):
+
+1. **Dual-Tab Interface**
+   - Incoming tab: requests from other stores to link to our clients
+   - Outgoing tab: requests we've sent to other stores
+   - Badge showing pending incoming count
+
+2. **Request List Display**
+   - Store name (requesting store)
+   - Status badge (pending, approved, rejected, expired)
+   - Timestamps (requested, responded)
+   - Time remaining for pending requests
+
+3. **Action Buttons**
+   - Approve/Reject for incoming pending requests
+   - Loading states during processing
+   - Automatic refresh after action
+
+4. **Confirmation Dialog**
+   - Modal overlay with action confirmation
+   - Clear explanation of what approval/rejection means
+   - Cancel option
+
+5. **States**
+   - Loading, empty, error states handled
+   - Success feedback after action
+   - Refresh button
+
+## New Thunk Added
+
+Added `fetchLinkRequests` thunk to multiStoreThunks.ts:
+- Accepts type: 'incoming' | 'outgoing' | 'all'
+- Queries profile_link_requests table
+- For incoming: finds identities linked to current store
+- Converts snake_case to camelCase
+
+## Files Created/Modified
+- apps/store-app/src/components/clients/ProfileLinkRequestFlow.tsx (NEW - 380 lines)
+- apps/store-app/src/store/slices/clientsSlice/multiStoreThunks.ts (added fetchLinkRequests thunk)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-059 complete)
+
+## Quality Checks
+✅ Follows DataRequestsPanel.tsx pattern
+✅ Uses existing UI components (Button, Spinner)
+✅ Confirmation dialog before approve/reject
+✅ Success/error feedback
+✅ pnpm run typecheck passes
+✅ No forbidden strings
+✅ No 'as any' casts (except for database row mapping)
+
+## Next Story
+US-060 (priority 11): Create LinkedStoresPanel component
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 10 (US-050 through US-059)
+- Remaining: 10
+- Progress: 50%
+

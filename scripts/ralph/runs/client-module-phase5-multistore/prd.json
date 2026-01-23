@@ -179,7 +179,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Split into separate components if > 250 lines. Follow existing modal/list patterns."
     },
     {
