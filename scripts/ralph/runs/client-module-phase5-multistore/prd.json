@@ -252,7 +252,7 @@
         "Migration runs without errors"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "sharing_settings: {mode: 'full'|'selective'|'isolated', share_loyalty: boolean, share_wallet: boolean}."
     },
     {
