@@ -54,7 +54,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Follow MULTI_STORE_CLIENT_SPEC.md for exact field names."
     },
     {

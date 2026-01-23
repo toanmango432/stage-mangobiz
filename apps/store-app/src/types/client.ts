@@ -887,3 +887,151 @@ export interface DataRetentionLog {
   performedAt: string;
   createdAt: string;
 }
+
+// ==================== MULTI-STORE CLIENT SHARING (PHASE 5) ====================
+
+/**
+ * Link Request Status
+ * Tracks the lifecycle of a profile link request between stores
+ */
+export type LinkRequestStatus = 'pending' | 'approved' | 'rejected' | 'expired';
+
+/**
+ * Sharing Preferences
+ * Client-controlled data sharing settings for ecosystem linking
+ */
+export interface SharingPreferences {
+  /** Share basic profile info (name, contact) */
+  basicInfo: boolean;
+
+  /** Share client preferences (preferred staff, communication prefs) */
+  preferences: boolean;
+
+  /** Share visit history across stores */
+  visitHistory: boolean;
+
+  /** Share loyalty points balance */
+  loyaltyData: boolean;
+
+  /** ALWAYS shared regardless of preferences (required for safety) */
+  safetyData?: boolean;  // Always true if opted in
+}
+
+/**
+ * Mango Identity
+ * Central identity record for cross-brand client sharing
+ * Reference: docs/architecture/MULTI_STORE_CLIENT_SPEC.md (Tier 1)
+ */
+export interface MangoIdentity {
+  id: string;
+
+  // Hashed identifiers (no cleartext PII)
+  hashedPhone: string;
+  hashedEmail?: string;
+
+  // Ecosystem consent
+  ecosystemOptIn: boolean;
+  optInDate?: string;
+  optOutDate?: string;
+
+  // Client-controlled sharing preferences
+  sharingPreferences: SharingPreferences;
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Linked Store
+ * Represents a store linked to a client's Mango identity
+ */
+export interface LinkedStore {
+  id: string;
+  mangoIdentityId: string;
+
+  // Store information
+  storeId: string;
+  storeName: string;
+
+  // Local client reference
+  localClientId: string;
+
+  // Link metadata
+  linkedAt: string;
+  linkedBy: 'client' | 'request_approved';
+  accessLevel: 'full' | 'basic';
+
+  // Sync tracking
+  lastSyncAt?: string;
+}
+
+/**
+ * Profile Link Request
+ * Request to link client profiles between independent stores
+ * Expires after 24 hours
+ */
+export interface ProfileLinkRequest {
+  id: string;
+
+  // Requesting store info
+  requestingStoreId: string;
+  requestingStoreName: string;
+  requestingStaffId?: string;
+
+  // Target identity
+  mangoIdentityId: string;
+
+  // Request status
+  status: LinkRequestStatus;
+
+  // Timestamps
+  requestedAt: string;
+  respondedAt?: string;
+  expiresAt: string;
+
+  // Approval mechanism
+  approvalToken?: string;
+
+  // Notification tracking
+  notificationSentAt?: string;
+  notificationMethod?: 'sms' | 'email' | 'both';
+}
+
+/**
+ * Ecosystem Consent Log
+ * Immutable audit log for ecosystem consent actions (GDPR compliance)
+ */
+export interface EcosystemConsentLog {
+  id: string;
+  mangoIdentityId: string;
+
+  // Action details
+  action: 'opt_in' | 'opt_out' | 'update_preferences' | 'link_store' | 'unlink_store';
+  details?: Record<string, unknown>;
+
+  // Audit metadata
+  ipAddress?: string;
+  userAgent?: string;
+
+  // Timestamp
+  createdAt: string;
+}
+
+/**
+ * Ecosystem Lookup Result
+ * Response from ecosystem identity lookup
+ */
+export interface EcosystemLookupResult {
+  /** Whether a matching identity exists */
+  exists: boolean;
+
+  /** Whether the client has opted into ecosystem sharing */
+  canRequest: boolean;
+
+  /** Identity ID (only if canRequest is true) */
+  identityId?: string;
+
+  /** Number of stores linked (only if canRequest is true) */
+  linkedStoresCount?: number;
+}
