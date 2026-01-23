@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 import { SyncOperationType, EntityType } from './common';
 import type { Client } from './client';
 import type { Appointment } from './appointment';
@@ -5,6 +7,19 @@ import type { Ticket } from './Ticket';
 import type { Transaction } from './transaction';
 import type { Staff } from './staff';
 import type { Service } from './service';
+
+// Helper to generate UUID (works in browser and Node 18+)
+function generateUUID(): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 // ============================================
 // SYNC OPERATION DISCRIMINATED UNION
@@ -77,11 +92,13 @@ export interface SyncOperation {
 
 /**
  * Type guard to check if a SyncOperation is for a specific entity
+ * Note: Returns boolean instead of type predicate due to structural incompatibility
+ * between legacy SyncOperation and TypedSyncOperation
  */
 export function isSyncOperationForEntity<E extends TypedSyncOperation['entity']>(
   op: SyncOperation,
   entity: E
-): op is TypedSyncOperation & { entity: E } {
+): boolean {
   return op.entity === entity;
 }
 
@@ -93,7 +110,7 @@ export function createSyncOperation<T extends TypedSyncOperation>(
 ): T {
   return {
     ...op,
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     createdAt: new Date(),
     attempts: 0,
     maxAttempts: 5,

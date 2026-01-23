@@ -6,6 +6,8 @@
  * connections (Google Calendar, QuickBooks, Zapier, etc.)
  */
 
+/// <reference lib="dom" />
+
 import type { BaseSyncableEntity } from './common';
 
 // ============================================

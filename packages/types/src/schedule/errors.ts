@@ -36,9 +36,10 @@ export class ScheduleError extends Error {
   ) {
     super(message);
     this.name = 'ScheduleError';
-    // Maintains proper stack trace for where error was thrown
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, ScheduleError);
+    // Maintains proper stack trace for where error was thrown (V8 engines only)
+    const captureStackTrace = (Error as unknown as { captureStackTrace?: (target: object, ctor?: Function) => void }).captureStackTrace;
+    if (captureStackTrace) {
+      captureStackTrace(this, ScheduleError);
     }
   }
 

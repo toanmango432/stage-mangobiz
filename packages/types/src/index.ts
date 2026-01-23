@@ -109,14 +109,57 @@ export * from './waitlist';
 // Deposits
 export * from './deposit';
 
-// Reviews & Reputation
-export * from './review';
+// Reviews & Reputation (selective export to avoid ReviewRequest duplicate with client.ts)
+export {
+  type ReviewSource,
+  type ReputationTrend,
+  type Review,
+  type ReviewRequest as ReputationReviewRequest,
+  type ReputationSummary,
+  type NPSResponse,
+  type NPSSummary,
+  type ReviewSettings,
+  type SubmitReviewInput,
+  type RespondToReviewInput,
+  type SendReviewRequestInput,
+  getStarDisplay,
+  getRatingColor,
+  calculateNPS,
+  getNPSCategory,
+  getTrendDisplay,
+  createDefaultReviewSettings,
+  formatTimeSince,
+} from './review';
 
 // Notifications
 export * from './notification';
 
-// Marketing & Campaigns
-export * from './marketing';
+// Marketing & Campaigns (selective export to avoid ClientSegment/LoyaltyTier duplicates with client.ts)
+export {
+  type PromotionType,
+  type CampaignStatus,
+  type CampaignChannel,
+  type ClientSegmentType,
+  type LoyaltyTier as MarketingLoyaltyTier,
+  type Promotion,
+  type Campaign,
+  type CampaignFilter,
+  type CampaignMetrics,
+  type ClientSegment as MarketingClientSegment,
+  type LoyaltyAccount,
+  type LoyaltyTransaction,
+  type CreatePromotionInput,
+  type CreateCampaignInput,
+  type AdjustLoyaltyPointsInput,
+  getCampaignStatusInfo,
+  getLoyaltyTierInfo,
+  isValidPromoCode,
+  isPromotionValid,
+  calculatePromotionDiscount,
+  createEmptyCampaignMetrics,
+  determineLoyaltyTier,
+  getDefaultSegments,
+} from './marketing';
 
 // Integrations & Webhooks
 export * from './integration';
