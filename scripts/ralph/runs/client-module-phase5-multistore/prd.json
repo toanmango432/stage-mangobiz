@@ -71,7 +71,7 @@
         "Log lookup attempt"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "This is privacy-preserving - only returns if match exists. Follow existing Edge Function patterns."
     },
     {
