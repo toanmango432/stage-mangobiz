@@ -120,7 +120,7 @@
         "Do NOT sync other data without explicit preference"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Safety data is ALWAYS synced regardless of preferences. This is a read operation for display."
     },
     {
