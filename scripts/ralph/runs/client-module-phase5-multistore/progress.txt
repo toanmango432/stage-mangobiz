@@ -575,3 +575,63 @@ US-061 (priority 12): Create EcosystemConsentModal component
 - Remaining: 9
 - Progress: 55%
 
+
+=================================================================
+Iteration 8 - US-061: Create EcosystemConsentModal component
+=================================================================
+
+Story: US-061 - Create EcosystemConsentModal component
+Priority: 12
+Status: COMPLETE ✅
+
+## What Was Done
+
+Created EcosystemConsentModal component at apps/store-app/src/components/clients/EcosystemConsentModal.tsx (400 lines):
+
+1. **Ecosystem Explanation**
+   - Clear description of what the Mango Network is
+   - Benefits of joining
+
+2. **Sharing Preference Checkboxes**
+   - Safety Data (always shared - marked as required)
+   - Basic Profile (name, phone, email)
+   - Preferences (staff, notes, communication prefs)
+   - Visit History (past appointments)
+   - Loyalty Points (balance, tier status)
+
+3. **Opt In / Opt Out Buttons**
+   - Opt In button (creates mango_identity via thunk)
+   - Opt Out button with confirmation step
+   - Loading states during processing
+
+4. **Current Status Display**
+   - Green badge when opted in
+   - Shows phone requirement warning if missing
+
+5. **Opt Out Confirmation**
+   - Separate confirmation view
+   - Lists consequences (unlink all stores, stop sharing)
+   - Cancel option
+
+## Files Created/Modified
+- apps/store-app/src/components/clients/EcosystemConsentModal.tsx (NEW - 400 lines)
+- scripts/ralph/runs/client-module-phase5-multistore/prd.json (marked US-061 complete)
+
+## Quality Checks
+✅ Explains ecosystem sharing clearly
+✅ Preference checkboxes for each data type
+✅ Safety data marked as "Always Shared"
+✅ Opt In / Opt Out buttons
+✅ Confirmation for opt-out
+✅ pnpm run typecheck passes
+✅ No forbidden strings
+
+## Next Story
+US-062 (priority 13): Add ecosystem features to client profile
+
+## Progress Summary
+- Total Stories: 20
+- Completed: 12 (US-050 through US-061)
+- Remaining: 8
+- Progress: 60%
+

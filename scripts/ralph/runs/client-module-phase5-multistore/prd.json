@@ -217,7 +217,7 @@
         "Verify in browser using agent-browser skill"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Safety data sharing is mandatory if opted in. Other preferences are optional."
     },
     {
