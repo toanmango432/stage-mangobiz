@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Clock, Timer, Users, AlertTriangle, FileText } from 'lucide-react';
+import { Clock, Timer, Users, AlertTriangle, FileText, Plus } from 'lucide-react';
 import { Card, SectionHeader, Button, Tabs } from '../../components/SharedComponents';
 import type { AppDispatch, RootState } from '@/store';
 import {
@@ -24,6 +24,7 @@ import {
   AttendanceAlertsSection,
   TimesheetReportsSection,
   TimesheetDetailModal,
+  ManualTimesheetModal,
 } from './components';
 
 // Hooks
@@ -40,6 +41,7 @@ export const TimesheetSection: React.FC<TimesheetSectionProps> = ({
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [selectedTimesheetId, setSelectedTimesheetId] = useState<string | null>(null);
+  const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [activeTab, setActiveTab] = useState('staff');
 
   // Use custom hook for clock in/out and break actions
@@ -86,6 +88,16 @@ export const TimesheetSection: React.FC<TimesheetSectionProps> = ({
         title="Time & Attendance"
         subtitle={'Manage clock in/out, timesheets, and attendance for ' + memberName}
         icon={<Timer className="w-5 h-5" />}
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowManualEntryModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Manual Entry
+          </Button>
+        }
       />
 
       {/* Tabs for different views */}
@@ -185,6 +197,15 @@ export const TimesheetSection: React.FC<TimesheetSectionProps> = ({
           memberName={memberName}
           storeId={storeId}
           onClose={() => setSelectedTimesheetId(null)}
+        />
+      )}
+
+      {/* Manual Timesheet Entry Modal */}
+      {showManualEntryModal && (
+        <ManualTimesheetModal
+          defaultStaffId={memberId}
+          storeId={storeId}
+          onClose={() => setShowManualEntryModal(false)}
         />
       )}
     </div>

@@ -6,3 +6,4 @@ export { RecentTimesheets } from './RecentTimesheets';
 export { AttendanceAlertsSection } from './AttendanceAlertsSection';
 export { TimesheetReportsSection } from './TimesheetReportsSection';
 export { TimesheetDetailModal } from './TimesheetDetailModal';
+export { ManualTimesheetModal } from './ManualTimesheetModal';
