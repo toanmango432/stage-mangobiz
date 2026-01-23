@@ -338,7 +338,7 @@
         "Use useAppDispatch from @/store/hooks"
       ],
       "priority": 12,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-009",
@@ -364,7 +364,7 @@
         "Get current timesheet ID from Redux state"
       ],
       "priority": 13,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-010",

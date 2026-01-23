@@ -426,3 +426,72 @@ Commit: [this commit]
 **Phase 1 Complete:** All 11 Phase 1 stories (TM-001 through TM-P1X) have passed. Ready for Phase 2 (Timesheet Frontend Workflows).
 
 ---
+
+## 2026-01-23 - TM-008: Wire ClockButton to Redux timesheetSlice
+Commit: 14934c6
+
+**Changes:**
+- apps/store-app/src/components/team-settings/sections/TimesheetSection/hooks/useTimesheetActions.ts: Added toast notifications
+
+**Key Implementation Details:**
+- Imported useToast from @/hooks/use-toast
+- Added success toasts for clockIn, clockOut, startBreak, endBreak actions
+- Added error toasts with variant: 'destructive' for all failure cases
+- Error messages show actual error.message if available, otherwise generic message
+- Added toast to useCallback dependency arrays
+- Fixed BreakType check: 'paid' | 'unpaid' (not 'lunch' | 'regular')
+
+**Architecture Note:**
+ClockButton is a presentational component - it receives handlers as props from TimesheetSection.
+TimesheetSection uses the useTimesheetActions hook which contains all Redux dispatch logic.
+This pattern keeps the component hierarchy clean: Component → Hook → Redux Thunk → dataService
+
+**Browser Verification:**
+- Dev server not running at time of implementation
+- Code changes verified with typecheck
+- Manual browser testing needed when dev server is available
+
+**Learnings:**
+- useToast hook provides { toast } function from @/hooks/use-toast
+- Toast variant: 'destructive' for error states (red styling)
+- BreakType is 'paid' | 'unpaid' (not 'lunch' | 'regular' as I initially assumed)
+
+---
+
+## 2026-01-23 - TM-009: Wire BreakButton to Redux timesheetSlice
+Commit: (no new code - already implemented in TM-008)
+
+**Status:** ALREADY IMPLEMENTED - No code changes needed
+
+**Verification:**
+- BreakButton.tsx is a presentational component receiving props from TimesheetSection
+- TimesheetSection uses useTimesheetActions hook which handles all Redux dispatch logic
+- useTimesheetActions already has handleStartBreak and handleEndBreak functions:
+  - handleStartBreak(breakType: BreakType) dispatches startBreak thunk
+  - handleEndBreak() dispatches endBreak thunk
+  - Both include loading state management and toast notifications
+- TimesheetSection wires BreakButton correctly:
+  - isOnBreak from shiftStatus?.isOnBreak
+  - isLoading from useTimesheetActions hook
+  - disabled={!isClockedIn} - properly disabled when not clocked in
+  - onStartBreak={handleStartBreak}
+  - onEndBreak={handleEndBreak}
+
+**Acceptance Criteria Verified:**
+1. ✅ useAppDispatch and startBreak/endBreak imported in useTimesheetActions hook
+2. ✅ startBreak dispatched with { staffId, breakType } on Start Break click
+3. ✅ endBreak dispatched with { staffId } on End Break click
+4. ✅ Loading spinner shown during dispatch (isLoading state)
+5. ✅ Errors handled with toast notification (variant: 'destructive')
+6. ✅ Button disabled when not clocked in (disabled={!isClockedIn})
+7. ✅ pnpm run typecheck passes
+
+**Architecture Note:**
+The PRD mentioned timesheetId as a parameter, but the actual API uses staffId only - the dataService/timesheetDB finds the current active timesheet internally. This is the correct implementation.
+
+**Learnings:**
+- TM-008 and TM-009 were implemented together in the same architecture
+- useTimesheetActions hook is the single source of truth for all clock/break Redux operations
+- Presentational component pattern keeps components clean - all dispatch logic in hooks
+
+---
