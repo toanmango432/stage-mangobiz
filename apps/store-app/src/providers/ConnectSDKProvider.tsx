@@ -150,8 +150,8 @@ function getSDKUrl(): string {
   return DEFAULT_SDK_URL;
 }
 
-/** Get CSS URL from environment or use default */
-function getCSSUrl(): string {
+/** Get CSS URL from environment or use default - exported for ShadowDOMContainer */
+export function getSDKCSSUrl(): string {
   const envUrl = import.meta.env.VITE_MANGO_CONNECT_CSS_URL;
   if (envUrl && isValidSDKUrl(envUrl)) {
     return envUrl;
@@ -159,9 +159,13 @@ function getCSSUrl(): string {
   return DEFAULT_CSS_URL;
 }
 
-/** Load SDK CSS stylesheet */
-function loadCSS(): void {
-  const cssUrl = getCSSUrl();
+/**
+ * Load SDK CSS stylesheet - DEPRECATED
+ * CSS is now loaded inside ShadowDOMContainer to prevent global style conflicts.
+ * Keeping this function for reference but it's no longer called.
+ */
+function _loadCSSDeprecated(): void {
+  const cssUrl = getSDKCSSUrl();
   const existingLink = document.querySelector(`link[href="${cssUrl}"]`);
   if (existingLink) return;
 
@@ -227,8 +231,8 @@ export function ConnectSDKProvider({ children }: ConnectSDKProviderProps) {
    */
   const loadSDKModule = useCallback((): Promise<MangoConnectSDKModule> => {
     return new Promise((resolve, reject) => {
-      // Load CSS
-      loadCSS();
+      // CSS is now loaded inside ShadowDOMContainer to prevent global style conflicts
+      // See AIAssistantPanel.tsx for the new CSS loading approach
 
       // Return cached module if already loaded
       if (sdkModuleRef.current) {

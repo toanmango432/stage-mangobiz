@@ -14,7 +14,9 @@
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
 
-  /* Staff sidebar width - updated via JavaScript on resize */
+  /* Staff sidebar width - updated via JavaScript on resize
+     Note: Mango Connect SDK CSS is isolated in ShadowDOMContainer to prevent
+     conflicts with this variable (SDK also defines --sidebar-width). */
   --staff-sidebar-width: 256px;
 
   /* ==========================================================================

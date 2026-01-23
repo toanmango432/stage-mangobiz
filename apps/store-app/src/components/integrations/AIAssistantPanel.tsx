@@ -13,6 +13,8 @@ import { Bot, X, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useConnectSDK } from '@/hooks/useConnectSDK';
 import { useConnectConfig } from '@/hooks/useConnectConfig';
+import { ShadowDOMContainer } from './ShadowDOMContainer';
+import { getSDKCSSUrl } from '@/providers/ConnectSDKProvider';
 
 /**
  * AI Assistant floating panel component
@@ -110,8 +112,12 @@ export function AIAssistantPanel() {
       );
     }
 
-    // Container for SDK module
-    return <div ref={containerRef} className="h-full w-full" />;
+    // Container for SDK module - wrapped in ShadowDOMContainer to isolate SDK CSS
+    return (
+      <ShadowDOMContainer cssUrl={getSDKCSSUrl()} className="h-full w-full">
+        <div ref={containerRef} className="h-full w-full" />
+      </ShadowDOMContainer>
+    );
   }
 
   return (
