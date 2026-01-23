@@ -208,7 +208,7 @@
         "Only modify the data fetching layer"
       ],
       "priority": 7,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-P1R",

@@ -186,3 +186,104 @@ Commit: e620cbf
 - Cleaner API: thunks now match their param types directly without nested wrapper objects
 
 ---
+
+## 2026-01-23 - TM-007: Refactor payrollSlice to use dataService
+Commit: 0bda253
+
+**Changes:**
+- apps/store-app/src/store/slices/payrollSlice.ts: Refactored all thunks to use dataService.payRuns
+
+**Files Updated to Fix Call Sites:**
+- apps/store-app/src/components/payroll/PayRunList.tsx: Updated fetchPayRuns call (removed storeId param)
+- apps/store-app/src/components/payroll/CreatePayRunModal.tsx: Updated createPayRun call (removed { params, context } wrapper)
+- apps/store-app/src/components/payroll/PayRunDetail.tsx: Updated submitPayRunForApproval call (changed from object to direct payRunId)
+- apps/store-app/src/components/payroll/PayRunAdjustmentModal.tsx: Updated addAdjustment call (removed { params } wrapper)
+- apps/store-app/src/components/team-settings/sections/PayrollSection.tsx: Updated fetchPayRuns call (removed storeId param)
+
+**Key Implementation Details:**
+- Imported dataService from @/services/dataService
+- Removed SyncContext import and getDefaultSyncContext usage
+- Removed all dynamic imports of payrollDB
+- Simplified thunk signatures: removed { params, context } wrappers
+- fetchPayRuns now takes void (dataService.payRuns.getAll() gets storeId internally)
+- fetchPayRunsByDateRange now takes { startDate, endDate } (no storeId)
+- fetchPayRunsByStatus now takes PayRunStatus directly (no storeId)
+- createPayRun now takes CreatePayRunParams directly (no context)
+- updateStaffPayment now takes { payRunId, staffPayment } (no context)
+- addAdjustment now takes AddAdjustmentParams directly (no context)
+- removeAdjustment now takes { payRunId, staffId, adjustmentId } (no context)
+- submitPayRunForApproval now takes payRunId string directly
+- approvePayRun now takes { payRunId, approvalNotes? } (no context)
+- rejectPayRun now takes { payRunId, reason } (no context)
+- processPayRun now takes { payRunId, processingNotes? } (no context)
+- voidPayRun now takes { payRunId, reason } (no context)
+- deletePayRun now takes payRunId string directly
+
+**Removed Unused Imports from CreatePayRunModal:**
+- selectMemberId selector (was unused after removing context)
+- deviceManager import (was unused after removing context)
+
+**Learnings:**
+- Similar pattern to TM-006: simplifying signatures requires updating all call sites
+- dataService handles storeId/userId/deviceId/tenantId internally
+- 96 lines of code removed from payrollSlice.ts (from 137+ lines to ~40 lines per thunk)
+- CreatePayRunModal had unused imports from old context approach that needed cleanup
+
+---
+
+## 2026-01-23 - TM-P1R: REVIEW: Phase 1 Backend Integration
+Commit: [this commit]
+
+**Review Summary:** ✅ ALL CHECKS PASSED - No issues found
+
+**Verification Steps Completed:**
+
+1. **TypeCheck:** `pnpm run typecheck` passes with 0 errors ✅
+
+2. **teamDataService.ts:** All required methods implemented ✅
+   - getAll(), getById(), getActive(), create(), update(), delete()
+   - Extra: getArchived(), getByEmail(), search(), getBookable(), getByRole(), archive(), restore(), getStats(), bulkCreate(), upsert()
+   - Follows staffDataService.ts pattern correctly
+
+3. **timesheetDataService.ts:** All required methods implemented ✅
+   - clockIn(), clockOut(), startBreak(), endBreak()
+   - getByStaffId(), getByDateRange(), create(), update(), approve(), reject()
+   - Extra: getByDate(), getById(), getByStaffAndDate(), getPending(), getByStatus(), isStaffClockedIn(), isStaffOnBreak(), getShiftStatus(), getSummary(), bulkApprove(), delete()
+
+4. **payrollDataService.ts:** All required methods implemented ✅
+   - getAll(), getById(), create(), update(), delete()
+   - submit(), approve(), reject(), process(), void()
+   - addAdjustment(), removeAdjustment()
+   - Extra: getByDateRange(), getByStatus(), getLatest(), upsertStaffPayment(), markStaffPaid()
+
+5. **dataService.ts:** All namespaces exported correctly ✅
+   - team: teamService (line 1473)
+   - timesheets: timesheetService (line 1474)
+   - payRuns: payrollService (line 1475)
+   - Imports from @/services/domain (lines 142-144)
+
+6. **teamThunks.ts:** Uses dataService.team for all main operations ✅
+   - fetchTeamMembers uses dataService.team.getAll()
+   - fetchTeamMember uses dataService.team.getById()
+   - saveTeamMember uses dataService.team.create()/update()
+   - archiveTeamMember uses dataService.team.archive()
+   - restoreTeamMember uses dataService.team.restore()
+   - deleteTeamMember uses dataService.team.delete()
+   - Note: Time off/schedule override thunks intentionally use teamDB directly (documented)
+
+7. **timesheetSlice.ts:** Uses dataService.timesheets for all operations ✅
+   - No direct timesheetDB or timesheetsTable calls remaining
+   - All thunks refactored to use dataService.timesheets.*
+
+8. **payrollSlice.ts:** Uses dataService.payRuns for all operations ✅
+   - No direct payrollDB or payRunsTable calls remaining
+   - All thunks refactored to use dataService.payRuns.*
+
+**Issues Found:** None - Phase 1 implementation is complete and correct.
+
+**Learnings:**
+- Review confirms consistent pattern usage across all three domain services
+- All services follow LOCAL-FIRST architecture with sync queue integration
+- Thunk simplification (removing SyncContext wrappers) was done correctly across all call sites
+
+---
