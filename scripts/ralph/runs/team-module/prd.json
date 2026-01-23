@@ -87,7 +87,7 @@
         "Clock operations create new timesheet entries"
       ],
       "priority": 2,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-003",
@@ -111,7 +111,7 @@
         "Adjustments can be bonus, deduction, or reimbursement"
       ],
       "priority": 3,
-      "passes": false
+      "passes": true
     },
     {
       "id": "TM-004",

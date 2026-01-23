@@ -55,3 +55,47 @@ Commit: c3fd869
 - teamDB is exported from teamOperations.ts directly, not re-exported from database.ts like other DB operations
 
 ---
+
+## 2026-01-22 - TM-002: Create timesheetDataService.ts domain service
+Commit: 1d934e3
+
+**Changes:**
+- apps/store-app/src/services/domain/timesheetDataService.ts (NEW): Created domain service following staffDataService.ts pattern
+
+**Key Implementation Details:**
+- Import timesheetDB from @/db/timesheetOperations (comprehensive IndexedDB operations)
+- Implements all required methods: clockIn(), clockOut(), startBreak(), endBreak(), getByStaffId(), getByDateRange(), create(), update(), approve(), reject()
+- Additional methods: getById(), getByStaffAndDate(), getPending(), getByStatus(), isStaffClockedIn(), isStaffOnBreak(), getShiftStatus(), getSummary(), bulkApprove(), delete()
+- Uses LOCAL-FIRST pattern: reads from IndexedDB, queues writes for background sync
+- timesheetDB already has extensive functionality including shift status tracking, break management, and summary calculations
+
+**Learnings:**
+- timesheetOperations.ts is very comprehensive (~900 lines) with clock in/out, break tracking, approval workflow, and sync operations
+- The domain service acts as a thin wrapper that adds storeId/userId/deviceId context and queues sync operations
+- timesheetDB.clockIn() creates the timesheet entry if it doesn't exist (handles create + clock in atomically)
+
+---
+
+## 2026-01-22 - TM-003: Create payrollDataService.ts domain service
+Commit: d21ed8a
+
+**Changes:**
+- apps/store-app/src/services/domain/payrollDataService.ts (NEW): Created domain service following staffDataService.ts pattern
+
+**Key Implementation Details:**
+- Import payrollDB from @/db/payrollOperations (comprehensive IndexedDB operations)
+- payrollDB already includes sync queue integration internally (via queueForSync helper)
+- Implements all required methods: getAll(), getById(), create(), update(), delete()
+- Implements workflow operations: submit(), approve(), reject(), process(), void()
+- Implements adjustment operations: addAdjustment(), removeAdjustment()
+- Additional methods: getByDateRange(), getByStatus(), getLatest(), upsertStaffPayment(), markStaffPaid()
+- Uses LOCAL-FIRST pattern: payrollDB handles reads from IndexedDB and queues writes automatically
+- getTenantId() must use `state.auth.store?.tenantId` (not `state.auth.tenantId`)
+
+**Learnings:**
+- payrollOperations.ts is comprehensive (~800+ lines) with full pay run lifecycle, staff payments, adjustments, and sync queue integration
+- payrollDB handles sync queuing internally (unlike timesheetDataService which queues in the domain service)
+- tenantId is nested inside `auth.store` not at the top level of AuthState
+- Pay run statuses: draft, pending_approval, approved, processed, voided (not 'pending' as in PRD notes)
+
+---
