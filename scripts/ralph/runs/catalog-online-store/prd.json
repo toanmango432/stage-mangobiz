@@ -497,7 +497,7 @@
       ],
       "dependencies": ["US-018"],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "File is 122 lines — keep under 140. The 3 default plans (Basic $49, Premium $99, VIP $199) should be seeded via migration or seed script, NOT in component code. ~40 lines changed.",
       "category": "frontend"
     },

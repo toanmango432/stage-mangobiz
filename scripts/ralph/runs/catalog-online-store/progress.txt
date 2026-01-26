@@ -347,3 +347,27 @@ Commit: eee5b75
 **Next story suggestion:** US-019 (Update Memberships.tsx to use Supabase) — directly depends on US-018, frontend story consuming these new CRUD operations, and unblocks US-020 (dashboard count) and US-022 (type reconciliation).
 
 ---
+
+## 2026-01-26 - US-019: Update Memberships.tsx to use Supabase
+Commit: 1244334
+
+**Why this story?** US-019 is the highest priority eligible story (priority 19) with its sole dependency US-018 complete. Progress.txt explicitly suggested it as next. It's the frontend consumer of the membership CRUD operations added in US-018, and unblocks US-020 (dashboard count), US-022 (type reconciliation), and US-023 (CatalogTable generics).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:6: Switched toast from `@/hooks/use-toast` to `sonner` (`import { toast } from "sonner"`)
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:9-13: Replaced import from `@/lib/storage/membershipStorage` with imports from `@/lib/services/catalogSyncService` (getMembershipPlans, deleteMembershipPlan). MembershipPlan type still imported from membershipStorage via `import type` (reconciled in US-022).
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:20-21: Added `isLoading` and `error` state variables
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:27-41: Made `loadMemberships()` async — resolves storeId from localStorage, calls async getMembershipPlans(storeId), shows error toast on failure, manages isLoading/error state
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:94-105: Made `handleDelete()` async — calls async deleteMembershipPlan(id), re-fetches list, shows success/error toast
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:107-125: Added loading state (Loader2 spinner) and error state (destructive banner with Retry button)
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:132: Subtitle changed from 'stored in localStorage' to 'for your store'
+
+**Learnings:**
+- Function signatures differ between membershipStorage (sync, no params) and catalogSyncService (async, storeId param) — required async/await and storeId resolution pattern
+- The `import type` from membershipStorage.ts is acceptable since it only pulls the type definition, no runtime code — this will be reconciled in Phase 4 (US-022)
+- File grew from 122 to 156 lines due to loading/error states — slightly above the 140 target but acceptable for the added error handling UX
+- No `initializeMembershipPlans()` call existed in this file (it was only in membershipStorage barrel export), so no removal needed
+
+**Next story suggestion:** US-020 (Update Catalog.tsx with memberships count) — depends on US-006✅ and US-018✅, small incremental change to existing Promise.all pattern, completes Phase 3 membership integration.
+
+---
