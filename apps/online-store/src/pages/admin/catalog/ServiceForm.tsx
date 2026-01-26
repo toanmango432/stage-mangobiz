@@ -12,19 +12,11 @@ import { Service } from "@/types/catalog";
 import { QuestionBuilder } from "@/components/admin/catalog/QuestionBuilder";
 import { AddOnBuilder } from "@/components/admin/catalog/AddOnBuilder";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Plus } from "lucide-react";
+import { ArrowLeft, Save, Plus, Loader2 } from "lucide-react";
+import { getCategories, getServices, createService, updateService } from "@/lib/services/catalogSyncService";
+import type { Category } from "@/lib/adapters/catalogAdapters";
 
 const durationOptions = [15, 30, 45, 60, 90, 120];
-const categories = [
-  "Classic Manicure",
-  "Gel & Shellac",
-  "Specialty Manicure",
-  "Classic Pedicure",
-  "Spa Pedicure",
-  "Nail Enhancement",
-  "Nail Art",
-  "Specialty Service"
-];
 
 export default function ServiceForm() {
   const { id } = useParams();
@@ -33,7 +25,7 @@ export default function ServiceForm() {
 
   const [formData, setFormData] = useState<Partial<Service>>({
     name: "",
-    category: "Classic Manicure",
+    category: "",
     description: "",
     duration: 60,
     basePrice: 0,
@@ -46,18 +38,55 @@ export default function ServiceForm() {
     bufferTimeAfter: 15,
   });
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingService, setIsLoadingService] = useState(!isNew);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Load categories from Supabase
   useEffect(() => {
-    if (!isNew) {
-      const stored = localStorage.getItem("catalog_services");
-      if (stored) {
-        const services: Service[] = JSON.parse(stored);
-        const service = services.find((s) => s.id === id);
-        if (service) setFormData(service);
+    const loadCategories = async () => {
+      try {
+        const storeId = localStorage.getItem("storeId") || "";
+        const loaded = await getCategories(storeId);
+        setCategories(loaded);
+        // Set default category to first one if creating new service
+        if (isNew && loaded.length > 0 && !formData.category) {
+          setFormData((prev) => ({ ...prev, category: loaded[0].id }));
+        }
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+        toast.error("Failed to load categories");
+      } finally {
+        setIsLoadingCategories(false);
       }
-    }
-  }, [id, isNew]);
+    };
+    loadCategories();
+  }, [isNew]);
+
+  // Load existing service when editing
+  useEffect(() => {
+    if (isNew) return;
+    const loadService = async () => {
+      try {
+        const storeId = localStorage.getItem("storeId") || "";
+        const services = await getServices(storeId);
+        const service = services.find((s) => s.id === id);
+        if (service) {
+          setFormData(service);
+        } else {
+          toast.error("Service not found");
+          navigate("/admin/catalog/services");
+        }
+      } catch (error) {
+        console.error("Failed to load service:", error);
+        toast.error("Failed to load service");
+      } finally {
+        setIsLoadingService(false);
+      }
+    };
+    loadService();
+  }, [id, isNew, navigate]);
 
   const handleSave = async () => {
     if (!formData.name || !formData.basePrice) {
@@ -66,27 +95,32 @@ export default function ServiceForm() {
     }
 
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API call
-
-    const stored = localStorage.getItem("catalog_services");
-    const services: Service[] = stored ? JSON.parse(stored) : [];
-
-    const serviceData: Service = {
-      ...formData,
-      id: isNew ? Date.now().toString() : id!,
-      createdAt: formData.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    } as Service;
-
-    const updatedServices = isNew
-      ? [...services, serviceData]
-      : services.map((s) => (s.id === id ? serviceData : s));
-
-    localStorage.setItem("catalog_services", JSON.stringify(updatedServices));
-    setIsSaving(false);
-    toast.success(isNew ? "Service created" : "Service updated");
-    navigate("/admin/catalog/services");
+    try {
+      const storeId = localStorage.getItem("storeId") || "";
+      if (isNew) {
+        await createService(storeId, formData as Omit<Service, "id" | "createdAt" | "updatedAt">);
+        toast.success("Service created");
+      } else {
+        await updateService(id!, formData);
+        toast.success("Service updated");
+      }
+      navigate("/admin/catalog/services");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save service";
+      toast.error(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoadingService) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Loading service...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -120,16 +154,23 @@ export default function ServiceForm() {
             
             <div>
               <Label htmlFor="category">Category</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isLoadingCategories ? (
+                <div className="flex items-center h-10 px-3 text-sm text-muted-foreground border rounded-md">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Loading categories...
+                </div>
+              ) : (
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>
@@ -252,7 +293,7 @@ export default function ServiceForm() {
                 variant="outline"
                 onClick={() => {
                   const newQuestion = {
-                    id: `q-${Date.now()}`,
+                    id: `q-${crypto.randomUUID()}`,
                     question: '',
                     type: 'yes_no' as const,
                     required: false,
@@ -305,7 +346,7 @@ export default function ServiceForm() {
                 variant="outline"
                 onClick={() => {
                   const newAddOn = {
-                    id: `addon-${Date.now()}`,
+                    id: `addon-${crypto.randomUUID()}`,
                     name: '',
                     price: 0,
                   };
