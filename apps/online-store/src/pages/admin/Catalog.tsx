@@ -1,17 +1,39 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Scissors, ShoppingBag, CreditCard, Gift } from "lucide-react";
+import { Package, Scissors, ShoppingBag, CreditCard, Gift, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getServices } from "@/lib/services/catalogSyncService";
 
 const Catalog = () => {
   const navigate = useNavigate();
-  
+  const [servicesCount, setServicesCount] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadCounts = async () => {
+      try {
+        const storeId = localStorage.getItem('storeId') || '';
+        const [services] = await Promise.all([
+          getServices(storeId),
+        ]);
+        setServicesCount(services.length);
+      } catch (error) {
+        console.error('Failed to load catalog counts:', error);
+        setServicesCount(0);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadCounts();
+  }, []);
+
   const catalogSections = [
     {
       icon: Scissors,
       title: "Services",
       description: "Manage your salon services",
-      count: 24,
+      count: servicesCount ?? 0,
       color: "text-primary",
       path: "/admin/catalog/services",
     },
@@ -19,7 +41,7 @@ const Catalog = () => {
       icon: Package,
       title: "Packages",
       description: "Service bundles and prepaid options",
-      count: 6,
+      count: 0,
       color: "text-accent",
       path: null,
     },
@@ -27,7 +49,7 @@ const Catalog = () => {
       icon: ShoppingBag,
       title: "Products",
       description: "Retail items for sale",
-      count: 42,
+      count: 0,
       color: "text-primary",
       path: "/admin/catalog/products",
     },
@@ -35,7 +57,7 @@ const Catalog = () => {
       icon: CreditCard,
       title: "Memberships",
       description: "Subscription plans",
-      count: 3,
+      count: 0,
       color: "text-accent",
       path: "/admin/catalog/memberships",
     },
@@ -43,7 +65,7 @@ const Catalog = () => {
       icon: Gift,
       title: "Gift Cards",
       description: "Gift card configurations",
-      count: 1,
+      count: 0,
       color: "text-primary",
       path: "/admin/catalog/giftcards",
     },
@@ -68,7 +90,11 @@ const Catalog = () => {
                   <div className={`h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center ${section.color}`}>
                     <Icon className="h-6 w-6" />
                   </div>
-                  <span className="text-2xl font-bold text-muted-foreground">{section.count}</span>
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <span className="text-2xl font-bold text-muted-foreground">{section.count}</span>
+                  )}
                 </div>
                 <CardTitle>{section.title}</CardTitle>
                 <CardDescription>{section.description}</CardDescription>

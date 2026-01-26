@@ -121,3 +121,28 @@ Commit: fffd3b9
 **Next story suggestion:** US-005 (Update Services.tsx to use Supabase writes) — same phase, similar changes (delete/duplicate via Supabase, category filter from DB), and shares dependencies with US-004.
 
 ---
+
+## 2026-01-26 - US-005: Update Services.tsx to use Supabase writes
+Commit: aa422ab
+
+**Why this story?** US-005 is the highest priority remaining story (priority 5), all dependencies met (US-002, US-003), and progress.txt suggested it as the next logical story after US-004. Same phase (1), same category (frontend).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/Services.tsx:11-12: Added imports for getCategories, deleteService, createService, updateService from catalogSyncService; Category type from catalogAdapters
+- apps/online-store/src/pages/admin/catalog/Services.tsx:21: Added categories state
+- apps/online-store/src/pages/admin/catalog/Services.tsx:25-34: Extracted loadServices() as reusable async function for refetching after mutations
+- apps/online-store/src/pages/admin/catalog/Services.tsx:36-48: useEffect loads both services and categories on mount
+- apps/online-store/src/pages/admin/catalog/Services.tsx:98-143: Rewrote handleDelete, handleBulkDelete, handleBulkShowOnline, handleBulkHideOnline to use Supabase (deleteService/updateService) with error handling and refetch
+- apps/online-store/src/pages/admin/catalog/Services.tsx:163-166: Category filter dropdown now uses dynamic categories from Supabase
+- apps/online-store/src/pages/admin/catalog/Services.tsx:192-204: Duplicate handler uses createService() instead of localStorage write, removed Date.now().toString()
+- Removed saveServices() localStorage function entirely
+
+**Learnings:**
+- Bulk operations (delete, show/hide online) use Promise.all for parallel execution — appropriate since each operation is independent
+- The `storeId` resolved from localStorage.getItem('storeId') is declared once at component level for reuse across handlers
+- Category filter now uses category.id as value (UUID) instead of category name strings — matches how service.category stores category_id
+- File grew from 186 to 209 lines due to async error handling in handlers — acceptable
+
+**Next story suggestion:** US-006 (Update Catalog.tsx dashboard with dynamic service count) — last remaining Phase 1 story, depends on US-003 (complete), and closes out the phase.
+
+---

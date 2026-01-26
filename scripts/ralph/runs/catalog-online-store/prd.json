@@ -170,7 +170,7 @@
       ],
       "dependencies": ["US-002", "US-003"],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "File is 186 lines — keep under 200. getServices() call on mount already exists. Uses sonner for toast. ~50 lines changed.",
       "category": "frontend"
     },
