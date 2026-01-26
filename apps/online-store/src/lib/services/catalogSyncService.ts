@@ -10,17 +10,20 @@ import {
   toOnlineService,
   fromOnlineService,
   toOnlineCategory,
+  toOnlineProduct,
+  fromOnlineProduct,
   toGiftCardConfig,
   fromGiftCardConfig,
   toOnlineMembershipPlan,
   fromOnlineMembershipPlan,
   type ServiceRow,
   type Category,
+  type ProductRow,
   type GiftCardSettingsRow,
   type GiftCardDenominationRow,
   type MembershipPlanRow,
 } from '@/lib/adapters/catalogAdapters';
-import type { GiftCardConfig, MembershipPlan } from '@/types/catalog';
+import type { GiftCardConfig, MembershipPlan, Product } from '@/types/catalog';
 
 // Environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -53,6 +56,7 @@ export const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
 const CACHE_KEY_SERVICES = 'catalog_services_v2';
 const CACHE_KEY_CATEGORIES = 'catalog_categories_v2';
 const CACHE_KEY_GIFTCARD = 'catalog_giftcard_v2';
+const CACHE_KEY_PRODUCTS = 'catalog_products_v2';
 const CACHE_KEY_MEMBERSHIPS = 'catalog_memberships_v2';
 const CACHE_KEY_ADDONS = 'catalog_addons_v2';
 const CACHE_KEY_TIMESTAMP = 'catalog_sync_timestamp';
@@ -345,6 +349,155 @@ export async function deleteService(id: string): Promise<void> {
   }
 
   invalidateServicesCache();
+}
+
+// ─── Product Operations ──────────────────────────────────────────────────────
+
+/**
+ * Invalidate the products cache so the next read fetches fresh data
+ */
+function invalidateProductsCache(): void {
+  localStorage.removeItem(CACHE_KEY_PRODUCTS);
+}
+
+/**
+ * Fetch products from Supabase products table (migration 017)
+ * Filters by is_active = true (017 uses is_active, not is_deleted)
+ */
+export async function getProducts(storeId: string): Promise<Product[]> {
+  if (!supabase) {
+    console.warn('[CatalogSync] Supabase client not configured - returning empty products');
+    return [];
+  }
+
+  // Try cache first
+  const cached = getCachedData<Product[]>(CACHE_KEY_PRODUCTS);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('store_id', storeId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch products: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // RLS Validation (defense-in-depth security)
+    validateStoreIsolation(data, storeId, 'getProducts');
+
+    const products = (data as ProductRow[]).map(toOnlineProduct);
+
+    // Cache the results
+    setCachedData(CACHE_KEY_PRODUCTS, products);
+
+    return products;
+  } catch (error) {
+    console.error('[CatalogSync] getProducts failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get cached products without triggering a fetch
+ * Returns empty array if cache is empty or stale
+ */
+export function getCachedProducts(): Product[] {
+  const cached = getCachedData<Product[]>(CACHE_KEY_PRODUCTS);
+  return cached || [];
+}
+
+/**
+ * Create a new product in Supabase
+ * Supabase generates the UUID — do not pass an ID
+ */
+export async function createProduct(
+  storeId: string,
+  product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Product> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const row = fromOnlineProduct(product);
+  row.store_id = storeId;
+  // Generate slug from name
+  row.slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  const { data, error } = await supabase
+    .from('products')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create product: ${error.message}`);
+  }
+
+  invalidateProductsCache();
+  return toOnlineProduct(data as ProductRow);
+}
+
+/**
+ * Update an existing product in Supabase
+ */
+export async function updateProduct(
+  id: string,
+  updates: Partial<Product>
+): Promise<Product> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const row = fromOnlineProduct(updates);
+  row.updated_at = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from('products')
+    .update(row)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update product: ${error.message}`);
+  }
+
+  invalidateProductsCache();
+  return toOnlineProduct(data as ProductRow);
+}
+
+/**
+ * Soft-delete a product by setting is_active = false
+ * (products table from migration 017 uses is_active, not is_deleted)
+ */
+export async function deleteProduct(id: string): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { error } = await supabase
+    .from('products')
+    .update({
+      is_active: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to delete product: ${error.message}`);
+  }
+
+  invalidateProductsCache();
 }
 
 // ─── Gift Card Operations ────────────────────────────────────────────────────
@@ -792,6 +945,7 @@ export async function getAddOnGroups(storeId: string, serviceId: string, categor
 export function clearCache(): void {
   localStorage.removeItem(CACHE_KEY_SERVICES);
   localStorage.removeItem(CACHE_KEY_CATEGORIES);
+  localStorage.removeItem(CACHE_KEY_PRODUCTS);
   localStorage.removeItem(CACHE_KEY_GIFTCARD);
   localStorage.removeItem(CACHE_KEY_MEMBERSHIPS);
   localStorage.removeItem(CACHE_KEY_ADDONS);
