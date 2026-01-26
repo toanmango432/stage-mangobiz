@@ -7,7 +7,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Service } from '@/types/catalog';
 import {
-  toOnlineService as adapterToOnlineService,
+  toOnlineService,
   fromOnlineService,
   toOnlineCategory,
   toGiftCardConfig,
@@ -108,47 +108,10 @@ function setCachedData<T>(key: string, data: T): void {
 }
 
 /**
- * Convert Supabase menu_services row to Online Store Service type
- */
-function toOnlineService(row: any): Service {
-  return {
-    id: row.id,
-    name: row.name,
-    category: row.category_id || 'Uncategorized', // TODO: Fetch category name
-    description: row.description || '',
-    duration: row.duration || 30,
-    basePrice: row.base_price || 0,
-    price: row.base_price || 0, // For booking flow compatibility
-    showPriceOnline: row.show_price_online !== false, // Default to true if not set
-    image: row.image_url || undefined,
-    gallery: row.gallery_urls ? (Array.isArray(row.gallery_urls) ? row.gallery_urls : []) : undefined,
-    addOns: [], // TODO: Load from add_on_groups/add_on_options
-    questions: undefined, // TODO: Map from service settings if needed
-    tags: Array.isArray(row.tags) ? row.tags : [],
-    requiresDeposit: row.deposit_required || false,
-    depositAmount: row.deposit_amount || undefined,
-    bufferTimeBefore: row.buffer_before || 0,
-    bufferTimeAfter: row.buffer_after || 0,
-    createdAt: row.created_at || new Date().toISOString(),
-    updatedAt: row.updated_at || new Date().toISOString(),
-    // Promotional fields
-    imageUrl: row.image_url || undefined,
-    featured: row.featured || false,
-    badge: row.badge || undefined,
-    rating: undefined, // TODO: Calculate from reviews
-    reviewCount: undefined,
-    bookingCount: undefined,
-    benefits: undefined,
-    compareAtPrice: undefined,
-    tagline: row.tagline || undefined,
-  };
-}
-
-/**
  * Validate RLS policy worked correctly (defense-in-depth)
  * Ensures all returned records match the requested storeId
  */
-function validateStoreIsolation(data: any[], storeId: string, context: string): void {
+function validateStoreIsolation(data: Array<{ store_id: string }>, storeId: string, context: string): void {
   const invalidRecords = data.filter(row => row.store_id !== storeId);
   if (invalidRecords.length > 0) {
     console.error(`[SECURITY] RLS policy violation in ${context}`, {
@@ -194,7 +157,7 @@ export async function syncFromSupabase(storeId: string): Promise<Service[]> {
     validateStoreIsolation(data, storeId, 'syncFromSupabase');
 
     // Convert to Online Store Service type
-    const services = data.map(toOnlineService);
+    const services = (data as ServiceRow[]).map(toOnlineService);
 
     // Cache the results
     setCachedData(CACHE_KEY_SERVICES, services);
@@ -329,7 +292,7 @@ export async function createService(
   }
 
   invalidateServicesCache();
-  return adapterToOnlineService(data as ServiceRow);
+  return toOnlineService(data as ServiceRow);
 }
 
 /**
@@ -358,7 +321,7 @@ export async function updateService(
   }
 
   invalidateServicesCache();
-  return adapterToOnlineService(data as ServiceRow);
+  return toOnlineService(data as ServiceRow);
 }
 
 /**
