@@ -1,30 +1,43 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { CatalogTable, Column } from "@/components/admin/catalog/CatalogTable";
 import { SearchFilter } from "@/components/admin/catalog/SearchFilter";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { 
-  getMembershipPlans, 
-  deleteMembershipPlan, 
-  type MembershipPlan 
-} from "@/lib/storage/membershipStorage";
+import {
+  getMembershipPlans,
+  deleteMembershipPlan
+} from "@/lib/services/catalogSyncService";
+import type { MembershipPlan } from "@/lib/storage/membershipStorage";
 
 export default function Memberships() {
   const navigate = useNavigate();
   const [memberships, setMemberships] = useState<MembershipPlan[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadMemberships();
   }, []);
 
-  function loadMemberships() {
-    const plans = getMembershipPlans();
-    setMemberships(plans);
+  async function loadMemberships() {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const storeId = localStorage.getItem("storeId") || "";
+      const plans = await getMembershipPlans(storeId);
+      setMemberships(plans);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load membership plans";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const filteredMemberships = memberships.filter((membership) =>
@@ -78,23 +91,45 @@ export default function Memberships() {
     setSelectedItems(checked ? filteredMemberships.map((m) => m.id) : []);
   };
 
-  const handleDelete = (membership: MembershipPlan) => {
+  const handleDelete = async (membership: MembershipPlan) => {
     if (!confirm(`Delete membership plan "${membership.displayName}"?`)) return;
-    
-    deleteMembershipPlan(membership.id);
-    loadMemberships();
-    toast({
-      title: "Success",
-      description: "Membership plan deleted",
-    });
+
+    try {
+      await deleteMembershipPlan(membership.id);
+      await loadMemberships();
+      toast.success("Membership plan deleted");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete membership plan";
+      toast.error(message);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
+        <p className="text-destructive font-medium mb-2">Failed to load memberships</p>
+        <p className="text-sm text-muted-foreground mb-4">{error}</p>
+        <Button variant="outline" onClick={() => loadMemberships()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Memberships</h1>
-          <p className="text-muted-foreground">Manage membership plans stored in localStorage</p>
+          <p className="text-muted-foreground">Manage membership plans for your store</p>
         </div>
         <Button onClick={() => navigate("/admin/catalog/memberships/new")}>
           <Plus className="h-4 w-4 mr-2" />
