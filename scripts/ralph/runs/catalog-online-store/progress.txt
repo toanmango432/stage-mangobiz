@@ -891,3 +891,29 @@ Commit: d390950
 **Next story suggestion:** US-008 (Add product CRUD to catalogSyncService) — directly depends on US-007, same service file pattern, unblocks US-009 (Products.tsx), US-010 (ProductForm.tsx), and US-011 (dashboard count).
 
 ---
+
+## 2026-01-26 - US-008: Add product CRUD to catalogSyncService
+Commit: 4886d34
+
+**Why this story?** US-008 is the highest priority story (priority 8) with all dependencies met (US-007✅). PREREQ-1 is resolved. US-008 unblocks US-009 (Products.tsx), US-010 (ProductForm.tsx), and US-011 (dashboard count).
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-17: Added imports for toOnlineProduct, fromOnlineProduct, ProductRow from catalogAdapters and Product from types/catalog
+- apps/online-store/src/lib/services/catalogSyncService.ts:57: Added CACHE_KEY_PRODUCTS constant ('catalog_products_v2')
+- apps/online-store/src/lib/services/catalogSyncService.ts:359-363: Added invalidateProductsCache() helper
+- apps/online-store/src/lib/services/catalogSyncService.ts:367-410: Added getProducts(storeId) — cache-first, queries products table filtered by is_active=true (017 has no is_deleted), ordered by created_at DESC, validates store isolation
+- apps/online-store/src/lib/services/catalogSyncService.ts:414-418: Added getCachedProducts() — reads from localStorage cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:423-449: Added createProduct(storeId, product) — inserts via fromOnlineProduct adapter, auto-generates slug from name, returns via toOnlineProduct, invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:453-478: Added updateProduct(id, updates) — updates via adapter, sets updated_at, invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:483-502: Added deleteProduct(id) — soft-deletes by setting is_active=false (017 pattern), invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:908: Added CACHE_KEY_PRODUCTS to clearCache()
+
+**Learnings:**
+- Migration 017 products table has NO is_deleted column — soft delete uses `is_active = false` instead. This differs from catalog tables (031) which use `is_deleted = true`. The PRD notes suggested is_deleted but the actual schema requires is_active.
+- Products ordered by created_at DESC (newest first) rather than display_order — products table doesn't have a display_order column.
+- Auto-generating slug from name (lowercase, replace non-alphanumeric with hyphens) is needed because products table has UNIQUE(store_id, slug) constraint.
+- File grew from 822 to 977 lines — significantly above 500-line guideline. Should be split after Phase 2 completes.
+
+**Next story suggestion:** US-009 (Update Products.tsx to use Supabase) — depends on US-008 (now complete), frontend consumer of these new CRUD operations, and US-010 (ProductForm.tsx) also depends on US-008.
+
+---

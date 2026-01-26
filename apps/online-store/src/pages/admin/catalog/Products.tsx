@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { CatalogTable, Column } from "@/components/admin/catalog/CatalogTable";
 import { SearchFilter } from "@/components/admin/catalog/SearchFilter";
 import { BulkActions } from "@/components/admin/catalog/BulkActions";
@@ -8,32 +8,7 @@ import { Product } from "@/types/catalog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    name: "OPI Nail Polish - Big Apple Red",
-    sku: "OPI-BAR-001",
-    vendor: "OPI",
-    category: "Nail Polish",
-    description: "Classic red nail polish",
-    costPrice: 5,
-    retailPrice: 12.99,
-    taxable: true,
-    trackInventory: true,
-    stockQuantity: 45,
-    lowStockThreshold: 10,
-    allowBackorders: false,
-    images: [],
-    requiresShipping: true,
-    collections: ["Best Sellers"],
-    tags: ["red", "classic"],
-    showOnline: true,
-    featured: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+import { getProducts, deleteProduct } from "@/lib/services/catalogSyncService";
 
 export default function Products() {
   const navigate = useNavigate();
@@ -41,21 +16,35 @@ export default function Products() {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [filterValue, setFilterValue] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const storeId = localStorage.getItem("storeId") || "";
+
+  const loadProducts = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const loaded = await getProducts(storeId);
+      setProducts(loaded);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load products";
+      setError(message);
+      toast.error(message);
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const stored = localStorage.getItem("catalog_products");
-    setProducts(stored ? JSON.parse(stored) : mockProducts);
+    loadProducts();
   }, []);
-
-  const saveProducts = (updatedProducts: Product[]) => {
-    setProducts(updatedProducts);
-    localStorage.setItem("catalog_products", JSON.stringify(updatedProducts));
-  };
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesFilter = filterValue === "all" || 
+      (product.sku || "").toLowerCase().includes(searchValue.toLowerCase());
+    const matchesFilter = filterValue === "all" ||
       (filterValue === "in-stock" && product.stockQuantity > 0) ||
       (filterValue === "low-stock" && product.stockQuantity <= product.lowStockThreshold && product.stockQuantity > 0) ||
       (filterValue === "out-of-stock" && product.stockQuantity === 0);
@@ -68,7 +57,7 @@ export default function Products() {
     {
       key: "retailPrice",
       label: "Price",
-      render: (value) => `$${value.toFixed(2)}`,
+      render: (value) => `$${(value ?? 0).toFixed(2)}`,
     },
     {
       key: "stockQuantity",
@@ -92,16 +81,55 @@ export default function Products() {
     setSelectedItems(checked ? filteredProducts.map((p) => p.id) : []);
   };
 
-  const handleDelete = (product: Product) => {
-    saveProducts(products.filter((p) => p.id !== product.id));
-    toast.success("Product deleted");
+  const handleDelete = async (product: Product) => {
+    try {
+      await deleteProduct(product.id);
+      toast.success("Product deleted");
+      await loadProducts();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete product";
+      toast.error(message);
+    }
   };
 
-  const handleBulkDelete = () => {
-    saveProducts(products.filter((p) => !selectedItems.includes(p.id)));
-    setSelectedItems([]);
-    toast.success(`${selectedItems.length} products deleted`);
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(selectedItems.map((id) => deleteProduct(id)));
+      setSelectedItems([]);
+      toast.success(`${selectedItems.length} products deleted`);
+      await loadProducts();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete products";
+      toast.error(message);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Products</h1>
+            <p className="text-muted-foreground">Manage your retail products</p>
+          </div>
+        </div>
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-center">
+          <p className="text-sm text-destructive mb-2">{error}</p>
+          <Button variant="outline" size="sm" onClick={loadProducts}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -135,15 +163,25 @@ export default function Products() {
         onClear={() => setSelectedItems([])}
       />
 
-      <CatalogTable
-        columns={columns}
-        data={filteredProducts}
-        selectedItems={selectedItems}
-        onSelectItem={handleSelectItem}
-        onSelectAll={handleSelectAll}
-        onEdit={(product) => navigate(`/admin/catalog/products/${product.id}`)}
-        onDelete={handleDelete}
-      />
+      {products.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">No products yet</p>
+          <Button onClick={() => navigate("/admin/catalog/products/new")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Your First Product
+          </Button>
+        </div>
+      ) : (
+        <CatalogTable
+          columns={columns}
+          data={filteredProducts}
+          selectedItems={selectedItems}
+          onSelectItem={handleSelectItem}
+          onSelectAll={handleSelectAll}
+          onEdit={(product) => navigate(`/admin/catalog/products/${product.id}`)}
+          onDelete={handleDelete}
+        />
+      )}
     </div>
   );
 }
