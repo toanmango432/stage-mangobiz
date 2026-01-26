@@ -284,3 +284,20 @@ Commit: 1e72970
 **Next story suggestion:** US-016 (Create membership_plans Supabase migration) — next Phase 3 story with no unmet dependencies, and it resolves PREREQ-2 which unblocks US-017 through US-020.
 
 ---
+
+## 2026-01-26 - US-016: Create membership_plans Supabase migration
+Commit: ecddac4
+
+**Why this story?** US-016 is the highest priority eligible Phase 3 story with no unmet dependencies (no code dependencies — it's a standalone SQL migration). It resolves PREREQ-2, which unblocks US-017 through US-020 (membership adapters, CRUD, UI, and dashboard count).
+
+**Changes:**
+- supabase/migrations/033_create_membership_plans.sql (NEW, 133 lines): Created membership_plans table following exact pattern from service_categories in migration 031. Columns: name, display_name, price_monthly, description, tagline, image_url, badge_icon, color, perks (JSONB array), features (JSONB object), rules (JSONB object), is_popular, is_active, sort_order. Full multi-tenant (tenant_id, store_id, location_id), sync metadata, soft delete with tombstone, audit trail, timestamps. RLS with store-member policies (SELECT/INSERT/UPDATE/DELETE). Trigger function update_membership_plans_updated_at() for auto-updating updated_at and incrementing version. 5 indexes (store_id, store_active, sort_order, sync, updated). COMMENT ON TABLE included.
+
+**Learnings:**
+- Migration 018 already created a `memberships` table (e-commerce style, simpler schema with billing_period, Stripe integration, etc.) — this new `membership_plans` table follows the catalog pattern (migration 031) with full sync metadata, which is what the Online Store admin needs
+- The MembershipPlan app type (from membershipStorage.ts) maps cleanly to the table columns: displayName→display_name, priceMonthly→price_monthly, imageUrl→image_url, badgeIcon→badge_icon, isPopular→is_popular, isActive→is_active, sortOrder→sort_order
+- perks, features, and rules are all JSONB — perks stores a string array directly, features/rules store arbitrary JSON objects (matching Record<string, any> in the app type)
+
+**Next story suggestion:** US-017 (Add membership adapters to catalogAdapters.ts) — directly depends on US-016 (now complete), same adapter file pattern, unblocks US-018 (membership CRUD) and US-019 (Memberships.tsx).
+
+---

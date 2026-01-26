@@ -4,6 +4,7 @@
  */
 
 import type { Service, GiftCardConfig } from '@/types/catalog';
+import type { MembershipPlan } from '@/lib/storage/membershipStorage';
 
 // ─── Supabase Row Interfaces ─────────────────────────────────────────────────
 
@@ -307,4 +308,98 @@ export function fromGiftCardConfig(config: Partial<GiftCardConfig>): {
   }));
 
   return { settings, denominations };
+}
+
+// ─── Supabase Row Interfaces: Membership Plans ─────────────────────────────
+
+/**
+ * Matches membership_plans table from migration 033
+ */
+export interface MembershipPlanRow {
+  id: string;
+  tenant_id: string;
+  store_id: string;
+  location_id: string | null;
+  name: string;
+  display_name: string;
+  price_monthly: number;
+  description: string | null;
+  tagline: string | null;
+  image_url: string | null;
+  badge_icon: string | null;
+  color: string | null;
+  perks: string[];
+  features: Record<string, unknown>;
+  rules: Record<string, unknown>;
+  is_popular: boolean;
+  is_active: boolean;
+  sort_order: number;
+  sync_status: 'local' | 'pending' | 'synced' | 'conflict' | 'error';
+  version: number;
+  vector_clock: Record<string, unknown>;
+  last_synced_version: number;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  created_by_device: string | null;
+  last_modified_by: string | null;
+  last_modified_by_device: string | null;
+  is_deleted: boolean;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  deleted_by_device: string | null;
+  tombstone_expires_at: string | null;
+}
+
+// ─── Adapters: Membership Plans ─────────────────────────────────────────────
+
+/**
+ * Convert a Supabase membership_plans row to an Online Store MembershipPlan
+ */
+export function toOnlineMembershipPlan(row: MembershipPlanRow): MembershipPlan {
+  return {
+    id: row.id,
+    name: row.name,
+    displayName: row.display_name,
+    priceMonthly: Number(row.price_monthly),
+    description: row.description || '',
+    tagline: row.tagline || '',
+    imageUrl: row.image_url || '',
+    badgeIcon: row.badge_icon || '',
+    color: row.color || '',
+    perks: Array.isArray(row.perks) ? row.perks : [],
+    features: (row.features as Record<string, unknown>) || {},
+    rules: (row.rules as Record<string, unknown>) || {},
+    isPopular: row.is_popular,
+    isActive: row.is_active,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at || new Date().toISOString(),
+    updatedAt: row.updated_at || new Date().toISOString(),
+  };
+}
+
+/**
+ * Convert an Online Store MembershipPlan to a partial Supabase membership_plans row for writes
+ */
+export function fromOnlineMembershipPlan(
+  plan: Partial<Omit<MembershipPlan, 'id' | 'createdAt' | 'updatedAt'>>
+): Partial<MembershipPlanRow> {
+  const row: Partial<MembershipPlanRow> = {};
+
+  if (plan.name !== undefined) row.name = plan.name;
+  if (plan.displayName !== undefined) row.display_name = plan.displayName;
+  if (plan.priceMonthly !== undefined) row.price_monthly = plan.priceMonthly;
+  if (plan.description !== undefined) row.description = plan.description || null;
+  if (plan.tagline !== undefined) row.tagline = plan.tagline || null;
+  if (plan.imageUrl !== undefined) row.image_url = plan.imageUrl || null;
+  if (plan.badgeIcon !== undefined) row.badge_icon = plan.badgeIcon || null;
+  if (plan.color !== undefined) row.color = plan.color || null;
+  if (plan.perks !== undefined) row.perks = plan.perks;
+  if (plan.features !== undefined) row.features = plan.features;
+  if (plan.rules !== undefined) row.rules = plan.rules;
+  if (plan.isPopular !== undefined) row.is_popular = plan.isPopular;
+  if (plan.isActive !== undefined) row.is_active = plan.isActive;
+  if (plan.sortOrder !== undefined) row.sort_order = plan.sortOrder;
+
+  return row;
 }
