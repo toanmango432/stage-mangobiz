@@ -10,9 +10,14 @@ import {
   toOnlineService as adapterToOnlineService,
   fromOnlineService,
   toOnlineCategory,
+  toGiftCardConfig,
+  fromGiftCardConfig,
   type ServiceRow,
   type Category,
+  type GiftCardSettingsRow,
+  type GiftCardDenominationRow,
 } from '@/lib/adapters/catalogAdapters';
+import type { GiftCardConfig } from '@/types/catalog';
 
 // Environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -44,6 +49,7 @@ export const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
 // Cache configuration
 const CACHE_KEY_SERVICES = 'catalog_services_v2';
 const CACHE_KEY_CATEGORIES = 'catalog_categories_v2';
+const CACHE_KEY_GIFTCARD = 'catalog_giftcard_v2';
 const CACHE_KEY_ADDONS = 'catalog_addons_v2';
 const CACHE_KEY_TIMESTAMP = 'catalog_sync_timestamp';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -374,6 +380,175 @@ export async function deleteService(id: string): Promise<void> {
   invalidateServicesCache();
 }
 
+// ─── Gift Card Operations ────────────────────────────────────────────────────
+
+/**
+ * Invalidate the gift card cache so the next read fetches fresh data
+ */
+function invalidateGiftCardCache(): void {
+  localStorage.removeItem(CACHE_KEY_GIFTCARD);
+}
+
+/**
+ * Fetch gift card configuration from Supabase
+ * Combines gift_card_settings + gift_card_denominations into a single GiftCardConfig
+ * Returns null if no settings row exists for the store
+ */
+export async function getGiftCardConfig(storeId: string): Promise<GiftCardConfig | null> {
+  if (!supabase) {
+    console.warn('[CatalogSync] Supabase client not configured - returning null gift card config');
+    return null;
+  }
+
+  // Try cache first
+  const cached = getCachedData<GiftCardConfig>(CACHE_KEY_GIFTCARD);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    // Fetch settings (one row per store due to UNIQUE constraint)
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('gift_card_settings')
+      .select('*')
+      .eq('store_id', storeId)
+      .eq('is_deleted', false)
+      .single();
+
+    if (settingsError) {
+      // PGRST116 = no rows found — not an error, just no config yet
+      if (settingsError.code === 'PGRST116') {
+        return null;
+      }
+      throw new Error(`Failed to fetch gift card settings: ${settingsError.message}`);
+    }
+
+    if (!settingsData) {
+      return null;
+    }
+
+    // Validate store isolation
+    if (settingsData.store_id !== storeId) {
+      console.error('[SECURITY] RLS policy violation in getGiftCardConfig', {
+        requestedStoreId: storeId,
+        returnedStoreId: settingsData.store_id,
+      });
+      throw new Error('Cross-store data leakage prevented in getGiftCardConfig');
+    }
+
+    // Fetch denominations for this store
+    const { data: denomData, error: denomError } = await supabase
+      .from('gift_card_denominations')
+      .select('*')
+      .eq('store_id', storeId)
+      .eq('is_deleted', false)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (denomError) {
+      throw new Error(`Failed to fetch gift card denominations: ${denomError.message}`);
+    }
+
+    // Validate denomination store isolation
+    if (denomData && denomData.length > 0) {
+      validateStoreIsolation(denomData, storeId, 'getGiftCardConfig:denominations');
+    }
+
+    const config = toGiftCardConfig(
+      settingsData as GiftCardSettingsRow,
+      (denomData || []) as GiftCardDenominationRow[]
+    );
+
+    // Cache the result
+    setCachedData(CACHE_KEY_GIFTCARD, config);
+
+    return config;
+  } catch (error) {
+    console.error('[CatalogSync] getGiftCardConfig failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update gift card configuration in Supabase
+ * Upserts settings row and replaces active denomination rows
+ */
+export async function updateGiftCardConfig(
+  storeId: string,
+  config: Partial<GiftCardConfig>
+): Promise<GiftCardConfig> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { settings, denominations } = fromGiftCardConfig(config);
+
+  try {
+    // Upsert settings (gift_card_settings has UNIQUE store_id constraint)
+    settings.store_id = storeId;
+    settings.updated_at = new Date().toISOString();
+
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('gift_card_settings')
+      .upsert(settings, { onConflict: 'store_id' })
+      .select()
+      .single();
+
+    if (settingsError) {
+      throw new Error(`Failed to update gift card settings: ${settingsError.message}`);
+    }
+
+    // Replace denomination rows:
+    // 1. Soft-delete existing active denominations for this store
+    const { error: deleteError } = await supabase
+      .from('gift_card_denominations')
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+      })
+      .eq('store_id', storeId)
+      .eq('is_deleted', false);
+
+    if (deleteError) {
+      throw new Error(`Failed to clear existing denominations: ${deleteError.message}`);
+    }
+
+    // 2. Insert new denomination rows
+    let denomData: GiftCardDenominationRow[] = [];
+    if (denominations.length > 0) {
+      const denomRows = denominations.map((d) => ({
+        store_id: storeId,
+        amount: d.amount,
+        label: d.label,
+        display_order: d.display_order,
+        is_active: d.is_active,
+        is_deleted: false,
+      }));
+
+      const { data: insertedDenoms, error: insertError } = await supabase
+        .from('gift_card_denominations')
+        .insert(denomRows)
+        .select();
+
+      if (insertError) {
+        throw new Error(`Failed to insert denominations: ${insertError.message}`);
+      }
+
+      denomData = (insertedDenoms || []) as GiftCardDenominationRow[];
+    }
+
+    invalidateGiftCardCache();
+
+    return toGiftCardConfig(
+      settingsData as GiftCardSettingsRow,
+      denomData
+    );
+  } catch (error) {
+    console.error('[CatalogSync] updateGiftCardConfig failed:', error);
+    throw error;
+  }
+}
+
 /**
  * Add-on group structure for Online Store
  */
@@ -504,6 +679,7 @@ export async function getAddOnGroups(storeId: string, serviceId: string, categor
 export function clearCache(): void {
   localStorage.removeItem(CACHE_KEY_SERVICES);
   localStorage.removeItem(CACHE_KEY_CATEGORIES);
+  localStorage.removeItem(CACHE_KEY_GIFTCARD);
   localStorage.removeItem(CACHE_KEY_ADDONS);
   localStorage.removeItem(CACHE_KEY_TIMESTAMP);
   console.log('[CatalogSync] Cache cleared');
