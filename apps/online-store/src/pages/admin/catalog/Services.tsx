@@ -61,7 +61,7 @@ export default function Services() {
       return 0;
     });
 
-  const columns: Column[] = [
+  const columns: Column<Service>[] = [
     { key: "name", label: "Name" },
     { key: "category", label: "Category" },
     {

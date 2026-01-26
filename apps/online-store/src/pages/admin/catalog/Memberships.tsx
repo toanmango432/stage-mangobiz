@@ -45,7 +45,7 @@ export default function Memberships() {
     membership.name.toLowerCase().includes(searchValue.toLowerCase())
   );
 
-  const columns: Column[] = [
+  const columns: Column<MembershipPlan>[] = [
     {
       key: "displayName",
       label: "Plan Name",

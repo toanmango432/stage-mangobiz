@@ -51,22 +51,25 @@ export default function Products() {
     return matchesSearch && matchesFilter;
   });
 
-  const columns: Column[] = [
+  const columns: Column<Product>[] = [
     { key: "name", label: "Product" },
     { key: "sku", label: "SKU" },
     {
       key: "retailPrice",
       label: "Price",
-      render: (value) => `$${(value ?? 0).toFixed(2)}`,
+      render: (value) => `$${Number(value ?? 0).toFixed(2)}`,
     },
     {
       key: "stockQuantity",
       label: "Inventory",
-      render: (value, item) => (
-        <Badge variant={value === 0 ? "destructive" : value <= item.lowStockThreshold ? "secondary" : "outline"}>
-          {value} in stock
-        </Badge>
-      ),
+      render: (value, item) => {
+        const qty = Number(value ?? 0);
+        return (
+          <Badge variant={qty === 0 ? "destructive" : qty <= item.lowStockThreshold ? "secondary" : "outline"}>
+            {qty} in stock
+          </Badge>
+        );
+      },
     },
     { key: "category", label: "Category" },
   ];
