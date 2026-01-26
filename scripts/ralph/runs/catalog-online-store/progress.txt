@@ -411,3 +411,29 @@ Commit: dfd9a32
 **Next story suggestion:** US-022 (Reconcile Membership vs MembershipPlan types) — Phase 4, priority 22, depends on US-019✅, continues type consolidation work.
 
 ---
+
+## 2026-01-26 - US-022: Reconcile Membership vs MembershipPlan types
+Commit: 318b36f
+
+**Why this story?** US-022 is the highest priority eligible story (priority 22) with its sole dependency US-019 complete. It continues Phase 4 type consolidation work from US-021, and unblocks US-024 (remove deprecated storage files).
+
+**Changes:**
+- apps/online-store/src/types/catalog.ts:113-163: Replaced old `Membership` interface (e-commerce subscription model with billingCycle, benefits, autoRenewal, etc.) with canonical `MembershipPlan` interface (salon catalog model with displayName, priceMonthly, perks, features, rules, etc.). Added typed interfaces `MembershipFeatures` and `MembershipRules` (with index signatures for extensibility) to replace `Record<string, any>`. Added deprecated type alias `export type Membership = MembershipPlan` for backward compatibility.
+- apps/online-store/src/lib/storage/membershipStorage.ts:1-8: Removed local `MembershipPlan` interface definition. Now imports from `@/types/catalog` and re-exports. Added `@deprecated` JSDoc to file.
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:6: Changed import from `membershipStorage` to `types/catalog` for MembershipPlan. Also imports MembershipFeatures and MembershipRules. Updated MembershipPlanRow to use typed interfaces instead of Record<string, unknown>. Removed `as Record<string, unknown>` cast in toOnlineMembershipPlan.
+- apps/online-store/src/lib/services/catalogSyncService.ts:23: Changed MembershipPlan import from `membershipStorage` to `types/catalog`.
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:13: Changed MembershipPlan import from `membershipStorage` to `types/catalog`.
+- apps/online-store/src/lib/ai/recommendations.ts:3-4,67-88: Changed `Membership` to `MembershipPlan`. Updated `getBestValueMembership` function to use `priceMonthly` (instead of billingCycle-based calculation) and `features.discountPercentage` (instead of `benefits.serviceDiscountPercent`).
+
+**Learnings:**
+- Three separate membership-related types existed: `Membership` (types/catalog.ts — e-commerce subscription), `MembershipPlan` (membershipStorage.ts — salon catalog), and `MembershipPlanRow` (catalogAdapters.ts — Supabase row). Now consolidated to canonical `MembershipPlan` in types/catalog.ts + `MembershipPlanRow` for DB layer.
+- The old `Membership` type was fundamentally different from `MembershipPlan` — completely different field shapes (billingCycle/benefits vs priceMonthly/perks/features). Only one file (recommendations.ts) used the old type, requiring a logic update to use MembershipPlan fields.
+- Adding `[key: string]: unknown` index signature to MembershipFeatures/MembershipRules maintains extensibility for stores that add custom features/rules via JSONB while providing type safety for known fields.
+- The deprecated `export type Membership = MembershipPlan` alias ensures no import breaks during migration.
+
+**Patterns to sync:**
+- Pattern: Typed JSONB interfaces with index signatures — use named interfaces with known fields + `[key: string]: unknown` for JSONB columns instead of `Record<string, any>`. Provides autocomplete and type checking for common fields while allowing extensibility.
+
+**Next story suggestion:** US-027 (Clean up catalogSyncService.ts — remove row: any) — Phase 5, priority 27, depends only on US-001✅, and is the next eligible non-blocked story. US-024 depends on US-022✅ + US-021✅ (both complete now) so it's also eligible.
+
+---

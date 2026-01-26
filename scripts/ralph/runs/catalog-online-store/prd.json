@@ -565,7 +565,7 @@
       ],
       "dependencies": ["US-019"],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "Membership in types/catalog.ts has: benefits.serviceDiscountPercent, autoRenewal, gracePeriodDays, cancellationPolicy, pauseAllowed, activeMembersCount. MembershipPlan in membershipStorage.ts has: displayName, priceMonthly, tagline, imageUrl, badgeIcon, color, perks, features: Record<string, any>, rules: Record<string, any>, isPopular, sortOrder. These are very different shapes — MembershipPlan is what the UI actually uses."
     },
     {

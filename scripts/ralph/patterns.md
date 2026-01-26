@@ -525,3 +525,19 @@ const { data } = await supabase.from('table').eq('store_id', storeId);
 validateStoreIsolation(data, storeId, 'serviceName');
 ```
 **Why:** RLS policies can be misconfigured during migrations, schema changes, or policy updates. Application-level validation catches policy failures before data reaches UI. This prevents accidental cross-tenant data exposure in multi-tenant SaaS applications. Detailed error logging helps identify and fix RLS misconfigurations quickly.
+
+### Typed JSONB Interfaces with Index Signatures
+When mapping JSONB columns to TypeScript, use named interfaces with known fields + index signature instead of `Record<string, any>`:
+```typescript
+// GOOD — type-safe known fields + extensible for custom data
+export interface MembershipFeatures {
+  discountPercentage?: number;
+  complimentaryServices?: number;
+  priorityBooking?: boolean;
+  [key: string]: unknown;  // Allows custom features per store
+}
+
+// BAD — no autocomplete, no type checking
+features: Record<string, any>;
+```
+**Why:** Provides IDE autocomplete and type checking for commonly used fields while maintaining extensibility for stores that add custom data via JSONB. The index signature `[key: string]: unknown` (not `any`) preserves strict type checking for unknown fields.
