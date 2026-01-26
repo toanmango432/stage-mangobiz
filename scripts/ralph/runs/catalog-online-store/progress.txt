@@ -301,3 +301,23 @@ Commit: ecddac4
 **Next story suggestion:** US-017 (Add membership adapters to catalogAdapters.ts) — directly depends on US-016 (now complete), same adapter file pattern, unblocks US-018 (membership CRUD) and US-019 (Memberships.tsx).
 
 ---
+
+## 2026-01-26 - US-017: Add membership adapters to catalogAdapters.ts
+Commit: cb9930e
+
+**Why this story?** US-017 is the highest priority eligible story (priority 17) with all dependencies met (US-001✅, US-016✅). It unblocks US-018 (membership CRUD) → US-019 (Memberships.tsx) → US-020 (dashboard count). Phase 2 remains blocked by PREREQ-1.
+
+**Changes:**
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:7: Added import of MembershipPlan type from membershipStorage.ts
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:313-352: Added MembershipPlanRow interface (37 columns matching migration 033 schema) with Record<string, unknown> for JSONB fields (perks typed as string[])
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:356-378: Added toOnlineMembershipPlan() adapter — maps snake_case to camelCase, handles null/empty defaults for optional strings, Number() cast for price_monthly (DECIMAL), Array.isArray guard for perks
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:383-405: Added fromOnlineMembershipPlan() reverse adapter — conditional field-by-field mapping (same pattern as fromOnlineService), converts empty strings to null for nullable DB columns
+
+**Learnings:**
+- MembershipPlan.features and rules are typed as Record<string, any> in membershipStorage.ts — used Record<string, unknown> in MembershipPlanRow for stricter typing. TypeScript allows Record<string, unknown> → Record<string, any> assignment so the adapter works cleanly.
+- price_monthly comes from Supabase as DECIMAL(10,2) — Number() ensures clean number type (same pattern as gift card denomination amounts)
+- File grew from 311 to 406 lines — approaching 500 line limit but still within guidelines. Phase 4/5 stories may benefit from splitting adapters into separate files per entity.
+
+**Next story suggestion:** US-018 (Add membership CRUD to catalogSyncService) — directly depends on US-017, same service file pattern, unblocks US-019 (Memberships.tsx) and US-020 (dashboard count).
+
+---

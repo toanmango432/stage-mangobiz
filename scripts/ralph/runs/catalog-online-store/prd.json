@@ -447,7 +447,7 @@
       ],
       "dependencies": ["US-001", "US-016"],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Use MembershipPlan type from membershipStorage.ts (not Membership from types/catalog.ts — type reconciliation in Phase 4). Column mapping: display_name → displayName, price_monthly → priceMonthly, image_url → imageUrl, badge_icon → badgeIcon, is_popular → isPopular, is_active → isActive, sort_order → sortOrder. ~40 lines added."
     },
     {
