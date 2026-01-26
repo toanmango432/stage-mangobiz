@@ -146,3 +146,47 @@ Commit: aa422ab
 **Next story suggestion:** US-006 (Update Catalog.tsx dashboard with dynamic service count) — last remaining Phase 1 story, depends on US-003 (complete), and closes out the phase.
 
 ---
+
+## 2026-01-26 - US-006: Update Catalog.tsx dashboard with dynamic service count
+Commit: 9ec5153
+
+**Why this story?** US-006 is the only remaining Phase 1 story with `passes: false`. Its dependency (US-003) is complete. Completing this closes out Phase 1 entirely.
+
+**Changes:**
+- apps/online-store/src/pages/admin/Catalog.tsx:1-6: Added useState, useEffect imports; Loader2 icon; getServices from catalogSyncService
+- apps/online-store/src/pages/admin/Catalog.tsx:10-11: Added servicesCount state (null initially) and isLoading state
+- apps/online-store/src/pages/admin/Catalog.tsx:13-29: useEffect with Promise.all pattern to fetch service counts from Supabase (designed for easy extension in later phases)
+- apps/online-store/src/pages/admin/Catalog.tsx:36: Services count uses dynamic `servicesCount ?? 0` instead of hardcoded 24
+- apps/online-store/src/pages/admin/Catalog.tsx:44,52,60,68: Packages, Products, Memberships, Gift Cards all set to 0 (Supabase integration in later phases)
+- apps/online-store/src/pages/admin/Catalog.tsx:93-97: Loading spinner (Loader2) shown while counts load, replaced inline count display
+
+**Browser Verification:**
+- This is a UI story but no dev server is running. Changes are structurally sound and typecheck passes.
+
+**Learnings:**
+- Promise.all pattern with destructured array is clean for parallel count fetching — later phases (US-011, US-015, US-020) can add getProducts, getGiftCardConfig, getMembershipPlans to the same Promise.all call
+- File went from 94 to 119 lines — well within the 120 target
+- Using null for servicesCount initial state distinguishes "not loaded yet" from "loaded and zero" for better loading UX
+
+**Next story suggestion:** Phase 1 is COMPLETE. Next would be Phase 3 (US-012 — gift card adapters) since Phase 2 is blocked by PREREQ-1.
+
+---
+
+## Session Summary - 2026-01-26
+
+**Completed this session:** 1 story (US-006)
+**Total progress:** 6/29 stories (21%)
+
+**Phase 1 status:** COMPLETE (6/6 stories)
+**Phase 2 status:** BLOCKED by PREREQ-1 (0/5 stories)
+
+**Blocked stories:**
+- US-007 through US-011: PREREQ-1 (products table schema conflict)
+
+**Patterns synced:** 0 new patterns
+
+**Next session should:**
+- Start with: US-012 (gift card adapters) — first story in Phase 3
+- Phase 2 remains blocked until PREREQ-1 (products table conflict) is resolved
+
+---

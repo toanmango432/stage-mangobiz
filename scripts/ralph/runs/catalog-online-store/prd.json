@@ -194,7 +194,7 @@
       ],
       "dependencies": ["US-003"],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "File is 94 lines — keep under 120. Use useEffect + useState for async fetch. Later phases add real counts for products, memberships, gift cards. ~40 lines changed.",
       "category": "frontend"
     },
