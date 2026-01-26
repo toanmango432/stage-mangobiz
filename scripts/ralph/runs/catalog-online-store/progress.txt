@@ -235,3 +235,30 @@ Commit: 80f16a4
 **Next story suggestion:** US-014 (Update GiftCardSettings.tsx to use Supabase) — directly depends on US-013, frontend story that consumes these new CRUD operations, and unblocks US-015 (dashboard count).
 
 ---
+
+## 2026-01-26 - US-014: Update GiftCardSettings.tsx to use Supabase
+Commit: 60a6576
+
+**Why this story?** US-014 is the highest priority eligible story (priority 14) with its sole dependency US-013 complete. Progress.txt explicitly suggested it as next. It's the frontend consumer of the gift card CRUD operations added in US-013, and unblocks US-015 (dashboard count) and US-021 (type consolidation).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:8: Switched toast from `@/hooks/use-toast` to `sonner` (`import { toast } from "sonner"`)
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:10-14: Replaced import from `@/lib/storage/giftCardStorage` with imports from `@/lib/services/catalogSyncService` (getGiftCardConfig, updateGiftCardConfig) and `@/types/catalog` (GiftCardConfig type)
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:20-21: Added `isLoading` and `isSaving` state variables
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:27-41: Made `loadConfig()` async — resolves storeId from localStorage, calls async getGiftCardConfig(storeId), shows error toast on failure, manages isLoading state
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:43-63: Made `handleSave()` async — calls async updateGiftCardConfig(storeId, config), shows success/error toast, manages isSaving state. Removed 'saved to localStorage' message.
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:68-69: Updated handleAddAmount toast to use sonner API: `toast.error('...')` instead of `toast({ title, description, variant })`
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:81-87: Loading state shows Loader2 spinner instead of text
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:102: Subtitle changed from 'stored in localStorage' to 'for your store'
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:104-111: Save button shows Loader2 spinner and is disabled while saving
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:275-309: Message settings section now uses `config.deliveryOptions.messageCharLimit` instead of `config.allowMessage` / `config.maxMessageLength` (mapping: messageCharLimit > 0 = messages enabled, messageCharLimit value = max length)
+
+**Learnings:**
+- The giftCardStorage GiftCardConfig type had `allowMessage: boolean` and `maxMessageLength: number`, but the canonical types/catalog.ts GiftCardConfig uses `deliveryOptions.messageCharLimit: number`. Mapped: messageCharLimit > 0 = messages enabled, 0 = disabled. This avoids needing to add fields to the canonical type.
+- Function signatures differ: giftCardStorage was sync (`getGiftCardConfig(): GiftCardConfig | null`), catalogSyncService is async (`getGiftCardConfig(storeId): Promise<GiftCardConfig | null>`). Required adding async/await and storeId parameter.
+- File grew from 280 to 315 lines due to loading/saving states and async error handling — slightly above 290 target but acceptable for the added functionality.
+- The `isSaving` state with disabled button prevents double-submit during async save.
+
+**Next story suggestion:** US-015 (Update Catalog.tsx with gift cards count) — depends on US-006 (complete) and US-013 (complete), small incremental change to existing Promise.all pattern, continues Phase 3 momentum.
+
+---

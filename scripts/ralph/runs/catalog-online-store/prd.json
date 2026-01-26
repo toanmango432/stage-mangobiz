@@ -380,7 +380,7 @@
       ],
       "dependencies": ["US-013"],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "File is 280 lines — keep under 290. Function signatures match (getGiftCardConfig, updateGiftCardConfig) so import path change is main change. Switch toast from @/hooks/use-toast to sonner: import { toast } from 'sonner'. ~30 lines changed.",
       "category": "frontend"
     },
