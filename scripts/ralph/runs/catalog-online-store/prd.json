@@ -90,7 +90,7 @@
       ],
       "dependencies": ["US-001"],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing getServices() / getCachedServices() pattern in the same file. Import toOnlineCategory from ../adapters/catalogAdapters. service_categories columns: id, name, description, color, icon, display_order, is_active, is_deleted, store_id. ~40 lines added."
     },
     {

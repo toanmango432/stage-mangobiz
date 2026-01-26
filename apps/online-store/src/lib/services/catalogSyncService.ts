@@ -6,7 +6,13 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Service } from '@/types/catalog';
-import { toOnlineCategory, type Category } from '@/lib/adapters/catalogAdapters';
+import {
+  toOnlineService as adapterToOnlineService,
+  fromOnlineService,
+  toOnlineCategory,
+  type ServiceRow,
+  type Category,
+} from '@/lib/adapters/catalogAdapters';
 
 // Environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -275,6 +281,97 @@ export async function getCategories(storeId: string): Promise<Category[]> {
 export function getCachedCategories(): Category[] {
   const cached = getCachedData<Category[]>(CACHE_KEY_CATEGORIES);
   return cached || [];
+}
+
+// ─── Service Write Operations ────────────────────────────────────────────────
+
+/**
+ * Invalidate the services cache so the next read fetches fresh data
+ */
+function invalidateServicesCache(): void {
+  localStorage.removeItem(CACHE_KEY_SERVICES);
+  localStorage.removeItem(CACHE_KEY_TIMESTAMP);
+}
+
+/**
+ * Create a new service in Supabase
+ * Supabase generates the UUID — do not pass an ID
+ */
+export async function createService(
+  storeId: string,
+  service: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Service> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const row = fromOnlineService(service);
+  row.store_id = storeId;
+
+  const { data, error } = await supabase
+    .from('menu_services')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create service: ${error.message}`);
+  }
+
+  invalidateServicesCache();
+  return adapterToOnlineService(data as ServiceRow);
+}
+
+/**
+ * Update an existing service in Supabase
+ */
+export async function updateService(
+  id: string,
+  updates: Partial<Service>
+): Promise<Service> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const row = fromOnlineService(updates);
+  row.updated_at = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from('menu_services')
+    .update(row)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update service: ${error.message}`);
+  }
+
+  invalidateServicesCache();
+  return adapterToOnlineService(data as ServiceRow);
+}
+
+/**
+ * Soft-delete a service by setting is_deleted = true
+ */
+export async function deleteService(id: string): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { error } = await supabase
+    .from('menu_services')
+    .update({
+      is_deleted: true,
+      deleted_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to delete service: ${error.message}`);
+  }
+
+  invalidateServicesCache();
 }
 
 /**

@@ -56,3 +56,23 @@ Commit: a77d7a2
 **Next story suggestion:** US-002 (Extend catalogSyncService with category fetching) or US-003 (service write ops) — both depend only on US-001. US-002 is lower complexity so good for quick momentum.
 
 ---
+
+## 2026-01-26 - US-002: Extend catalogSyncService with category fetching
+Commit: dc3cedb
+
+**Why this story?** US-002 is the highest priority remaining story (priority 2), depends only on US-001 (completed), and has lower complexity (~40 lines) than US-003. Both US-004 and US-005 depend on US-002, so completing it unblocks more downstream work.
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9: Added import of toOnlineCategory and Category from catalogAdapters
+- apps/online-store/src/lib/services/catalogSyncService.ts:40: Added CACHE_KEY_CATEGORIES constant
+- apps/online-store/src/lib/services/catalogSyncService.ts:220-278: Added getCategories() and getCachedCategories() functions following existing getServices/getCachedServices pattern
+- apps/online-store/src/lib/services/catalogSyncService.ts:400: Updated clearCache() to include CACHE_KEY_CATEGORIES
+
+**Learnings:**
+- The getCategories function follows the exact same pattern as getServices — cache-first, then Supabase fetch with RLS validation
+- Category re-exports from catalogAdapters.ts work cleanly with `type Category` import
+- No new patterns discovered — straightforward extension of existing code
+
+**Next story suggestion:** US-003 (service write operations) — same file, already in context, and unblocks US-004, US-005, US-006.
+
+---
