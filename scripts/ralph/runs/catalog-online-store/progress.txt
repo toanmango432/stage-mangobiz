@@ -371,3 +371,24 @@ Commit: 1244334
 **Next story suggestion:** US-020 (Update Catalog.tsx with memberships count) — depends on US-006✅ and US-018✅, small incremental change to existing Promise.all pattern, completes Phase 3 membership integration.
 
 ---
+
+## 2026-01-26 - US-020: Update Catalog.tsx with memberships count
+Commit: 931c95f
+
+**Why this story?** US-020 is the highest priority eligible story (priority 20) with all dependencies met (US-006✅, US-018✅). It completes Phase 3's membership integration in the dashboard and is a small incremental change to the existing Promise.all pattern.
+
+**Changes:**
+- apps/online-store/src/pages/admin/Catalog.tsx:6: Added getMembershipPlans import from catalogSyncService
+- apps/online-store/src/pages/admin/Catalog.tsx:12: Added membershipsCount state (number | null)
+- apps/online-store/src/pages/admin/Catalog.tsx:19-23: Added getMembershipPlans(storeId) to Promise.all, set membershipsCount from result
+- apps/online-store/src/pages/admin/Catalog.tsx:31: Reset membershipsCount to 0 on error
+- apps/online-store/src/pages/admin/Catalog.tsx:68: Memberships section count uses dynamic membershipsCount ?? 0
+
+**Learnings:**
+- No new patterns — straightforward extension of the Promise.all pattern established in US-006 and extended in US-015
+- File grew from 123 to 128 lines — well within limits
+- Phase 3 is now COMPLETE (9/9 stories: US-012 through US-020 all pass)
+
+**Next story suggestion:** US-021 (Consolidate GiftCardConfig types) — Phase 4, priority 21, depends on US-014✅, starts the type safety cleanup phase.
+
+---
