@@ -677,7 +677,7 @@
       ],
       "dependencies": ["US-001"],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "After US-001, the duplicate toOnlineService in catalogSyncService should be replaced with import from catalogAdapters. ~10 lines changed."
     },
     {

@@ -3,7 +3,7 @@
 ## Codebase Patterns
 
 1. **Online Store has no `typecheck` script** — use `npx tsc --noEmit` from the app directory instead of `pnpm run typecheck`.
-2. **catalogSyncService.ts uses `row: any` for toOnlineService** — US-027 will clean this up by importing ServiceRow from catalogAdapters.
+2. **catalogSyncService.ts `row: any` cleaned up** — US-027 removed the redundant local toOnlineService and replaced validateStoreIsolation's `any[]` with `Array<{ store_id: string }>`. No `any` remains in function signatures.
 3. **Service type requires `showOnline: boolean`** — maps to `online_booking_enabled` in menu_services table. The existing `toOnlineService` in catalogSyncService.ts omits this field (it was added later to the type).
 
 ---
@@ -458,5 +458,27 @@ Commit: db3d5e6
 - Net deletion: 271 lines removed, 7 lines added (comments). Good cleanup ratio.
 
 **Next story suggestion:** US-027 (Clean up catalogSyncService.ts — remove row: any) — Phase 5, priority 27, depends only on US-001✅. The only other eligible non-blocked stories are US-029 (priority 29).
+
+---
+
+## 2026-01-26 - US-027: Clean up catalogSyncService.ts — remove row: any
+Commit: 6d57ba6
+
+**Why this story?** US-027 is the highest priority eligible story (priority 27) with its sole dependency US-001 complete. Most other Phase 5 stories are blocked by Phase 2 (PREREQ-1). US-029 is also eligible but US-027 cleans up the service file first, giving cleaner code for US-029's tests to verify.
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-10: Removed `as adapterToOnlineService` alias — now imports `toOnlineService` directly from catalogAdapters
+- apps/online-store/src/lib/services/catalogSyncService.ts:110-145 (old): Deleted the redundant local `toOnlineService(row: any): Service` function (32 lines). This function used incorrect column names (e.g., `base_price` instead of `price`, `image_url` instead of `images`, `buffer_before` instead of `online_booking_buffer_minutes`) and was superseded by the properly typed adapter in catalogAdapters.ts
+- apps/online-store/src/lib/services/catalogSyncService.ts:114: Changed `validateStoreIsolation(data: any[], ...)` to `validateStoreIsolation(data: Array<{ store_id: string }>, ...)` — proper type instead of any[]
+- apps/online-store/src/lib/services/catalogSyncService.ts:160: Added `(data as ServiceRow[])` cast for `syncFromSupabase` to properly type Supabase return data before passing to adapter
+- apps/online-store/src/lib/services/catalogSyncService.ts:295,324: Changed `adapterToOnlineService(...)` → `toOnlineService(...)` (2 occurrences in createService and updateService)
+
+**Learnings:**
+- The local toOnlineService was using column names that didn't match the ServiceRow interface (e.g., `base_price`, `gallery_urls`, `buffer_before`, `deposit_required`, `featured`, `badge`, `tagline`) — these were likely from an earlier version of the schema. The adapter in catalogAdapters.ts uses the correct column names from migration 031.
+- File went from 859 to 821 lines — net deletion of 38 lines (the entire redundant local function plus reduced import alias)
+- No `any` types remain in any function signatures in the file
+- The `as ServiceRow[]` cast on Supabase data is the standard pattern used throughout the file for other entity types (GiftCardSettingsRow, MembershipPlanRow, etc.)
+
+**Next story suggestion:** US-029 (Unit tests for catalogSyncService CRUD operations) — the only other eligible non-blocked story. All other Phase 5 stories (US-025, US-026, US-028) are blocked by Phase 2 stories.
 
 ---
