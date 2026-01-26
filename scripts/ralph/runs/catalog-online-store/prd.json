@@ -424,7 +424,7 @@
         "supabase/migrations/033_create_membership_plans.sql (NEW)"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Follow EXACT pattern from service_categories in migration 031. Next migration number is 033 (after 032_fix_catalog_table_foreign_keys.sql). perks is JSONB string array. features and rules are JSONB objects. Add COMMENT ON TABLE. ~120 lines."
     },
     {
