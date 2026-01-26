@@ -333,7 +333,7 @@
       ],
       "dependencies": ["US-001"],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "GiftCardConfig from types/catalog.ts has fields (designs, deliveryOptions, emailTemplate, terms) NOT in Supabase — keep as defaults in adapter. Map: presetAmounts ← denomination rows' amount field, customAmountMin ← min_amount, customAmountMax ← max_amount, expiryMonths ← default_expiration_days / 30. ~50 lines added."
     },
     {

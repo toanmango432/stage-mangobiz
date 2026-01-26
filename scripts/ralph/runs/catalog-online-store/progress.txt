@@ -190,3 +190,25 @@ Commit: 9ec5153
 - Phase 2 remains blocked until PREREQ-1 (products table conflict) is resolved
 
 ---
+
+## 2026-01-26 - US-012: Add gift card adapters to catalogAdapters.ts
+Commit: 235bdbe
+
+**Why this story?** US-012 is the highest priority Phase 3 story with all dependencies met (US-001 complete). It unblocks US-013 (gift card CRUD) → US-014 (GiftCardSettings.tsx) → US-015 (dashboard count). Phase 2 is blocked by PREREQ-1.
+
+**Changes:**
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:6: Added GiftCardConfig import from types/catalog
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:177-240: Added GiftCardSettingsRow interface (25 columns matching migration 031 gift_card_settings table)
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:242-270: Added GiftCardDenominationRow interface (23 columns matching migration 031 gift_card_denominations table)
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:272-305: Added toGiftCardConfig() — combines settings row + denomination rows into GiftCardConfig. Maps: presetAmounts ← active denomination amounts sorted by display_order, expiryMonths ← default_expiration_days / 30, enabled ← online_enabled. Defaults for UI-only fields (designs=[], terms='', emailTemplate with placeholder)
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:307-337: Added fromGiftCardConfig() — splits GiftCardConfig into { settings, denominations }. Uses conditional field mapping (same pattern as fromOnlineService). Denominations generated from presetAmounts array with auto labels and display_order from index.
+
+**Learnings:**
+- gift_card_settings has `online_enabled` and `email_delivery_enabled` — mapped to GiftCardConfig.enabled and deliveryOptions.digital respectively
+- GiftCardConfig in types/catalog.ts has UI-only fields (designs, emailTemplate, terms) that have no Supabase columns — adapter provides sensible defaults
+- Denomination amounts come from Supabase as DECIMAL(10,2) — adapter uses Number() to ensure clean number type
+- expiryMonths ← default_expiration_days / 30 (rounded) — reverse: expiryMonths * 30
+
+**Next story suggestion:** US-013 (Add gift card CRUD to catalogSyncService) — directly depends on US-012, same service file pattern, unblocks US-014 and US-015.
+
+---
