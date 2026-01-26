@@ -988,3 +988,55 @@ Commit: 63ce259
 **Next story suggestion:** US-023 (Add generics to CatalogTable component) — Phase 4, priority 23, all dependencies met (US-005✅, US-009✅, US-019✅).
 
 ---
+
+## 2026-01-26 - US-023: Add generics to CatalogTable component
+Commit: 622351c
+
+**Why this story?** US-023 is the highest priority story (priority 23) with all dependencies met (US-005✅, US-009✅, US-019✅). It's the remaining Phase 4 story, and completes the type safety cleanup phase.
+
+**Changes:**
+- apps/online-store/src/components/admin/catalog/CatalogTable.tsx:12-16: Column interface now generic `Column<T extends { id: string }>` with default type parameter. `render` value typed as `unknown` instead of `any`, `item` typed as `T`.
+- apps/online-store/src/components/admin/catalog/CatalogTable.tsx:18-27: CatalogTableProps generic `<T extends { id: string }>` — `data: T[]`, `onEdit: (item: T) => void`, `onDelete: (item: T) => void`, `onDuplicate?: (item: T) => void`.
+- apps/online-store/src/components/admin/catalog/CatalogTable.tsx:29: Changed from const arrow function to generic function declaration `function CatalogTable<T extends { id: string }>`.
+- apps/online-store/src/components/admin/catalog/CatalogTable.tsx:74-83: Dynamic key access uses `(item as Record<string, unknown>)[column.key]` for type-safe value extraction. Default render uses `String(value ?? "")` instead of raw value.
+- apps/online-store/src/pages/admin/catalog/Services.tsx:64: Column type annotation updated to `Column<Service>[]`
+- apps/online-store/src/pages/admin/catalog/Products.tsx:54: Column type annotation updated to `Column<Product>[]`
+- apps/online-store/src/pages/admin/catalog/Products.tsx:60: Price render uses `Number(value ?? 0).toFixed(2)` instead of `(value ?? 0).toFixed(2)` for unknown→number conversion
+- apps/online-store/src/pages/admin/catalog/Products.tsx:65-70: Inventory render extracts `Number(value ?? 0)` to local variable for type-safe comparison
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:48: Column type annotation updated to `Column<MembershipPlan>[]`
+
+**Learnings:**
+- Generic function declaration (`function CatalogTable<T>`) is required for React generic components — const arrow function with generics doesn't work in TSX files due to `<T>` being parsed as JSX.
+- Dynamic key access on generic types requires `as Record<string, unknown>` cast — this is the standard pattern, not an escape hatch. TypeScript has no way to statically type `item[runtimeString]` for generic types.
+- Column's default type parameter `{ id: string }` ensures backward compatibility — existing `Column[]` without explicit type parameter still compiles (value becomes `unknown`).
+- Consumer files needed minor updates: explicit `Column<Entity>[]` type annotation and `Number()` wrapping for arithmetic operations on `unknown` values.
+- File stayed at 119 lines — under 130 target.
+
+**Next story suggestion:** US-025 (Standardize toast library across catalog pages) — Phase 5, priority 25, all dependencies now met.
+
+---
+
+## 2026-01-26 - US-025: Standardize toast library across catalog pages
+Commit: N/A (no code changes needed)
+
+**Why this story?** US-025 is the highest priority eligible story (priority 25) with all dependencies met. Progress.txt from US-023 explicitly suggested it as the next story.
+
+**Changes:**
+- No code changes required. All 6 catalog pages already use `sonner` for toast:
+  - Services.tsx:8 — `import { toast } from "sonner"`
+  - ServiceForm.tsx:14 — `import { toast } from "sonner"`
+  - Products.tsx:8 — `import { toast } from "sonner"`
+  - ProductForm.tsx:10 — `import { toast } from "sonner"`
+  - Memberships.tsx:6 — `import { toast } from "sonner"`
+  - GiftCardSettings.tsx:8 — `import { toast } from "sonner"`
+- No file imports `@/hooks/use-toast`
+- All toast calls use consistent pattern: `toast.success('...')` and `toast.error('...')`
+- TypeScript typecheck passes cleanly
+
+**Learnings:**
+- Earlier stories (US-004, US-005, US-009, US-010, US-014, US-019) already migrated all pages to sonner as they touched each file. US-025 served as a verification checkpoint — no remaining work needed.
+- The PRD notes correctly predicted this: "Some pages already switched in earlier stories. This catches remainders." In this case, there were no remainders.
+
+**Next story suggestion:** US-026 (Add loading and error states to all catalog pages) — Phase 5, priority 26, all dependencies met.
+
+---

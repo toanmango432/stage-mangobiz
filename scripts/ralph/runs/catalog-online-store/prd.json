@@ -634,7 +634,7 @@
       ],
       "dependencies": ["US-004", "US-005", "US-009", "US-010", "US-014", "US-019"],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Some pages already switched in earlier stories (US-004, US-014, US-019). This catches remainders. sonner is already a dependency: import { toast } from 'sonner'."
     },
     {
