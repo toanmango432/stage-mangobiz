@@ -10,7 +10,7 @@ import {
   getMembershipPlans,
   deleteMembershipPlan
 } from "@/lib/services/catalogSyncService";
-import type { MembershipPlan } from "@/lib/storage/membershipStorage";
+import type { MembershipPlan } from "@/types/catalog";
 
 export default function Memberships() {
   const navigate = useNavigate();

@@ -3,8 +3,7 @@
  * Converts between Supabase row types (snake_case) and Online Store types (camelCase)
  */
 
-import type { Service, GiftCardConfig } from '@/types/catalog';
-import type { MembershipPlan } from '@/lib/storage/membershipStorage';
+import type { Service, GiftCardConfig, MembershipPlan, MembershipFeatures, MembershipRules } from '@/types/catalog';
 
 // ─── Supabase Row Interfaces ─────────────────────────────────────────────────
 
@@ -329,8 +328,8 @@ export interface MembershipPlanRow {
   badge_icon: string | null;
   color: string | null;
   perks: string[];
-  features: Record<string, unknown>;
-  rules: Record<string, unknown>;
+  features: MembershipFeatures;
+  rules: MembershipRules;
   is_popular: boolean;
   is_active: boolean;
   sort_order: number;
@@ -368,8 +367,8 @@ export function toOnlineMembershipPlan(row: MembershipPlanRow): MembershipPlan {
     badgeIcon: row.badge_icon || '',
     color: row.color || '',
     perks: Array.isArray(row.perks) ? row.perks : [],
-    features: (row.features as Record<string, unknown>) || {},
-    rules: (row.rules as Record<string, unknown>) || {},
+    features: row.features || {},
+    rules: row.rules || {},
     isPopular: row.is_popular,
     isActive: row.is_active,
     sortOrder: row.sort_order,

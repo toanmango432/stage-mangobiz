@@ -20,8 +20,7 @@ import {
   type GiftCardDenominationRow,
   type MembershipPlanRow,
 } from '@/lib/adapters/catalogAdapters';
-import type { GiftCardConfig } from '@/types/catalog';
-import type { MembershipPlan } from '@/lib/storage/membershipStorage';
+import type { GiftCardConfig, MembershipPlan } from '@/types/catalog';
 
 // Environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;

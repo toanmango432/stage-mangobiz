@@ -1,29 +1,12 @@
 /**
  * Membership Storage - localStorage CRUD for membership plans
- * Mock data only - no Supabase
+ * @deprecated Use catalogSyncService instead. This file is kept only for backward compatibility.
  */
 
-const STORAGE_KEY = 'mango-membership-plans';
+import type { MembershipPlan } from '@/types/catalog';
+export type { MembershipPlan };
 
-export interface MembershipPlan {
-  id: string;
-  name: string;
-  displayName: string;
-  priceMonthly: number;
-  description: string;
-  tagline: string;
-  imageUrl: string;
-  badgeIcon: string;
-  color: string;
-  perks: string[];
-  features: Record<string, any>;
-  rules: Record<string, any>;
-  isPopular: boolean;
-  isActive: boolean;
-  sortOrder: number;
-  createdAt: string;
-  updatedAt: string;
-}
+const STORAGE_KEY = 'mango-membership-plans';
 
 /**
  * Initialize membership plans with default data
