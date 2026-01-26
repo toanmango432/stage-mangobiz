@@ -392,3 +392,22 @@ Commit: 931c95f
 **Next story suggestion:** US-021 (Consolidate GiftCardConfig types) — Phase 4, priority 21, depends on US-014✅, starts the type safety cleanup phase.
 
 ---
+
+## 2026-01-26 - US-021: Consolidate GiftCardConfig types
+Commit: dfd9a32
+
+**Why this story?** US-021 is the highest priority eligible story (priority 21) with its sole dependency US-014 complete. It starts Phase 4 (Type Safety & Cleanup) and unblocks US-024 (remove deprecated storage files) alongside US-022.
+
+**Changes:**
+- apps/online-store/src/types/store.ts:145-154: Removed duplicate GiftCardConfig interface (was unused — no imports found)
+- apps/online-store/src/lib/storage/giftCardStorage.ts: Replaced local GiftCardConfig interface definition with `import type { GiftCardConfig } from '@/types/catalog'` and `export type { GiftCardConfig }`. Added @deprecated JSDoc to file and all functions. Updated default config values in initializeGiftCardConfig() and updateGiftCardConfig() to match canonical type shape (designs, deliveryOptions, terms, emailTemplate instead of old deliveryMethods, allowMessage, maxMessageLength fields).
+
+**Learnings:**
+- Three separate GiftCardConfig definitions existed: types/catalog.ts (canonical), giftCardStorage.ts (deprecated localStorage), types/store.ts (dead code). Now consolidated to one.
+- types/store.ts GiftCardConfig was completely unused — no file imported it. Clean removal.
+- giftCardStorage.ts is still imported by mockData.ts (initializeGiftCardConfig) and api/store.ts (dynamic fallback import). Adding @deprecated and re-exporting the canonical type preserves backward compat while eliminating the duplicate definition.
+- The `export type { GiftCardConfig }` re-export ensures that any code importing the type from giftCardStorage still gets the canonical type from types/catalog.ts.
+
+**Next story suggestion:** US-022 (Reconcile Membership vs MembershipPlan types) — Phase 4, priority 22, depends on US-019✅, continues type consolidation work.
+
+---

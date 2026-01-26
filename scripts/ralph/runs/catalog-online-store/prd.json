@@ -539,7 +539,7 @@
       ],
       "dependencies": ["US-014"],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "types/catalog.ts version has: designs, deliveryOptions.digital/physical/messageCharLimit, terms, emailTemplate. giftCardStorage.ts version has: id, deliveryMethods, allowMessage, maxMessageLength. Canonical type should match what GiftCardSettings.tsx actually renders. After US-014, giftCardStorage.ts should not be imported — verify with grep."
     },
     {
