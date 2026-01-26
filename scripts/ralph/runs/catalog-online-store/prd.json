@@ -313,7 +313,7 @@
       ],
       "dependencies": ["US-006", "US-008"],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Small change — add products fetch to Promise.all from US-006. ~10 lines changed.",
       "category": "frontend"
     },

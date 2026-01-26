@@ -965,3 +965,26 @@ Commit: 09b0d8a
 **Next story suggestion:** US-011 (Update Catalog.tsx with products count) — last Phase 2 story, depends on US-006✅ and US-008✅, small change to existing Promise.all pattern.
 
 ---
+
+## 2026-01-26 - US-011: Update Catalog.tsx with products count
+Commit: 63ce259
+
+**Why this story?** US-011 is the highest priority story (priority 11) with all dependencies met (US-006✅, US-008✅). It's the last Phase 2 story — completing it closes out Phase 2.
+
+**Changes:**
+- apps/online-store/src/pages/admin/Catalog.tsx:6: Added getProducts import from catalogSyncService
+- apps/online-store/src/pages/admin/Catalog.tsx:12: Added productsCount state (number | null)
+- apps/online-store/src/pages/admin/Catalog.tsx:20-22: Added getProducts(storeId) to Promise.all alongside getServices, getGiftCardConfig, getMembershipPlans
+- apps/online-store/src/pages/admin/Catalog.tsx:27: Set productsCount = products.length
+- apps/online-store/src/pages/admin/Catalog.tsx:33: Reset productsCount to 0 on error
+- apps/online-store/src/pages/admin/Catalog.tsx:64: Products section count uses dynamic productsCount ?? 0 instead of hardcoded 0
+
+**Learnings:**
+- No new patterns — straightforward extension of the Promise.all pattern established in US-006 and extended in US-015, US-020
+- File grew from 128 to 132 lines — well within limits
+- Phase 2 is now COMPLETE (5/5 stories: US-007 through US-011 all pass)
+- All catalog dashboard counts are now dynamic: services, products, memberships, gift cards. Only packages remains hardcoded at 0 (not implemented).
+
+**Next story suggestion:** US-023 (Add generics to CatalogTable component) — Phase 4, priority 23, all dependencies met (US-005✅, US-009✅, US-019✅).
+
+---
