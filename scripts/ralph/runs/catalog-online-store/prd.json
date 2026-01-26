@@ -588,7 +588,7 @@
       ],
       "dependencies": ["US-005", "US-009", "US-019"],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "File is 116 lines — keep under 130. If keyof T & string causes issues with column render access, use simpler approach: key: string with render?: (value: unknown, item: T) => React.ReactNode. Test that existing column definitions still work. ~30 lines changed."
     },
     {
