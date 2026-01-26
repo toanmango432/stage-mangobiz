@@ -12,12 +12,16 @@ import {
   toOnlineCategory,
   toGiftCardConfig,
   fromGiftCardConfig,
+  toOnlineMembershipPlan,
+  fromOnlineMembershipPlan,
   type ServiceRow,
   type Category,
   type GiftCardSettingsRow,
   type GiftCardDenominationRow,
+  type MembershipPlanRow,
 } from '@/lib/adapters/catalogAdapters';
 import type { GiftCardConfig } from '@/types/catalog';
+import type { MembershipPlan } from '@/lib/storage/membershipStorage';
 
 // Environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -50,6 +54,7 @@ export const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
 const CACHE_KEY_SERVICES = 'catalog_services_v2';
 const CACHE_KEY_CATEGORIES = 'catalog_categories_v2';
 const CACHE_KEY_GIFTCARD = 'catalog_giftcard_v2';
+const CACHE_KEY_MEMBERSHIPS = 'catalog_memberships_v2';
 const CACHE_KEY_ADDONS = 'catalog_addons_v2';
 const CACHE_KEY_TIMESTAMP = 'catalog_sync_timestamp';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -549,6 +554,152 @@ export async function updateGiftCardConfig(
   }
 }
 
+// ─── Membership Plan Operations ───────────────────────────────────────────────
+
+/**
+ * Invalidate the membership plans cache so the next read fetches fresh data
+ */
+function invalidateMembershipCache(): void {
+  localStorage.removeItem(CACHE_KEY_MEMBERSHIPS);
+}
+
+/**
+ * Fetch membership plans from Supabase
+ * Filters by is_deleted = false, ordered by sort_order ASC
+ */
+export async function getMembershipPlans(storeId: string): Promise<MembershipPlan[]> {
+  if (!supabase) {
+    console.warn('[CatalogSync] Supabase client not configured - returning empty membership plans');
+    return [];
+  }
+
+  // Try cache first
+  const cached = getCachedData<MembershipPlan[]>(CACHE_KEY_MEMBERSHIPS);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('membership_plans')
+      .select('*')
+      .eq('store_id', storeId)
+      .eq('is_deleted', false)
+      .order('sort_order', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch membership plans: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // RLS Validation (defense-in-depth security)
+    validateStoreIsolation(data, storeId, 'getMembershipPlans');
+
+    const plans = data.map((row) => toOnlineMembershipPlan(row as MembershipPlanRow));
+
+    // Cache the results
+    setCachedData(CACHE_KEY_MEMBERSHIPS, plans);
+
+    return plans;
+  } catch (error) {
+    console.error('[CatalogSync] getMembershipPlans failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get cached membership plans without triggering a fetch
+ * Returns empty array if cache is empty or stale
+ */
+export function getCachedMembershipPlans(): MembershipPlan[] {
+  const cached = getCachedData<MembershipPlan[]>(CACHE_KEY_MEMBERSHIPS);
+  return cached || [];
+}
+
+/**
+ * Create a new membership plan in Supabase
+ * Supabase generates the UUID — do not pass an ID
+ */
+export async function createMembershipPlan(
+  storeId: string,
+  plan: Omit<MembershipPlan, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<MembershipPlan> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const row = fromOnlineMembershipPlan(plan);
+  row.store_id = storeId;
+
+  const { data, error } = await supabase
+    .from('membership_plans')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create membership plan: ${error.message}`);
+  }
+
+  invalidateMembershipCache();
+  return toOnlineMembershipPlan(data as MembershipPlanRow);
+}
+
+/**
+ * Update an existing membership plan in Supabase
+ */
+export async function updateMembershipPlan(
+  id: string,
+  updates: Partial<MembershipPlan>
+): Promise<MembershipPlan> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const row = fromOnlineMembershipPlan(updates);
+  row.updated_at = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from('membership_plans')
+    .update(row)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update membership plan: ${error.message}`);
+  }
+
+  invalidateMembershipCache();
+  return toOnlineMembershipPlan(data as MembershipPlanRow);
+}
+
+/**
+ * Soft-delete a membership plan by setting is_deleted = true
+ */
+export async function deleteMembershipPlan(id: string): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { error } = await supabase
+    .from('membership_plans')
+    .update({
+      is_deleted: true,
+      deleted_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to delete membership plan: ${error.message}`);
+  }
+
+  invalidateMembershipCache();
+}
+
 /**
  * Add-on group structure for Online Store
  */
@@ -680,6 +831,7 @@ export function clearCache(): void {
   localStorage.removeItem(CACHE_KEY_SERVICES);
   localStorage.removeItem(CACHE_KEY_CATEGORIES);
   localStorage.removeItem(CACHE_KEY_GIFTCARD);
+  localStorage.removeItem(CACHE_KEY_MEMBERSHIPS);
   localStorage.removeItem(CACHE_KEY_ADDONS);
   localStorage.removeItem(CACHE_KEY_TIMESTAMP);
   console.log('[CatalogSync] Cache cleared');
