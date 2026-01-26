@@ -218,7 +218,7 @@
       ],
       "dependencies": ["US-001"],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "PREREQ-1 RESOLVED: Use migration 017's `products` table (e-commerce schema). ProductRow columns from 017: id (UUID), store_id, name, description, slug, sku (nullable TEXT), price DECIMAL(10,2), compare_at_price, cost_price, images (JSONB array), has_variants BOOLEAN, show_online BOOLEAN, is_featured BOOLEAN, is_active, is_deleted, category_id (FK to product_categories), meta_title, meta_description, tags (JSONB), weight, dimensions, track_inventory, stock_quantity. Product type in types/catalog.ts (lines 79-111). Map: compare_at_price → compareAtPrice, cost_price → costPrice, show_online → showOnline, is_featured → featured, has_variants → hasVariants, track_inventory → trackInventory, stock_quantity → stockQuantity, category_id → categoryId. ~60 lines added."
     },
     {

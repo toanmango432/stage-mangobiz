@@ -870,3 +870,24 @@ Commit: d0b8442c2c9b5b1e9648bf18046bf0715568cd49
 **All 9 remaining stories are now UNBLOCKED. Next story: US-007 (Product adapters).**
 
 ---
+
+## 2026-01-26 - US-007: Add product adapters to catalogAdapters.ts
+Commit: d390950
+
+**Why this story?** US-007 is the highest priority story (priority 7) with all dependencies met (US-001✅). PREREQ-1 is now resolved — the `products` table (migration 017) is confirmed as the Online Store e-commerce catalog. US-007 unblocks US-008 (product CRUD) and US-028 (adapter tests).
+
+**Changes:**
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:6: Added Product import from types/catalog
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:176-210: Added ProductRow interface (31 columns matching migration 017 products table). images typed as JSONB array of `{url, alt?, position?}` objects. dimensions typed as `{length, width, height, unit?}` object.
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:214-249: Added toOnlineProduct() adapter — maps snake_case to camelCase. Handles images JSONB (supports both string URLs and `{url}` objects). Fields not in migration 017 (taxable, requiresShipping, collections, tags, vendor) get sensible defaults.
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:254-284: Added fromOnlineProduct() reverse adapter — conditional field-by-field mapping (same pattern as fromOnlineService). Converts Product.images string[] to JSONB `{url, position}` objects. Maps retailPrice→price, featured→is_featured, allowBackorders→allow_backorder.
+
+**Learnings:**
+- Migration 017 products table has no `is_deleted` column (unlike catalog tables from migration 031) — it uses `is_active` for visibility control. Product queries should filter by `is_active = true` and optionally `show_online = true`.
+- The images JSONB column stores objects with `{url, alt, position}` — the adapter handles both string and object formats for flexibility with existing data.
+- Product type has fields (vendor, taxable, requiresShipping, collections, tags) with no corresponding migration 017 columns — these get defaults in toOnlineProduct. This is acceptable since those fields are optional or empty-array defaults.
+- File grew from 405 to ~500 lines — at the guideline limit. Future additions should consider splitting adapters per entity.
+
+**Next story suggestion:** US-008 (Add product CRUD to catalogSyncService) — directly depends on US-007, same service file pattern, unblocks US-009 (Products.tsx), US-010 (ProductForm.tsx), and US-011 (dashboard count).
+
+---
