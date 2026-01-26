@@ -19,6 +19,7 @@ export default function GiftCardSettings() {
   const [newAmount, setNewAmount] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -26,6 +27,7 @@ export default function GiftCardSettings() {
 
   async function loadConfig() {
     setIsLoading(true);
+    setError(null);
     try {
       const storeId = localStorage.getItem('storeId') || '';
       const giftCardConfig = await getGiftCardConfig(storeId);
@@ -33,8 +35,10 @@ export default function GiftCardSettings() {
         setConfig(giftCardConfig);
         setPresetAmounts(giftCardConfig.presetAmounts);
       }
-    } catch (error) {
-      toast.error('Failed to load gift card settings');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load gift card settings';
+      setError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -82,6 +86,25 @@ export default function GiftCardSettings() {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Gift Card Settings</h1>
+            <p className="text-muted-foreground">Configure gift card options for your store</p>
+          </div>
+        </div>
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-center">
+          <p className="text-sm text-destructive mb-2">{error}</p>
+          <Button variant="outline" size="sm" onClick={loadConfig}>
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }

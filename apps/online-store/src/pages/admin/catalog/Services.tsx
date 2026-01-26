@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { CatalogTable, Column } from "@/components/admin/catalog/CatalogTable";
 import { SearchFilter } from "@/components/admin/catalog/SearchFilter";
 import { BulkActions } from "@/components/admin/catalog/BulkActions";
@@ -19,17 +19,24 @@ export default function Services() {
   const [filterValue, setFilterValue] = useState("all");
   const [sortValue, setSortValue] = useState("name");
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const storeId = localStorage.getItem('storeId') || '';
 
   const loadServices = async () => {
     try {
+      setIsLoading(true);
+      setError(null);
       const loadedServices = await getServices(storeId);
       setServices(loadedServices);
-    } catch (error) {
-      console.error('Failed to load services:', error);
-      toast.error('Failed to load services');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load services';
+      setError(message);
+      toast.error(message);
       setServices([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -141,6 +148,33 @@ export default function Services() {
       toast.error(`Failed to update services: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Services</h1>
+            <p className="text-muted-foreground">Manage your service catalog</p>
+          </div>
+        </div>
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-center">
+          <p className="text-sm text-destructive mb-2">{error}</p>
+          <Button variant="outline" size="sm" onClick={loadServices}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

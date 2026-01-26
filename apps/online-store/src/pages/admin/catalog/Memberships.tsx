@@ -114,12 +114,19 @@ export default function Memberships() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
-        <p className="text-destructive font-medium mb-2">Failed to load memberships</p>
-        <p className="text-sm text-muted-foreground mb-4">{error}</p>
-        <Button variant="outline" onClick={() => loadMemberships()}>
-          Retry
-        </Button>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Memberships</h1>
+            <p className="text-muted-foreground">Manage membership plans for your store</p>
+          </div>
+        </div>
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-center">
+          <p className="text-sm text-destructive mb-2">{error}</p>
+          <Button variant="outline" size="sm" onClick={loadMemberships}>
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
