@@ -1069,3 +1069,53 @@ Commit: ebf98f9
 **Next story suggestion:** US-028 (Unit tests for catalogAdapters) — Phase 5, priority 28, all dependencies met (US-001✅, US-007✅, US-012✅, US-017✅). The only remaining story with passes: false.
 
 ---
+
+## 2026-01-26 - US-028: Unit tests for catalogAdapters
+Commit: 18aba3f
+
+**Why this story?** US-028 is the only remaining story with `passes: false`. All dependencies met (US-001✅, US-007✅, US-012✅, US-017✅). It's the final story in the entire PRD.
+
+**Changes:**
+- apps/online-store/src/lib/adapters/__tests__/catalogAdapters.test.ts (NEW, 845 lines): Comprehensive unit tests for all adapter functions in catalogAdapters.ts
+
+**Test Coverage (42 tests, all passing):**
+- toOnlineService: 4 tests (full row, null fields, empty images, empty category_id)
+- fromOnlineService: 6 tests (full conversion, partial update, empty description→null, gallery→images, undefined depositAmount, round-trip)
+- toOnlineCategory: 3 tests (full row, empty color default, null icon→undefined)
+- toOnlineProduct: 4 tests (full row, image URL extraction, null fields, default fields)
+- fromOnlineProduct: 5 tests (full conversion, partial update, images→JSONB objects, empty sku→null, round-trip)
+- toGiftCardConfig: 6 tests (combined settings+denoms, inactive filtering, display_order sorting, null expiration, UI defaults, empty denoms)
+- fromGiftCardConfig: 5 tests (settings+denominations split, preset amounts generation, null expiryMonths, partial update, empty presetAmounts)
+- toOnlineMembershipPlan: 5 tests (full row, null optionals→empty strings, non-array perks, falsy features/rules, DECIMAL→number)
+- fromOnlineMembershipPlan: 4 tests (full conversion, partial update, empty strings→null, round-trip)
+
+**Learnings:**
+- Adapter tests are pure function tests — no Supabase mocking needed, making them fast and reliable (42 tests in 4ms)
+- Test fixtures for Supabase row types are verbose (40+ columns per interface) but provide complete type safety — accounts for majority of the 845-line file size
+- The `fromOnlineService` adapter only sets fields that are `!== undefined`, so passing `undefined` for a field means the output won't contain that key at all (important distinction from null)
+- 14 pre-existing test failures (202 tests) exist in booking components — completely unrelated to catalog work
+- File exceeded the PRD target (~150 lines) at 845 lines due to comprehensive fixtures matching full Supabase row schemas
+
+**Patterns to sync:** None — pure function testing is a standard pattern.
+
+**Next story suggestion:** ALL STORIES COMPLETE. This was the last story (29/29).
+
+---
+
+## Session Summary - 2026-01-26 (Final)
+
+**Completed this session:** 1 story (US-028)
+**Total progress:** 29/29 stories (100%)
+
+**ALL PHASES COMPLETE:**
+- Phase 1: Services & Categories (6/6) ✅
+- Phase 2: Products (5/5) ✅
+- Phase 3: Gift Cards & Memberships (9/9) ✅
+- Phase 4: Type Safety & Cleanup (4/4) ✅
+- Phase 5: Error Handling & Polish (5/5) ✅
+
+**Blocked stories:** None
+
+**Patterns synced:** 0 new patterns
+
+---

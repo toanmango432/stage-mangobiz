@@ -703,7 +703,7 @@
       "dependencies": ["US-001", "US-007", "US-012", "US-017"],
       "testCommand": "cd apps/online-store && pnpm test --run",
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": "Use Vitest. Create fixtures with realistic data matching Supabase row shapes. Test edge cases: missing optional fields, empty arrays, null values. Target ~150 lines.",
       "category": "test"
     },
