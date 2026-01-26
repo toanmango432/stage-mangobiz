@@ -8,7 +8,8 @@ import { Service } from "@/types/catalog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { getServices } from "@/lib/services/catalogSyncService";
+import { getServices, getCategories, deleteService, createService, updateService } from "@/lib/services/catalogSyncService";
+import type { Category } from "@/lib/adapters/catalogAdapters";
 
 export default function Services() {
   const navigate = useNavigate();
@@ -17,28 +18,34 @@ export default function Services() {
   const [searchValue, setSearchValue] = useState("");
   const [filterValue, setFilterValue] = useState("all");
   const [sortValue, setSortValue] = useState("name");
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  const storeId = localStorage.getItem('storeId') || '';
+
+  const loadServices = async () => {
+    try {
+      const loadedServices = await getServices(storeId);
+      setServices(loadedServices);
+    } catch (error) {
+      console.error('Failed to load services:', error);
+      toast.error('Failed to load services');
+      setServices([]);
+    }
+  };
 
   useEffect(() => {
-    const loadServices = async () => {
+    loadServices();
+
+    const loadCategories = async () => {
       try {
-        // Load services from Supabase via catalogSyncService
-        const storeId = localStorage.getItem('storeId') || '';
-        const loadedServices = await getServices(storeId);
-        setServices(loadedServices);
+        const loadedCategories = await getCategories(storeId);
+        setCategories(loadedCategories);
       } catch (error) {
-        console.error('Failed to load services:', error);
-        toast.error('Failed to load services');
-        setServices([]);
+        console.error('Failed to load categories:', error);
       }
     };
-
-    loadServices();
+    loadCategories();
   }, []);
-
-  const saveServices = (updatedServices: Service[]) => {
-    setServices(updatedServices);
-    localStorage.setItem("catalog_services", JSON.stringify(updatedServices));
-  };
 
   const filteredServices = services
     .filter((service) => {
@@ -88,33 +95,51 @@ export default function Services() {
     setSelectedItems(checked ? filteredServices.map((s) => s.id) : []);
   };
 
-  const handleDelete = (service: Service) => {
-    saveServices(services.filter((s) => s.id !== service.id));
-    toast.success("Service deleted");
+  const handleDelete = async (service: Service) => {
+    try {
+      await deleteService(service.id);
+      toast.success("Service deleted");
+      await loadServices();
+    } catch (error) {
+      toast.error(`Failed to delete service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
-  const handleBulkDelete = () => {
-    saveServices(services.filter((s) => !selectedItems.includes(s.id)));
-    setSelectedItems([]);
-    toast.success(`${selectedItems.length} services deleted`);
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(selectedItems.map((id) => deleteService(id)));
+      setSelectedItems([]);
+      toast.success(`${selectedItems.length} services deleted`);
+      await loadServices();
+    } catch (error) {
+      toast.error(`Failed to delete services: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
-  const handleBulkShowOnline = () => {
-    const updated = services.map((s) =>
-      selectedItems.includes(s.id) ? { ...s, showOnline: true } : s
-    );
-    saveServices(updated);
-    setSelectedItems([]);
-    toast.success("Services shown online");
+  const handleBulkShowOnline = async () => {
+    try {
+      await Promise.all(
+        selectedItems.map((id) => updateService(id, { showOnline: true }))
+      );
+      setSelectedItems([]);
+      toast.success("Services shown online");
+      await loadServices();
+    } catch (error) {
+      toast.error(`Failed to update services: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
-  const handleBulkHideOnline = () => {
-    const updated = services.map((s) =>
-      selectedItems.includes(s.id) ? { ...s, showOnline: false } : s
-    );
-    saveServices(updated);
-    setSelectedItems([]);
-    toast.success("Services hidden online");
+  const handleBulkHideOnline = async () => {
+    try {
+      await Promise.all(
+        selectedItems.map((id) => updateService(id, { showOnline: false }))
+      );
+      setSelectedItems([]);
+      toast.success("Services hidden online");
+      await loadServices();
+    } catch (error) {
+      toast.error(`Failed to update services: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   return (
@@ -135,16 +160,10 @@ export default function Services() {
         onSearchChange={setSearchValue}
         filterValue={filterValue}
         onFilterChange={setFilterValue}
-        filterOptions={[
-          { label: "Classic Manicure", value: "Classic Manicure" },
-          { label: "Gel & Shellac", value: "Gel & Shellac" },
-          { label: "Specialty Manicure", value: "Specialty Manicure" },
-          { label: "Classic Pedicure", value: "Classic Pedicure" },
-          { label: "Spa Pedicure", value: "Spa Pedicure" },
-          { label: "Nail Enhancement", value: "Nail Enhancement" },
-          { label: "Nail Art", value: "Nail Art" },
-          { label: "Specialty Service", value: "Specialty Service" },
-        ]}
+        filterOptions={categories.map((cat) => ({
+          label: cat.name,
+          value: cat.id,
+        }))}
         sortValue={sortValue}
         onSortChange={setSortValue}
         sortOptions={[
@@ -170,14 +189,18 @@ export default function Services() {
         onSelectAll={handleSelectAll}
         onEdit={(service) => navigate(`/admin/catalog/services/${service.id}`)}
         onDelete={handleDelete}
-        onDuplicate={(service) => {
-          const newService = {
-            ...service,
-            id: Date.now().toString(),
-            name: `${service.name} (Copy)`,
-          };
-          saveServices([...services, newService]);
-          toast.success("Service duplicated");
+        onDuplicate={async (service) => {
+          try {
+            const { id, createdAt, updatedAt, ...rest } = service;
+            await createService(storeId, {
+              ...rest,
+              name: `${service.name} (Copy)`,
+            });
+            toast.success("Service duplicated");
+            await loadServices();
+          } catch (error) {
+            toast.error(`Failed to duplicate service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }}
       />
     </div>
