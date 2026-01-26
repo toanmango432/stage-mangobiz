@@ -437,3 +437,26 @@ Commit: 318b36f
 **Next story suggestion:** US-027 (Clean up catalogSyncService.ts — remove row: any) — Phase 5, priority 27, depends only on US-001✅, and is the next eligible non-blocked story. US-024 depends on US-022✅ + US-021✅ (both complete now) so it's also eligible.
 
 ---
+
+## 2026-01-26 - US-024: Remove deprecated localStorage storage files
+Commit: db3d5e6
+
+**Why this story?** US-024 is the highest priority eligible story (priority 24) with all dependencies met (US-021✅, US-022✅). It completes the Phase 4 cleanup by removing deprecated files that were replaced by Supabase-backed catalogSyncService.
+
+**Changes:**
+- apps/online-store/src/lib/storage/giftCardStorage.ts: DELETED (84 lines removed)
+- apps/online-store/src/lib/storage/membershipStorage.ts: DELETED (173 lines removed)
+- apps/online-store/src/lib/mockData.ts:20-21: Removed imports of initializeGiftCardConfig and initializeMembershipPlans. Removed initialization calls from initializeTemplateData().
+- apps/online-store/src/lib/api/store.ts:165-168: Replaced membershipStorage dynamic import fallback with empty array return.
+- apps/online-store/src/lib/api/store.ts:240-243: Replaced giftCardStorage dynamic import fallback with null return.
+- apps/online-store/src/types/catalog.ts:140: Updated JSDoc comment to note membershipStorage.ts was deleted.
+
+**Learnings:**
+- Both storage files had 2 remaining consumers each: mockData.ts (initialization calls) and api/store.ts (dynamic import fallbacks). All other consumers were already migrated in earlier stories (US-014, US-019, US-022).
+- The api/store.ts fallbacks used `as any` casts to bridge type mismatches — removing them also improves type safety.
+- pnpm build has a pre-existing rollup native module error (@rollup/rollup-darwin-arm64 missing) unrelated to code changes. TypeScript typecheck passes cleanly.
+- Net deletion: 271 lines removed, 7 lines added (comments). Good cleanup ratio.
+
+**Next story suggestion:** US-027 (Clean up catalogSyncService.ts — remove row: any) — Phase 5, priority 27, depends only on US-001✅. The only other eligible non-blocked stories are US-029 (priority 29).
+
+---

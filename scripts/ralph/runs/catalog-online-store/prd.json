@@ -608,7 +608,7 @@
       ],
       "dependencies": ["US-021", "US-022"],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "These files should have been fully replaced by catalogSyncService in US-014 and US-019. Check for initialization calls (initializeGiftCardConfig, initializeMembershipPlans) in app startup code."
     },
     {
