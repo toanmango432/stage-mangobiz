@@ -242,8 +242,8 @@
       ],
       "dependencies": ["US-007"],
       "priority": 8,
-      "passes": false,
-      "notes": "PREREQ-1 RESOLVED: Query the `products` table (migration 017 e-commerce schema), NOT `catalog_products` (which is for Store App inventory). Follow exact same pattern as service CRUD from US-003. Use toOnlineProduct/fromOnlineProduct adapters from US-007. Soft delete: set is_deleted = true, deleted_at = NOW(). Filter by show_online = true for public queries, is_deleted = false for all. ~80 lines added."
+      "passes": true,
+      "notes": "PREREQ-1 RESOLVED: Query the `products` table (migration 017 e-commerce schema), NOT `catalog_products` (which is for Store App inventory). Follow exact same pattern as service CRUD from US-003. Use toOnlineProduct/fromOnlineProduct adapters from US-007. Soft delete: set is_active = false (017 has no is_deleted column). Filter by is_active = true for all queries. ~155 lines added."
     },
     {
       "id": "US-009",
