@@ -3,24 +3,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Package, Scissors, ShoppingBag, CreditCard, Gift, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getServices } from "@/lib/services/catalogSyncService";
+import { getServices, getGiftCardConfig } from "@/lib/services/catalogSyncService";
 
 const Catalog = () => {
   const navigate = useNavigate();
   const [servicesCount, setServicesCount] = useState<number | null>(null);
+  const [giftCardsCount, setGiftCardsCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadCounts = async () => {
       try {
         const storeId = localStorage.getItem('storeId') || '';
-        const [services] = await Promise.all([
+        const [services, giftCardConfig] = await Promise.all([
           getServices(storeId),
+          getGiftCardConfig(storeId),
         ]);
         setServicesCount(services.length);
+        setGiftCardsCount(giftCardConfig?.enabled ? 1 : 0);
       } catch (error) {
         console.error('Failed to load catalog counts:', error);
         setServicesCount(0);
+        setGiftCardsCount(0);
       } finally {
         setIsLoading(false);
       }
@@ -65,7 +69,7 @@ const Catalog = () => {
       icon: Gift,
       title: "Gift Cards",
       description: "Gift card configurations",
-      count: 0,
+      count: giftCardsCount ?? 0,
       color: "text-primary",
       path: "/admin/catalog/giftcards",
     },
