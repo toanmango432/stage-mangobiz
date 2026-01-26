@@ -355,7 +355,7 @@
       ],
       "dependencies": ["US-012"],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "gift_card_settings has UNIQUE (store_id) constraint — use upsert. gift_card_denominations are per-store rows with individual amounts. Same function names as giftCardStorage.ts but different implementation. ~70 lines added."
     },
     {

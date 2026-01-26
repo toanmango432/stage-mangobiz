@@ -212,3 +212,26 @@ Commit: 235bdbe
 **Next story suggestion:** US-013 (Add gift card CRUD to catalogSyncService) — directly depends on US-012, same service file pattern, unblocks US-014 and US-015.
 
 ---
+
+## 2026-01-26 - US-013: Add gift card CRUD to catalogSyncService
+Commit: 80f16a4
+
+**Why this story?** US-013 is the highest priority Phase 3 story with all dependencies met (US-012 complete). Progress.txt explicitly suggested it as the next logical story. It unblocks US-014 (GiftCardSettings.tsx) and US-015 (dashboard count).
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-20: Added imports for toGiftCardConfig, fromGiftCardConfig, GiftCardSettingsRow, GiftCardDenominationRow from catalogAdapters and GiftCardConfig from types/catalog
+- apps/online-store/src/lib/services/catalogSyncService.ts:49: Added CACHE_KEY_GIFTCARD constant ('catalog_giftcard_v2')
+- apps/online-store/src/lib/services/catalogSyncService.ts:383-393: Added invalidateGiftCardCache() helper
+- apps/online-store/src/lib/services/catalogSyncService.ts:395-462: Added getGiftCardConfig(storeId) — cache-first, then fetches gift_card_settings (single row via .single()) and gift_card_denominations (multiple active rows), combines via toGiftCardConfig adapter. Handles PGRST116 (no rows) gracefully by returning null. Includes store_id validation for both settings and denominations.
+- apps/online-store/src/lib/services/catalogSyncService.ts:464-543: Added updateGiftCardConfig(storeId, config) — upserts settings row (onConflict: 'store_id'), soft-deletes existing denominations, inserts new denomination rows from config.presetAmounts via fromGiftCardConfig adapter. Returns reconstituted GiftCardConfig.
+- apps/online-store/src/lib/services/catalogSyncService.ts:616: Added CACHE_KEY_GIFTCARD to clearCache()
+
+**Learnings:**
+- Supabase `.single()` throws PGRST116 error code when no rows match — handle explicitly to distinguish "no config yet" from real errors
+- gift_card_settings upsert uses `onConflict: 'store_id'` since there's a UNIQUE constraint on store_id — this handles both create and update in one call
+- Denomination replacement strategy: soft-delete all existing → insert new. This avoids complex diff logic and ensures clean state. The soft-deleted rows remain for audit trail.
+- File grew to 707 lines — approaching the guideline limit. Future stories should consider extracting gift card operations into a separate module if more operations are added.
+
+**Next story suggestion:** US-014 (Update GiftCardSettings.tsx to use Supabase) — directly depends on US-013, frontend story that consumes these new CRUD operations, and unblocks US-015 (dashboard count).
+
+---
