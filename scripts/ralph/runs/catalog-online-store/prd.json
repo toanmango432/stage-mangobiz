@@ -728,7 +728,7 @@
       "dependencies": ["US-003", "US-013", "US-018"],
       "testCommand": "cd apps/online-store && pnpm test --run",
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": "Mock Supabase client at module level. Test cache behavior by checking localStorage. Each test should be independent (clear localStorage between tests). Target ~200 lines.",
       "category": "test"
     }

@@ -5,6 +5,7 @@
 1. **Online Store has no `typecheck` script** — use `npx tsc --noEmit` from the app directory instead of `pnpm run typecheck`.
 2. **catalogSyncService.ts `row: any` cleaned up** — US-027 removed the redundant local toOnlineService and replaced validateStoreIsolation's `any[]` with `Array<{ store_id: string }>`. No `any` remains in function signatures.
 3. **Service type requires `showOnline: boolean`** — maps to `online_booking_enabled` in menu_services table. The existing `toOnlineService` in catalogSyncService.ts omits this field (it was added later to the type).
+4. **Mocking Supabase client in tests** — Use `vi.hoisted()` + `process.env.VITE_*` to set env vars before module evaluation. Mock `@supabase/supabase-js` with `vi.mock()`. Create thenable chain objects that mimic Supabase's query builder (every method returns chainable object with `.then()` for `await`).
 
 ---
 
@@ -480,5 +481,62 @@ Commit: 6d57ba6
 - The `as ServiceRow[]` cast on Supabase data is the standard pattern used throughout the file for other entity types (GiftCardSettingsRow, MembershipPlanRow, etc.)
 
 **Next story suggestion:** US-029 (Unit tests for catalogSyncService CRUD operations) — the only other eligible non-blocked story. All other Phase 5 stories (US-025, US-026, US-028) are blocked by Phase 2 stories.
+
+---
+
+## 2026-01-26 - US-029: Unit tests for catalogSyncService CRUD operations
+Commit: d0b8442c2c9b5b1e9648bf18046bf0715568cd49
+
+**Why this story?** US-029 is the only remaining story with all dependencies met. All other incomplete stories (US-007–US-011 in Phase 2, US-023, US-025, US-026, US-028) are blocked by Phase 2 stories which are blocked by PREREQ-1.
+
+**Changes:**
+- apps/online-store/src/lib/services/__tests__/catalogSyncService.test.ts (NEW, 791 lines): Comprehensive unit tests covering all CRUD operations
+
+**Test Coverage:**
+- getCategories: 3 tests (success, empty, error)
+- createService: 3 tests (success, error, cache invalidation)
+- updateService: 3 tests (success, error, cache invalidation)
+- deleteService: 3 tests (soft-delete, error, cache invalidation)
+- getGiftCardConfig: 3 tests (combined settings+denoms, PGRST116 no-rows, error)
+- updateGiftCardConfig: 3 tests (upsert+replace, error, cache invalidation)
+- getMembershipPlans: 4 tests (success, empty, error, caching)
+- createMembershipPlan: 3 tests (success, error, cache invalidation)
+- updateMembershipPlan: 3 tests (success, error, cache invalidation)
+- deleteMembershipPlan: 3 tests (soft-delete, error, cache invalidation)
+- Cache behavior: 4 tests (clearCache, cached hit, expired cache skip)
+- Total: 35 tests, all passing
+
+**Learnings:**
+- vi.hoisted() with process.env.VITE_* is required for module-level Supabase client creation — import.meta.env is populated from process.env in Vitest
+- Supabase query builder must be mocked as a thenable chain (every method returns object with .then()) because any position in the chain can be the terminal await point
+- vi.mock('@supabase/supabase-js') must reference mockFrom from vi.hoisted() for correct hoisting
+- 14 pre-existing test files fail (202 tests) — all in booking components, unrelated to catalog work
+- The test file is 791 lines (exceeds the 200-line PRD target) but covers all acceptance criteria comprehensively; the majority is fixture data for Supabase row types which require many fields
+
+**Patterns to sync:**
+- Pattern #4: Supabase client mocking — Use vi.hoisted + process.env + thenable chain pattern for testing services that create Supabase clients at module level
+
+**Next story suggestion:** All remaining incomplete stories are blocked by PREREQ-1 (Phase 2 product table conflict). No more stories can be completed until PREREQ-1 is resolved.
+
+---
+
+## Session Summary - 2026-01-26
+
+**Completed this session:** 1 story (US-029)
+**Total progress:** 24/29 stories (83%)
+
+**Blocked stories:**
+- US-007 to US-011 (Phase 2): Blocked by PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Blocked by US-009 (Phase 2)
+- US-025 (Phase 5): Blocked by US-009, US-010 (Phase 2)
+- US-026 (Phase 5): Blocked by US-009 (Phase 2)
+- US-028 (Phase 5): Blocked by US-007 (Phase 2)
+
+**Patterns synced:** 1 new pattern added to progress.txt (Supabase client mocking)
+
+**Next session should:**
+- Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031)
+- Then unblock Phase 2 (US-007 through US-011)
+- This will cascade-unblock US-023, US-025, US-026, US-028
 
 ---

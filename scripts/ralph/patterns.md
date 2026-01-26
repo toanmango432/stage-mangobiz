@@ -541,3 +541,38 @@ export interface MembershipFeatures {
 features: Record<string, any>;
 ```
 **Why:** Provides IDE autocomplete and type checking for commonly used fields while maintaining extensibility for stores that add custom data via JSONB. The index signature `[key: string]: unknown` (not `any`) preserves strict type checking for unknown fields.
+
+### Testing Supabase Services
+
+When testing modules that create a Supabase client at module level (e.g., `catalogSyncService.ts`):
+
+```typescript
+// 1. Use vi.hoisted to set env vars BEFORE module evaluation
+const { mockFrom } = vi.hoisted(() => {
+  process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
+  process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
+  const mockFrom = vi.fn();
+  return { mockFrom };
+});
+
+// 2. Mock the Supabase package
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(() => ({ from: mockFrom })),
+}));
+
+// 3. Create thenable chain objects (Supabase builder is thenable at any point)
+function createChain(resolveWith: { data?: unknown; error?: unknown }) {
+  const ch = {};
+  const self = () => ch;
+  ch.select = vi.fn(self);
+  ch.insert = vi.fn(self);
+  ch.update = vi.fn(self);
+  ch.eq = vi.fn(self);
+  ch.order = vi.fn(self);
+  ch.single = vi.fn(self);
+  ch.then = (resolve, reject) => Promise.resolve(resolveWith).then(resolve, reject);
+  return ch;
+}
+```
+
+**Why:** The Supabase client is created at module load time using `import.meta.env`. Vitest populates `import.meta.env` from `process.env`, so setting `process.env.VITE_*` in `vi.hoisted()` ensures the env vars exist when the module evaluates. The thenable chain pattern is needed because Supabase's query builder can be awaited at any position in the chain.
