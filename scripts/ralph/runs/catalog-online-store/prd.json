@@ -659,7 +659,7 @@
       ],
       "dependencies": ["US-004", "US-009", "US-014", "US-019"],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "Earlier stories added basic loading states — this standardizes them. Consider creating shared CatalogLoadingState and CatalogErrorState components if patterns are identical. ~10 lines per file.",
       "category": "frontend"
     },

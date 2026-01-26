@@ -1040,3 +1040,32 @@ Commit: N/A (no code changes needed)
 **Next story suggestion:** US-026 (Add loading and error states to all catalog pages) — Phase 5, priority 26, all dependencies met.
 
 ---
+
+## 2026-01-26 - US-026: Add loading and error states to all catalog pages
+Commit: ebf98f9
+
+**Why this story?** US-026 is the highest priority eligible story (priority 26) with all dependencies met (US-004✅, US-009✅, US-014✅, US-019✅). It standardizes loading/error UX across all catalog list pages.
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/Services.tsx:3,22-23,25-35,148-175: Added Loader2 import, isLoading/error state variables, try/catch/finally pattern in loadServices(), loading spinner (Loader2 centered in py-12) and error banner (destructive border with error message and Retry button)
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:22,29-30,36-38,91-107: Added error state variable, setError(null) at load start, error capture in catch block with toast, error banner render (same pattern as Products/Services) between loading check and no-config check
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:115-130: Standardized error state render to match consistent pattern (rounded-md, p-4, size="sm" button, page header included in error view)
+
+**Analysis of existing state before changes:**
+- Products.tsx: Already had both loading and error states — no changes needed
+- Memberships.tsx: Had both states but error banner styling differed (rounded-lg/p-6 vs rounded-md/p-4) — standardized
+- Services.tsx: Had neither loading nor error state — added both
+- GiftCardSettings.tsx: Had loading state but no error state — added error state
+
+**Consistent pattern across all 4 pages:**
+- Loading: `<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />` centered in `py-12`
+- Error: `rounded-md border border-destructive/50 bg-destructive/10 p-4 text-center` with error message and `variant="outline" size="sm"` Retry button
+- Error view includes page header (title + subtitle) for context
+
+**Learnings:**
+- Products.tsx and Memberships.tsx already had proper states from US-009 and US-019 respectively — the main work was Services.tsx (completely missing) and GiftCardSettings.tsx (missing error state)
+- Standardizing the error banner pattern (rounded-md vs rounded-lg, p-4 vs p-6, Button size="sm" vs default) ensures visual consistency when users encounter errors on different pages
+
+**Next story suggestion:** US-028 (Unit tests for catalogAdapters) — Phase 5, priority 28, all dependencies met (US-001✅, US-007✅, US-012✅, US-017✅). The only remaining story with passes: false.
+
+---
