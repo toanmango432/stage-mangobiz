@@ -144,7 +144,7 @@
       ],
       "dependencies": ["US-002", "US-003"],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "File is 338 lines — keep under 350 after changes. Uses sonner for toast (keep consistent). useNavigate() and useParams() already in place. Category dropdown shows name from Supabase. CRITICAL: No mock data. ~80 lines changed.",
       "category": "frontend"
     },

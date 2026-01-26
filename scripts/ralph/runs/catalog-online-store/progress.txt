@@ -95,3 +95,29 @@ Commit: a1587bd
 **Next story suggestion:** US-004 (Update ServiceForm.tsx to use Supabase writes) — depends on US-002 and US-003 (both complete), and is the next frontend story that consumes these write operations.
 
 ---
+
+## 2026-01-26 - US-004: Update ServiceForm.tsx to use Supabase writes
+Commit: fffd3b9
+
+**Why this story?** US-004 is the highest priority story (priority 4) with all dependencies met (US-002 and US-003 both complete). It's the first frontend story consuming the write operations just added, and ServiceForm.tsx is a core page for service creation/editing.
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:1-17: Added imports for getCategories, getServices, createService, updateService from catalogSyncService, Category type from catalogAdapters, and Loader2 icon
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:18-19: Removed hardcoded categories array (8 hardcoded category strings)
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:41-44: Added state for categories (Category[]), isLoadingCategories, isLoadingService
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:47-65: New useEffect to load categories from Supabase on mount with error handling
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:67-89: New useEffect to load existing service via getServices() when editing (replaced localStorage.getItem read)
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:91-114: Rewrote handleSave to use createService/updateService instead of localStorage.setItem, removed simulated delay and Date.now() ID generation
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:116-123: Added loading state UI for when editing existing service
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:157-173: Category dropdown now shows loading spinner while fetching, uses category.id as value and category.name as label
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:296,349: Replaced Date.now() with crypto.randomUUID() for question/add-on local IDs
+
+**Learnings:**
+- The Service.category field stores category_id (UUID), not category name — the adapter's fromOnlineService maps `category` → `category_id`
+- localStorage.getItem('storeId') is the established pattern for resolving store context in Online Store catalog pages
+- crypto.randomUUID() is a clean replacement for Date.now() for client-side temp IDs
+- File grew from 338 to 378 lines due to loading states and async logic — still within acceptable range
+
+**Next story suggestion:** US-005 (Update Services.tsx to use Supabase writes) — same phase, similar changes (delete/duplicate via Supabase, category filter from DB), and shares dependencies with US-004.
+
+---
