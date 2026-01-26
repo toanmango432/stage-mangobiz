@@ -162,10 +162,8 @@ export async function getMembershipPlans(): Promise<MembershipPlan[]> {
     }
     return response.data?.data || [];
   } catch (error) {
-    console.error('Failed to fetch membership plans, falling back to localStorage:', error);
-    // Fallback to localStorage
-    const { getActiveMembershipPlans } = await import('@/lib/storage/membershipStorage');
-    return getActiveMembershipPlans() as any;
+    console.error('Failed to fetch membership plans:', error);
+    return [];
   }
 }
 
@@ -237,10 +235,8 @@ export async function getGiftCardConfig(): Promise<any> {
     const data = await response.json();
     return data.config || null;
   } catch (error) {
-    console.error('Failed to fetch gift card config, falling back to localStorage:', error);
-    // Fallback to localStorage
-    const { getGiftCardConfig: getLocalConfig } = await import('@/lib/storage/giftCardStorage');
-    return getLocalConfig();
+    console.error('Failed to fetch gift card config:', error);
+    return null;
   }
 }
 

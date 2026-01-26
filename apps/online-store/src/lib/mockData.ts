@@ -17,8 +17,6 @@ import { Service } from '@/types/catalog';
 import { Staff, Booking } from '@/types/booking';
 import { initializeTemplateStorage } from '@/lib/storage/templateStorage';
 import { initializeStorefrontConfig } from '@/lib/storage/configStorage';
-import { initializeGiftCardConfig } from '@/lib/storage/giftCardStorage';
-import { initializeMembershipPlans } from '@/lib/storage/membershipStorage';
 import { seedTemplateSections } from '@/lib/storage/templateStorage';
 // import salonShowcase from '@/lib/templates/salon-showcase.json';
 
@@ -800,11 +798,8 @@ export function initializeTemplateData(): void {
     console.log('⚙️  Initializing storefront config...');
     initializeStorefrontConfig();
     
-    console.log('🎁 Initializing gift card config...');
-    initializeGiftCardConfig();
-    
-    console.log('💎 Initializing membership plans...');
-    initializeMembershipPlans();
+    // Gift card config and membership plans now come from Supabase via catalogSyncService
+    // (giftCardStorage.ts and membershipStorage.ts have been removed)
 
     // Seed default template sections from salon-showcase.json
     console.log('🌱 Seeding template sections...');

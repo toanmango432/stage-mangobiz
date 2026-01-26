@@ -137,7 +137,7 @@ export interface MembershipRules {
  * and the Online Store admin UI (Memberships.tsx).
  *
  * Replaces the old Membership interface (e-commerce subscription model)
- * and the MembershipPlan interface from membershipStorage.ts.
+ * and the legacy MembershipPlan interface (previously in membershipStorage.ts, now deleted).
  */
 export interface MembershipPlan {
   id: string;
