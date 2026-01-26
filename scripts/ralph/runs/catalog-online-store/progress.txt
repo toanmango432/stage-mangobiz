@@ -262,3 +262,25 @@ Commit: 60a6576
 **Next story suggestion:** US-015 (Update Catalog.tsx with gift cards count) — depends on US-006 (complete) and US-013 (complete), small incremental change to existing Promise.all pattern, continues Phase 3 momentum.
 
 ---
+
+## 2026-01-26 - US-015: Update Catalog.tsx with gift cards count
+Commit: 1e72970
+
+**Why this story?** US-015 is the highest priority eligible story (priority 15) with all dependencies met (US-006✅, US-013✅). It's a small incremental change to the existing Promise.all pattern in Catalog.tsx, continuing Phase 3 momentum.
+
+**Changes:**
+- apps/online-store/src/pages/admin/Catalog.tsx:6: Added getGiftCardConfig import from catalogSyncService
+- apps/online-store/src/pages/admin/Catalog.tsx:11: Added giftCardsCount state (number | null)
+- apps/online-store/src/pages/admin/Catalog.tsx:18-20: Added getGiftCardConfig(storeId) to Promise.all alongside getServices
+- apps/online-store/src/pages/admin/Catalog.tsx:23: Set giftCardsCount = giftCardConfig?.enabled ? 1 : 0
+- apps/online-store/src/pages/admin/Catalog.tsx:27: Reset giftCardsCount to 0 on error
+- apps/online-store/src/pages/admin/Catalog.tsx:72: Gift Cards section count uses dynamic giftCardsCount ?? 0
+
+**Learnings:**
+- The pattern of extending Promise.all is clean and predictable — later phases (US-011 for products, US-020 for memberships) will follow the exact same pattern
+- giftCardConfig?.enabled optional chaining handles null (no config) → 0, and false → 0 cleanly
+- File grew from 119 to 123 lines — well within limits
+
+**Next story suggestion:** US-016 (Create membership_plans Supabase migration) — next Phase 3 story with no unmet dependencies, and it resolves PREREQ-2 which unblocks US-017 through US-020.
+
+---

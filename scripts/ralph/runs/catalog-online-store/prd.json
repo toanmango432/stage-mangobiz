@@ -399,7 +399,7 @@
       ],
       "dependencies": ["US-006", "US-013"],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Add to existing Promise.all from US-006. ~10 lines changed.",
       "category": "frontend"
     },
