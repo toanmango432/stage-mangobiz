@@ -3,7 +3,7 @@
  * Converts between Supabase row types (snake_case) and Online Store types (camelCase)
  */
 
-import type { Service, GiftCardConfig, MembershipPlan, MembershipFeatures, MembershipRules } from '@/types/catalog';
+import type { Service, Product, GiftCardConfig, MembershipPlan, MembershipFeatures, MembershipRules } from '@/types/catalog';
 
 // ─── Supabase Row Interfaces ─────────────────────────────────────────────────
 
@@ -171,6 +171,113 @@ export function toOnlineCategory(row: CategoryRow): Category {
     icon: row.icon ?? undefined,
     displayOrder: row.display_order,
   };
+}
+
+// ─── Supabase Row Interfaces: Products ──────────────────────────────────────
+
+/**
+ * Matches products table from migration 017 (e-commerce catalog)
+ */
+export interface ProductRow {
+  id: string;
+  store_id: string;
+  category_id: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  short_description: string | null;
+  price: number;
+  compare_at_price: number | null;
+  cost_price: number | null;
+  sku: string | null;
+  barcode: string | null;
+  track_inventory: boolean;
+  stock_quantity: number;
+  low_stock_threshold: number;
+  allow_backorder: boolean;
+  images: Array<{ url: string; alt?: string; position?: number }> | null;
+  thumbnail_url: string | null;
+  weight: number | null;
+  weight_unit: string | null;
+  dimensions: { length: number; width: number; height: number; unit?: string } | null;
+  has_variants: boolean;
+  variant_options: Array<Record<string, unknown>> | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  is_active: boolean;
+  is_featured: boolean;
+  show_online: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Adapters: Product ──────────────────────────────────────────────────────
+
+/**
+ * Convert a Supabase products row (migration 017) to an Online Store Product
+ */
+export function toOnlineProduct(row: ProductRow): Product {
+  const images = Array.isArray(row.images)
+    ? row.images.map((img) => (typeof img === 'string' ? img : img.url))
+    : [];
+
+  return {
+    id: row.id,
+    name: row.name,
+    sku: row.sku || '',
+    category: row.category_id || '',
+    description: row.description || '',
+    costPrice: Number(row.cost_price) || 0,
+    retailPrice: Number(row.price) || 0,
+    compareAtPrice: row.compare_at_price != null ? Number(row.compare_at_price) : undefined,
+    taxable: false, // Not in migration 017 — default
+    trackInventory: row.track_inventory,
+    stockQuantity: row.stock_quantity || 0,
+    lowStockThreshold: row.low_stock_threshold || 5,
+    allowBackorders: row.allow_backorder,
+    images,
+    requiresShipping: false, // Not in migration 017 — default
+    weight: row.weight != null ? Number(row.weight) : undefined,
+    dimensions: row.dimensions ?? undefined,
+    collections: [],  // Not in migration 017 — default
+    tags: [],  // Not in migration 017 — default
+    showOnline: row.show_online,
+    featured: row.is_featured,
+    createdAt: row.created_at || new Date().toISOString(),
+    updatedAt: row.updated_at || new Date().toISOString(),
+  };
+}
+
+/**
+ * Convert an Online Store Product to a partial Supabase products row for writes
+ */
+export function fromOnlineProduct(
+  product: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>
+): Partial<ProductRow> {
+  const row: Partial<ProductRow> = {};
+
+  if (product.name !== undefined) row.name = product.name;
+  if (product.sku !== undefined) row.sku = product.sku || null;
+  if (product.category !== undefined) row.category_id = product.category || null;
+  if (product.description !== undefined) row.description = product.description || null;
+  if (product.retailPrice !== undefined) row.price = product.retailPrice;
+  if (product.compareAtPrice !== undefined) {
+    row.compare_at_price = product.compareAtPrice ?? null;
+  }
+  if (product.costPrice !== undefined) row.cost_price = product.costPrice;
+  if (product.trackInventory !== undefined) row.track_inventory = product.trackInventory;
+  if (product.stockQuantity !== undefined) row.stock_quantity = product.stockQuantity;
+  if (product.lowStockThreshold !== undefined) row.low_stock_threshold = product.lowStockThreshold;
+  if (product.allowBackorders !== undefined) row.allow_backorder = product.allowBackorders;
+  if (product.images !== undefined) {
+    row.images = product.images.map((url, i) => ({ url, position: i }));
+  }
+  if (product.weight !== undefined) row.weight = product.weight ?? null;
+  if (product.dimensions !== undefined) row.dimensions = product.dimensions ?? null;
+  if (product.showOnline !== undefined) row.show_online = product.showOnline;
+  if (product.featured !== undefined) row.is_featured = product.featured;
+
+  return row;
 }
 
 // ─── Supabase Row Interfaces: Gift Cards ────────────────────────────────────

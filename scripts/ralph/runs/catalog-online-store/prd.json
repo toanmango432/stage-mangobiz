@@ -4,9 +4,11 @@
   "description": "Online Store Catalog Admin — Supabase Migration. Migrate all admin catalog pages (Services, Products, Memberships, Gift Cards) from localStorage/mock data to Supabase. Extend catalogSyncService with write ops, create adapters, consolidate types, add error handling and tests.",
   "prerequisites": {
     "PREREQ-1": {
-      "description": "Products table schema conflict: Migration 017 (e-commerce) and 031 (inventory) both define `products` table with incompatible schemas. Must resolve before Phase 2.",
-      "blocksPhase": 2,
-      "blocksStories": ["US-007", "US-008", "US-009", "US-010", "US-011"]
+      "description": "Products table schema conflict: Migration 017 (e-commerce) and 031 (inventory) both define `products` table with incompatible schemas. RESOLVED: Migration 034_create_catalog_products.sql creates separate catalog_products table for Store App inventory. The `products` table (017 schema) is the Online Store e-commerce catalog — use it directly for product CRUD.",
+      "blocksPhase": null,
+      "blocksStories": [],
+      "resolved": true,
+      "resolvedBy": "supabase/migrations/034_create_catalog_products.sql"
     },
     "PREREQ-2": {
       "description": "No membership_plans Supabase table exists. Handled by US-016 in Phase 3.",
@@ -25,7 +27,7 @@
       "name": "Products",
       "stories": "US-007 to US-011",
       "count": 5,
-      "checkpoint": "BLOCKED by PREREQ-1. Product adapters, CRUD in catalogSyncService, Products.tsx uses Supabase (no mock OPI Nail Polish), ProductForm.tsx created, dashboard shows products count. Run: pnpm run typecheck"
+      "checkpoint": "Product adapters for migration 017 `products` table, CRUD in catalogSyncService, Products.tsx uses Supabase (no mock OPI Nail Polish), ProductForm.tsx created, dashboard shows products count. Run: pnpm run typecheck"
     },
     "3": {
       "name": "Gift Cards & Memberships",
@@ -217,7 +219,7 @@
       "dependencies": ["US-001"],
       "priority": 7,
       "passes": false,
-      "notes": "BLOCKED by PREREQ-1 (products table conflict). Product type in types/catalog.ts (lines 79-111). Exact ProductRow columns depend on PREREQ-1 resolution. ~60 lines added."
+      "notes": "PREREQ-1 RESOLVED: Use migration 017's `products` table (e-commerce schema). ProductRow columns from 017: id (UUID), store_id, name, description, slug, sku (nullable TEXT), price DECIMAL(10,2), compare_at_price, cost_price, images (JSONB array), has_variants BOOLEAN, show_online BOOLEAN, is_featured BOOLEAN, is_active, is_deleted, category_id (FK to product_categories), meta_title, meta_description, tags (JSONB), weight, dimensions, track_inventory, stock_quantity. Product type in types/catalog.ts (lines 79-111). Map: compare_at_price → compareAtPrice, cost_price → costPrice, show_online → showOnline, is_featured → featured, has_variants → hasVariants, track_inventory → trackInventory, stock_quantity → stockQuantity, category_id → categoryId. ~60 lines added."
     },
     {
       "id": "US-008",
@@ -241,7 +243,7 @@
       "dependencies": ["US-007"],
       "priority": 8,
       "passes": false,
-      "notes": "BLOCKED by PREREQ-1. Follow exact same pattern as service CRUD from US-003. ~80 lines added."
+      "notes": "PREREQ-1 RESOLVED: Query the `products` table (migration 017 e-commerce schema), NOT `catalog_products` (which is for Store App inventory). Follow exact same pattern as service CRUD from US-003. Use toOnlineProduct/fromOnlineProduct adapters from US-007. Soft delete: set is_deleted = true, deleted_at = NOW(). Filter by show_online = true for public queries, is_deleted = false for all. ~80 lines added."
     },
     {
       "id": "US-009",

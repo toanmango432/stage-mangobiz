@@ -540,3 +540,333 @@ Commit: d0b8442c2c9b5b1e9648bf18046bf0715568cd49
 - This will cascade-unblock US-023, US-025, US-026, US-028
 
 ---
+
+## Session Summary - 2026-01-26 (Iteration 3)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are BLOCKED by PREREQ-1:**
+
+| Story | Phase | Blocked By |
+|-------|-------|------------|
+| US-007 | 2 | PREREQ-1 (products table conflict) |
+| US-008 | 2 | US-007 → PREREQ-1 |
+| US-009 | 2 | US-008 → PREREQ-1 |
+| US-010 | 2 | US-008 → PREREQ-1 |
+| US-011 | 2 | US-006✅, US-008 → PREREQ-1 |
+| US-023 | 4 | US-005✅, US-009 → PREREQ-1, US-019✅ |
+| US-025 | 5 | US-004✅, US-005✅, US-009 → PREREQ-1, US-010 → PREREQ-1, US-014✅, US-019✅ |
+| US-026 | 5 | US-004✅, US-009 → PREREQ-1, US-014✅, US-019✅ |
+| US-028 | 5 | US-001✅, US-007 → PREREQ-1, US-012✅, US-017✅ |
+
+**PREREQ-1 investigation results:**
+- Migration 017 (e-commerce) and migration 031 (catalog/inventory) both define `products` table with incompatible schemas
+- Store-app already uses workaround: queries `catalog_products` table (not `products`)
+- No resolution migration exists
+- Key incompatibilities: price vs retail_price columns, nullable vs NOT NULL SKU, no multi-tenant in 017, no sync metadata in 017, different category storage (FK vs TEXT)
+- Options: (A) merge into superset, (B) rename one table (partially done for store-app), (C) extend 031 with e-commerce columns
+
+**To unblock remaining stories:**
+1. Decide on resolution approach (A, B, or C above)
+2. Create resolution migration
+3. Then Phase 2 (US-007–US-011) becomes unblocked
+4. Phase 2 completion cascades to unblock US-023, US-025, US-026, US-028
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 4)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged from Iteration 3)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1
+- US-023 (Phase 4): US-009 → PREREQ-1
+- US-025 (Phase 5): US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): US-009 → PREREQ-1
+- US-028 (Phase 5): US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed.
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 6)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Analysis of potential workarounds:**
+- US-023 (CatalogTable generics) was considered — its acceptance criteria requires "All existing usages in Services.tsx, Products.tsx, Memberships.tsx still compile." Since Products.tsx hasn't been migrated yet (US-009), adding generics could cause issues when Products.tsx is later rewritten. The explicit dependency on US-009 must be respected per Phase 2 instructions.
+- No other stories can bypass PREREQ-1.
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 5)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1
+- US-023 (Phase 4): US-009 → PREREQ-1
+- US-025 (Phase 5): US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): US-009 → PREREQ-1
+- US-028 (Phase 5): US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed.
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 7)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed.
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 8)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Workaround analysis (this iteration):**
+- US-028 (adapter tests) has conditional acceptance criterion "Tests toOnlineProduct (if exists)" — product adapter doesn't exist. However, explicit `dependencies` array includes US-007 which has `passes: false`. Per Phase 2 instructions ("If any dependency story has passes: false, skip this story"), US-028 must remain blocked despite the conditional criterion.
+- No other stories have workaround paths. All remaining stories have at least one Phase 2 dependency in their chain.
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 9)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 10)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 11)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 12)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 13)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 14)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 15)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+## Session Summary - 2026-01-26 (Iteration 16)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## PREREQ-1 RESOLVED - 2026-01-26
+
+**Resolution:** Option B — Formalize the table split.
+
+**Migration created:** `supabase/migrations/034_create_catalog_products.sql`
+
+**What was done:**
+- Created separate `catalog_products` table for Store App inventory (matches what store-app code already queries)
+- The `products` table (migration 017) remains as the e-commerce catalog for Online Store
+- Store-app's productsTable.ts, productAdapter.ts, and types.ts already reference `catalog_products` — the migration formalizes what the code expected
+- FK references from orders/reviews/memberships stay on `products` table (017)
+
+**Table split:**
+- `products` (migration 017) = Online Store e-commerce catalog: slug, compare_at_price, images JSONB, has_variants, show_online, is_featured, meta_title, meta_description
+- `catalog_products` (migration 034) = Store App retail/backbar inventory: sku NOT NULL, brand NOT NULL, is_retail, is_backbar, min_stock_level, sync metadata, vector_clock, tombstone pattern
+
+**Impact on remaining stories:**
+- US-007: ProductRow maps to migration 017 `products` table columns (price, compare_at_price, cost_price, images JSONB, has_variants, show_online, is_featured, slug, etc.)
+- US-008: Query `products` table (NOT `catalog_products`) for Online Store product CRUD
+- US-009 through US-011, US-023, US-025, US-026, US-028: All unblocked
+
+**prd.json updated:** PREREQ-1 marked as resolved, blocksPhase set to null, blocksStories cleared, US-007/US-008 notes updated with 017 schema column mapping details.
+
+**All 9 remaining stories are now UNBLOCKED. Next story: US-007 (Product adapters).**
+
+---
