@@ -76,3 +76,22 @@ Commit: dc3cedb
 **Next story suggestion:** US-003 (service write operations) — same file, already in context, and unblocks US-004, US-005, US-006.
 
 ---
+
+## 2026-01-26 - US-003: Extend catalogSyncService with service write operations
+Commit: a1587bd
+
+**Why this story?** US-003 is the highest priority remaining story (priority 3), depends only on US-001 (completed), and unblocks US-004, US-005, and US-006. Same file as US-002 so patterns are already established.
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-15: Updated imports to include toOnlineService (aliased as adapterToOnlineService), fromOnlineService, and ServiceRow from catalogAdapters
+- apps/online-store/src/lib/services/catalogSyncService.ts:286-375: Added Service Write Operations section with invalidateServicesCache(), createService(), updateService(), deleteService()
+
+**Learnings:**
+- Used `toOnlineService as adapterToOnlineService` alias to avoid conflict with existing local `toOnlineService` function (which still exists for backward compat until US-027 cleans it up)
+- createService takes storeId as first param (following same pattern as getServices/getCategories) and sets store_id on the row before insert
+- Supabase `.insert().select().single()` returns the newly created row — cast to ServiceRow for the adapter
+- Soft delete only sets `is_deleted` and `deleted_at` — no tombstone metadata (userId/deviceId) since this is the Online Store admin which doesn't have that context
+
+**Next story suggestion:** US-004 (Update ServiceForm.tsx to use Supabase writes) — depends on US-002 and US-003 (both complete), and is the next frontend story that consumes these write operations.
+
+---

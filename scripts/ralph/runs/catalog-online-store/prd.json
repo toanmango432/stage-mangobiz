@@ -116,7 +116,7 @@
       ],
       "dependencies": ["US-001"],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Follow query pattern of existing syncFromSupabase(). menu_services uses UUID PK from gen_random_uuid(). Soft delete: set is_deleted = true, deleted_at = NOW(). Check how syncFromSupabase resolves store_id. ~80 lines added."
     },
     {
