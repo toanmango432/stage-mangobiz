@@ -3,7 +3,7 @@
  * Converts between Supabase row types (snake_case) and Online Store types (camelCase)
  */
 
-import type { Service } from '@/types/catalog';
+import type { Service, GiftCardConfig } from '@/types/catalog';
 
 // ─── Supabase Row Interfaces ─────────────────────────────────────────────────
 
@@ -171,4 +171,140 @@ export function toOnlineCategory(row: CategoryRow): Category {
     icon: row.icon ?? undefined,
     displayOrder: row.display_order,
   };
+}
+
+// ─── Supabase Row Interfaces: Gift Cards ────────────────────────────────────
+
+/**
+ * Matches gift_card_settings table from migration 031
+ * One row per store (UNIQUE store_id constraint)
+ */
+export interface GiftCardSettingsRow {
+  id: string;
+  tenant_id: string;
+  store_id: string;
+  location_id: string | null;
+  allow_custom_amount: boolean;
+  min_amount: number;
+  max_amount: number;
+  default_expiration_days: number | null;
+  online_enabled: boolean;
+  email_delivery_enabled: boolean;
+  sync_status: 'local' | 'pending' | 'synced' | 'conflict' | 'error';
+  version: number;
+  vector_clock: Record<string, unknown>;
+  last_synced_version: number;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  created_by_device: string | null;
+  last_modified_by: string | null;
+  last_modified_by_device: string | null;
+  is_deleted: boolean;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  deleted_by_device: string | null;
+  tombstone_expires_at: string | null;
+}
+
+/**
+ * Matches gift_card_denominations table from migration 031
+ * Multiple rows per store (one per preset amount)
+ */
+export interface GiftCardDenominationRow {
+  id: string;
+  tenant_id: string;
+  store_id: string;
+  location_id: string | null;
+  amount: number;
+  label: string | null;
+  is_active: boolean;
+  display_order: number;
+  sync_status: 'local' | 'pending' | 'synced' | 'conflict' | 'error';
+  version: number;
+  vector_clock: Record<string, unknown>;
+  last_synced_version: number;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  created_by_device: string | null;
+  last_modified_by: string | null;
+  last_modified_by_device: string | null;
+  is_deleted: boolean;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  deleted_by_device: string | null;
+  tombstone_expires_at: string | null;
+}
+
+// ─── Adapters: Gift Cards ───────────────────────────────────────────────────
+
+/**
+ * Combine a gift_card_settings row and gift_card_denominations rows
+ * into a GiftCardConfig for the Online Store UI.
+ *
+ * Fields not stored in Supabase (designs, emailTemplate, terms) get defaults.
+ */
+export function toGiftCardConfig(
+  settingsRow: GiftCardSettingsRow,
+  denominationRows: GiftCardDenominationRow[]
+): GiftCardConfig {
+  const presetAmounts = denominationRows
+    .filter((d) => d.is_active)
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((d) => Number(d.amount));
+
+  const expiryDays = settingsRow.default_expiration_days;
+  const expiryMonths = expiryDays != null ? Math.round(expiryDays / 30) : null;
+
+  return {
+    enabled: settingsRow.online_enabled,
+    presetAmounts,
+    allowCustomAmounts: settingsRow.allow_custom_amount,
+    customAmountMin: Number(settingsRow.min_amount),
+    customAmountMax: Number(settingsRow.max_amount),
+    expiryMonths,
+    designs: [],
+    deliveryOptions: {
+      digital: settingsRow.email_delivery_enabled,
+      physical: true,
+      messageCharLimit: 200,
+    },
+    terms: '',
+    emailTemplate: {
+      subject: 'You received a gift card!',
+      body: '',
+    },
+  };
+}
+
+/**
+ * Convert a GiftCardConfig back to partial Supabase rows for writes.
+ * Returns settings fields and denomination data separately.
+ */
+export function fromGiftCardConfig(config: Partial<GiftCardConfig>): {
+  settings: Partial<GiftCardSettingsRow>;
+  denominations: Array<{ amount: number; label: string | null; display_order: number; is_active: boolean }>;
+} {
+  const settings: Partial<GiftCardSettingsRow> = {};
+
+  if (config.enabled !== undefined) settings.online_enabled = config.enabled;
+  if (config.allowCustomAmounts !== undefined) settings.allow_custom_amount = config.allowCustomAmounts;
+  if (config.customAmountMin !== undefined) settings.min_amount = config.customAmountMin;
+  if (config.customAmountMax !== undefined) settings.max_amount = config.customAmountMax;
+  if (config.expiryMonths !== undefined) {
+    settings.default_expiration_days = config.expiryMonths != null ? config.expiryMonths * 30 : null;
+  }
+  if (config.deliveryOptions?.digital !== undefined) {
+    settings.email_delivery_enabled = config.deliveryOptions.digital;
+  }
+
+  const denominations = (config.presetAmounts ?? []).map((amount, index) => ({
+    amount,
+    label: `$${amount}`,
+    display_order: index,
+    is_active: true,
+  }));
+
+  return { settings, denominations };
 }
