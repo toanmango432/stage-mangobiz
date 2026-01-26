@@ -293,7 +293,7 @@
       ],
       "dependencies": ["US-008"],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from ServiceForm.tsx (after US-004 updates). Check existing router config for /admin/catalog/products/new and /admin/catalog/products/:id/edit. Target ~250 lines, max 300.",
       "category": "frontend"
     },

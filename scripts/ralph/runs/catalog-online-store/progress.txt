@@ -945,3 +945,23 @@ Commit: f996dbb
 **Next story suggestion:** US-010 (Create ProductForm.tsx for product creation/editing) — depends on US-008✅, same phase, creates the form component needed for product create/edit workflow.
 
 ---
+
+## 2026-01-26 - US-010: Create ProductForm.tsx for product creation/editing
+Commit: 09b0d8a
+
+**Why this story?** US-010 is the highest priority story (priority 10) with all dependencies met (US-008✅). It creates the form component for product creation/editing, which Products.tsx (US-009) already navigates to. Also unblocks US-025 (toast standardization).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/ProductForm.tsx (NEW, 280 lines): Product form with fields for name, sku, vendor, category, description, costPrice, retailPrice, taxable, trackInventory, stockQuantity, lowStockThreshold, allowBackorders, showOnline, featured. Follows exact pattern from ServiceForm.tsx — async load on edit via getProducts(), create via createProduct(), update via updateProduct(). Loading state with Loader2 spinner. Error toast on failures. Saving state with disabled button.
+- apps/online-store/src/App.tsx:67: Added ProductForm import
+- apps/online-store/src/App.tsx:179: Added route `/catalog/products/:id` mapping to ProductForm (same pattern as `/catalog/services/:id` → ServiceForm)
+
+**Learnings:**
+- Router did not have a `/catalog/products/:id` route — Products.tsx was navigating to `/admin/catalog/products/new` and `/admin/catalog/products/${product.id}` without a matching route. Added the route alongside the existing `/catalog/products` route.
+- Product form is simpler than ServiceForm (no questions/add-ons builders) — 280 lines vs 378 lines
+- Category field uses plain text input rather than a dropdown since products don't use service_categories table — could be enhanced later with product_categories
+- Inventory fields (stockQuantity, lowStockThreshold, allowBackorders) conditionally render only when trackInventory is enabled
+
+**Next story suggestion:** US-011 (Update Catalog.tsx with products count) — last Phase 2 story, depends on US-006✅ and US-008✅, small change to existing Promise.all pattern.
+
+---
