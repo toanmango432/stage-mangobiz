@@ -5,53 +5,68 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
-import { Save, Plus, X } from "lucide-react";
-import { 
-  getGiftCardConfig, 
-  updateGiftCardConfig, 
-  type GiftCardConfig 
-} from "@/lib/storage/giftCardStorage";
+import { toast } from "sonner";
+import { Save, Plus, X, Loader2 } from "lucide-react";
+import {
+  getGiftCardConfig,
+  updateGiftCardConfig,
+} from "@/lib/services/catalogSyncService";
+import type { GiftCardConfig } from "@/types/catalog";
 
 export default function GiftCardSettings() {
   const [config, setConfig] = useState<GiftCardConfig | null>(null);
   const [presetAmounts, setPresetAmounts] = useState<number[]>([]);
   const [newAmount, setNewAmount] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadConfig();
   }, []);
 
-  function loadConfig() {
-    const giftCardConfig = getGiftCardConfig();
-    if (giftCardConfig) {
-      setConfig(giftCardConfig);
-      setPresetAmounts(giftCardConfig.presetAmounts);
+  async function loadConfig() {
+    setIsLoading(true);
+    try {
+      const storeId = localStorage.getItem('storeId') || '';
+      const giftCardConfig = await getGiftCardConfig(storeId);
+      if (giftCardConfig) {
+        setConfig(giftCardConfig);
+        setPresetAmounts(giftCardConfig.presetAmounts);
+      }
+    } catch (error) {
+      toast.error('Failed to load gift card settings');
+    } finally {
+      setIsLoading(false);
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!config) return;
 
-    updateGiftCardConfig({
-      ...config,
-      presetAmounts,
-    });
-
-    toast({
-      title: "Success",
-      description: "Gift card settings saved to localStorage",
-    });
+    setIsSaving(true);
+    try {
+      const storeId = localStorage.getItem('storeId') || '';
+      const updatedConfig = await updateGiftCardConfig(storeId, {
+        ...config,
+        presetAmounts,
+      });
+      setConfig(updatedConfig);
+      toast.success('Gift card settings saved');
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to save gift card settings'
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function handleAddAmount() {
     const amount = parseFloat(newAmount);
     if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid amount",
-        variant: "destructive",
-      });
+      toast.error('Please enter a valid amount');
       return;
     }
 
@@ -63,10 +78,18 @@ export default function GiftCardSettings() {
     setPresetAmounts(presetAmounts.filter((_, i) => i !== index));
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!config) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading gift card configuration...</p>
+        <p className="text-muted-foreground">No gift card configuration found</p>
       </div>
     );
   }
@@ -76,10 +99,14 @@ export default function GiftCardSettings() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Gift Card Settings</h1>
-          <p className="text-muted-foreground">Configure gift card options stored in localStorage</p>
+          <p className="text-muted-foreground">Configure gift card options for your store</p>
         </div>
-        <Button onClick={handleSave}>
-          <Save className="h-4 w-4 mr-2" />
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
           Save Changes
         </Button>
       </div>
@@ -247,23 +274,32 @@ export default function GiftCardSettings() {
               </div>
               <Switch
                 id="allow-message"
-                checked={config.allowMessage}
+                checked={(config.deliveryOptions?.messageCharLimit ?? 0) > 0}
                 onCheckedChange={(checked) =>
-                  setConfig({ ...config, allowMessage: checked })
+                  setConfig({
+                    ...config,
+                    deliveryOptions: {
+                      ...config.deliveryOptions,
+                      messageCharLimit: checked ? 200 : 0,
+                    },
+                  })
                 }
               />
             </div>
-            {config.allowMessage && (
+            {(config.deliveryOptions?.messageCharLimit ?? 0) > 0 && (
               <div className="space-y-2">
                 <Label htmlFor="max-length">Maximum Message Length</Label>
                 <Input
                   id="max-length"
                   type="number"
-                  value={config.maxMessageLength}
+                  value={config.deliveryOptions?.messageCharLimit ?? 200}
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      maxMessageLength: parseInt(e.target.value) || 200,
+                      deliveryOptions: {
+                        ...config.deliveryOptions,
+                        messageCharLimit: parseInt(e.target.value) || 200,
+                      },
                     })
                   }
                   min="50"
