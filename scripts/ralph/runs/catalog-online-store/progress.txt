@@ -917,3 +917,31 @@ Commit: 4886d34
 **Next story suggestion:** US-009 (Update Products.tsx to use Supabase) — depends on US-008 (now complete), frontend consumer of these new CRUD operations, and US-010 (ProductForm.tsx) also depends on US-008.
 
 ---
+
+## 2026-01-26 - US-009: Update Products.tsx to use Supabase
+Commit: f996dbb
+
+**Why this story?** US-009 is the highest priority story (priority 9) with all dependencies met (US-008✅). It's the frontend consumer of the product CRUD operations added in US-008, and unblocks US-023, US-025, and US-026 (which all depend on US-009).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/Products.tsx:1-11: Added Loader2 import, replaced import chain — removed mock data, added getProducts/deleteProduct from catalogSyncService
+- apps/online-store/src/pages/admin/catalog/Products.tsx:12-36 (old): Removed entire mockProducts array (25 lines with hardcoded "OPI Nail Polish - Big Apple Red")
+- apps/online-store/src/pages/admin/catalog/Products.tsx:19-20: Added isLoading and error state variables
+- apps/online-store/src/pages/admin/catalog/Products.tsx:24-38: New loadProducts() async function with try/catch/finally, uses getProducts(storeId), sets error state on failure
+- apps/online-store/src/pages/admin/catalog/Products.tsx:46: Added null guard for sku in search filter (product.sku may be undefined from Supabase)
+- apps/online-store/src/pages/admin/catalog/Products.tsx:60: Added null guard for retailPrice render (value ?? 0)
+- apps/online-store/src/pages/admin/catalog/Products.tsx:84-93: Made handleDelete async — uses deleteProduct() then refetches via loadProducts()
+- apps/online-store/src/pages/admin/catalog/Products.tsx:95-105: Made handleBulkDelete async — uses Promise.all with deleteProduct() for parallel deletion
+- apps/online-store/src/pages/admin/catalog/Products.tsx:107-132: Added loading state (Loader2 spinner) and error state (destructive banner with Retry button)
+- apps/online-store/src/pages/admin/catalog/Products.tsx:166-173: Added empty state with "No products yet" message and Add button
+- Removed: saveProducts() localStorage helper, localStorage.getItem('catalog_products'), mockProducts fallback
+
+**Learnings:**
+- Product.sku can be undefined/null when coming from Supabase (nullable column in migration 017) — needed `(product.sku || "")` guard for search filter
+- retailPrice render needed null guard `(value ?? 0).toFixed(2)` since products from Supabase may not have price set
+- File went from 150 to 187 lines — slightly over 160 target due to loading/error/empty states, but acceptable
+- Pattern is consistent with Services.tsx (US-005) — async handlers with try/catch, loadProducts() refetch after mutations
+
+**Next story suggestion:** US-010 (Create ProductForm.tsx for product creation/editing) — depends on US-008✅, same phase, creates the form component needed for product create/edit workflow.
+
+---
