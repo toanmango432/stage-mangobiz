@@ -321,3 +321,29 @@ Commit: cb9930e
 **Next story suggestion:** US-018 (Add membership CRUD to catalogSyncService) — directly depends on US-017, same service file pattern, unblocks US-019 (Memberships.tsx) and US-020 (dashboard count).
 
 ---
+
+## 2026-01-26 - US-018: Add membership CRUD to catalogSyncService
+Commit: eee5b75
+
+**Why this story?** US-018 is the highest priority eligible story (priority 18) with its sole dependency US-017 complete. Progress.txt explicitly suggested it as next. It unblocks US-019 (Memberships.tsx), US-020 (dashboard count), US-022 (type reconciliation), US-029 (service tests), and several Phase 4/5 stories.
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-21: Added imports for toOnlineMembershipPlan, fromOnlineMembershipPlan, MembershipPlanRow from catalogAdapters and MembershipPlan from membershipStorage
+- apps/online-store/src/lib/services/catalogSyncService.ts:54: Added CACHE_KEY_MEMBERSHIPS constant ('catalog_memberships_v2')
+- apps/online-store/src/lib/services/catalogSyncService.ts:557-564: Added invalidateMembershipCache() helper
+- apps/online-store/src/lib/services/catalogSyncService.ts:566-611: Added getMembershipPlans(storeId) — cache-first, queries membership_plans filtered by is_deleted=false ordered by sort_order, validates store isolation, caches results
+- apps/online-store/src/lib/services/catalogSyncService.ts:613-619: Added getCachedMembershipPlans() — reads from localStorage cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:621-649: Added createMembershipPlan(storeId, plan) — inserts via fromOnlineMembershipPlan adapter, returns via toOnlineMembershipPlan, invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:651-678: Added updateMembershipPlan(id, updates) — updates via adapter, sets updated_at, invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:680-698: Added deleteMembershipPlan(id) — soft-deletes (is_deleted=true, deleted_at), invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:800: Added CACHE_KEY_MEMBERSHIPS to clearCache()
+
+**Learnings:**
+- Follows exact same pattern as service CRUD (US-003) and gift card CRUD (US-013) — no new patterns needed
+- File grew from 708 to 820 lines — well above the 500-line guideline. After Phase 3, this file should be considered for splitting (e.g., separate modules per entity: services, giftCards, memberships)
+- MembershipPlan type imported from membershipStorage.ts (same as catalogAdapters.ts) — consistent import source until Phase 4 type reconciliation (US-022)
+- 152 lines added (slightly more than the ~80 estimate in PRD notes due to full JSDoc and error handling)
+
+**Next story suggestion:** US-019 (Update Memberships.tsx to use Supabase) — directly depends on US-018, frontend story consuming these new CRUD operations, and unblocks US-020 (dashboard count) and US-022 (type reconciliation).
+
+---

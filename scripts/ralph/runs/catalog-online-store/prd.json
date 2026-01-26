@@ -472,7 +472,7 @@
       ],
       "dependencies": ["US-017"],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Follow exact same pattern as service CRUD (US-003). Import adapters from ../adapters/catalogAdapters. ~80 lines added."
     },
     {
