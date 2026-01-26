@@ -1,0 +1,58 @@
+# Online Store Catalog Admin — Supabase Migration Progress
+
+## Codebase Patterns
+
+1. **Online Store has no `typecheck` script** — use `npx tsc --noEmit` from the app directory instead of `pnpm run typecheck`.
+2. **catalogSyncService.ts uses `row: any` for toOnlineService** — US-027 will clean this up by importing ServiceRow from catalogAdapters.
+3. **Service type requires `showOnline: boolean`** — maps to `online_booking_enabled` in menu_services table. The existing `toOnlineService` in catalogSyncService.ts omits this field (it was added later to the type).
+
+---
+
+## Run Initialized - 2026-01-26
+
+**Run:** catalog-online-store
+**Branch:** ralph/catalog-online-store
+**Total stories:** 29 (5 phases)
+**Scope:** Online Store admin catalog pages only (apps/online-store/)
+
+**Phase breakdown:**
+- Phase 1: Services & Categories (US-001 to US-006) — 6 stories
+- Phase 2: Products (US-007 to US-011) — 5 stories, BLOCKED by PREREQ-1
+- Phase 3: Gift Cards & Memberships (US-012 to US-020) — 9 stories
+- Phase 4: Type Safety & Cleanup (US-021 to US-024) — 4 stories
+- Phase 5: Error Handling & Polish (US-025 to US-029) — 5 stories
+
+**Key files:**
+- catalogSyncService.ts (372 lines) — extend with write operations
+- catalogAdapters.ts (NEW) — Supabase row ↔ app type adapters
+- ServiceForm.tsx (338 lines) — remove localStorage writes, hardcoded categories
+- Services.tsx (186 lines) — remove hardcoded categories, localStorage
+- Catalog.tsx (94 lines) — replace hardcoded counts
+- Products.tsx (150 lines) — remove mock OPI Nail Polish data
+- GiftCardSettings.tsx (280 lines) — switch from giftCardStorage to Supabase
+- Memberships.tsx (122 lines) — switch from membershipStorage to Supabase
+- CatalogTable.tsx (116 lines) — add generics, remove any types
+
+**Prerequisites:**
+- PREREQ-1: Products table schema conflict (migrations 017 vs 031) — blocks Phase 2
+- PREREQ-2: No membership_plans table — resolved by US-016
+
+---
+
+## 2026-01-26 - US-001: Create catalogAdapters.ts for Online Store
+Commit: a77d7a2
+
+**Why this story?** US-001 has no dependencies, is priority 1, and all other Phase 1 stories depend on it. It's the foundational building block for all subsequent catalog work.
+
+**Changes:**
+- apps/online-store/src/lib/adapters/catalogAdapters.ts (NEW, 174 lines): Created ServiceRow and CategoryRow interfaces matching migration 031 schemas. Implemented toOnlineService, fromOnlineService, toOnlineCategory adapters. Defined Category type for use by downstream stories.
+
+**Learnings:**
+- Online Store app has no `typecheck` script — must use `npx tsc --noEmit` directly
+- Service type has `showOnline` boolean field that maps to `online_booking_enabled` in DB — the existing toOnlineService in catalogSyncService.ts didn't map this field
+- fromOnlineService uses conditional field-by-field mapping (only include fields that are explicitly provided) to support partial updates cleanly
+- ServiceRow has 40+ columns from migration 031 — full interface is verbose but provides complete type safety
+
+**Next story suggestion:** US-002 (Extend catalogSyncService with category fetching) or US-003 (service write ops) — both depend only on US-001. US-002 is lower complexity so good for quick momentum.
+
+---

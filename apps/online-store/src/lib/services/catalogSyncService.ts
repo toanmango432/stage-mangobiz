@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Service } from '@/types/catalog';
+import { toOnlineCategory, type Category } from '@/lib/adapters/catalogAdapters';
 
 // Environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -36,6 +37,7 @@ export const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
 
 // Cache configuration
 const CACHE_KEY_SERVICES = 'catalog_services_v2';
+const CACHE_KEY_CATEGORIES = 'catalog_categories_v2';
 const CACHE_KEY_ADDONS = 'catalog_addons_v2';
 const CACHE_KEY_TIMESTAMP = 'catalog_sync_timestamp';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -215,6 +217,66 @@ export function getCachedServices(): Service[] {
   return cached || [];
 }
 
+// ─── Categories ─────────────────────────────────────────────────────────────
+
+/**
+ * Fetch categories from Supabase service_categories table
+ * Filters by is_deleted = false and is_active = true, ordered by display_order
+ */
+export async function getCategories(storeId: string): Promise<Category[]> {
+  if (!supabase) {
+    console.warn('[CatalogSync] Supabase client not configured - returning empty categories');
+    return [];
+  }
+
+  // Try cache first
+  const cached = getCachedData<Category[]>(CACHE_KEY_CATEGORIES);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('service_categories')
+      .select('*')
+      .eq('store_id', storeId)
+      .eq('is_deleted', false)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (error) {
+      console.error('[CatalogSync] Error fetching categories:', error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // RLS Validation (defense-in-depth security)
+    validateStoreIsolation(data, storeId, 'getCategories');
+
+    const categories = data.map(toOnlineCategory);
+
+    // Cache the results
+    setCachedData(CACHE_KEY_CATEGORIES, categories);
+
+    return categories;
+  } catch (error) {
+    console.error('[CatalogSync] getCategories failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get cached categories without triggering a fetch
+ * Returns empty array if cache is empty or stale
+ */
+export function getCachedCategories(): Category[] {
+  const cached = getCachedData<Category[]>(CACHE_KEY_CATEGORIES);
+  return cached || [];
+}
+
 /**
  * Add-on group structure for Online Store
  */
@@ -344,6 +406,7 @@ export async function getAddOnGroups(storeId: string, serviceId: string, categor
  */
 export function clearCache(): void {
   localStorage.removeItem(CACHE_KEY_SERVICES);
+  localStorage.removeItem(CACHE_KEY_CATEGORIES);
   localStorage.removeItem(CACHE_KEY_ADDONS);
   localStorage.removeItem(CACHE_KEY_TIMESTAMP);
   console.log('[CatalogSync] Cache cleared');

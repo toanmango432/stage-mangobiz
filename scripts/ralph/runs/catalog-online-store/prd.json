@@ -1,0 +1,736 @@
+{
+  "project": "Mango POS Offline V2",
+  "branchName": "ralph/catalog-module",
+  "description": "Online Store Catalog Admin — Supabase Migration. Migrate all admin catalog pages (Services, Products, Memberships, Gift Cards) from localStorage/mock data to Supabase. Extend catalogSyncService with write ops, create adapters, consolidate types, add error handling and tests.",
+  "prerequisites": {
+    "PREREQ-1": {
+      "description": "Products table schema conflict: Migration 017 (e-commerce) and 031 (inventory) both define `products` table with incompatible schemas. Must resolve before Phase 2.",
+      "blocksPhase": 2,
+      "blocksStories": ["US-007", "US-008", "US-009", "US-010", "US-011"]
+    },
+    "PREREQ-2": {
+      "description": "No membership_plans Supabase table exists. Handled by US-016 in Phase 3.",
+      "blocksStories": ["US-017", "US-018", "US-019", "US-020"],
+      "resolvedBy": "US-016"
+    }
+  },
+  "phases": {
+    "1": {
+      "name": "Services & Categories",
+      "stories": "US-001 to US-006",
+      "count": 6,
+      "checkpoint": "catalogAdapters.ts created with typed adapters, catalogSyncService extended with category reads and service CRUD, ServiceForm/Services use Supabase writes (no localStorage), hardcoded categories removed, Catalog dashboard shows dynamic service count. Run: pnpm run typecheck from apps/online-store/"
+    },
+    "2": {
+      "name": "Products",
+      "stories": "US-007 to US-011",
+      "count": 5,
+      "checkpoint": "BLOCKED by PREREQ-1. Product adapters, CRUD in catalogSyncService, Products.tsx uses Supabase (no mock OPI Nail Polish), ProductForm.tsx created, dashboard shows products count. Run: pnpm run typecheck"
+    },
+    "3": {
+      "name": "Gift Cards & Memberships",
+      "stories": "US-012 to US-020",
+      "count": 9,
+      "checkpoint": "Gift card settings read/write from Supabase tables (gift_card_settings + gift_card_denominations). membership_plans migration created. Memberships CRUD via Supabase. All dashboard counts dynamic. No localStorage persistence in any catalog page. Run: pnpm run typecheck"
+    },
+    "4": {
+      "name": "Type Safety & Cleanup",
+      "stories": "US-021 to US-024",
+      "count": 4,
+      "checkpoint": "Single canonical GiftCardConfig type. Single canonical MembershipPlan type. CatalogTable uses generics (no any). Deprecated storage files deleted. Run: pnpm run typecheck && pnpm build"
+    },
+    "5": {
+      "name": "Error Handling & Polish",
+      "stories": "US-025 to US-029",
+      "count": 5,
+      "checkpoint": "All catalog pages use sonner for toast. All pages have loading/error states. No any in catalogSyncService signatures. Unit tests for adapters and service CRUD. Run: pnpm test --run && pnpm run typecheck"
+    }
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "phase": 1,
+      "title": "Create catalogAdapters.ts for Online Store",
+      "description": "As a developer, I need adapter functions to convert between Supabase row types (snake_case) and Online Store types (camelCase) so that all catalog pages can use properly typed data.",
+      "acceptanceCriteria": [
+        "Creates toOnlineService(row: ServiceRow): Service adapter (move logic from catalogSyncService.ts toOnlineService)",
+        "Creates fromOnlineService(service: Service): Partial<ServiceRow> reverse adapter",
+        "Creates toOnlineCategory(row: CategoryRow): { id: string; name: string; color: string; icon?: string; displayOrder: number } adapter",
+        "Defines ServiceRow interface matching menu_services table from migration 031 (snake_case columns)",
+        "Defines CategoryRow interface matching service_categories table from migration 031",
+        "All adapters handle null/undefined fields gracefully",
+        "No 'as any' casts",
+        "pnpm run typecheck passes (run from apps/online-store/)"
+      ],
+      "files": [
+        "apps/online-store/src/lib/adapters/catalogAdapters.ts (NEW)"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Follow adapter pattern from apps/store-app/src/services/supabase/adapters/ but keep lightweight. ServiceRow fields from menu_services: name, description, pricing_type, price, duration, is_active, show_online_booking, category_id, etc. CategoryRow from service_categories: id, name, description, color, icon, display_order, is_active, is_deleted, store_id. Do NOT import from store-app. Export all adapters and row interfaces. Target: ~120 lines."
+    },
+    {
+      "id": "US-002",
+      "phase": 1,
+      "title": "Extend catalogSyncService with category fetching",
+      "description": "As an admin, I want service categories to come from the service_categories Supabase table instead of a hardcoded array, so categories stay in sync with the store-app.",
+      "acceptanceCriteria": [
+        "Adds getCategories(): Promise<Category[]> function that queries service_categories table",
+        "Filters by is_deleted = false and is_active = true",
+        "Orders by display_order ASC",
+        "Uses toOnlineCategory adapter from catalogAdapters.ts",
+        "Caches categories in localStorage with catalog_categories_v2 key and same 5-min TTL pattern",
+        "Adds getCachedCategories(): Category[] for sync reads",
+        "Handles Supabase client being null — returns empty array",
+        "No 'as any' casts",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/lib/services/catalogSyncService.ts"
+      ],
+      "dependencies": ["US-001"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Follow existing getServices() / getCachedServices() pattern in the same file. Import toOnlineCategory from ../adapters/catalogAdapters. service_categories columns: id, name, description, color, icon, display_order, is_active, is_deleted, store_id. ~40 lines added."
+    },
+    {
+      "id": "US-003",
+      "phase": 1,
+      "title": "Extend catalogSyncService with service write operations",
+      "description": "As a developer, I need create/update/delete operations for services in catalogSyncService so that ServiceForm can persist to Supabase instead of localStorage.",
+      "acceptanceCriteria": [
+        "Adds createService(service: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>): Promise<Service> — inserts into menu_services table, returns via adapter",
+        "Adds updateService(id: string, updates: Partial<Service>): Promise<Service> — updates menu_services row, returns via adapter",
+        "Adds deleteService(id: string): Promise<void> — soft-deletes by setting is_deleted = true",
+        "All write operations use fromOnlineService adapter for snake_case conversion",
+        "All write operations invalidate the services cache",
+        "Throws descriptive errors on Supabase failure (not silent)",
+        "Handles null Supabase client — throws Error('Supabase not configured')",
+        "No simulated delays (setTimeout)",
+        "No Date.now() for IDs — Supabase generates UUIDs",
+        "No 'as any' casts",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/lib/services/catalogSyncService.ts"
+      ],
+      "dependencies": ["US-001"],
+      "priority": 3,
+      "passes": false,
+      "notes": "Follow query pattern of existing syncFromSupabase(). menu_services uses UUID PK from gen_random_uuid(). Soft delete: set is_deleted = true, deleted_at = NOW(). Check how syncFromSupabase resolves store_id. ~80 lines added."
+    },
+    {
+      "id": "US-004",
+      "phase": 1,
+      "title": "Update ServiceForm.tsx to use Supabase writes",
+      "description": "As an admin, I want creating and editing services to persist to Supabase instead of localStorage, with categories loaded from the database.",
+      "acceptanceCriteria": [
+        "Removes hardcoded categories array (lines 18-27)",
+        "Fetches categories using getCategories() from catalogSyncService on mount",
+        "Removes localStorage.getItem('catalog_services') read (line 53)",
+        "Loads existing service via getServices() when editing (using id from URL params)",
+        "Removes localStorage.setItem('catalog_services', ...) write (line 85)",
+        "Uses createService() for new services, updateService() for existing",
+        "Removes Date.now().toString() ID generation (line 76)",
+        "Removes simulated 500ms delay await new Promise(...) (line 69)",
+        "Shows loading state while fetching categories",
+        "Shows error toast on save failure with Supabase error message",
+        "No forbidden strings: Date.now(), setTimeout, localStorage.setItem, localStorage.getItem",
+        "pnpm run typecheck passes",
+        "Verify in browser: create a new service, edit it, confirm it persists after page reload"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/catalog/ServiceForm.tsx"
+      ],
+      "dependencies": ["US-002", "US-003"],
+      "priority": 4,
+      "passes": false,
+      "notes": "File is 338 lines — keep under 350 after changes. Uses sonner for toast (keep consistent). useNavigate() and useParams() already in place. Category dropdown shows name from Supabase. CRITICAL: No mock data. ~80 lines changed.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-005",
+      "phase": 1,
+      "title": "Update Services.tsx to use Supabase writes",
+      "description": "As an admin, I want the services list page to delete and duplicate services via Supabase, and filter by categories from the database.",
+      "acceptanceCriteria": [
+        "Removes hardcoded category filter array (lines 139-147: Manicure, Pedicure, Nail Art, etc.)",
+        "Fetches categories using getCategories() for the category filter dropdown",
+        "Delete action uses deleteService() from catalogSyncService instead of saveServices() to localStorage",
+        "Duplicate action uses createService() from catalogSyncService instead of localStorage write",
+        "Removes Date.now().toString() for duplicate IDs (line 176)",
+        "Removes saveServices() localStorage calls",
+        "Refreshes service list after delete/duplicate by re-calling getServices()",
+        "No forbidden strings: Date.now(), saveServices, hardcoded category names (Manicure, Pedicure, etc.)",
+        "pnpm run typecheck passes",
+        "Verify in browser: delete a service, duplicate a service, filter by category"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/catalog/Services.tsx"
+      ],
+      "dependencies": ["US-002", "US-003"],
+      "priority": 5,
+      "passes": false,
+      "notes": "File is 186 lines — keep under 200. getServices() call on mount already exists. Uses sonner for toast. ~50 lines changed.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-006",
+      "phase": 1,
+      "title": "Update Catalog.tsx dashboard with dynamic service count",
+      "description": "As an admin, I want the catalog dashboard to show real service count from Supabase instead of hardcoded numbers.",
+      "acceptanceCriteria": [
+        "Removes hardcoded counts: count: 24 (services), count: 6 (packages), count: 42 (products), count: 3 (memberships), count: 1 (gift cards)",
+        "Fetches services count from getServices() and uses .length",
+        "Shows 0 for packages (not implemented, but no hardcoded 6)",
+        "Shows loading spinners or skeleton while counts load",
+        "Products, memberships, gift cards show 0 initially (Supabase integration in later phases)",
+        "No forbidden strings: hardcoded count numbers (24, 6, 42, 3, 1)",
+        "pnpm run typecheck passes",
+        "Verify in browser: counts match actual Supabase data"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/Catalog.tsx"
+      ],
+      "dependencies": ["US-003"],
+      "priority": 6,
+      "passes": false,
+      "notes": "File is 94 lines — keep under 120. Use useEffect + useState for async fetch. Later phases add real counts for products, memberships, gift cards. ~40 lines changed.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-007",
+      "phase": 2,
+      "title": "Add product adapters to catalogAdapters.ts",
+      "description": "As a developer, I need adapter functions for the products table so product pages can use properly typed data.",
+      "acceptanceCriteria": [
+        "Adds ProductRow interface matching the resolved products Supabase table schema",
+        "Adds toOnlineProduct(row: ProductRow): Product adapter",
+        "Adds fromOnlineProduct(product: Product): Partial<ProductRow> reverse adapter",
+        "Handles variant mapping if products table has variant support",
+        "No 'as any' casts",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/lib/adapters/catalogAdapters.ts"
+      ],
+      "dependencies": ["US-001"],
+      "priority": 7,
+      "passes": false,
+      "notes": "BLOCKED by PREREQ-1 (products table conflict). Product type in types/catalog.ts (lines 79-111). Exact ProductRow columns depend on PREREQ-1 resolution. ~60 lines added."
+    },
+    {
+      "id": "US-008",
+      "phase": 2,
+      "title": "Add product CRUD to catalogSyncService",
+      "description": "As a developer, I need product CRUD operations in catalogSyncService so product pages can read/write from Supabase.",
+      "acceptanceCriteria": [
+        "Adds getProducts(): Promise<Product[]> — queries products table, filters is_deleted = false, uses toOnlineProduct adapter",
+        "Adds getCachedProducts(): Product[] — localStorage cache with catalog_products_v2 key, 5-min TTL",
+        "Adds createProduct(product): Promise<Product> — inserts into products table",
+        "Adds updateProduct(id, updates): Promise<Product> — updates products row",
+        "Adds deleteProduct(id): Promise<void> — soft-deletes",
+        "All operations handle null Supabase client",
+        "Cache invalidation on writes",
+        "No 'as any' casts",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/lib/services/catalogSyncService.ts"
+      ],
+      "dependencies": ["US-007"],
+      "priority": 8,
+      "passes": false,
+      "notes": "BLOCKED by PREREQ-1. Follow exact same pattern as service CRUD from US-003. ~80 lines added."
+    },
+    {
+      "id": "US-009",
+      "phase": 2,
+      "title": "Update Products.tsx to use Supabase",
+      "description": "As an admin, I want the products page to load real products from Supabase instead of showing the hardcoded OPI Nail Polish mock.",
+      "acceptanceCriteria": [
+        "Removes hardcoded mockProducts array (lines 12-36: OPI Nail Polish - Big Apple Red)",
+        "Fetches products using getProducts() from catalogSyncService on mount",
+        "Delete uses deleteProduct() instead of localStorage",
+        "Shows loading state while fetching",
+        "Shows empty state when no products exist (not mock data fallback)",
+        "Removes localStorage read: localStorage.getItem('catalog_products')",
+        "No forbidden strings: OPI Nail Polish, Big Apple Red, mockProducts, localStorage",
+        "pnpm run typecheck passes",
+        "Verify in browser: products page shows real data, empty state works"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/catalog/Products.tsx"
+      ],
+      "dependencies": ["US-008"],
+      "priority": 9,
+      "passes": false,
+      "notes": "File is 150 lines — keep under 160. Remove fallback: setProducts(stored ? JSON.parse(stored) : mockProducts). ~60 lines changed.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-010",
+      "phase": 2,
+      "title": "Create ProductForm.tsx for product creation/editing",
+      "description": "As an admin, I need a form to create and edit products that saves to Supabase.",
+      "acceptanceCriteria": [
+        "Form fields match Product type: name, sku, vendor, category, description, costPrice, retailPrice, taxable, trackInventory, stockQuantity, showOnline, featured",
+        "Loads existing product via getProducts() when editing (using id param)",
+        "Creates new product via createProduct() from catalogSyncService",
+        "Updates existing product via updateProduct() from catalogSyncService",
+        "Navigates back to products list after save",
+        "Shows error toast on failure",
+        "Uses sonner for toast (consistent with ServiceForm)",
+        "No localStorage reads or writes",
+        "No 'as any' casts",
+        "pnpm run typecheck passes",
+        "Verify in browser: create product, edit product, data persists"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/catalog/ProductForm.tsx (NEW)"
+      ],
+      "dependencies": ["US-008"],
+      "priority": 10,
+      "passes": false,
+      "notes": "Follow pattern from ServiceForm.tsx (after US-004 updates). Check existing router config for /admin/catalog/products/new and /admin/catalog/products/:id/edit. Target ~250 lines, max 300.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-011",
+      "phase": 2,
+      "title": "Update Catalog.tsx with products count",
+      "description": "As an admin, I want the dashboard to show the real products count.",
+      "acceptanceCriteria": [
+        "Products count comes from getProducts().length (replace the 0 from US-006)",
+        "Added to existing Promise.all fetch alongside services",
+        "pnpm run typecheck passes",
+        "Verify in browser: products count matches Supabase data"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/Catalog.tsx"
+      ],
+      "dependencies": ["US-006", "US-008"],
+      "priority": 11,
+      "passes": false,
+      "notes": "Small change — add products fetch to Promise.all from US-006. ~10 lines changed.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-012",
+      "phase": 3,
+      "title": "Add gift card adapters to catalogAdapters.ts",
+      "description": "As a developer, I need adapters for the gift_card_settings and gift_card_denominations tables.",
+      "acceptanceCriteria": [
+        "Adds GiftCardSettingsRow interface matching gift_card_settings table (columns: allow_custom_amount, min_amount, max_amount, default_expiration_days, store_id)",
+        "Adds GiftCardDenominationRow interface matching gift_card_denominations table (columns: amount, label, is_active, display_order)",
+        "Adds toGiftCardConfig(settingsRow, denominationRows): GiftCardConfig adapter combining settings + denominations",
+        "Adds fromGiftCardConfig(config): { settings: Partial<GiftCardSettingsRow>; denominations: ... } reverse adapter",
+        "No 'as any' casts",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/lib/adapters/catalogAdapters.ts"
+      ],
+      "dependencies": ["US-001"],
+      "priority": 12,
+      "passes": false,
+      "notes": "GiftCardConfig from types/catalog.ts has fields (designs, deliveryOptions, emailTemplate, terms) NOT in Supabase — keep as defaults in adapter. Map: presetAmounts ← denomination rows' amount field, customAmountMin ← min_amount, customAmountMax ← max_amount, expiryMonths ← default_expiration_days / 30. ~50 lines added."
+    },
+    {
+      "id": "US-013",
+      "phase": 3,
+      "title": "Add gift card CRUD to catalogSyncService",
+      "description": "As a developer, I need gift card operations in catalogSyncService to read/write settings and denominations from Supabase.",
+      "acceptanceCriteria": [
+        "Adds getGiftCardConfig(): Promise<GiftCardConfig | null> — queries gift_card_settings + gift_card_denominations, combines via adapter",
+        "Adds updateGiftCardConfig(config: Partial<GiftCardConfig>): Promise<GiftCardConfig> — upserts settings row, replaces denomination rows",
+        "Denomination updates: delete existing active denominations for store, insert new ones",
+        "Caches with catalog_giftcard_v2 key, 5-min TTL",
+        "Handles null Supabase client",
+        "No 'as any' casts",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/lib/services/catalogSyncService.ts"
+      ],
+      "dependencies": ["US-012"],
+      "priority": 13,
+      "passes": false,
+      "notes": "gift_card_settings has UNIQUE (store_id) constraint — use upsert. gift_card_denominations are per-store rows with individual amounts. Same function names as giftCardStorage.ts but different implementation. ~70 lines added."
+    },
+    {
+      "id": "US-014",
+      "phase": 3,
+      "title": "Update GiftCardSettings.tsx to use Supabase",
+      "description": "As an admin, I want gift card settings to load from and save to Supabase instead of localStorage.",
+      "acceptanceCriteria": [
+        "Imports getGiftCardConfig, updateGiftCardConfig from catalogSyncService instead of giftCardStorage",
+        "Removes initializeGiftCardConfig() call",
+        "Shows loading state while fetching from Supabase",
+        "Shows error toast on save failure",
+        "Removes toast message 'saved to localStorage' — replace with 'Gift card settings saved'",
+        "Uses sonner for toast (switch from @/hooks/use-toast for consistency)",
+        "No localStorage calls remain",
+        "No forbidden strings: localStorage, 'saved to localStorage'",
+        "pnpm run typecheck passes",
+        "Verify in browser: save settings, reload, settings persist from Supabase"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx"
+      ],
+      "dependencies": ["US-013"],
+      "priority": 14,
+      "passes": false,
+      "notes": "File is 280 lines — keep under 290. Function signatures match (getGiftCardConfig, updateGiftCardConfig) so import path change is main change. Switch toast from @/hooks/use-toast to sonner: import { toast } from 'sonner'. ~30 lines changed.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-015",
+      "phase": 3,
+      "title": "Update Catalog.tsx with gift cards count",
+      "description": "As an admin, I want the dashboard to show whether gift cards are configured.",
+      "acceptanceCriteria": [
+        "Gift cards count: 1 if config exists and enabled = true, 0 otherwise",
+        "Fetch via getGiftCardConfig() alongside other counts in Promise.all",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/Catalog.tsx"
+      ],
+      "dependencies": ["US-006", "US-013"],
+      "priority": 15,
+      "passes": false,
+      "notes": "Add to existing Promise.all from US-006. ~10 lines changed.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-016",
+      "phase": 3,
+      "title": "Create membership_plans Supabase migration",
+      "description": "As a developer, I need a membership_plans table in Supabase so membership data can be persisted.",
+      "acceptanceCriteria": [
+        "Creates membership_plans table with columns: name, display_name, price_monthly, description, tagline, image_url, badge_icon, color, perks (JSONB array), features (JSONB), rules (JSONB), is_popular, is_active, sort_order",
+        "Includes multi-tenant columns: tenant_id, store_id, location_id",
+        "Includes sync metadata: sync_status, version, vector_clock, last_synced_version",
+        "Includes soft delete: is_deleted, deleted_at, deleted_by, deleted_by_device, tombstone_expires_at",
+        "Includes audit: created_by, created_by_device, last_modified_by, last_modified_by_device",
+        "Includes timestamps: created_at, updated_at",
+        "Enables RLS with store-member policies (same pattern as service_categories)",
+        "Creates update_membership_plans_updated_at() trigger function",
+        "Creates indexes: store_id, store_active, sort_order, sync",
+        "SQL is valid PostgreSQL"
+      ],
+      "files": [
+        "supabase/migrations/033_create_membership_plans.sql (NEW)"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Follow EXACT pattern from service_categories in migration 031. Next migration number is 033 (after 032_fix_catalog_table_foreign_keys.sql). perks is JSONB string array. features and rules are JSONB objects. Add COMMENT ON TABLE. ~120 lines."
+    },
+    {
+      "id": "US-017",
+      "phase": 3,
+      "title": "Add membership adapters to catalogAdapters.ts",
+      "description": "As a developer, I need adapter functions for the membership_plans table.",
+      "acceptanceCriteria": [
+        "Adds MembershipPlanRow interface matching the new membership_plans table columns",
+        "Adds toOnlineMembershipPlan(row: MembershipPlanRow): MembershipPlan adapter",
+        "Adds fromOnlineMembershipPlan(plan: MembershipPlan): Partial<MembershipPlanRow> reverse adapter",
+        "Maps snake_case DB columns to camelCase app properties",
+        "perks JSONB array maps directly (no conversion needed)",
+        "features and rules JSONB objects map directly",
+        "No 'as any' casts",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/lib/adapters/catalogAdapters.ts"
+      ],
+      "dependencies": ["US-001", "US-016"],
+      "priority": 17,
+      "passes": false,
+      "notes": "Use MembershipPlan type from membershipStorage.ts (not Membership from types/catalog.ts — type reconciliation in Phase 4). Column mapping: display_name → displayName, price_monthly → priceMonthly, image_url → imageUrl, badge_icon → badgeIcon, is_popular → isPopular, is_active → isActive, sort_order → sortOrder. ~40 lines added."
+    },
+    {
+      "id": "US-018",
+      "phase": 3,
+      "title": "Add membership CRUD to catalogSyncService",
+      "description": "As a developer, I need membership CRUD operations in catalogSyncService.",
+      "acceptanceCriteria": [
+        "Adds getMembershipPlans(): Promise<MembershipPlan[]> — queries membership_plans, filters is_deleted = false, orders by sort_order",
+        "Adds getCachedMembershipPlans(): MembershipPlan[] — localStorage cache with catalog_memberships_v2 key, 5-min TTL",
+        "Adds createMembershipPlan(plan): Promise<MembershipPlan> — inserts into membership_plans",
+        "Adds updateMembershipPlan(id, updates): Promise<MembershipPlan> — updates row",
+        "Adds deleteMembershipPlan(id): Promise<void> — soft-deletes",
+        "All operations use adapters from catalogAdapters.ts",
+        "Cache invalidation on writes",
+        "Handles null Supabase client",
+        "No 'as any' casts",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/lib/services/catalogSyncService.ts"
+      ],
+      "dependencies": ["US-017"],
+      "priority": 18,
+      "passes": false,
+      "notes": "Follow exact same pattern as service CRUD (US-003). Import adapters from ../adapters/catalogAdapters. ~80 lines added."
+    },
+    {
+      "id": "US-019",
+      "phase": 3,
+      "title": "Update Memberships.tsx to use Supabase",
+      "description": "As an admin, I want the memberships page to load from and save to Supabase instead of localStorage.",
+      "acceptanceCriteria": [
+        "Imports getMembershipPlans, createMembershipPlan, updateMembershipPlan, deleteMembershipPlan from catalogSyncService instead of membershipStorage",
+        "Removes initializeMembershipPlans() call",
+        "Shows loading state while fetching from Supabase",
+        "Shows error state on failure",
+        "Removes subtitle 'stored in localStorage' (line 98)",
+        "Switches toast from @/hooks/use-toast to sonner for consistency",
+        "No localStorage calls remain",
+        "No forbidden strings: localStorage, 'stored in localStorage', hardcoded plan data",
+        "pnpm run typecheck passes",
+        "Verify in browser: memberships page shows data from Supabase, CRUD works"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/catalog/Memberships.tsx"
+      ],
+      "dependencies": ["US-018"],
+      "priority": 19,
+      "passes": false,
+      "notes": "File is 122 lines — keep under 140. The 3 default plans (Basic $49, Premium $99, VIP $199) should be seeded via migration or seed script, NOT in component code. ~40 lines changed.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-020",
+      "phase": 3,
+      "title": "Update Catalog.tsx with memberships count",
+      "description": "As an admin, I want the dashboard to show the real memberships count.",
+      "acceptanceCriteria": [
+        "Memberships count from getMembershipPlans().length",
+        "Added to existing Promise.all fetch",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/Catalog.tsx"
+      ],
+      "dependencies": ["US-006", "US-018"],
+      "priority": 20,
+      "passes": false,
+      "notes": "Small incremental change. ~5 lines changed.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-021",
+      "phase": 4,
+      "title": "Consolidate GiftCardConfig types",
+      "description": "As a developer, I want a single canonical GiftCardConfig type to eliminate the duplicate definition in giftCardStorage.ts.",
+      "acceptanceCriteria": [
+        "Single GiftCardConfig type in types/catalog.ts that supports both Supabase fields and UI fields",
+        "giftCardStorage.ts either deleted or imports from types/catalog.ts instead of defining its own",
+        "If giftCardStorage.ts still imported anywhere, add @deprecated JSDoc comment",
+        "All imports of GiftCardConfig point to types/catalog.ts",
+        "No duplicate GiftCardConfig interface definitions",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/types/catalog.ts",
+        "apps/online-store/src/lib/storage/giftCardStorage.ts"
+      ],
+      "dependencies": ["US-014"],
+      "priority": 21,
+      "passes": false,
+      "notes": "types/catalog.ts version has: designs, deliveryOptions.digital/physical/messageCharLimit, terms, emailTemplate. giftCardStorage.ts version has: id, deliveryMethods, allowMessage, maxMessageLength. Canonical type should match what GiftCardSettings.tsx actually renders. After US-014, giftCardStorage.ts should not be imported — verify with grep."
+    },
+    {
+      "id": "US-022",
+      "phase": 4,
+      "title": "Reconcile Membership vs MembershipPlan types",
+      "description": "As a developer, I want a single canonical membership type to eliminate confusion between Membership (types/catalog.ts) and MembershipPlan (membershipStorage.ts).",
+      "acceptanceCriteria": [
+        "Canonical type name is MembershipPlan (matches Supabase table and storage)",
+        "Updates types/catalog.ts: rename Membership to MembershipPlan or replace with MembershipPlan interface",
+        "Canonical MembershipPlan has all fields needed by Memberships.tsx and Supabase table",
+        "Removes or deprecates the old Membership type",
+        "If membershipStorage.ts still imported anywhere, add @deprecated JSDoc comment",
+        "All files importing membership types use canonical one",
+        "Updates catalogAdapters.ts if type name changed",
+        "Replaces Record<string, any> in features/rules with proper typed interfaces",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/types/catalog.ts",
+        "apps/online-store/src/lib/storage/membershipStorage.ts",
+        "apps/online-store/src/lib/adapters/catalogAdapters.ts"
+      ],
+      "dependencies": ["US-019"],
+      "priority": 22,
+      "passes": false,
+      "notes": "Membership in types/catalog.ts has: benefits.serviceDiscountPercent, autoRenewal, gracePeriodDays, cancellationPolicy, pauseAllowed, activeMembersCount. MembershipPlan in membershipStorage.ts has: displayName, priceMonthly, tagline, imageUrl, badgeIcon, color, perks, features: Record<string, any>, rules: Record<string, any>, isPopular, sortOrder. These are very different shapes — MembershipPlan is what the UI actually uses."
+    },
+    {
+      "id": "US-023",
+      "phase": 4,
+      "title": "Add generics to CatalogTable component",
+      "description": "As a developer, I want CatalogTable to use TypeScript generics instead of 'any' so that column renderers and callbacks are type-safe.",
+      "acceptanceCriteria": [
+        "CatalogTable becomes CatalogTable<T extends { id: string }> generic component",
+        "Column becomes Column<T> with proper key typing",
+        "CatalogTableProps becomes CatalogTableProps<T> with data: T[], onEdit: (item: T) => void, etc.",
+        "No 'any' types remain in the file",
+        "All existing usages in Services.tsx, Products.tsx, Memberships.tsx still compile",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/components/admin/catalog/CatalogTable.tsx"
+      ],
+      "dependencies": ["US-005", "US-009", "US-019"],
+      "priority": 23,
+      "passes": false,
+      "notes": "File is 116 lines — keep under 130. If keyof T & string causes issues with column render access, use simpler approach: key: string with render?: (value: unknown, item: T) => React.ReactNode. Test that existing column definitions still work. ~30 lines changed."
+    },
+    {
+      "id": "US-024",
+      "phase": 4,
+      "title": "Remove deprecated localStorage storage files",
+      "description": "As a developer, I want to remove deprecated localStorage storage files no longer used after Supabase migration.",
+      "acceptanceCriteria": [
+        "Grep confirms no remaining imports of giftCardStorage in any .ts/.tsx file",
+        "Grep confirms no remaining imports of membershipStorage in any .ts/.tsx file",
+        "Delete both files if no imports found",
+        "If imports found, update those files to use catalogSyncService instead, then delete",
+        "pnpm run typecheck passes",
+        "pnpm build passes (run from apps/online-store/)"
+      ],
+      "files": [
+        "apps/online-store/src/lib/storage/giftCardStorage.ts",
+        "apps/online-store/src/lib/storage/membershipStorage.ts"
+      ],
+      "dependencies": ["US-021", "US-022"],
+      "priority": 24,
+      "passes": false,
+      "notes": "These files should have been fully replaced by catalogSyncService in US-014 and US-019. Check for initialization calls (initializeGiftCardConfig, initializeMembershipPlans) in app startup code."
+    },
+    {
+      "id": "US-025",
+      "phase": 5,
+      "title": "Standardize toast library across catalog pages",
+      "description": "As a developer, I want all catalog pages to use the same toast library for consistent notification UX.",
+      "acceptanceCriteria": [
+        "All catalog pages (Services.tsx, ServiceForm.tsx, Products.tsx, ProductForm.tsx, Memberships.tsx, GiftCardSettings.tsx) use sonner for toast",
+        "No catalog page imports @/hooks/use-toast",
+        "Toast pattern: toast.success('message') for success, toast.error('message') for errors",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/catalog/Services.tsx",
+        "apps/online-store/src/pages/admin/catalog/ServiceForm.tsx",
+        "apps/online-store/src/pages/admin/catalog/Products.tsx",
+        "apps/online-store/src/pages/admin/catalog/ProductForm.tsx",
+        "apps/online-store/src/pages/admin/catalog/Memberships.tsx",
+        "apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx"
+      ],
+      "dependencies": ["US-004", "US-005", "US-009", "US-010", "US-014", "US-019"],
+      "priority": 25,
+      "passes": false,
+      "notes": "Some pages already switched in earlier stories (US-004, US-014, US-019). This catches remainders. sonner is already a dependency: import { toast } from 'sonner'."
+    },
+    {
+      "id": "US-026",
+      "phase": 5,
+      "title": "Add loading and error states to all catalog pages",
+      "description": "As an admin, I want to see loading indicators and clear error messages across all catalog admin pages.",
+      "acceptanceCriteria": [
+        "Each page shows loading spinner/skeleton while initial data loads from Supabase",
+        "Each page shows error message with retry button if Supabase fetch fails",
+        "Loading state uses consistent pattern across all pages",
+        "Error state uses consistent pattern (red alert box with error message and Retry button)",
+        "No page shows blank/empty during loading (distinguish loading from truly empty)",
+        "pnpm run typecheck passes",
+        "Verify in browser: disconnect internet or use wrong Supabase URL to see error state"
+      ],
+      "files": [
+        "apps/online-store/src/pages/admin/catalog/Services.tsx",
+        "apps/online-store/src/pages/admin/catalog/Products.tsx",
+        "apps/online-store/src/pages/admin/catalog/Memberships.tsx",
+        "apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx"
+      ],
+      "dependencies": ["US-004", "US-009", "US-014", "US-019"],
+      "priority": 26,
+      "passes": false,
+      "notes": "Earlier stories added basic loading states — this standardizes them. Consider creating shared CatalogLoadingState and CatalogErrorState components if patterns are identical. ~10 lines per file.",
+      "category": "frontend"
+    },
+    {
+      "id": "US-027",
+      "phase": 5,
+      "title": "Clean up catalogSyncService.ts — remove row: any",
+      "description": "As a developer, I want the existing toOnlineService() function in catalogSyncService to use proper types instead of row: any.",
+      "acceptanceCriteria": [
+        "toOnlineService() parameter typed as ServiceRow instead of any (import from catalogAdapters)",
+        "OR toOnlineService() replaced by the adapter from catalogAdapters.ts if redundant",
+        "No 'any' types remain in the file's function signatures",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/online-store/src/lib/services/catalogSyncService.ts"
+      ],
+      "dependencies": ["US-001"],
+      "priority": 27,
+      "passes": false,
+      "notes": "After US-001, the duplicate toOnlineService in catalogSyncService should be replaced with import from catalogAdapters. ~10 lines changed."
+    },
+    {
+      "id": "US-028",
+      "phase": 5,
+      "title": "Unit tests for catalogAdapters",
+      "description": "As a developer, I want unit tests for all adapter functions to ensure snake_case/camelCase conversion is correct.",
+      "acceptanceCriteria": [
+        "Tests toOnlineService with a full ServiceRow fixture",
+        "Tests fromOnlineService round-trip",
+        "Tests toOnlineCategory with a full CategoryRow fixture",
+        "Tests toOnlineProduct (if exists)",
+        "Tests toGiftCardConfig combining settings + denomination rows",
+        "Tests toOnlineMembershipPlan",
+        "Tests null/undefined field handling",
+        "All tests pass: pnpm test --run (from apps/online-store/)"
+      ],
+      "files": [
+        "apps/online-store/src/lib/adapters/__tests__/catalogAdapters.test.ts (NEW)"
+      ],
+      "dependencies": ["US-001", "US-007", "US-012", "US-017"],
+      "testCommand": "cd apps/online-store && pnpm test --run",
+      "priority": 28,
+      "passes": false,
+      "notes": "Use Vitest. Create fixtures with realistic data matching Supabase row shapes. Test edge cases: missing optional fields, empty arrays, null values. Target ~150 lines.",
+      "category": "test"
+    },
+    {
+      "id": "US-029",
+      "phase": 5,
+      "title": "Unit tests for catalogSyncService CRUD operations",
+      "description": "As a developer, I want unit tests for the CRUD operations added to catalogSyncService.",
+      "acceptanceCriteria": [
+        "Mocks Supabase client (createClient returns mock with .from().select(), .from().insert(), etc.)",
+        "Tests getCategories() — returns properly adapted categories",
+        "Tests createService() — calls Supabase insert with correct snake_case columns",
+        "Tests updateService() — calls Supabase update with correct filters",
+        "Tests deleteService() — calls Supabase update with is_deleted: true",
+        "Tests getGiftCardConfig() — combines settings + denominations",
+        "Tests getMembershipPlans() — returns properly adapted plans",
+        "Tests null Supabase client behavior — throws appropriate errors",
+        "Tests cache invalidation after writes",
+        "All tests pass: pnpm test --run"
+      ],
+      "files": [
+        "apps/online-store/src/lib/services/__tests__/catalogSyncService.test.ts (NEW)"
+      ],
+      "dependencies": ["US-003", "US-013", "US-018"],
+      "testCommand": "cd apps/online-store && pnpm test --run",
+      "priority": 29,
+      "passes": false,
+      "notes": "Mock Supabase client at module level. Test cache behavior by checking localStorage. Each test should be independent (clear localStorage between tests). Target ~200 lines.",
+      "category": "test"
+    }
+  ]
+}

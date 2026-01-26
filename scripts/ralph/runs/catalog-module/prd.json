@@ -1004,7 +1004,7 @@
         "When service with variants is clicked, show VariantSelector",
         "After variant selected, proceed to AddOnSelector",
         "Update onAddServices callback to include variant and add-on selections",
-        "Verify in browser: click service → select variant → select add-ons → added to ticket",
+        "Verify in browser: click service \u2192 select variant \u2192 select add-ons \u2192 added to ticket",
         "pnpm run typecheck passes"
       ],
       "priority": 58,
@@ -1277,9 +1277,9 @@
       "description": "As a developer, I want tests for checkout variant/add-on selection.",
       "acceptanceCriteria": [
         "Create __tests__/checkout-catalog-flow.test.tsx",
-        "Test: select service with variants → variant selector shows",
-        "Test: select variant → add-on selector shows",
-        "Test: complete selection → correct items added to ticket",
+        "Test: select service with variants \u2192 variant selector shows",
+        "Test: select variant \u2192 add-on selector shows",
+        "Test: complete selection \u2192 correct items added to ticket",
         "All tests pass: pnpm test checkout"
       ],
       "priority": 75,
@@ -1293,7 +1293,7 @@
       "description": "As a developer, I want E2E test for the full checkout flow.",
       "acceptanceCriteria": [
         "Create e2e/catalog-checkout-flow.spec.ts",
-        "Test: navigate to checkout → add service with variants → select variant → add add-ons → complete payment",
+        "Test: navigate to checkout \u2192 add service with variants \u2192 select variant \u2192 add add-ons \u2192 complete payment",
         "Use Playwright MCP for browser verification",
         "Test passes: pnpm run test:e2e"
       ],
@@ -1311,7 +1311,7 @@
         "Launch Plan agent to verify architectural decisions align with codebase patterns",
         "Review all type definitions in catalog.ts for correctness and completeness",
         "Review Supabase migration for proper RLS policies and indexes",
-        "Review all adapters for correct snake_case ↔ camelCase conversion",
+        "Review all adapters for correct snake_case \u2194 camelCase conversion",
         "Review all table operations for proper error handling and tenant isolation",
         "Verify pnpm run typecheck passes with no warnings",
         "Document any issues found in progress.txt under 'Phase 1 Review Issues' section",
@@ -1445,7 +1445,7 @@
       ],
       "priority": 4001,
       "passes": true,
-      "notes": "CRITICAL: Full end-to-end browser testing required. Test: select service → variant → add-ons → verify correct price/duration."
+      "notes": "CRITICAL: Full end-to-end browser testing required. Test: select service \u2192 variant \u2192 add-ons \u2192 verify correct price/duration."
     },
     {
       "id": "US-P4F",
@@ -1553,7 +1553,7 @@
         "CATALOG MODULE FULLY COMPLETE after this story passes"
       ],
       "priority": 6002,
-      "passes": false,
+      "passes": true,
       "dependencies": [
         "US-P6R"
       ],
