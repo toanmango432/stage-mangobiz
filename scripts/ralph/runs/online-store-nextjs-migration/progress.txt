@@ -559,3 +559,34 @@ Commit: 0e4ab44
 **Next story suggestion:** US-022 (Migrate admin Catalog pages) — priority 22, depends on US-018 (done). Six admin catalog pages including first dynamic route [id] for service editing. OR US-023 (admin Management pages, 7 pages) — same dependency, lower complexity.
 
 ---
+
+## 2026-01-27 - US-022: Migrate admin Catalog pages
+Commit: e0ef566
+
+**Why this story?** Highest priority (22) among unblocked stories. Previous session explicitly recommended this next. Six admin catalog pages including dynamic route [id] for service editing — same Phase 2 admin migration pattern.
+
+**Changes:**
+- apps/online-store/src/app/admin/catalog/page.tsx (NEW): Created 'use client' wrapper importing Catalog from '@/pages/admin/Catalog'
+- apps/online-store/src/app/admin/catalog/services/page.tsx (NEW): Created 'use client' wrapper importing Services from '@/pages/admin/catalog/Services'
+- apps/online-store/src/app/admin/catalog/services/[id]/page.tsx (NEW): Created 'use client' wrapper importing ServiceForm from '@/pages/admin/catalog/ServiceForm'
+- apps/online-store/src/app/admin/catalog/products/page.tsx (NEW): Created 'use client' wrapper importing Products from '@/pages/admin/catalog/Products'
+- apps/online-store/src/app/admin/catalog/memberships/page.tsx (NEW): Created 'use client' wrapper importing Memberships from '@/pages/admin/catalog/Memberships'
+- apps/online-store/src/app/admin/catalog/giftcards/page.tsx (NEW): Created 'use client' wrapper importing GiftCardSettings from '@/pages/admin/catalog/GiftCardSettings'
+- apps/online-store/src/pages/admin/Catalog.tsx:4: Replaced `import { useNavigate } from "react-router-dom"` with `import { useNavigate } from "@/lib/navigation"`
+- apps/online-store/src/pages/admin/catalog/Services.tsx:10: Replaced `import { useNavigate } from "react-router-dom"` with `import { useNavigate } from "@/lib/navigation"`
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:2: Replaced `import { useNavigate, useParams } from "react-router-dom"` with `import { useNavigate, useParams } from "@/lib/navigation"`. Changed `const { id } = useParams()` to `const params = useParams(); const id = params.id as string | undefined` (Next.js useParams returns Record, not generic).
+- apps/online-store/src/pages/admin/catalog/Products.tsx:10: Replaced `import { useNavigate } from "react-router-dom"` with `import { useNavigate } from "@/lib/navigation"`
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:8: Replaced `import { useNavigate } from "react-router-dom"` with `import { useNavigate } from "@/lib/navigation"`
+
+**Learnings:**
+- GiftCardSettings.tsx has ZERO react-router-dom imports — no migration changes needed for that source file. Only the wrapper page was created.
+- ServiceForm.tsx uses both `useNavigate` and `useParams` from react-router-dom. Next.js `useParams()` returns `Record<string, string | string[] | undefined>` (no generic type parameter like react-router-dom's `useParams<T>()`). Must destructure via intermediate variable and cast: `const params = useParams(); const id = params.id as string | undefined;`.
+- This is the second dynamic route migration (after US-011 [productId]). Same pattern: cast params to expected string type.
+- Pre-existing type error in Services.tsx:27 (`generateMockServices() as Service[]` type mismatch) is unrelated to navigation changes — it's a mock data return type incompatibility.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors from this migration.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-023 (Migrate admin Management pages — bookings, customers, orders, staff, reports, analytics, settings) — priority 23, depends on US-018 (done). Seven admin pages, same thin wrapper pattern. Last Phase 2 story — completing it finishes all page migrations.
+
+---
