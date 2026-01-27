@@ -251,3 +251,29 @@ Commit: c282281
 **Next story suggestion:** US-009 (Migrate Book pages) — priority 9, depends only on US-006 (done). Three pages in one story (book, confirmation, success) forming a sequential flow. OR US-010 (Booking module, complexity 1) for a simpler next story.
 
 ---
+
+## 2026-01-27 - US-009: Migrate Book pages (book, confirmation, success)
+Commit: 72c2673
+
+**Why this story?** Highest priority (9) among unblocked stories. Previous session explicitly recommended this next. Three pages forming a sequential booking flow — efficient to migrate together.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/book/page.tsx (NEW): Created 'use client' wrapper importing BookingFlowSimple from '@/pages/BookingFlowSimple'
+- apps/online-store/src/app/(customer)/book/confirmation/page.tsx (NEW): Created 'use client' wrapper importing BookingConfirmation from '@/pages/BookingConfirmation'
+- apps/online-store/src/app/(customer)/book/success/page.tsx (NEW): Created 'use client' wrapper importing BookingSuccess from '@/pages/BookingSuccess'
+- apps/online-store/src/pages/BookingFlowSimple.tsx:2: Replaced `import { useNavigate } from 'react-router-dom'` with `import { useNavigate } from '@/lib/navigation'`
+- apps/online-store/src/pages/BookingConfirmation.tsx:2: Replaced `import { useNavigate, useLocation } from 'react-router-dom'` with `import { useNavigate, getNavigationState } from '@/lib/navigation'`. Replaced `location.state?.bookingData` with `getNavigationState()` using useState lazy initializer.
+- apps/online-store/src/pages/BookingSuccess.tsx:1-2: Added `useState` to React imports. Replaced `import { useLocation, useNavigate } from 'react-router-dom'` with `import { useNavigate, getNavigationState } from '@/lib/navigation'`. Replaced `location.state?.booking` with `getNavigationState()` using useState lazy initializer.
+
+**Learnings:**
+- BookingFlowSimple.tsx uses useNavigate but NOT useLocation — it manages its own internal step state ('booking' | 'confirm' | 'success') and doesn't actually navigate to /book/confirmation or /book/success. The navigate import is declared but only used at the top level (line 17), not actively called for navigation between steps.
+- BookingConfirmation.tsx uses both useNavigate AND useLocation.state for receiving booking data. The `getNavigationState()` from the compat layer replaces `location.state` — must be read once via useState lazy initializer to avoid clearing sessionStorage on re-renders.
+- BookingSuccess.tsx similarly receives `location.state?.booking` — same getNavigationState() pattern with useState lazy init.
+- The `navigate('/book/success', { state: { booking: ... } })` call in BookingConfirmation.tsx works via the compat layer's setNavigationState() which stores in sessionStorage before router.push.
+- Pre-existing `__MODE__` TypeScript error in BookingSuccess.tsx:198 — this is a Vite define variable, not related to migration.
+
+**Patterns to sync:** None — getNavigationState() with useState lazy initializer pattern was already documented in US-005.
+
+**Next story suggestion:** US-010 (Migrate Booking module page) — priority 10, complexity 1 (simplest remaining), depends only on US-006 (done). OR US-011 (Shop/ProductDetail, complexity 3) for the first dynamic route migration.
+
+---
