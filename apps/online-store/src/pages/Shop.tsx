@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useAppRouter, usePathname } from "@/lib/navigation";
 import { ProductCard } from "@/components/ProductCard";
 import { FilterPanel } from "@/components/shop/FilterPanel";
 import { FilterDrawer } from "@/components/shop/FilterDrawer";
@@ -13,7 +13,9 @@ import { Product } from "@/types/catalog";
 
 const Shop = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const router = useAppRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,8 +103,9 @@ const Shop = () => {
     if (filters.minRating > 0) params.set('minRating', filters.minRating.toString());
     if (filters.searchQuery) params.set('search', filters.searchQuery);
     
-    setSearchParams(params);
-  }, [filters, maxPrice]);
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+  }, [filters, maxPrice, pathname, router]);
 
   const handleFiltersChange = (newFilters: Partial<ProductFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from '@/lib/navigation';
 import { Product } from '@/types/catalog';
 import { getProducts } from '@/lib/api/store';
 import { ProductGallery } from '@/components/shop/ProductGallery';
@@ -19,7 +19,8 @@ import { SocialShare } from '@/components/shop/SocialShare';
 import { RecentlyViewed } from '@/components/shop/RecentlyViewed';
 
 const ProductDetail = () => {
-  const { productId } = useParams<{ productId: string }>();
+  const params = useParams();
+  const productId = params.productId as string | undefined;
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { wishlist, addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -149,9 +150,9 @@ const ProductDetail = () => {
       <div className="border-b bg-muted/30">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/" className="hover:text-foreground">Home</Link>
+            <Link href="/" className="hover:text-foreground">Home</Link>
             <ChevronRight className="h-4 w-4" />
-            <Link to="/shop" className="hover:text-foreground">Shop</Link>
+            <Link href="/shop" className="hover:text-foreground">Shop</Link>
             <ChevronRight className="h-4 w-4" />
             <span className="text-foreground">{product.name}</span>
           </div>
