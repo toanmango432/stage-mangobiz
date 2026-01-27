@@ -1,6 +1,10 @@
-'use client';
-
+import type { Metadata } from 'next';
 import TermsOfService from '@/pages/legal/TermsOfService';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description: 'Read our terms of service that govern your use of our website and services.',
+};
 
 export default function TermsOfServicePage() {
   return <TermsOfService />;

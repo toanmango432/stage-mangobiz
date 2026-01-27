@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from "react";
 import { SEOHead } from "@/components/SEOHead";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
