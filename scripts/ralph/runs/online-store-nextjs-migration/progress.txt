@@ -815,3 +815,28 @@ Commit: c7252ee
 **Next story suggestion:** US-031 (Add generateMetadata for dynamic routes) — priority 31, Phase 4. Depends on US-011✅, US-022✅, US-028✅. Different pattern (generateMetadata function for dynamic pages). OR US-032 (sitemap/robots/JSON-LD) — priority 32, depends only on US-028 (done).
 
 ---
+
+## 2026-01-27 - US-031: Add generateMetadata for dynamic routes
+Commit: 4a8c197
+
+**Why this story?** Highest priority (31) among unblocked stories. Previous session explicitly recommended this next. Continues Phase 4 SEO work — builds on static metadata patterns from US-029/US-030 with dynamic `generateMetadata` for parameterized routes.
+
+**Changes:**
+- apps/online-store/src/pages/ProductDetail.tsx:1: Added `'use client'` directive (enables wrapper to be a Server Component for metadata export)
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:1: Added `'use client'` directive (same pattern)
+- apps/online-store/src/app/(customer)/shop/[productId]/page.tsx: Removed `'use client'`, converted to Server Component with `generateMetadata` that fetches product data via `getProducts()` and returns dynamic title/description/OG tags. Falls back to generic "Product" metadata on fetch failure or product not found. Includes OG image when product has images.
+- apps/online-store/src/app/admin/catalog/services/[id]/page.tsx: Removed `'use client'`, converted to Server Component with `generateMetadata` that returns "New Service" for `id === 'new'` or "Edit Service" otherwise. ServiceForm reads from localStorage (server-inaccessible), so metadata is based on the route param only.
+
+**Learnings:**
+- `generateMetadata` is an async function — Next.js calls it during rendering to resolve metadata before sending HTML. It receives the same `params` prop as the page component.
+- In Next.js 16, `params` is a Promise that must be awaited: `const { productId } = await params;` — this is different from older Next.js versions where params was synchronous.
+- `getProducts()` uses `storeAPI.get('/products')` which calls the API client — this works in `generateMetadata` on the server because the API client uses `fetch()` which is available in both browser and Node.js environments. However, during SSR it may fail if the API server isn't running, so the try/catch with fallback metadata is essential.
+- ServiceForm reads service data from `localStorage` (line 54) — this is completely unavailable on the server. Rather than creating a server-side data fetch for an admin form page, simple static metadata ("New Service" / "Edit Service") is appropriate. Admin pages don't need rich SEO metadata.
+- Same pattern as US-029/US-030: move `'use client'` from app/ wrapper to src/pages/ source component, making the wrapper a Server Component that can export metadata (or `generateMetadata`).
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors from this migration.
+
+**Patterns to sync:** None — `generateMetadata` with async params is standard Next.js 16 pattern.
+
+**Next story suggestion:** US-032 (Create sitemap.ts, robots.ts, and JSON-LD components) — priority 32, Phase 4. Depends only on US-028 (done). Completes Phase 4 SEO. Different pattern — file-based sitemap/robots generation and structured data. OR US-033 (Supabase server/client utilities) — priority 33, Phase 5, unblocks US-034/US-035/US-036/US-037.
+
+---
