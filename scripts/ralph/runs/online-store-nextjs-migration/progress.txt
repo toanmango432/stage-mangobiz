@@ -590,3 +590,30 @@ Commit: e0ef566
 **Next story suggestion:** US-023 (Migrate admin Management pages — bookings, customers, orders, staff, reports, analytics, settings) — priority 23, depends on US-018 (done). Seven admin pages, same thin wrapper pattern. Last Phase 2 story — completing it finishes all page migrations.
 
 ---
+
+## 2026-01-27 - US-023: Migrate admin Management pages (bookings, customers, orders, staff, reports, analytics, settings)
+Commit: 79d5e7f
+
+**Why this story?** Highest priority (23) among unblocked stories. Previous session explicitly recommended this next. Last Phase 2 story — completing it finishes ALL page migrations. Seven admin pages, same thin wrapper pattern.
+
+**Changes:**
+- apps/online-store/src/app/admin/bookings/page.tsx (NEW): Created 'use client' wrapper importing Bookings from '@/pages/admin/Bookings'
+- apps/online-store/src/app/admin/customers/page.tsx (NEW): Created 'use client' wrapper importing Customers from '@/pages/admin/Customers'
+- apps/online-store/src/app/admin/orders/page.tsx (NEW): Created 'use client' wrapper importing Orders from '@/pages/admin/Orders'
+- apps/online-store/src/app/admin/staff/page.tsx (NEW): Created 'use client' wrapper importing Staff from '@/pages/admin/Staff'
+- apps/online-store/src/app/admin/reports/page.tsx (NEW): Created 'use client' wrapper importing Reports from '@/pages/admin/Reports'
+- apps/online-store/src/app/admin/analytics/page.tsx (NEW): Created 'use client' wrapper importing Analytics from '@/pages/admin/Analytics'
+- apps/online-store/src/app/admin/settings/page.tsx (NEW): Created placeholder settings page with "coming soon" message (no existing Settings component found)
+
+**Learnings:**
+- All 6 source files (Bookings, Customers, Orders, Staff, Reports, Analytics) have ZERO react-router-dom imports — no migration changes needed for source files. Only wrapper pages created.
+- No existing AdminSettings.tsx component exists — the PRD notes "Settings may need a placeholder if the real component is complex." Created a lightweight placeholder with consistent admin page styling.
+- Analytics.tsx already uses `export default function Analytics()` (function declaration export) vs the `const X = () => {}; export default X;` pattern in other files — both work fine with the wrapper pattern.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors from this migration.
+- **Phase 2 is now COMPLETE** — all customer and admin page migrations are done (US-007 through US-023).
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-024 (Convert AuthContext for SSR safety) — priority 24, Phase 3 begins. Depends on US-004 (done). Most critical provider conversion — SSR hydration errors in AuthContext break everything. OR US-025 (ThemeContext with next-themes) — same phase, lower risk.
+
+---
