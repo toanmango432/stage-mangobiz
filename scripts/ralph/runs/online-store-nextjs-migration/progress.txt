@@ -1,0 +1,39 @@
+## Codebase Patterns
+
+> Add reusable patterns discovered during implementation here.
+> These persist across iterations and help future Ralph runs.
+
+<!-- Add patterns as you discover them -->
+
+---
+
+# Ralph Progress Log
+
+Started: Mon Jan 27 11:13:00 EST 2026
+Branch: ralph/online-store-nextjs-migration
+Run: online-store-nextjs-migration
+
+---
+
+<!-- Story entries will be appended below -->
+
+<!--
+SESSION SUMMARY TEMPLATE (append when session ends or blocked):
+
+## Session Summary - [Date]
+
+**Completed this session:** [X] stories
+**Total progress:** [Y]/[Z] stories ([percent]%)
+
+**Blocked stories:** (if any)
+- [US-XXX]: [Reason - e.g., "Missing dependency", "Pre-existing test failure", "PRD unclear"]
+
+**Patterns synced:** [count] new patterns added to patterns.md
+
+**Next session should:**
+- Start with: [US-XXX] - [reason]
+- Resolve blocker: [description if applicable]
+
+---
+-->
+

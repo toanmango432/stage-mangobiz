@@ -43,6 +43,9 @@ scripts/ralph/config
 # playwright.config.ts
 archive/
 
+# Next.js
+.next/
+
 # Electron
 dist-electron
 release
