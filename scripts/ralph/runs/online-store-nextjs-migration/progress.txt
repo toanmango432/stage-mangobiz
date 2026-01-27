@@ -439,3 +439,30 @@ Commit: 72dfbb3
 **Next story suggestion:** US-017 (Create not-found, error, loading, offline pages) — priority 17, depends on US-004 (done). Different pattern from page wrappers — uses Next.js special file conventions (not-found.tsx, error.tsx, loading.tsx). OR US-018 (admin layout) — priority 18, depends on US-004 ✅ and US-005 ✅, gates all admin page migrations.
 
 ---
+
+## 2026-01-27 - US-017: Create not-found, error, loading, and offline pages
+Commit: a057780
+
+**Why this story?** Highest priority (17) among unblocked stories. Previous session explicitly recommended this next. Uses Next.js special file conventions (not-found.tsx, error.tsx, loading.tsx) — a different pattern from the 'use client' page wrappers used in US-007 through US-016.
+
+**Changes:**
+- apps/online-store/src/app/not-found.tsx (NEW): Created Next.js 404 page with same visual design as NotFound.tsx but using next/link instead of react-router-dom. Server component (no 'use client' needed — Next.js not-found is a Server Component by convention).
+- apps/online-store/src/app/error.tsx (NEW): Created 'use client' error boundary component with error logging via useEffect and a reset button. Follows Next.js error.tsx convention (receives error and reset props).
+- apps/online-store/src/app/loading.tsx (NEW): Created loading skeleton with spinner animation and "Loading..." text. Server component.
+- apps/online-store/src/app/offline/page.tsx (NEW): Created 'use client' wrapper importing Offline from '@/pages/Offline'.
+- apps/online-store/src/pages/NotFound.tsx:1-2: Replaced `import { useLocation } from "react-router-dom"` with `import { usePathname } from "@/lib/navigation"`. Changed `useLocation().pathname` to `usePathname()`.
+- apps/online-store/src/pages/Offline.tsx:1: Replaced `import { Link } from 'react-router-dom'` with `import Link from 'next/link'`. Changed `<Link to="/">` to `<Link href="/">` on line 69.
+
+**Learnings:**
+- Next.js `not-found.tsx` is a Server Component by default — no 'use client' directive needed. It renders when `notFound()` is called or when no route matches.
+- Next.js `error.tsx` MUST be a Client Component ('use client') — it uses React error boundary under the hood which requires client-side rendering.
+- Next.js `loading.tsx` is a Server Component — it renders as a Suspense fallback during page transitions.
+- NotFound.tsx used `useLocation` only to log the current pathname — replaced with `usePathname` from the compat layer (which re-exports from next/navigation).
+- Offline.tsx had a single `<Link to="/">` — simple swap to `<Link href="/">` with next/link import.
+- Pre-existing typecheck errors (376+ in repository/supabase files) are unchanged — no new errors from this migration.
+
+**Patterns to sync:** None — Next.js special file conventions (not-found, error, loading) are standard Next.js patterns.
+
+**Next story suggestion:** US-018 (Create admin layout with ProtectedRoute) — priority 18, depends on US-004 ✅ and US-005 ✅. Gates ALL admin page migrations (US-019 through US-023). Critical path for completing Phase 2.
+
+---
