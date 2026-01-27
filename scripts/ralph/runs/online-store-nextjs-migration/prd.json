@@ -875,7 +875,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 4: SEO",
       "files": [
         "apps/online-store/app/(customer)/page.tsx",

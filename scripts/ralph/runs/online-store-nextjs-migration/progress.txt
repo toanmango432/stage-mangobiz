@@ -734,3 +734,46 @@ Commit: 0b86eda
 **Next story suggestion:** US-029 (Add static metadata to customer pages) — priority 29, Phase 4. Depends on US-028 (just completed) plus US-007/US-008/US-011/US-012 (all done). Bulk metadata addition to 11 customer page wrappers. OR US-032 (sitemap/robots/JSON-LD) — depends only on US-028 (done), different pattern.
 
 ---
+
+## 2026-01-27 - US-029: Add static metadata to customer pages
+Commit: 922aa4e
+
+**Why this story?** Highest priority (29) among unblocked stories. Previous session explicitly recommended this next. All dependencies met (US-007✅, US-008✅, US-011✅, US-012✅, US-028✅). Bulk metadata addition — low complexity (1), same Phase 4 SEO category.
+
+**Changes:**
+- apps/online-store/src/pages/Index.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/BookingFlowSimple.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/Shop.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/Cart.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/Checkout.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/Memberships.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/GiftCards.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/Account.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/Login.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/Promotions.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/Updates.tsx:1: Added `'use client'` directive
+- apps/online-store/src/app/(customer)/page.tsx: Removed `'use client'`, added `import type { Metadata } from 'next'` and `export const metadata` with title 'Home'
+- apps/online-store/src/app/(customer)/book/page.tsx: Same pattern — metadata title 'Book an Appointment'
+- apps/online-store/src/app/(customer)/shop/page.tsx: Same pattern — metadata title 'Shop'
+- apps/online-store/src/app/(customer)/cart/page.tsx: Same pattern — metadata title 'Cart'
+- apps/online-store/src/app/(customer)/checkout/page.tsx: Same pattern — metadata title 'Checkout'
+- apps/online-store/src/app/(customer)/memberships/page.tsx: Same pattern — metadata title 'Memberships'
+- apps/online-store/src/app/(customer)/gift-cards/page.tsx: Same pattern — metadata title 'Gift Cards'
+- apps/online-store/src/app/(customer)/account/page.tsx: Same pattern — metadata title 'My Account'
+- apps/online-store/src/app/(customer)/login/page.tsx: Same pattern — metadata title 'Login'
+- apps/online-store/src/app/(customer)/promotions/page.tsx: Same pattern — metadata title 'Promotions'
+- apps/online-store/src/app/(customer)/updates/page.tsx: Same pattern — metadata title 'Updates'
+
+**Learnings:**
+- Next.js metadata exports (`export const metadata`) ONLY work in Server Components — cannot coexist with `'use client'` directive. To add metadata to page wrappers, the wrapper must be a Server Component that imports a Client Component.
+- The solution: move `'use client'` from the `src/app/*/page.tsx` wrappers to the `src/pages/*.tsx` source components themselves. Source components use hooks (useState, useEffect, useNavigate) so they need `'use client'`. The app/ wrappers become Server Components that can export metadata.
+- All 11 source page components had zero `'use client'` directives — they relied on the wrapper's `'use client'` to create the client boundary. Now each source file is self-contained as a Client Component.
+- The title template from root layout (`%s | Mango`) means each page's title will render as e.g. "Shop | Mango", "Cart | Mango", etc.
+- Pre-existing typecheck errors (Account.tsx BookingCard props, Checkout.tsx framer-motion types) are unchanged — no new errors.
+
+**Patterns to sync:**
+- Pattern: Server Component page wrapper for metadata — Next.js metadata exports require Server Components. When migrating 'use client' page wrappers to support metadata, move 'use client' to the imported source component and make the wrapper a Server Component.
+
+**Next story suggestion:** US-030 (Add metadata to info and legal pages) — priority 30, Phase 4. Same pattern as US-029 but for info/legal pages. Depends on US-015✅, US-016✅, US-028✅. OR US-032 (sitemap/robots/JSON-LD) — different pattern, depends only on US-028 (done).
+
+---
