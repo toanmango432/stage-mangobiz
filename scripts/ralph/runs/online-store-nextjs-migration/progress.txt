@@ -509,3 +509,29 @@ Commit: 188d6a6
 **Next story suggestion:** US-020 (Migrate admin Storefront sub-pages: theme, media, navigation, promotions, announcements) — priority 20, depends on US-018 (done). Five admin sub-pages, same thin wrapper pattern. OR US-021 (more storefront sub-pages) — same dependency, same pattern.
 
 ---
+
+## 2026-01-27 - US-020: Migrate admin Storefront sub-pages (theme, media, navigation, promotions, announcements)
+Commit: 317c58b
+
+**Why this story?** Highest priority (20) among unblocked stories. Previous session explicitly recommended this next. Five admin storefront sub-pages — direct continuation of US-019 which created the storefront overview page.
+
+**Changes:**
+- apps/online-store/src/app/admin/storefront/theme/page.tsx (NEW): Created 'use client' wrapper importing Theme from '@/pages/admin/storefront/Theme'
+- apps/online-store/src/app/admin/storefront/media/page.tsx (NEW): Created 'use client' wrapper importing Media from '@/pages/admin/storefront/Media'
+- apps/online-store/src/app/admin/storefront/navigation/page.tsx (NEW): Created 'use client' wrapper importing Navigation from '@/pages/admin/storefront/Navigation'
+- apps/online-store/src/app/admin/storefront/promotions/page.tsx (NEW): Created 'use client' wrapper importing Promotions from '@/pages/admin/storefront/Promotions'
+- apps/online-store/src/app/admin/storefront/announcements/page.tsx (NEW): Created 'use client' wrapper importing Announcements from '@/pages/admin/storefront/Announcements'
+- apps/online-store/src/pages/admin/storefront/Promotions.tsx:14: Replaced `import { Link } from 'react-router-dom'` with `import Link from 'next/link'`. Changed `<Link to="/"` to `<Link href="/"` on line 80.
+- apps/online-store/src/pages/admin/storefront/Announcements.tsx:13: Replaced `import { Link } from 'react-router-dom'` with `import Link from 'next/link'`. Changed `<Link to="/"` to `<Link href="/"` on line 109.
+
+**Learnings:**
+- Theme.tsx, Media.tsx, and Navigation.tsx have ZERO react-router-dom imports — no migration changes needed for these source files.
+- Promotions.tsx and Announcements.tsx each had a single `Link` import from react-router-dom used with `<Button asChild><Link to="/">` pattern — the `asChild` Radix UI prop works with next/link just as well.
+- Both files use `<Link to="/" target="_blank">` for "View Storefront" buttons — simple `to` → `href` swap with next/link import change.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors from this migration.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-021 (Migrate admin Storefront sub-pages: content-builder, ab-tests, ai-copywriter, seo, templates) — priority 21, depends on US-018 (done). Five more admin sub-pages, same thin wrapper pattern. Same directory as US-020.
+
+---
