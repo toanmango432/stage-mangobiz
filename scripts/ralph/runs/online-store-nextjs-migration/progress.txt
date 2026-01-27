@@ -390,3 +390,27 @@ Commit: b54b69c
 **Next story suggestion:** US-015 (Migrate Info pages — about, contact, gallery, reviews, faq, policies) — priority 15, depends only on US-006 (done). Six simple pages bundled, mostly static content with minimal router usage.
 
 ---
+
+## 2026-01-27 - US-015: Migrate Info pages (about, contact, gallery, reviews, faq, policies)
+Commit: c5fc5a0
+
+**Why this story?** Highest priority (15) among unblocked stories. Previous session explicitly recommended this next. Six simple info pages bundled — mostly static content with minimal router usage.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/info/about/page.tsx (NEW): Created 'use client' wrapper importing About from '@/pages/info/About'
+- apps/online-store/src/app/(customer)/info/contact/page.tsx (NEW): Created 'use client' wrapper importing Contact from '@/pages/info/Contact'
+- apps/online-store/src/app/(customer)/info/gallery/page.tsx (NEW): Created 'use client' wrapper importing Gallery from '@/pages/info/Gallery'
+- apps/online-store/src/app/(customer)/info/reviews/page.tsx (NEW): Created 'use client' wrapper importing Reviews from '@/pages/info/Reviews'
+- apps/online-store/src/app/(customer)/info/faq/page.tsx (NEW): Created 'use client' wrapper importing FAQ from '@/pages/info/FAQ'
+- apps/online-store/src/app/(customer)/info/policies/page.tsx (NEW): Created 'use client' wrapper importing Policies from '@/pages/info/Policies'
+
+**Learnings:**
+- All 6 info pages have ZERO react-router-dom imports — they use SEOHead for metadata and standard HTML `<a>` tags for external links. No Link, useNavigate, useLocation, or useParams usage in any of them.
+- The PRD acceptance criterion "update any Link imports to next/link" was not needed — none of these files use react-router-dom Link.
+- Pages use `import.meta.env.VITE_SUPABASE_URL` for API calls — this will need to change to NEXT_PUBLIC_ when Vite is removed (US-043/US-044), but works fine during migration since these are 'use client' components.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-016 (Migrate Legal, Promotions, Updates pages) — priority 16, depends only on US-006 (done). Five simple pages bundled, same Phase 2 pattern. OR US-017 (Create not-found, error, loading, offline pages) — depends on US-004 (done), different pattern (Next.js special files).
+
+---
