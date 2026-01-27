@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Palette, Layout, Image, Globe, Settings, Tag, Megaphone } from "lucide-react";
 
 const Storefront = () => {
@@ -87,7 +87,7 @@ const Storefront = () => {
               </CardHeader>
               <CardContent>
                 <Button asChild className="w-full bg-primary hover:bg-primary-dark">
-                  <Link to={section.path}>Configure</Link>
+                  <Link href={section.path}>Configure</Link>
                 </Button>
               </CardContent>
             </Card>
