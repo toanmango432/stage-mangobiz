@@ -7,7 +7,7 @@ import { BookingCard } from "@/components/booking/BookingCard";
 import { Booking, BookingFormData } from "@/types/booking";
 import { Order } from "@/types/order";
 import { parseISO, isAfter } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
