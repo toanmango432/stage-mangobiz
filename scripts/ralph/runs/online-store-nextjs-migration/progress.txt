@@ -159,3 +159,30 @@ Commit: 2300c8c
 **Next story suggestion:** US-005 (Create navigation compatibility layer) — only depends on US-001 (done), needed by US-006 (customer layout) which in turn gates all page migrations. Last remaining Phase 1 scaffold story.
 
 ---
+
+## 2026-01-27 - US-005: Create navigation compatibility layer
+Commit: 3677dd9
+
+**Why this story?** Last remaining Phase 1 scaffold story. Only depends on US-001 (done). Critical blocker for US-006 (customer layout) and US-018 (admin layout), which gate ALL page migrations. Previous session explicitly recommended this next.
+
+**Changes:**
+- apps/online-store/src/lib/navigation.ts (NEW): Created 'use client' navigation compatibility module with:
+  - Re-exports: Link (next/link), usePathname, useSearchParams, useParams, useAppRouter (next/navigation)
+  - useNavigate(): drop-in replacement for react-router-dom's useNavigate, wraps useRouter().push/back/replace
+  - Supports navigate(path), navigate(path, {replace: true}), navigate(path, {state: {...}}), navigate(-1)
+  - getNavigationState(): retrieves state passed via navigate() using sessionStorage (since Next.js router doesn't support state param)
+  - setNavigationState(): stores state in sessionStorage before navigation
+
+**Learnings:**
+- react-router-dom's `location.state` has no direct Next.js equivalent — sessionStorage is the cleanest bridge for state transfer between pages during migration
+- 21 files in src/ import from react-router-dom — APIs used: Link, useNavigate, useLocation, useParams, useSearchParams
+- navigate() is called with `{ state: {...} }` in BookingConfirmation, BookingFlow, BookingSuccess, OrderConfirmation — these pages need getNavigationState() when migrated
+- navigate() is called with `{ replace: true }` in BookingFlow — router.replace() handles this
+- No navigate(-1) (go back by delta) calls found in codebase, but supported for completeness
+- Type definitions self-contained in navigation.ts — separate navigation-types.ts not needed
+
+**Patterns to sync:** None — navigation state via sessionStorage is migration-specific, not a reusable pattern.
+
+**Next story suggestion:** US-006 (Create customer layout with Header and BottomNav) — now unblocked with US-004 ✅ and US-005 ✅. Gates all customer page migrations (US-007 through US-016). Phase 2 begins.
+
+---

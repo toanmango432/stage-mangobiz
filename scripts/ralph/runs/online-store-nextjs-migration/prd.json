@@ -129,7 +129,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 1: Scaffold",
       "files": [
         "apps/online-store/src/lib/navigation.ts"
