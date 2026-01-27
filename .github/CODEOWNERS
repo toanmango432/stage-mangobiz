@@ -1,0 +1,24 @@
+# CODEOWNERS — Mango Biz
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default: Core team reviews everything
+* @EnrichOS19/core
+
+# Architecture & docs require owner review
+/docs/ @seanncl
+CLAUDE.md @seanncl
+AGENTS.md @seanncl
+
+# Electron / desktop — core only
+/electron/ @EnrichOS19/core
+
+# Backend / Supabase — core only
+/backend/ @EnrichOS19/core
+/supabase/ @EnrichOS19/core
+
+# Frontend apps — frontend team can also review
+/apps/ @EnrichOS19/core @EnrichOS19/frontend
+/src/ @EnrichOS19/core @EnrichOS19/frontend
+
+# CI/CD config — owner only
+/.github/ @seanncl
