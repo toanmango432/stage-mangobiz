@@ -81,12 +81,18 @@ import {
   createMembershipPlan,
   updateMembershipPlan,
   deleteMembershipPlan,
+  getProductById,
+  getMembershipPlanById,
+  bulkDeleteProducts,
+  bulkDeleteServices,
+  bulkDeleteMembershipPlans,
   clearCache,
 } from '../catalogSyncService';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 const STORE_ID = 'store-123';
+const TENANT_ID = 'tenant-1';
 
 const mockCategoryRow = {
   id: 'cat-1',
@@ -272,6 +278,39 @@ const mockMembershipPlanRow = {
   tombstone_expires_at: null,
 };
 
+const mockProductRow = {
+  id: 'prod-1',
+  store_id: STORE_ID,
+  category_id: 'pcat-1',
+  name: 'Test Product',
+  slug: 'test-product',
+  description: 'A test product',
+  short_description: null,
+  price: 29.99,
+  compare_at_price: null,
+  cost_price: 10,
+  sku: 'TP-001',
+  barcode: null,
+  track_inventory: true,
+  stock_quantity: 50,
+  low_stock_threshold: 5,
+  allow_backorder: false,
+  images: [{ url: 'https://example.com/img.jpg', position: 0 }],
+  thumbnail_url: null,
+  weight: null,
+  weight_unit: null,
+  dimensions: null,
+  has_variants: false,
+  variant_options: null,
+  meta_title: null,
+  meta_description: null,
+  is_active: true,
+  is_featured: false,
+  show_online: true,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+};
+
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('catalogSyncService', () => {
@@ -340,7 +379,7 @@ describe('catalogSyncService', () => {
         bufferTimeAfter: 0,
       };
 
-      const result = await createService(STORE_ID, newService);
+      const result = await createService(STORE_ID, TENANT_ID, newService);
 
       expect(result.id).toBe('svc-1');
       expect(result.name).toBe('Gel Manicure');
@@ -352,7 +391,7 @@ describe('catalogSyncService', () => {
       setupChain({ data: null, error: { message: 'Insert failed' } });
 
       await expect(
-        createService(STORE_ID, {
+        createService(STORE_ID, TENANT_ID, {
           name: 'Test',
           category: 'cat-1',
           description: '',
@@ -374,7 +413,7 @@ describe('catalogSyncService', () => {
     it('should invalidate services cache after creation', async () => {
       setupChain({ data: mockServiceRow, error: null });
 
-      await createService(STORE_ID, {
+      await createService(STORE_ID, TENANT_ID, {
         name: 'Gel Manicure',
         category: 'cat-1',
         description: '',
@@ -499,10 +538,10 @@ describe('catalogSyncService', () => {
       setupMultiCallChain([
         // 1. Upsert settings
         { result: { data: mockGiftCardSettingsRow, error: null } },
-        // 2. Soft-delete existing denominations
-        { result: { data: null, error: null } },
-        // 3. Insert new denominations
+        // 2. Insert new denominations (swap pattern: insert first)
         { result: { data: mockDenominationRows, error: null } },
+        // 3. Soft-delete old denominations
+        { result: { data: null, error: null } },
       ]);
 
       const config = {
@@ -514,7 +553,7 @@ describe('catalogSyncService', () => {
         expiryMonths: 12,
       };
 
-      const result = await updateGiftCardConfig(STORE_ID, config);
+      const result = await updateGiftCardConfig(STORE_ID, TENANT_ID, config);
 
       expect(result.enabled).toBe(true);
       expect(result.presetAmounts).toEqual([25, 50]);
@@ -526,18 +565,19 @@ describe('catalogSyncService', () => {
       ]);
 
       await expect(
-        updateGiftCardConfig(STORE_ID, { enabled: true })
+        updateGiftCardConfig(STORE_ID, TENANT_ID, { enabled: true })
       ).rejects.toThrow('Failed to update gift card settings: Upsert failed');
     });
 
     it('should invalidate gift card cache after update', async () => {
       setupMultiCallChain([
+        // 1. Upsert settings
         { result: { data: mockGiftCardSettingsRow, error: null } },
+        // 2. Soft-delete old denominations (no insert since presetAmounts is empty)
         { result: { data: null, error: null } },
-        { result: { data: [], error: null } },
       ]);
 
-      await updateGiftCardConfig(STORE_ID, { enabled: true, presetAmounts: [] });
+      await updateGiftCardConfig(STORE_ID, TENANT_ID, { enabled: true, presetAmounts: [] });
 
       expect(localStorage.removeItem).toHaveBeenCalledWith('catalog_giftcard_v2');
     });
@@ -611,7 +651,7 @@ describe('catalogSyncService', () => {
         sortOrder: 1,
       };
 
-      const result = await createMembershipPlan(STORE_ID, newPlan);
+      const result = await createMembershipPlan(STORE_ID, TENANT_ID, newPlan);
 
       expect(result.id).toBe('plan-1');
       expect(result.displayName).toBe('Premium Plan');
@@ -622,7 +662,7 @@ describe('catalogSyncService', () => {
       setupChain({ data: null, error: { message: 'Insert failed' } });
 
       await expect(
-        createMembershipPlan(STORE_ID, {
+        createMembershipPlan(STORE_ID, TENANT_ID, {
           name: 'basic',
           displayName: 'Basic',
           priceMonthly: 29,
@@ -644,7 +684,7 @@ describe('catalogSyncService', () => {
     it('should invalidate membership cache after creation', async () => {
       setupChain({ data: mockMembershipPlanRow, error: null });
 
-      await createMembershipPlan(STORE_ID, {
+      await createMembershipPlan(STORE_ID, TENANT_ID, {
         name: 'premium',
         displayName: 'Premium Plan',
         priceMonthly: 99,
@@ -786,6 +826,145 @@ describe('catalogSyncService', () => {
       expect(mockFrom).toHaveBeenCalledWith('membership_plans');
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('plan-1');
+    });
+  });
+
+  // ─── getProductById ─────────────────────────────────────────────────────────
+
+  describe('getProductById', () => {
+    it('should return a single product by ID', async () => {
+      setupChain({ data: mockProductRow, error: null });
+
+      const result = await getProductById('prod-1');
+
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe('prod-1');
+      expect(result!.name).toBe('Test Product');
+      expect(mockFrom).toHaveBeenCalledWith('products');
+    });
+
+    it('should return null when product not found (PGRST116)', async () => {
+      setupChain({ data: null, error: { code: 'PGRST116', message: 'No rows' } });
+
+      const result = await getProductById('nonexistent');
+      expect(result).toBeNull();
+    });
+
+    it('should throw on non-PGRST116 error', async () => {
+      setupChain({ data: null, error: { code: 'OTHER', message: 'DB error' } });
+
+      await expect(getProductById('prod-1')).rejects.toThrow(
+        'Failed to fetch product: DB error'
+      );
+    });
+  });
+
+  // ─── getMembershipPlanById ──────────────────────────────────────────────────
+
+  describe('getMembershipPlanById', () => {
+    it('should return a single membership plan by ID', async () => {
+      setupChain({ data: mockMembershipPlanRow, error: null });
+
+      const result = await getMembershipPlanById('plan-1');
+
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe('plan-1');
+      expect(result!.displayName).toBe('Premium Plan');
+      expect(mockFrom).toHaveBeenCalledWith('membership_plans');
+    });
+
+    it('should return null when plan not found (PGRST116)', async () => {
+      setupChain({ data: null, error: { code: 'PGRST116', message: 'No rows' } });
+
+      const result = await getMembershipPlanById('nonexistent');
+      expect(result).toBeNull();
+    });
+
+    it('should throw on non-PGRST116 error', async () => {
+      setupChain({ data: null, error: { code: 'OTHER', message: 'DB error' } });
+
+      await expect(getMembershipPlanById('plan-1')).rejects.toThrow(
+        'Failed to fetch membership plan: DB error'
+      );
+    });
+  });
+
+  // ─── Bulk Delete ────────────────────────────────────────────────────────────
+
+  describe('bulkDeleteProducts', () => {
+    it('should soft-delete multiple products in a single call', async () => {
+      setupChain({ data: null, error: null });
+
+      await bulkDeleteProducts(['prod-1', 'prod-2', 'prod-3']);
+
+      expect(mockFrom).toHaveBeenCalledWith('products');
+    });
+
+    it('should no-op on empty array', async () => {
+      await bulkDeleteProducts([]);
+      expect(mockFrom).not.toHaveBeenCalled();
+    });
+
+    it('should throw on error', async () => {
+      setupChain({ data: null, error: { message: 'Bulk delete failed' } });
+
+      await expect(bulkDeleteProducts(['prod-1'])).rejects.toThrow(
+        'Failed to bulk delete products: Bulk delete failed'
+      );
+    });
+
+    it('should invalidate products cache', async () => {
+      setupChain({ data: null, error: null });
+
+      await bulkDeleteProducts(['prod-1']);
+
+      expect(localStorage.removeItem).toHaveBeenCalledWith('catalog_products_v2');
+    });
+  });
+
+  describe('bulkDeleteServices', () => {
+    it('should soft-delete multiple services in a single call', async () => {
+      setupChain({ data: null, error: null });
+
+      await bulkDeleteServices(['svc-1', 'svc-2']);
+
+      expect(mockFrom).toHaveBeenCalledWith('menu_services');
+    });
+
+    it('should no-op on empty array', async () => {
+      await bulkDeleteServices([]);
+      expect(mockFrom).not.toHaveBeenCalled();
+    });
+
+    it('should throw on error', async () => {
+      setupChain({ data: null, error: { message: 'Bulk delete failed' } });
+
+      await expect(bulkDeleteServices(['svc-1'])).rejects.toThrow(
+        'Failed to bulk delete services: Bulk delete failed'
+      );
+    });
+  });
+
+  describe('bulkDeleteMembershipPlans', () => {
+    it('should soft-delete multiple membership plans in a single call', async () => {
+      setupChain({ data: null, error: null });
+
+      await bulkDeleteMembershipPlans(['plan-1', 'plan-2']);
+
+      expect(mockFrom).toHaveBeenCalledWith('membership_plans');
+    });
+
+    it('should no-op on empty array', async () => {
+      await bulkDeleteMembershipPlans([]);
+      expect(mockFrom).not.toHaveBeenCalled();
+    });
+
+    it('should throw on error', async () => {
+      setupChain({ data: null, error: { message: 'Bulk delete failed' } });
+
+      await expect(bulkDeleteMembershipPlans(['plan-1'])).rejects.toThrow(
+        'Failed to bulk delete membership plans: Bulk delete failed'
+      );
     });
   });
 });
