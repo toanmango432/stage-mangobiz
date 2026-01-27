@@ -298,3 +298,26 @@ Commit: 39b8df5
 **Next story suggestion:** US-011 (Migrate Shop and ProductDetail pages) — priority 11, depends only on US-006 (done). First dynamic route migration with [productId] segment. OR US-012 (Cart/Checkout) or US-013 (OrderConfirmation/Memberships/GiftCards) — all simpler but lower priority.
 
 ---
+
+## 2026-01-27 - US-011: Migrate Shop and ProductDetail pages
+Commit: 2f1eca7
+
+**Why this story?** Highest priority (11) among unblocked stories. Previous session explicitly recommended this next. First dynamic route migration with `[productId]` segment — establishes pattern for dynamic params extraction in Next.js.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/shop/page.tsx (NEW): Created 'use client' wrapper importing Shop from '@/pages/Shop'
+- apps/online-store/src/app/(customer)/shop/[productId]/page.tsx (NEW): Created 'use client' wrapper importing ProductDetail from '@/pages/ProductDetail'
+- apps/online-store/src/pages/Shop.tsx:2: Replaced `import { useNavigate, useSearchParams } from "react-router-dom"` with `import { useNavigate, useSearchParams, useAppRouter, usePathname } from "@/lib/navigation"`. Replaced `setSearchParams(params)` with `router.replace()` using pathname + query string (Next.js useSearchParams is read-only — no setter function).
+- apps/online-store/src/pages/ProductDetail.tsx:2: Replaced `import { useParams, useNavigate, Link } from 'react-router-dom'` with `import { useParams, useNavigate, Link } from '@/lib/navigation'`. Changed `useParams<{ productId: string }>()` to `useParams()` with manual cast (Next.js useParams returns `Record<string, string | string[]>`). Changed `Link to=` to `Link href=` (next/link API).
+
+**Learnings:**
+- Next.js `useSearchParams()` is READ-ONLY — it returns `ReadonlyURLSearchParams` with no setter. react-router-dom's `useSearchParams()` returns `[searchParams, setSearchParams]`. Replacement pattern: use `useAppRouter().replace(pathname + '?' + params.toString(), { scroll: false })` to update URL search params without page scroll.
+- Next.js `useParams()` returns `Record<string, string | string[]>` — no generic type parameter like react-router-dom's `useParams<T>()`. Use `as string | undefined` cast for individual params.
+- next/link uses `href` prop (not `to`). Must change all `<Link to="...">` to `<Link href="...">` when swapping imports.
+- Pre-existing typecheck errors (376+ in repository/supabase/test files) are unchanged — no new errors from this migration.
+
+**Patterns to sync:** None — useSearchParams read-only pattern is migration-specific.
+
+**Next story suggestion:** US-012 (Migrate Cart and Checkout pages) — priority 12, depends only on US-006 (done). Same phase, same category. Continues sequential page migrations.
+
+---
