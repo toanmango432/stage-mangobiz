@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Package, Scissors, ShoppingBag, CreditCard, Gift, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { getServices, getProducts, getGiftCardConfig, getMembershipPlans } from "@/lib/services/catalogSyncService";
 import { useStoreContext } from "@/hooks/useStoreContext";
@@ -57,6 +58,7 @@ const Catalog = () => {
       count: 0,
       color: "text-accent",
       path: null,
+      comingSoon: true,
     },
     {
       icon: ShoppingBag,
@@ -106,7 +108,12 @@ const Catalog = () => {
                   {isLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   ) : (
-                    <span className="text-2xl font-bold text-muted-foreground">{section.count}</span>
+                    <div className="flex items-center gap-2">
+                      {'comingSoon' in section && section.comingSoon && (
+                        <Badge variant="secondary">Coming Soon</Badge>
+                      )}
+                      <span className="text-2xl font-bold text-muted-foreground">{section.count}</span>
+                    </div>
                   )}
                 </div>
                 <CardTitle>{section.title}</CardTitle>
