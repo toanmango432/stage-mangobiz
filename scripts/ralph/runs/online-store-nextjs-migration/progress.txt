@@ -617,3 +617,26 @@ Commit: 79d5e7f
 **Next story suggestion:** US-024 (Convert AuthContext for SSR safety) — priority 24, Phase 3 begins. Depends on US-004 (done). Most critical provider conversion — SSR hydration errors in AuthContext break everything. OR US-025 (ThemeContext with next-themes) — same phase, lower risk.
 
 ---
+
+## 2026-01-27 - US-024: Convert AuthContext for SSR safety
+Commit: 94f5030
+
+**Why this story?** Highest priority (24) among unblocked stories. Previous session explicitly recommended this next. Most critical provider for SSR — AuthContext wraps everything and hydration errors here break the entire app. Phase 3 begins.
+
+**Changes:**
+- apps/online-store/src/contexts/AuthContext.tsx:1: Added `'use client'` directive at top of file
+- apps/online-store/src/contexts/AuthContext.tsx:25-37: Replaced bare `import.meta.env.VITE_DEFAULT_STORE_ID` with `getDefaultStoreId()` function that guards with `typeof window !== 'undefined'` and supports both Vite (`import.meta.env`) and Next.js (`process.env.NEXT_PUBLIC_*`) env patterns during migration
+- apps/online-store/src/contexts/AuthContext.tsx:155-157: Replaced component-body `console.log('🔐 AuthProvider initializing...')` with a comment explaining SSR-safe initialization pattern (state initializes as loading/null, resolves in useEffect)
+
+**Learnings:**
+- AuthContext.tsx had NO direct `localStorage` or `window` references — the Supabase client (`@/services/supabase/client`) already guards `window.localStorage` with `typeof window !== 'undefined'` (line 28 of client.ts).
+- All Supabase auth listener setup (`onAuthStateChange`) and session checks (`getSession`) were already inside `useEffect` — inherently SSR-safe since useEffect doesn't run on the server.
+- `isLoading` state initializes as `true` — this is correct for SSR. Both server and client render the loading state initially, then client resolves auth via useEffect. No hydration mismatch.
+- The only SSR hazard was `import.meta.env.VITE_DEFAULT_STORE_ID` at module scope — `import.meta.env` is Vite-specific and unavailable in Next.js SSR. Guarded with `typeof window` check and `process.env.NEXT_PUBLIC_*` fallback.
+- `console.log` calls inside the component body (outside useEffect) would still execute during client-side rendering of 'use client' components — they don't cause SSR issues but are unnecessary noise. Removed the one in the component body.
+
+**Patterns to sync:** None — SSR safety pattern for `import.meta.env` replacement is migration-specific.
+
+**Next story suggestion:** US-025 (Convert ThemeContext to use next-themes) — priority 25, Phase 3. Depends on US-004 (done). next-themes is already in dependencies. Lower complexity (3) than US-024. OR US-026 (Cart/Wishlist/Personalization contexts) — same phase, groups 3 related contexts.
+
+---
