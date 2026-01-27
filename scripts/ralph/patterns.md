@@ -281,3 +281,14 @@ const result = await withTimeout(
 );
 ```
 **Why:** Prevents UI hangs during slow network conditions. Separating createTimeoutPromise allows reuse for different timeout scenarios (auth, bcrypt, etc.).
+
+## From ralph/online-store-nextjs-migration (2026-01-27)
+
+### Next.js App Directory Placement with Existing src/pages
+When migrating a Vite React app to Next.js App Router, if `src/pages/` already contains React components, place the `app/` directory under `src/app/` (not project root). Next.js 16 requires `pages` and `app` directories to share the same parent folder. Setting `app/` at root while `src/pages/` exists triggers: "pages and app directories should be under the same folder".
+
+### Next.js 16 Config Differences
+- `eslint` key removed from `next.config.ts` — configure ESLint via separate config file or CLI
+- `turbopack.root` should point to monorepo root to avoid lockfile detection warnings
+- `typescript.ignoreBuildErrors` still supported
+- `--no-lint` flag removed from `next build` CLI
