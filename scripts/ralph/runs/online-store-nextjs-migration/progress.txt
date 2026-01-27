@@ -138,3 +138,24 @@ Commit: 0353841
 **Next story suggestion:** US-005 (Create navigation compatibility layer) or US-004 (Create root layout with Providers wrapper). US-004 depends on both US-002 and US-003 (now both done), but US-005 only depends on US-001. Both are Phase 1 scaffold. US-005 is needed by US-006 (customer layout) and all page migrations. Recommend US-005 next since it's a standalone utility needed by many downstream stories.
 
 ---
+
+## 2026-01-27 - US-004: Create root layout.tsx with Providers wrapper
+Commit: 2300c8c
+
+**Why this story?** Higher priority (4) than US-005 (5), all dependencies met (US-002 ✅, US-003 ✅), and it gates the most downstream stories (US-006, US-017, US-024-US-028, and all page migrations via US-006).
+
+**Changes:**
+- apps/online-store/src/components/Providers.tsx (NEW): Created 'use client' component wrapping children with ErrorBoundary → QueryClientProvider → AuthProvider → ThemeProvider → WishlistProvider → CartProvider → PersonalizationProvider → NotificationProvider → RealtimeProvider → TooltipProvider. Includes Toaster, Sonner, OfflineIndicator inside the tree.
+- apps/online-store/src/app/layout.tsx: Updated from minimal stub to import globals.css and Providers, wrapping {children} with `<Providers>`.
+
+**Learnings:**
+- Provider ordering mirrors App.tsx exactly (ErrorBoundary outermost, Auth near top, Cart/Wishlist in middle, TooltipProvider innermost)
+- HelmetProvider intentionally omitted — Next.js metadata API replaces it (will be officially removed in US-028)
+- OfflineQueue and DemoRibbon not in acceptance criteria — kept Providers focused on the required providers and utility components
+- ErrorBoundary is a React class component — works fine with 'use client' since it's imported by a client component
+
+**Patterns to sync:** None new — provider ordering pattern is app-specific.
+
+**Next story suggestion:** US-005 (Create navigation compatibility layer) — only depends on US-001 (done), needed by US-006 (customer layout) which in turn gates all page migrations. Last remaining Phase 1 scaffold story.
+
+---

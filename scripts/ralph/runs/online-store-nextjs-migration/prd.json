@@ -100,7 +100,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 1: Scaffold",
       "files": [
         "apps/online-store/app/layout.tsx",
