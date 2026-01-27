@@ -369,3 +369,24 @@ Commit: 20be83f
 **Next story suggestion:** US-014 (Migrate Account page) — priority 14, depends only on US-006 (done). Account page uses useSearchParams for tab state — worth noting for URL params handling. OR US-015 (Info pages, 6 pages bundled) for volume.
 
 ---
+
+## 2026-01-27 - US-014: Migrate Account page
+Commit: b54b69c
+
+**Why this story?** Highest priority (14) among unblocked stories. Previous session explicitly recommended this next. Continues sequential customer page migrations.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/account/page.tsx (NEW): Created 'use client' wrapper importing Account from '@/pages/Account'
+- apps/online-store/src/pages/Account.tsx:10: Replaced `import { useNavigate } from "react-router-dom"` with `import { useNavigate } from "@/lib/navigation"`
+
+**Learnings:**
+- Account.tsx does NOT use useSearchParams for tab state — the PRD note was wrong. Tabs use Radix UI `<Tabs defaultValue="bookings">` which is entirely client-side React state. No URL params involved.
+- Account.tsx only imports `useNavigate` from react-router-dom — no Link, useLocation, useSearchParams, or useParams. Single import swap.
+- All navigate() calls use simple path strings (`'/cart'`, `'/book'`, `'/login'`, etc.) — fully compatible with the compat layer.
+- Pre-existing type errors surfaced in Account.tsx (BookingCard props mismatch at lines 251, 275) — these are unrelated to the navigation migration and exist because BookingCardProps doesn't have a `booking` prop. Not introduced by this change.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-015 (Migrate Info pages — about, contact, gallery, reviews, faq, policies) — priority 15, depends only on US-006 (done). Six simple pages bundled, mostly static content with minimal router usage.
+
+---

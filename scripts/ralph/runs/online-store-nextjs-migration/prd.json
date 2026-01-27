@@ -386,7 +386,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 2: Migrate Pages",
       "files": [
         "apps/online-store/app/(customer)/account/page.tsx",
