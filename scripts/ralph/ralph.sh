@@ -18,8 +18,8 @@
 # Run directories: scripts/ralph/runs/<run_name>/
 # Each run is isolated to prevent accidental modifications by other agents.
 
-RALPH_VERSION="2.3.0"
-RALPH_TEMPLATE_DATE="2026-01-20"
+RALPH_VERSION="2.4.0"
+RALPH_TEMPLATE_DATE="2026-01-27"
 
 # Strict mode: exit on error, undefined vars, pipe failures
 set -euo pipefail
@@ -625,15 +625,26 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
     # Get updated story count after iteration
     COMPLETED_NOW=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE")
 
-    # Check for completion signal
-    if echo "$CLAUDE_OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
+    # Check for completion — VERIFY independently, don't trust Claude's signal
+    # Claude may emit <promise>COMPLETE</promise> prematurely (e.g., after finishing
+    # all stories in one phase but not others). Always verify with jq.
+    REMAINING_NOW=$((TOTAL_STORIES - COMPLETED_NOW))
+    if [[ "$REMAINING_NOW" -eq 0 ]]; then
         echo ""
         echo "═══════════════════════════════════════════════════════"
         echo "  RALPH COMPLETE!"
-        echo "  All stories done at iteration $i of $MAX_ITERATIONS"
+        echo "  All $TOTAL_STORIES stories done at iteration $i of $MAX_ITERATIONS"
         echo "═══════════════════════════════════════════════════════"
         notify "🎉 Ralph Complete! All $TOTAL_STORIES stories done in $i iterations."
         exit 0
+    fi
+
+    # If Claude claims complete but stories remain, log warning and continue
+    if echo "$CLAUDE_OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
+        if [[ "$REMAINING_NOW" -gt 0 ]]; then
+            echo ""
+            echo "⚠️  Claude claimed COMPLETE but $REMAINING_NOW stories remain. Continuing..."
+        fi
     fi
 
     # Notify progress after each iteration

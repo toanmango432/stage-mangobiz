@@ -11,7 +11,7 @@ You are an autonomous coding agent working on a software project. Each iteration
 1. **Read the PRD** at `scripts/ralph/runs/team-code-quality/prd.json`
 2. **Read patterns** at `scripts/ralph/patterns.md` (accumulated learnings)
 3. **Read progress** at `scripts/ralph/runs/team-code-quality/progress.txt` (recent learnings)
-4. **Verify branch** is `ralph/client-module-phase1`. If not, checkout the correct branch.
+4. **Verify branch** matches PRD `branchName`. If not, checkout the correct branch.
 
 **Conflict resolution:** If `patterns.md` or `progress.txt` conflict with the PRD, the **PRD wins**. Note conflicts under Learnings in progress.txt.
 
@@ -124,9 +124,125 @@ pnpm test --run
 
 ---
 
+## Phase 4.5: Security Checks (Multi-Tenant Projects)
+
+**Skip this phase if:** Story is UI-only, config-only, or doesn't involve database/API operations.
+
+### 4.5.1 Database Query Isolation
+
+If this story creates or modifies database queries:
+
+| Check | How to Verify | Required Action |
+|-------|---------------|-----------------|
+| **tenant_id in all queries** | Review each `.from('table')` call | Must have `.eq('tenant_id', tenantId)` filter |
+| **Service functions receive tenantId** | Check function signatures | Functions accessing tenant data must have `tenantId` parameter |
+| **Defense-in-depth** | Even with RLS policies | Application-level tenant filtering is required |
+
+**Example - WRONG:**
+```typescript
+// Missing tenant_id - cross-tenant data leak possible
+async function getMessages(conversationId: string) {
+  return supabase.from('messages').select('*').eq('conversation_id', conversationId);
+}
+```
+
+**Example - CORRECT:**
+```typescript
+// Tenant isolation enforced at application level
+async function getMessages(conversationId: string, tenantId: string) {
+  return supabase.from('messages').select('*')
+    .eq('conversation_id', conversationId)
+    .eq('tenant_id', tenantId);  // Defense-in-depth
+}
+```
+
+### 4.5.2 API/Edge Function Security
+
+If this story creates or modifies Edge Functions:
+
+| Check | How to Verify | Required Action |
+|-------|---------------|-----------------|
+| **Authentication documented** | Read function header | Add comment explaining auth requirement or why public |
+| **Input validation** | Check request handling | Validate required fields, UUIDs, enums |
+| **No trusted client data** | Review tenantId source | Never trust tenantId from unauthenticated requests |
+
+**Example header comment:**
+```typescript
+/**
+ * AI Client Chat Edge Function
+ *
+ * Authentication: Called by trusted backend services only.
+ * The tenantId is validated by the calling service.
+ * Do NOT expose this endpoint directly to clients.
+ */
+```
+
+### 4.5.3 Centralized Helpers
+
+If this story involves provider configuration, API keys, or embeddings:
+
+| Check | How to Verify | Required Action |
+|-------|---------------|-----------------|
+| **Use centralized config** | Check imports | Use `getTenantProviderConfig`, `getApiKeyForProvider` |
+| **No duplicated API key logic** | Search for `Deno.env.get` | Should only appear in `tenant-config.ts` |
+| **Use provider helpers** | Check embeddings usage | Use `getEmbeddingsProviderForTenant(tenantId)` |
+
+### Security Check Results
+
+| Scenario | Action |
+|----------|--------|
+| **All security checks pass** | Continue to Phase 5 |
+| **Security issue in YOUR code** | Fix before proceeding |
+| **Security issue in existing code you're modifying** | Fix as part of this story |
+| **Security issue in unrelated code** | Document in progress.txt Learnings, do NOT fix (scope creep) |
+
+---
+
 ## Phase 5: Browser Verification (UI Stories Only)
 
-**Skip for this PRD** - Both stories are backend/code quality changes, no UI verification needed.
+### When is a Story "UI"?
+
+A story is UI if:
+- `category` is `"frontend"` or `"ui"`
+- Title, notes, or `acceptanceCriteria` mention components, screens, pages, or visual changes
+- `files` array includes React/Vue/Svelte components, HTML, or CSS
+- **When in doubt, treat as UI and verify**
+
+### Available agent-browser Commands
+
+| Command | Purpose |
+|---------|---------|
+| `agent-browser open <url>` | Navigate to a URL |
+| `agent-browser snapshot` | Get accessibility tree with refs (preferred) |
+| `agent-browser snapshot -i` | Get only interactive elements |
+| `agent-browser click @e1` | Click element by ref |
+| `agent-browser fill @e2 "text"` | Clear and fill input by ref |
+| `agent-browser type @e2 "text"` | Type into input by ref |
+| `agent-browser screenshot [path]` | Capture screenshot |
+| `agent-browser wait --text "Welcome"` | Wait for text to appear |
+| `agent-browser get text @e1` | Get text content of element |
+| `agent-browser close` | Close browser |
+
+### Browser Testing Workflow
+
+1. Open: `agent-browser open http://localhost:5173`
+2. Snapshot: `agent-browser snapshot` to get accessibility tree with refs
+3. Find elements by `@e1`, `@e2` etc. refs in snapshot output
+4. Interact: `agent-browser click @e3`, `agent-browser fill @e4 "text"`
+5. Verify changes are visible with another snapshot
+6. Screenshot for confirmation if needed: `agent-browser screenshot`
+
+**A UI story is NOT complete until browser verification passes.**
+
+### Document Browser Verification
+
+In progress.txt, include:
+```markdown
+**Browser Verification:**
+- Component renders without errors: [PASS/FAIL]
+- Acceptance criteria verified visually: [PASS/FAIL]
+- Accessibility check (headings, labels): [PASS/FAIL]
+```
 
 ---
 
@@ -138,6 +254,7 @@ pnpm test --run
 - [ ] TypeScript passes (or failures are documented pre-existing)
 - [ ] Lint passes (or not available)
 - [ ] Relevant tests pass (or failures are documented pre-existing)
+- [ ] For UI: Browser verification completed and documented
 - [ ] No new regressions introduced in modified files
 - [ ] No unresolved blockers for this story
 
@@ -156,7 +273,9 @@ git commit -m "feat: [team-code-quality/US-XXX] - [Story Title]"
 
 **Format:** `feat: [RUN_NAME/Story ID] - [Story Title]`
 
-Example: `feat: [team-code-quality/US-026] - Extract teamSlice selectors to team/teamSelectors.ts`
+Example: `feat: [provider-v4/US-003] - Display priority badge on TaskCard`
+
+**Note:** Including run name prevents story ID collisions across different Ralph runs.
 
 ---
 
@@ -183,10 +302,18 @@ Commit: [git commit hash]
 - [File 1:lines]: [What changed]
 - [File 2:lines]: [What changed]
 
+**Browser Verification:** (UI stories only)
+- Component renders: [PASS/FAIL]
+- Visual criteria met: [PASS/FAIL]
+- Accessibility OK: [PASS/FAIL]
+
 **Learnings:**
 - [Pattern discovered]
 - [Risk avoided]
 - [Gotcha encountered]
+
+**Patterns to sync:** (if any reusable patterns discovered)
+- Pattern #XX: [Name] - [Brief description of when/why to use]
 
 **Next story suggestion:** [Which story would be logical next and why]
 
@@ -196,7 +323,36 @@ Commit: [git commit hash]
 **Rules:**
 - Preserve existing structure and ordering
 - Only append new entries
+- Add new patterns to `## Codebase Patterns` section at TOP if discovered
 - Never delete or reorder prior content
+
+---
+
+## Phase 9.5: Sync Patterns to Project patterns.md
+
+If you identified patterns worth sharing in "Patterns to sync:", update the project's patterns file:
+
+1. **Read** `scripts/ralph/patterns.md`
+2. **Check** if pattern already exists (avoid duplicates)
+3. **Append** new patterns to the appropriate section:
+
+```markdown
+## [Category] Patterns
+
+### [Subcategory]
+XX. **Pattern name** - Description of the pattern and when to use it.
+```
+
+**Sync patterns that:**
+- Apply to 2+ files or components
+- Solve security issues
+- Prevent a class of bugs
+- Are TypeScript/React/database best practices
+
+**Keep project-specific** (don't sync):
+- Business logic specific to this app
+- Domain-specific terminology
+- Project-specific file paths
 
 ---
 
@@ -208,6 +364,8 @@ Check if all stories are complete:
 jq '[.userStories[] | select(.passes == false)] | length' scripts/ralph/runs/team-code-quality/prd.json
 ```
 
+If `jq` is unavailable, skip this check and document in progress.txt.
+
 If result is `0`, output:
 
 ```
@@ -216,28 +374,109 @@ If result is `0`, output:
 
 ---
 
+## Phase 10.5: Session Summary (If Stopping or Blocked)
+
+If you cannot continue (blocked, context limit, or all stories done), append a session summary:
+
+```markdown
+## Session Summary - [Date]
+
+**Completed this session:** [X] stories
+**Total progress:** [Y]/[Z] stories ([percent]%)
+
+**Blocked stories:** (if any)
+- [US-XXX]: [Reason - e.g., "Missing dependency", "Pre-existing test failure", "PRD unclear"]
+
+**Patterns synced:** [count] new patterns added to patterns.md
+
+**Next session should:**
+- Start with: [US-XXX] - [reason]
+- Resolve blocker: [description if applicable]
+
+---
+```
+
+---
+
 ## STOP
 
-**After completing Phases 1-10 for ONE story, STOP.**
+**After completing Phases 1-10.5 for ONE story, STOP.**
 
-Do not select or start work on another story in this iteration.
+Do not select or start work on another story in this iteration. The next iteration will pick up the next story.
 
 ---
 
 ## Forbidden Strings
 
+**Scope:** Only applies to files you modify during this story. Do NOT scan/refactor the entire codebase.
+
 | Forbidden (in production code) | Why |
 |-------------------------------|-----|
-| `'device-web'` | Hardcoded device ID |
+| `'Test Client'` | Mock data |
+| `'Test Service'` | Mock data |
+| `'10:30 AM'` | Hardcoded time |
 | `as any` | Type safety bypass |
 | `void _` | Suppressed unused var |
 | `// TODO:` | Incomplete work |
+| `console.log` | Debug code (unless explicitly required) |
+
+### Security-Related Forbidden Patterns
+
+| Forbidden Pattern | Why | Correct Alternative |
+|-------------------|-----|---------------------|
+| `.from('table').select(*)` without `.eq('tenant_id'` | Missing tenant isolation | Add `.eq('tenant_id', tenantId)` |
+| `Deno.env.get('*_API_KEY')` outside tenant-config | Duplicated API key logic | Use `getApiKeyForProvider()` |
+| Function with DB access missing `tenantId` param | Can't enforce tenant isolation | Add `tenantId: string` parameter |
+
+**Rules:**
+- If you modify a line containing a forbidden string, remove or replace it
+- In tests/scripts/tooling, these may be acceptable if consistent with existing patterns
+- Do NOT go hunting for these across unrelated files
+- Security patterns apply to database/API code only, not UI components
+
+---
+
+## Failure Handling
+
+| Blocker | Action |
+|---------|--------|
+| **TypeScript errors (from your changes)** | Fix before proceeding |
+| **TypeScript errors (pre-existing)** | Document in progress.txt, story is blocked |
+| **Test failures (new)** | Fix or adjust your change |
+| **Test failures (pre-existing)** | Document, do not mark passes: true |
+| **Browser verification fails** | Debug and retry |
+| **Cannot complete story** | Document blocker in progress.txt, do NOT mark passes: true |
+| **PRD error (missing file, vague criteria)** | Document in progress.txt, story is blocked |
+| **Dependency not met** | Skip story, document in progress.txt |
+
+**Never mark a story as `passes: true` if it has unresolved errors or blockers.**
+
+---
+
+## Critical Rules Summary
+
+| Rule | Why |
+|------|-----|
+| ONE story per iteration | Fresh context each time |
+| Check `dependencies` first | Respect explicit ordering |
+| Read files before editing | Understand existing patterns |
+| Use `files` array | Know exactly what to modify |
+| All checks must pass (or be pre-existing) | Never commit broken code |
+| **Security checks for DB/API stories** | Prevent cross-tenant data leaks |
+| **tenant_id in all queries** | Defense-in-depth, even with RLS |
+| Browser verify UI changes | Ensure it actually works |
+| Document browser verification | Prove it was tested |
+| Commit with run name prefix | Prevent story ID collisions |
+| Append progress, never replace | Preserve history |
+| Sync patterns discovered | Share learnings |
+| Write session summary when blocked | Enable next session |
+| STOP after one story | Let next iteration handle the rest |
 
 ---
 
 ## File Path References
 
 When referencing code locations, use format `file_path:line_number`:
-- Example: `src/store/slices/teamSlice.ts:675`
+- Example: `src/components/StaffCard.tsx:125`
 
 This helps navigate large files and track changes.

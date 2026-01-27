@@ -25,7 +25,7 @@ You are an autonomous coding agent working on a software project. Each iteration
 
 1. **Explicit Dependencies First**: Check the story's `dependencies` array. If any dependency story has `passes: false`, skip this story.
 
-2. **Implicit Dependencies**: If Story B logically depends on Story A (e.g., "use hook" requires "create hook"), complete A first.
+2. **Implicit Dependencies**: If Story B logically depends on Story A (e.g., "show conflict warning UI" requires "implement conflict detection"), complete A first.
 
 3. **Logical Grouping**: Prefer stories that build on what you just completed:
    - Same file(s) modified → related story next (code is fresh in context)
@@ -49,9 +49,9 @@ You are an autonomous coding agent working on a software project. Each iteration
 
 ### Example Reasoning
 
-> "Selecting US-003 (useConnectConfig hook) because US-001 (types) and US-002 (service) were just completed and US-003 lists them in its dependencies."
+> "Selecting US-019 (Show conflict warning UI) because US-018 (conflict detection thunk) was just completed and US-019 lists US-018 in its dependencies."
 
-> "Selecting US-008 next because US-006 (ConnectSDKProvider) was just completed and US-008 creates the hook to consume that context."
+> "Selecting US-007 next because I just modified TicketActions.tsx and US-007 also requires changes to that file - the code structure is fresh in context."
 
 ### Before Implementing, Verify:
 
@@ -117,10 +117,84 @@ pnpm test --run
 
 | Scenario | Action |
 |----------|--------|
-| **All pass** | Continue to Phase 5 |
+| **All pass** | Continue to Phase 4.5 |
 | **New failures from your changes** | Fix before proceeding |
 | **Pre-existing failures (not from your changes)** | Document in progress.txt, story is blocked |
 | **Command not found / script not defined** | Skip that check, document in progress.txt under Learnings |
+
+---
+
+## Phase 4.5: Security Checks (Multi-Tenant Projects)
+
+**Skip this phase if:** Story is UI-only, config-only, or doesn't involve database/API operations.
+
+### 4.5.1 Database Query Isolation
+
+If this story creates or modifies database queries:
+
+| Check | How to Verify | Required Action |
+|-------|---------------|-----------------|
+| **tenant_id in all queries** | Review each `.from('table')` call | Must have `.eq('tenant_id', tenantId)` filter |
+| **Service functions receive tenantId** | Check function signatures | Functions accessing tenant data must have `tenantId` parameter |
+| **Defense-in-depth** | Even with RLS policies | Application-level tenant filtering is required |
+
+**Example - WRONG:**
+```typescript
+// Missing tenant_id - cross-tenant data leak possible
+async function getMessages(conversationId: string) {
+  return supabase.from('messages').select('*').eq('conversation_id', conversationId);
+}
+```
+
+**Example - CORRECT:**
+```typescript
+// Tenant isolation enforced at application level
+async function getMessages(conversationId: string, tenantId: string) {
+  return supabase.from('messages').select('*')
+    .eq('conversation_id', conversationId)
+    .eq('tenant_id', tenantId);  // Defense-in-depth
+}
+```
+
+### 4.5.2 API/Edge Function Security
+
+If this story creates or modifies Edge Functions:
+
+| Check | How to Verify | Required Action |
+|-------|---------------|-----------------|
+| **Authentication documented** | Read function header | Add comment explaining auth requirement or why public |
+| **Input validation** | Check request handling | Validate required fields, UUIDs, enums |
+| **No trusted client data** | Review tenantId source | Never trust tenantId from unauthenticated requests |
+
+**Example header comment:**
+```typescript
+/**
+ * AI Client Chat Edge Function
+ *
+ * Authentication: Called by trusted backend services only.
+ * The tenantId is validated by the calling service.
+ * Do NOT expose this endpoint directly to clients.
+ */
+```
+
+### 4.5.3 Centralized Helpers
+
+If this story involves provider configuration, API keys, or embeddings:
+
+| Check | How to Verify | Required Action |
+|-------|---------------|-----------------|
+| **Use centralized config** | Check imports | Use `getTenantProviderConfig`, `getApiKeyForProvider` |
+| **No duplicated API key logic** | Search for `Deno.env.get` | Should only appear in `tenant-config.ts` |
+| **Use provider helpers** | Check embeddings usage | Use `getEmbeddingsProviderForTenant(tenantId)` |
+
+### Security Check Results
+
+| Scenario | Action |
+|----------|--------|
+| **All security checks pass** | Continue to Phase 5 |
+| **Security issue in YOUR code** | Fix before proceeding |
+| **Security issue in existing code you're modifying** | Fix as part of this story |
+| **Security issue in unrelated code** | Document in progress.txt Learnings, do NOT fix (scope creep) |
 
 ---
 
@@ -134,25 +208,29 @@ A story is UI if:
 - `files` array includes React/Vue/Svelte components, HTML, or CSS
 - **When in doubt, treat as UI and verify**
 
-### Available Playwright MCP Tools
+### Available agent-browser Commands
 
-| Tool | Purpose |
-|------|---------|
-| `mcp__playwright__browser_navigate` | Go to a URL |
-| `mcp__playwright__browser_snapshot` | Get accessibility tree (preferred) |
-| `mcp__playwright__browser_click` | Click element by ref |
-| `mcp__playwright__browser_type` | Type into input |
-| `mcp__playwright__browser_take_screenshot` | Capture screenshot |
-| `mcp__playwright__browser_wait_for` | Wait for text/element |
+| Command | Purpose |
+|---------|---------|
+| `agent-browser open <url>` | Navigate to a URL |
+| `agent-browser snapshot` | Get accessibility tree with refs (preferred) |
+| `agent-browser snapshot -i` | Get only interactive elements |
+| `agent-browser click @e1` | Click element by ref |
+| `agent-browser fill @e2 "text"` | Clear and fill input by ref |
+| `agent-browser type @e2 "text"` | Type into input by ref |
+| `agent-browser screenshot [path]` | Capture screenshot |
+| `agent-browser wait --text "Welcome"` | Wait for text to appear |
+| `agent-browser get text @e1` | Get text content of element |
+| `agent-browser close` | Close browser |
 
 ### Browser Testing Workflow
 
-1. Navigate: `browser_navigate` → `http://localhost:5173`
-2. Snapshot: `browser_snapshot` to get accessibility tree
-3. Find elements by `ref` attribute in snapshot
-4. Interact: `browser_click`, `browser_type`
-5. Verify changes are visible
-6. Screenshot for confirmation if needed
+1. Open: `agent-browser open http://localhost:5173`
+2. Snapshot: `agent-browser snapshot` to get accessibility tree with refs
+3. Find elements by `@e1`, `@e2` etc. refs in snapshot output
+4. Interact: `agent-browser click @e3`, `agent-browser fill @e4 "text"`
+5. Verify changes are visible with another snapshot
+6. Screenshot for confirmation if needed: `agent-browser screenshot`
 
 **A UI story is NOT complete until browser verification passes.**
 
@@ -195,7 +273,7 @@ git commit -m "feat: [connect-integration/US-XXX] - [Story Title]"
 
 **Format:** `feat: [RUN_NAME/Story ID] - [Story Title]`
 
-Example: `feat: [connect-integration/US-001] - Create Connect integration types`
+Example: `feat: [provider-v4/US-003] - Display priority badge on TaskCard`
 
 **Note:** Including run name prevents story ID collisions across different Ralph runs.
 
@@ -342,10 +420,19 @@ Do not select or start work on another story in this iteration. The next iterati
 | `// TODO:` | Incomplete work |
 | `console.log` | Debug code (unless explicitly required) |
 
+### Security-Related Forbidden Patterns
+
+| Forbidden Pattern | Why | Correct Alternative |
+|-------------------|-----|---------------------|
+| `.from('table').select(*)` without `.eq('tenant_id'` | Missing tenant isolation | Add `.eq('tenant_id', tenantId)` |
+| `Deno.env.get('*_API_KEY')` outside tenant-config | Duplicated API key logic | Use `getApiKeyForProvider()` |
+| Function with DB access missing `tenantId` param | Can't enforce tenant isolation | Add `tenantId: string` parameter |
+
 **Rules:**
 - If you modify a line containing a forbidden string, remove or replace it
 - In tests/scripts/tooling, these may be acceptable if consistent with existing patterns
 - Do NOT go hunting for these across unrelated files
+- Security patterns apply to database/API code only, not UI components
 
 ---
 
@@ -375,6 +462,8 @@ Do not select or start work on another story in this iteration. The next iterati
 | Read files before editing | Understand existing patterns |
 | Use `files` array | Know exactly what to modify |
 | All checks must pass (or be pre-existing) | Never commit broken code |
+| **Security checks for DB/API stories** | Prevent cross-tenant data leaks |
+| **tenant_id in all queries** | Defense-in-depth, even with RLS |
 | Browser verify UI changes | Ensure it actually works |
 | Document browser verification | Prove it was tested |
 | Commit with run name prefix | Prevent story ID collisions |
@@ -391,48 +480,3 @@ When referencing code locations, use format `file_path:line_number`:
 - Example: `src/components/StaffCard.tsx:125`
 
 This helps navigate large files and track changes.
-
----
-
-## Connect Integration Specific Notes
-
-This Ralph run implements the Mango Connect SDK integration. Key architecture:
-
-- **SDK loaded globally** in AppShell via ConnectSDKProvider
-- **JWT tokens** generated via Edge Function, consumed by useConnectToken hook
-- **Config stored** in existing store_settings table as JSON column
-- **No webhooks** - Connect reads Biz's Supabase database directly
-
-### Dependency Chain
-
-```
-US-001 (Types)
-    ↓
-US-002 (Store Service) ──→ US-004 (Edge Function)
-    ↓                           ↓
-US-003 (useConnectConfig) ──→ US-005 (useConnectToken)
-    ↓                           ↓
-    └────────────────────→ US-006 (ConnectSDKProvider)
-                                ↓
-                           US-007 (Add to AppShell)
-                                ↓
-                           US-008 (useConnectSDK hook)
-                                ↓
-    ┌───────────────────────────┼───────────────────────────┐
-    ↓                           ↓                           ↓
-US-009 (MessagesPage)      US-011 (AIPanel)           US-013 (Settings)
-    ↓                           ↓                           ↓
-US-010 (Navigation)        US-012 (Add to AppShell)   US-014 (Settings Nav)
-                                                            ↓
-                                                      US-015 (Env Vars)
-```
-
-### Key Files Reference
-
-| Pattern | Reference File |
-|---------|----------------|
-| Edge Function structure | `supabase/functions/auth/index.ts` |
-| Hook with loading/error | `apps/store-app/src/hooks/useSystemConfig.ts` |
-| Settings component | `apps/store-app/src/components/modules/settings/categories/IntegrationsSettings.tsx` |
-| Provider pattern | Create new at `apps/store-app/src/providers/` |
-| Types | `apps/store-app/src/types/ticket.ts` |

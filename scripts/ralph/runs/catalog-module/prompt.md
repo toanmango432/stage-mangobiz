@@ -21,15 +21,6 @@ You are an autonomous coding agent working on a software project. Each iteration
 
 **Intelligently select** the best next story from those where `passes: false`.
 
-### Phase Filtering (If --phase flag is set)
-
-If the PRD has a `currentPhase` field set (indicating `--phase N` was passed):
-1. **First**, filter stories to only those where `story.phase === currentPhase`
-2. **Then**, apply the selection criteria below to the filtered set
-3. If all stories in the current phase have `passes: true`, output: `<promise>PHASE_COMPLETE</promise>`
-
-If no `currentPhase` is set, consider all stories across all phases.
-
 ### Selection Criteria (in order of importance)
 
 1. **Explicit Dependencies First**: Check the story's `dependencies` array. If any dependency story has `passes: false`, skip this story.
@@ -178,7 +169,7 @@ If this story creates or modifies Edge Functions:
 **Example header comment:**
 ```typescript
 /**
- * Catalog Sync Edge Function
+ * AI Client Chat Edge Function
  *
  * Authentication: Called by trusted backend services only.
  * The tenantId is validated by the calling service.
@@ -217,25 +208,29 @@ A story is UI if:
 - `files` array includes React/Vue/Svelte components, HTML, or CSS
 - **When in doubt, treat as UI and verify**
 
-### Available Playwright MCP Tools
+### Available agent-browser Commands
 
-| Tool | Purpose |
-|------|---------|
-| `mcp__playwright__browser_navigate` | Go to a URL |
-| `mcp__playwright__browser_snapshot` | Get accessibility tree (preferred) |
-| `mcp__playwright__browser_click` | Click element by ref |
-| `mcp__playwright__browser_type` | Type into input |
-| `mcp__playwright__browser_take_screenshot` | Capture screenshot |
-| `mcp__playwright__browser_wait_for` | Wait for text/element |
+| Command | Purpose |
+|---------|---------|
+| `agent-browser open <url>` | Navigate to a URL |
+| `agent-browser snapshot` | Get accessibility tree with refs (preferred) |
+| `agent-browser snapshot -i` | Get only interactive elements |
+| `agent-browser click @e1` | Click element by ref |
+| `agent-browser fill @e2 "text"` | Clear and fill input by ref |
+| `agent-browser type @e2 "text"` | Type into input by ref |
+| `agent-browser screenshot [path]` | Capture screenshot |
+| `agent-browser wait --text "Welcome"` | Wait for text to appear |
+| `agent-browser get text @e1` | Get text content of element |
+| `agent-browser close` | Close browser |
 
 ### Browser Testing Workflow
 
-1. Navigate: `browser_navigate` → `http://localhost:5173`
-2. Snapshot: `browser_snapshot` to get accessibility tree
-3. Find elements by `ref` attribute in snapshot
-4. Interact: `browser_click`, `browser_type`
-5. Verify changes are visible
-6. Screenshot for confirmation if needed
+1. Open: `agent-browser open http://localhost:5173`
+2. Snapshot: `agent-browser snapshot` to get accessibility tree with refs
+3. Find elements by `@e1`, `@e2` etc. refs in snapshot output
+4. Interact: `agent-browser click @e3`, `agent-browser fill @e4 "text"`
+5. Verify changes are visible with another snapshot
+6. Screenshot for confirmation if needed: `agent-browser screenshot`
 
 **A UI story is NOT complete until browser verification passes.**
 
@@ -278,7 +273,7 @@ git commit -m "feat: [catalog-module/US-XXX] - [Story Title]"
 
 **Format:** `feat: [RUN_NAME/Story ID] - [Story Title]`
 
-Example: `feat: [catalog-module/US-003] - Extend ServiceVariant and ServicePackage with sync fields`
+Example: `feat: [provider-v4/US-003] - Display priority badge on TaskCard`
 
 **Note:** Including run name prevents story ID collisions across different Ralph runs.
 
@@ -479,43 +474,9 @@ Do not select or start work on another story in this iteration. The next iterati
 
 ---
 
-## Catalog Module Phase Checkpoints
-
-This run is organized in **6 phases** for phase-by-phase execution. After completing each phase, verify before proceeding.
-
-### Phase-by-Phase Execution
-
-Ralph will only work on stories from the specified phase when run with `--phase N`:
-
-```bash
-# Run Phase 1 only (21 stories)
-./scripts/ralph/ralph.sh 25 catalog-module --phase 1
-
-# Run Phase 2 only (9 stories)
-./scripts/ralph/ralph.sh 15 catalog-module --phase 2
-```
-
-### Phase Selection Logic
-
-When `--phase N` is specified:
-1. Filter stories to only those where `story.phase === N`
-2. From filtered stories, select highest priority with `passes: false`
-3. If all stories in phase have `passes: true`, output `<promise>PHASE_COMPLETE</promise>`
-
-| Phase | Name | Stories | Count | Checkpoint Verification |
-|-------|------|---------|-------|------------------------|
-| **1** | Backend Foundation | US-001 to US-021 | 21 | Types extend BaseSyncableEntity, 12 Supabase tables, all adapters/tables created. Run: `pnpm run typecheck` |
-| **2** | Data Layer | US-022 to US-030 | 9 | Booking sequence CRUD, getByBarcode has storeId filter, Supabase routing complete. Run: `pnpm test --run` |
-| **3** | UI Components | US-031 to US-054 | 24 | ConfirmDialog replaces confirm(), skeletons in all sections, Zod validation in modals. **Verify in browser** |
-| **4** | Checkout & Booking | US-055 to US-063 | 9 | VariantSelector/AddOnSelector work, availability badges show, turnWeight in auto-assign. **Verify checkout flow in browser** |
-| **5** | Module Integrations | US-064 to US-072 | 9 | Add-ons in tickets, Online Store uses real sync, commission calculated. **Verify in browser** |
-| **6** | Testing | US-073 to US-076 | 4 | Adapter tests 90%, table tests 85%, E2E passes. Run: `pnpm test --run && pnpm run test:e2e` |
-
----
-
 ## File Path References
 
 When referencing code locations, use format `file_path:line_number`:
-- Example: `apps/store-app/src/types/catalog.ts:125`
+- Example: `src/components/StaffCard.tsx:125`
 
 This helps navigate large files and track changes.
