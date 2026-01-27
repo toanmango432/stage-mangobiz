@@ -8,7 +8,7 @@ import { Service } from "@/types/catalog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { getServices, getCategories, deleteService, createService, updateService } from "@/lib/services/catalogSyncService";
+import { getServices, getCategories, deleteService, createService, updateService, bulkDeleteServices } from "@/lib/services/catalogSyncService";
 import type { Category } from "@/lib/adapters/catalogAdapters";
 import { useStoreContext } from "@/hooks/useStoreContext";
 
@@ -115,7 +115,7 @@ export default function Services() {
 
   const handleBulkDelete = async () => {
     try {
-      await Promise.all(selectedItems.map((id) => deleteService(id)));
+      await bulkDeleteServices(selectedItems);
       setSelectedItems([]);
       toast.success(`${selectedItems.length} services deleted`);
       await loadServices();

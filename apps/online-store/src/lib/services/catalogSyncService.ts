@@ -353,6 +353,31 @@ export async function deleteService(id: string): Promise<void> {
   invalidateServicesCache();
 }
 
+/**
+ * Bulk soft-delete services by setting is_deleted = true for all given IDs in a single request
+ */
+export async function bulkDeleteServices(ids: string[]): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  if (ids.length === 0) return;
+
+  const { error } = await supabase
+    .from('menu_services')
+    .update({
+      is_deleted: true,
+      deleted_at: new Date().toISOString(),
+    })
+    .in('id', ids);
+
+  if (error) {
+    throw new Error(`Failed to bulk delete services: ${error.message}`);
+  }
+
+  invalidateServicesCache();
+}
+
 // ─── Product Operations ──────────────────────────────────────────────────────
 
 /**
@@ -533,6 +558,31 @@ export async function deleteProduct(id: string): Promise<void> {
 
   if (error) {
     throw new Error(`Failed to delete product: ${error.message}`);
+  }
+
+  invalidateProductsCache();
+}
+
+/**
+ * Bulk soft-delete products by setting is_active = false for all given IDs in a single request
+ */
+export async function bulkDeleteProducts(ids: string[]): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  if (ids.length === 0) return;
+
+  const { error } = await supabase
+    .from('products')
+    .update({
+      is_active: false,
+      updated_at: new Date().toISOString(),
+    })
+    .in('id', ids);
+
+  if (error) {
+    throw new Error(`Failed to bulk delete products: ${error.message}`);
   }
 
   invalidateProductsCache();
@@ -868,6 +918,31 @@ export async function deleteMembershipPlan(id: string): Promise<void> {
 
   if (error) {
     throw new Error(`Failed to delete membership plan: ${error.message}`);
+  }
+
+  invalidateMembershipCache();
+}
+
+/**
+ * Bulk soft-delete membership plans by setting is_deleted = true for all given IDs in a single request
+ */
+export async function bulkDeleteMembershipPlans(ids: string[]): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  if (ids.length === 0) return;
+
+  const { error } = await supabase
+    .from('membership_plans')
+    .update({
+      is_deleted: true,
+      deleted_at: new Date().toISOString(),
+    })
+    .in('id', ids);
+
+  if (error) {
+    throw new Error(`Failed to bulk delete membership plans: ${error.message}`);
   }
 
   invalidateMembershipCache();
