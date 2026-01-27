@@ -419,6 +419,40 @@ export function getCachedProducts(): Product[] {
 }
 
 /**
+ * Fetch a single product by ID from Supabase
+ * Returns null if not found or inactive
+ */
+export async function getProductById(id: string): Promise<Product | null> {
+  if (!supabase) {
+    console.warn('[CatalogSync] Supabase client not configured');
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw new Error(`Failed to fetch product: ${error.message}`);
+    }
+
+    if (!data) return null;
+
+    return toOnlineProduct(data as ProductRow);
+  } catch (error) {
+    console.error('[CatalogSync] getProductById failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Create a new product in Supabase
  * Supabase generates the UUID — do not pass an ID
  */

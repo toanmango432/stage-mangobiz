@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Product } from "@/types/catalog";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import { getProducts, createProduct, updateProduct } from "@/lib/services/catalogSyncService";
+import { getProductById, createProduct, updateProduct } from "@/lib/services/catalogSyncService";
 import { useStoreContext } from "@/hooks/useStoreContext";
 
 export default function ProductForm() {
@@ -46,8 +46,7 @@ export default function ProductForm() {
     if (isNew) return;
     const loadProduct = async () => {
       try {
-        const products = await getProducts(storeId);
-        const product = products.find((p) => p.id === id);
+        const product = await getProductById(id!);
         if (product) {
           setFormData(product);
         } else {
