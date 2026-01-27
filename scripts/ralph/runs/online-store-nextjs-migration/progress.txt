@@ -321,3 +321,26 @@ Commit: 2f1eca7
 **Next story suggestion:** US-012 (Migrate Cart and Checkout pages) — priority 12, depends only on US-006 (done). Same phase, same category. Continues sequential page migrations.
 
 ---
+
+## 2026-01-27 - US-012: Migrate Cart and Checkout pages
+Commit: a156212
+
+**Why this story?** Highest priority (12) among unblocked stories. Previous session explicitly recommended this next. Cart and Checkout form a logical pair — checkout redirects to cart when empty, cart navigates to checkout.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/cart/page.tsx (NEW): Created 'use client' wrapper importing Cart from '@/pages/Cart'
+- apps/online-store/src/app/(customer)/checkout/page.tsx (NEW): Created 'use client' wrapper importing Checkout from '@/pages/Checkout'
+- apps/online-store/src/pages/Cart.tsx:4: Replaced `import { Link, useNavigate } from "react-router-dom"` with `import { Link, useNavigate } from "@/lib/navigation"`. Changed `<Link to="/shop">` to `<Link href="/shop">` (next/link API).
+- apps/online-store/src/pages/Checkout.tsx:3: Replaced `import { useNavigate } from "react-router-dom"` with `import { useNavigate } from "@/lib/navigation"`. All navigate() calls use simple path strings or state objects — fully compatible with the compat layer.
+
+**Learnings:**
+- Cart.tsx uses both Link (with `to` prop → changed to `href`) and useNavigate (for `navigate('/checkout')`) — two import changes needed.
+- Checkout.tsx uses useNavigate extensively (6 navigate calls) including `navigate('/order-confirmation', { state: { order: ... } })` which passes state — the compat layer's setNavigationState() handles this via sessionStorage.
+- Pre-existing framer-motion type errors in Checkout.tsx (motion.div HTMLMotionProps) are unrelated to navigation migration — they're a known React 18 + framer-motion typing issue.
+- No Link component usage in Checkout.tsx — all navigation is via useNavigate() programmatic calls.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-013 (Migrate OrderConfirmation, Memberships, GiftCards pages) — priority 13, depends only on US-006 (done). Three independent pages bundled, same Phase 2 pattern. OrderConfirmation is the next page in the checkout flow (checkout → order-confirmation).
+
+---
