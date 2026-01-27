@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,8 @@ const categories = [
 ];
 
 export default function ServiceForm() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params.id as string | undefined;
   const navigate = useNavigate();
   const isNew = id === "new";
 

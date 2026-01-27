@@ -7,7 +7,7 @@ import { BulkActions } from "@/components/admin/catalog/BulkActions";
 import { Product } from "@/types/catalog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/navigation";
 
 const mockProducts: Product[] = [
   {
