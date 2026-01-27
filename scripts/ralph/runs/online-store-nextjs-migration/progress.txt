@@ -414,3 +414,28 @@ Commit: c5fc5a0
 **Next story suggestion:** US-016 (Migrate Legal, Promotions, Updates pages) — priority 16, depends only on US-006 (done). Five simple pages bundled, same Phase 2 pattern. OR US-017 (Create not-found, error, loading, offline pages) — depends on US-004 (done), different pattern (Next.js special files).
 
 ---
+
+## 2026-01-27 - US-016: Migrate Legal, Promotions, Updates pages
+Commit: 72dfbb3
+
+**Why this story?** Highest priority (16) among unblocked stories. Previous session explicitly recommended this next. Five simple pages bundled — legal pages are static content, promotions and updates use React Query but no router.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/legal/privacy/page.tsx (NEW): Created 'use client' wrapper importing PrivacyPolicy from '@/pages/legal/PrivacyPolicy'
+- apps/online-store/src/app/(customer)/legal/terms/page.tsx (NEW): Created 'use client' wrapper importing TermsOfService from '@/pages/legal/TermsOfService'
+- apps/online-store/src/app/(customer)/legal/accessibility/page.tsx (NEW): Created 'use client' wrapper importing Accessibility from '@/pages/legal/Accessibility'
+- apps/online-store/src/app/(customer)/promotions/page.tsx (NEW): Created 'use client' wrapper importing Promotions from '@/pages/Promotions'
+- apps/online-store/src/app/(customer)/updates/page.tsx (NEW): Created 'use client' wrapper importing Updates from '@/pages/Updates'
+
+**Learnings:**
+- All 5 pages have ZERO react-router-dom imports — no Link, useNavigate, useLocation, or useParams. Only SEO component and standard React/library imports.
+- Legal pages (PrivacyPolicy, TermsOfService, Accessibility) are pure static content with SEO component only.
+- Promotions.tsx uses React Query (useQuery), CartContext (useCart), sonner (toast), but no routing.
+- Updates.tsx uses React Query (useQuery), Tabs for category filtering, but no routing.
+- PRD acceptance criterion "Update any react-router-dom imports" was not needed — none of these files use react-router-dom.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-017 (Create not-found, error, loading, offline pages) — priority 17, depends on US-004 (done). Different pattern from page wrappers — uses Next.js special file conventions (not-found.tsx, error.tsx, loading.tsx). OR US-018 (admin layout) — priority 18, depends on US-004 ✅ and US-005 ✅, gates all admin page migrations.
+
+---
