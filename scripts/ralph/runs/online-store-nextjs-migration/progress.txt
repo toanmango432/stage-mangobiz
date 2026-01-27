@@ -777,3 +777,41 @@ Commit: 922aa4e
 **Next story suggestion:** US-030 (Add metadata to info and legal pages) — priority 30, Phase 4. Same pattern as US-029 but for info/legal pages. Depends on US-015✅, US-016✅, US-028✅. OR US-032 (sitemap/robots/JSON-LD) — different pattern, depends only on US-028 (done).
 
 ---
+
+## 2026-01-27 - US-030: Add metadata to info and legal pages
+Commit: c7252ee
+
+**Why this story?** Highest priority (30) among unblocked stories. Same Phase 4 SEO pattern as US-029 (just completed). All dependencies met (US-015✅, US-016✅, US-028✅). Lowest complexity (1) — direct continuation of metadata work.
+
+**Changes:**
+- apps/online-store/src/pages/info/About.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/info/Contact.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/info/Gallery.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/info/Reviews.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/info/FAQ.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/info/Policies.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/legal/PrivacyPolicy.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/legal/TermsOfService.tsx:1: Added `'use client'` directive
+- apps/online-store/src/pages/legal/Accessibility.tsx:1: Added `'use client'` directive
+- apps/online-store/src/app/(customer)/info/about/page.tsx: Removed `'use client'`, added metadata (title: 'About Us')
+- apps/online-store/src/app/(customer)/info/contact/page.tsx: Removed `'use client'`, added metadata (title: 'Contact Us')
+- apps/online-store/src/app/(customer)/info/gallery/page.tsx: Removed `'use client'`, added metadata (title: 'Gallery')
+- apps/online-store/src/app/(customer)/info/reviews/page.tsx: Removed `'use client'`, added metadata (title: 'Reviews')
+- apps/online-store/src/app/(customer)/info/faq/page.tsx: Removed `'use client'`, added metadata (title: 'FAQ')
+- apps/online-store/src/app/(customer)/info/policies/page.tsx: Removed `'use client'`, added metadata (title: 'Policies')
+- apps/online-store/src/app/(customer)/legal/privacy/page.tsx: Removed `'use client'`, added metadata (title: 'Privacy Policy')
+- apps/online-store/src/app/(customer)/legal/terms/page.tsx: Removed `'use client'`, added metadata (title: 'Terms of Service')
+- apps/online-store/src/app/(customer)/legal/accessibility/page.tsx: Removed `'use client'`, added metadata (title: 'Accessibility')
+
+**Learnings:**
+- Info pages (About, Contact, Gallery, Reviews, FAQ, Policies) all use `useEffect` and `useState` — require `'use client'` directive on the source component.
+- Legal pages (PrivacyPolicy, TermsOfService, Accessibility) use NO hooks but import `SEO` from `@/components/SEO` which uses `react-helmet-async` (Helmet) — this requires a client boundary since HelmetProvider was a client-side provider.
+- Same pattern as US-029: move `'use client'` from the app/ wrapper to the src/pages/ source component, making the wrapper a Server Component that can export metadata.
+- None of the 9 source files had `'use client'` previously — they relied on the wrapper's `'use client'` to create the client boundary.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors from this migration.
+
+**Patterns to sync:** None — follows established Server Component page wrapper pattern from US-029.
+
+**Next story suggestion:** US-031 (Add generateMetadata for dynamic routes) — priority 31, Phase 4. Depends on US-011✅, US-022✅, US-028✅. Different pattern (generateMetadata function for dynamic pages). OR US-032 (sitemap/robots/JSON-LD) — priority 32, depends only on US-028 (done).
+
+---

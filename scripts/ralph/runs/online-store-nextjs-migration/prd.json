@@ -913,7 +913,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 4: SEO",
       "files": [
         "apps/online-store/app/(customer)/info/about/page.tsx",
