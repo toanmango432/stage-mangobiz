@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams, useAppRouter, usePathname } from "@/lib/navigation";
 import { ProductCard } from "@/components/ProductCard";

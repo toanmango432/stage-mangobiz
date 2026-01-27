@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { useNavigate } from '@/lib/navigation';
 import { SEO } from '@/components/SEO';

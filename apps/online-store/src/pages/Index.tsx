@@ -1,3 +1,5 @@
+'use client';
+
 import { SEO } from '@/components/SEO';
 import { useTemplate } from '@/hooks/useTemplate';
 import { SectionRenderer } from '@/components/sections/SectionRenderer';

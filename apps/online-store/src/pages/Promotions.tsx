@@ -1,3 +1,5 @@
+'use client';
+
 import { useQuery } from '@tanstack/react-query';
 import { getActivePromotions } from '@/lib/api/promotions';
 import { SEO } from '@/components/SEO';

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from "react";
 import { MembershipCard } from "@/components/MembershipCard";
 import { MembershipComparisonTable } from "@/components/memberships/MembershipComparisonTable";
