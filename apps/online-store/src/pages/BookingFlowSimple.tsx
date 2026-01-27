@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/navigation';
 import { SEO } from '@/components/SEO';
 import { UnifiedBookingPage } from '@/components/booking/v2/UnifiedBookingPage';
 import { BookingSuccessScreen } from '@/components/booking/v2/BookingSuccessScreen';

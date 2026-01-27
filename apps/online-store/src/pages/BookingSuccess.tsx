@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate, getNavigationState } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CheckCircle2, Calendar, Clock, User, MapPin, RefreshCw } from 'lucide-react';
@@ -11,13 +11,15 @@ import { useRealtime } from '@/providers/RealtimeProvider';
 import { toast } from '@/hooks/use-toast';
 
 export default function BookingSuccess() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { storeId } = useStore();
   const { isConnected, status: realtimeStatus } = useRealtime();
 
-  // Get booking from location state (passed after creation)
-  const initialBooking = location.state?.booking;
+  // Get booking from navigation state (passed after creation)
+  const [initialBooking] = useState(() => {
+    const state = getNavigationState<{ booking: any }>();
+    return state?.booking ?? null;
+  });
   const bookingId = initialBooking?.id;
 
   // Fetch latest booking data from database

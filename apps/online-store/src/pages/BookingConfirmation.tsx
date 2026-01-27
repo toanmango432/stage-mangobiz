@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, getNavigationState } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -20,8 +20,10 @@ type Stage = 'policy' | 'address' | 'payment';
 
 export default function BookingConfirmation() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const bookingData = location.state?.bookingData;
+  const [bookingData] = useState(() => {
+    const state = getNavigationState<{ bookingData: any }>();
+    return state?.bookingData ?? null;
+  });
 
   const { user, isAuthenticated, clientAuth } = useAuth();
   const { storeId } = useStore();
