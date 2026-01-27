@@ -846,7 +846,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 4: SEO",
       "files": [
         "apps/online-store/src/lib/metadata.ts",

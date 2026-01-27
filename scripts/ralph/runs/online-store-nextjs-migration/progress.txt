@@ -713,3 +713,24 @@ Commit: 2f748b0
 **Next story suggestion:** US-028 (Add root metadata and shared metadata config) — priority 28, Phase 4 begins. Depends on US-004 (done). Unblocks US-029, US-030, US-031, US-032 (all Phase 4 SEO stories).
 
 ---
+
+## 2026-01-27 - US-028: Add root metadata and shared metadata config
+Commit: 0b86eda
+
+**Why this story?** Highest priority (28) among unblocked stories. Previous session explicitly recommended this next. Phase 4 (SEO) begins. Gates US-029, US-030, US-031, US-032.
+
+**Changes:**
+- apps/online-store/src/lib/metadata.ts (NEW): Created shared metadata module with siteConfig constants (name, description, url, ogImage), sharedMetadata (Metadata type with title template '%s | Mango', openGraph, twitter card), and sharedViewport (Viewport type with device-width, initialScale, themeColor for light/dark).
+- apps/online-store/src/app/layout.tsx: Added `export const metadata: Metadata = sharedMetadata` and `export const viewport: Viewport = sharedViewport`. Added `suppressHydrationWarning` on `<html>` element for next-themes compatibility. Added imports for sharedMetadata, sharedViewport from `@/lib/metadata` and Metadata, Viewport types from 'next'.
+
+**Learnings:**
+- HelmetProvider was already removed from Providers.tsx in US-004 (intentionally omitted during initial creation). The acceptance criterion "Remove HelmetProvider from Providers.tsx" was already satisfied — no action needed.
+- `suppressHydrationWarning` on `<html>` is needed because next-themes injects a `class` attribute during hydration to prevent FOUC. Without it, React warns about the mismatch between server-rendered HTML (no class) and client hydration (class="light" or "dark").
+- `metadataBase` in the Metadata object resolves relative OG image URLs to absolute URLs. Using `new URL()` at module scope is SSR-safe in Next.js (runs in Node.js on the server).
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors from this story.
+
+**Patterns to sync:** None — Next.js metadata configuration is standard Next.js pattern.
+
+**Next story suggestion:** US-029 (Add static metadata to customer pages) — priority 29, Phase 4. Depends on US-028 (just completed) plus US-007/US-008/US-011/US-012 (all done). Bulk metadata addition to 11 customer page wrappers. OR US-032 (sitemap/robots/JSON-LD) — depends only on US-028 (done), different pattern.
+
+---
