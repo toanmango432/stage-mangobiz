@@ -277,3 +277,24 @@ Commit: 72c2673
 **Next story suggestion:** US-010 (Migrate Booking module page) — priority 10, complexity 1 (simplest remaining), depends only on US-006 (done). OR US-011 (Shop/ProductDetail, complexity 3) for the first dynamic route migration.
 
 ---
+
+## 2026-01-27 - US-010: Migrate Booking module page
+Commit: 39b8df5
+
+**Why this story?** Highest priority (10) among unblocked stories. Previous session explicitly recommended this next. Simplest complexity (1) — quick win before tackling more complex page migrations.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/booking/page.tsx (NEW): Created 'use client' wrapper importing BookingPage from '@/features/booking'
+- apps/online-store/src/features/booking/pages/BookingConfirmation.tsx:2: Replaced `import { useNavigate } from 'react-router-dom'` with `import { useNavigate } from '@/lib/navigation'`
+
+**Learnings:**
+- BookingPage.tsx (the main page component) has ZERO react-router-dom imports — it manages multi-step booking flow entirely via Redux state (selectCurrentStep), rendering different step components internally.
+- BookingConfirmation.tsx (inside features/booking/) uses useNavigate for "Book Another" and "Back to Home" buttons — simple navigate() calls to paths, fully compatible with the compat layer.
+- The features/booking module does NOT have its own router (as PRD notes suggested to check) — it uses Redux-driven step rendering, not URL-based routing.
+- This is distinct from the src/pages/BookingConfirmation.tsx (US-009) — features/booking has its own BookingConfirmation component at a different path.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-011 (Migrate Shop and ProductDetail pages) — priority 11, depends only on US-006 (done). First dynamic route migration with [productId] segment. OR US-012 (Cart/Checkout) or US-013 (OrderConfirmation/Memberships/GiftCards) — all simpler but lower priority.
+
+---
