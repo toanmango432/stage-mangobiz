@@ -327,6 +327,45 @@ describe('toOnlineService', () => {
 
     expect(result.category).toBe('Uncategorized');
   });
+
+  it('preserves duration of 0 without defaulting to 30', () => {
+    const row: ServiceRow = { ...serviceRowFixture, duration: 0 };
+    const result = toOnlineService(row);
+
+    expect(result.duration).toBe(0);
+  });
+
+  it('preserves price of 0 (free service)', () => {
+    const row: ServiceRow = { ...serviceRowFixture, price: 0 };
+    const result = toOnlineService(row);
+
+    expect(result.basePrice).toBe(0);
+    expect(result.price).toBe(0);
+  });
+
+  it('coerces string price from Supabase DECIMAL column', () => {
+    const row: ServiceRow = {
+      ...serviceRowFixture,
+      price: '49.99' as unknown as number, // Supabase DECIMAL returns strings
+    };
+    const result = toOnlineService(row);
+
+    expect(result.basePrice).toBe(49.99);
+    expect(typeof result.basePrice).toBe('number');
+    expect(result.price).toBe(49.99);
+    expect(typeof result.price).toBe('number');
+  });
+
+  it('coerces string deposit_amount from Supabase DECIMAL column', () => {
+    const row: ServiceRow = {
+      ...serviceRowFixture,
+      deposit_amount: '25.50' as unknown as number,
+    };
+    const result = toOnlineService(row);
+
+    expect(result.depositAmount).toBe(25.5);
+    expect(typeof result.depositAmount).toBe('number');
+  });
 });
 
 // ─── Tests: fromOnlineService ───────────────────────────────────────────────
@@ -396,6 +435,11 @@ describe('fromOnlineService', () => {
     expect(row.online_booking_enabled).toBe(serviceRowFixture.online_booking_enabled);
     expect(row.show_price_online).toBe(serviceRowFixture.show_price_online);
     expect(row.has_variants).toBe(serviceRowFixture.has_variants);
+    expect(row.tags).toEqual(serviceRowFixture.tags);
+    expect(row.requires_deposit).toBe(serviceRowFixture.requires_deposit);
+    expect(row.deposit_amount).toBe(serviceRowFixture.deposit_amount);
+    expect(row.online_booking_buffer_minutes).toBe(serviceRowFixture.online_booking_buffer_minutes);
+    expect(row.images).toEqual(serviceRowFixture.images);
   });
 });
 
@@ -457,15 +501,6 @@ describe('toOnlineProduct', () => {
     expect(result.updatedAt).toBe('2026-01-20T10:00:00.000Z');
   });
 
-  it('extracts URLs from image objects', () => {
-    const result = toOnlineProduct(productRowFixture);
-    // Images are { url, alt?, position? } objects — adapter extracts .url
-    expect(result.images).toEqual([
-      'https://example.com/lotion1.jpg',
-      'https://example.com/lotion2.jpg',
-    ]);
-  });
-
   it('handles null/undefined fields gracefully', () => {
     const minimalRow: ProductRow = {
       ...productRowFixture,
@@ -498,6 +533,33 @@ describe('toOnlineProduct', () => {
     expect(result.requiresShipping).toBe(false);
     expect(result.collections).toEqual([]);
     expect(result.tags).toEqual([]);
+  });
+
+  it('preserves stock_quantity of 0 without defaulting', () => {
+    const row: ProductRow = { ...productRowFixture, stock_quantity: 0 };
+    const result = toOnlineProduct(row);
+
+    expect(result.stockQuantity).toBe(0);
+  });
+
+  it('preserves low_stock_threshold of 0 without defaulting to 5', () => {
+    const row: ProductRow = { ...productRowFixture, low_stock_threshold: 0 };
+    const result = toOnlineProduct(row);
+
+    expect(result.lowStockThreshold).toBe(0);
+  });
+
+  it('handles string images (plain URL strings instead of objects)', () => {
+    const row: ProductRow = {
+      ...productRowFixture,
+      images: ['https://example.com/img1.jpg', 'https://example.com/img2.jpg'] as unknown as ProductRow['images'],
+    };
+    const result = toOnlineProduct(row);
+
+    expect(result.images).toEqual([
+      'https://example.com/img1.jpg',
+      'https://example.com/img2.jpg',
+    ]);
   });
 });
 
@@ -560,6 +622,16 @@ describe('fromOnlineProduct', () => {
     expect(result.sku).toBeNull();
   });
 
+  it('converts empty description to null', () => {
+    const result = fromOnlineProduct({ description: '' });
+    expect(result.description).toBeNull();
+  });
+
+  it('converts empty category to null', () => {
+    const result = fromOnlineProduct({ category: '' });
+    expect(result.category_id).toBeNull();
+  });
+
   it('round-trips key fields correctly', () => {
     const original = toOnlineProduct(productRowFixture);
     const row = fromOnlineProduct(original);
@@ -569,8 +641,16 @@ describe('fromOnlineProduct', () => {
     expect(row.cost_price).toBe(productRowFixture.cost_price);
     expect(row.track_inventory).toBe(productRowFixture.track_inventory);
     expect(row.stock_quantity).toBe(productRowFixture.stock_quantity);
+    expect(row.low_stock_threshold).toBe(productRowFixture.low_stock_threshold);
+    expect(row.allow_backorder).toBe(productRowFixture.allow_backorder);
     expect(row.show_online).toBe(productRowFixture.show_online);
     expect(row.is_featured).toBe(productRowFixture.is_featured);
+    expect(row.sku).toBe(productRowFixture.sku);
+    expect(row.category_id).toBe(productRowFixture.category_id);
+    expect(row.description).toBe(productRowFixture.description);
+    expect(row.weight).toBe(productRowFixture.weight);
+    expect(row.dimensions).toEqual(productRowFixture.dimensions);
+    expect(row.compare_at_price).toBe(productRowFixture.compare_at_price);
   });
 });
 
@@ -838,6 +918,14 @@ describe('fromOnlineMembershipPlan', () => {
     expect(row.name).toBe(membershipPlanRowFixture.name);
     expect(row.display_name).toBe(membershipPlanRowFixture.display_name);
     expect(row.price_monthly).toBe(membershipPlanRowFixture.price_monthly);
+    expect(row.description).toBe(membershipPlanRowFixture.description);
+    expect(row.tagline).toBe(membershipPlanRowFixture.tagline);
+    expect(row.image_url).toBe(membershipPlanRowFixture.image_url);
+    expect(row.badge_icon).toBe(membershipPlanRowFixture.badge_icon);
+    expect(row.color).toBe(membershipPlanRowFixture.color);
+    expect(row.perks).toEqual(membershipPlanRowFixture.perks);
+    expect(row.features).toEqual(membershipPlanRowFixture.features);
+    expect(row.rules).toEqual(membershipPlanRowFixture.rules);
     expect(row.is_popular).toBe(membershipPlanRowFixture.is_popular);
     expect(row.is_active).toBe(membershipPlanRowFixture.is_active);
     expect(row.sort_order).toBe(membershipPlanRowFixture.sort_order);
