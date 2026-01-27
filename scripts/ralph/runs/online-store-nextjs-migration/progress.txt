@@ -488,3 +488,24 @@ Commit: 0e7a4fe
 **Next story suggestion:** US-019 (Migrate admin Dashboard and Storefront overview) — priority 19, depends on US-018 (just completed). Two admin pages, straightforward wrappers. OR US-020/US-021 (storefront sub-pages) — same dependency, same pattern.
 
 ---
+
+## 2026-01-27 - US-019: Migrate admin Dashboard and Storefront overview
+Commit: 188d6a6
+
+**Why this story?** Highest priority (19) among unblocked stories. Previous session explicitly recommended this next. Depends on US-018 (just completed). Two admin pages — Dashboard has zero router deps, Storefront has one Link import.
+
+**Changes:**
+- apps/online-store/src/app/admin/page.tsx (NEW): Created 'use client' wrapper importing Dashboard from '@/pages/admin/Dashboard'
+- apps/online-store/src/app/admin/storefront/page.tsx (NEW): Created 'use client' wrapper importing Storefront from '@/pages/admin/Storefront'
+- apps/online-store/src/pages/admin/Storefront.tsx:3: Replaced `import { Link } from "react-router-dom"` with `import Link from "next/link"`. Changed `<Link to={section.path}>` to `<Link href={section.path}>` on line 90.
+
+**Learnings:**
+- Dashboard.tsx has ZERO react-router-dom imports — it uses only lucide-react icons and local dashboard components (DetailedMetricCard, RevenueChart, ActivityFeed, QuickActions). No navigation changes needed.
+- Storefront.tsx had one react-router-dom import (Link) used for navigation cards to sub-pages. Simple `to` → `href` swap with next/link.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors from this migration.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-020 (Migrate admin Storefront sub-pages: theme, media, navigation, promotions, announcements) — priority 20, depends on US-018 (done). Five admin sub-pages, same thin wrapper pattern. OR US-021 (more storefront sub-pages) — same dependency, same pattern.
+
+---
