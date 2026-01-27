@@ -689,3 +689,27 @@ Commit: 1e0e36f
 **Next story suggestion:** US-027 (Convert NotificationContext and RealtimeProvider for SSR) — priority 27, Phase 3. Depends on US-004 (done). Last remaining Phase 3 provider conversion. WebSocket/MQTT connections must be client-only.
 
 ---
+
+## 2026-01-27 - US-027: Convert NotificationContext and RealtimeProvider for SSR
+Commit: 2f748b0
+
+**Why this story?** Highest priority (27) among unblocked stories. Previous session explicitly recommended this next. Last remaining Phase 3 provider conversion. Completes all SSR-safety work for providers.
+
+**Changes:**
+- apps/online-store/src/contexts/NotificationContext.tsx:1: Added `'use client'` directive
+- apps/online-store/src/contexts/NotificationContext.tsx:165-167: Added `typeof window !== 'undefined'` guard around `localStorage.removeItem(STORAGE_KEY)` in `clearAll()` function
+- apps/online-store/src/contexts/NotificationContext.tsx:176: Added `typeof window === 'undefined'` early return guard in `refreshNotifications()` before `localStorage.getItem()` call
+- apps/online-store/src/providers/RealtimeProvider.tsx:1: Added `'use client'` directive
+
+**Learnings:**
+- NotificationContext.tsx already had `typeof window === 'undefined'` guard in its initial useEffect (line 54) and all primary localStorage access was inside useEffect — inherently SSR-safe. Only two functions called outside useEffect needed guards: `clearAll()` (localStorage.removeItem) and `refreshNotifications()` (localStorage.getItem). These are event handlers that only run client-side in practice, but defense-in-depth SSR guards are good practice.
+- RealtimeProvider.tsx ONLY needed the `'use client'` directive — all Supabase Realtime subscriptions (via `useBookingRealtime` hook) are set up inside `useEffect` (line 103 of useBookingRealtime.ts), which doesn't run during SSR. The hook uses `useState`, `useCallback`, `useMemo` — all safe in 'use client' components.
+- `Intl.DateTimeFormat().resolvedOptions().timeZone` (line 44 of NotificationContext) is available in Node.js — SSR-safe, no guard needed.
+- The `useStore` hook used by RealtimeProvider has `import.meta.env.VITE_DEFAULT_STORE_ID` at module scope — this is a concern for useStore.ts itself (not this story), but since RealtimeProvider is a 'use client' component, `import.meta.env` is available via Vite bundling.
+- **Phase 3 is now COMPLETE** — all 4 provider conversions done (US-024 AuthContext, US-025 ThemeContext, US-026 Cart/Wishlist/Personalization, US-027 Notification/Realtime).
+
+**Patterns to sync:** None — follows established SSR-safety patterns from US-024/US-025/US-026.
+
+**Next story suggestion:** US-028 (Add root metadata and shared metadata config) — priority 28, Phase 4 begins. Depends on US-004 (done). Unblocks US-029, US-030, US-031, US-032 (all Phase 4 SEO stories).
+
+---
