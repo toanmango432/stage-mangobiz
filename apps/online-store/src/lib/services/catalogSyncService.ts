@@ -624,22 +624,8 @@ export async function updateGiftCardConfig(
       throw new Error(`Failed to update gift card settings: ${settingsError.message}`);
     }
 
-    // Replace denomination rows:
-    // 1. Soft-delete existing active denominations for this store
-    const { error: deleteError } = await supabase
-      .from('gift_card_denominations')
-      .update({
-        is_deleted: true,
-        deleted_at: new Date().toISOString(),
-      })
-      .eq('store_id', storeId)
-      .eq('is_deleted', false);
-
-    if (deleteError) {
-      throw new Error(`Failed to clear existing denominations: ${deleteError.message}`);
-    }
-
-    // 2. Insert new denomination rows
+    // Replace denomination rows using swap pattern:
+    // 1. Insert new denomination rows FIRST (old data stays intact if this fails)
     let denomData: GiftCardDenominationRow[] = [];
     if (denominations.length > 0) {
       const denomRows = denominations.map((d) => ({
@@ -662,6 +648,35 @@ export async function updateGiftCardConfig(
       }
 
       denomData = (insertedDenoms || []) as GiftCardDenominationRow[];
+    }
+
+    // 2. Soft-delete OLD denomination rows only after successful insert
+    // Exclude the newly inserted IDs so we only delete the previous ones
+    const newDenomIds = denomData.map((d) => d.id);
+    try {
+      let deleteQuery = supabase
+        .from('gift_card_denominations')
+        .update({
+          is_deleted: true,
+          deleted_at: new Date().toISOString(),
+        })
+        .eq('store_id', storeId)
+        .eq('is_deleted', false);
+
+      // Exclude newly inserted rows from deletion
+      if (newDenomIds.length > 0) {
+        deleteQuery = deleteQuery.not('id', 'in', `(${newDenomIds.join(',')})`);
+      }
+
+      const { error: deleteError } = await deleteQuery;
+
+      if (deleteError) {
+        console.error('[CatalogSync] Failed to clean up old denominations:', deleteError);
+        // Non-fatal: new data is already inserted, old rows just stay around
+      }
+    } catch (cleanupError) {
+      console.error('[CatalogSync] Cleanup of old denominations failed:', cleanupError);
+      // Non-fatal: new data is already inserted
     }
 
     invalidateGiftCardCache();
