@@ -1,3 +1,5 @@
+'use client';
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Notification, NotificationPreferences, NotificationStats } from '@/types/notification';
 
@@ -161,7 +163,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
   const clearAll = () => {
     setNotifications([]);
-    localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+    }
   };
 
   const updatePreferences = (newPreferences: Partial<NotificationPreferences>) => {
@@ -171,6 +175,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshNotifications = () => {
+    if (typeof window === 'undefined') return;
     // In a real app, this would fetch from the server
     // For now, we just reload from localStorage
     try {
