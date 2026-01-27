@@ -762,7 +762,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 3: Convert Providers",
       "files": [
         "apps/online-store/src/contexts/ThemeContext.tsx",

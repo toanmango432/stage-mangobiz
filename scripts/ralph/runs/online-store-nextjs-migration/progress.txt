@@ -640,3 +640,29 @@ Commit: 94f5030
 **Next story suggestion:** US-025 (Convert ThemeContext to use next-themes) — priority 25, Phase 3. Depends on US-004 (done). next-themes is already in dependencies. Lower complexity (3) than US-024. OR US-026 (Cart/Wishlist/Personalization contexts) — same phase, groups 3 related contexts.
 
 ---
+
+## 2026-01-27 - US-025: Convert ThemeContext to use next-themes
+Commit: 6f8e3db
+
+**Why this story?** Highest priority (25) among unblocked stories. Previous session explicitly recommended this next. Phase 3 provider conversion continues — next-themes is already in dependencies.
+
+**Changes:**
+- apps/online-store/src/contexts/ThemeContext.tsx:1: Added `'use client'` directive
+- apps/online-store/src/contexts/ThemeContext.tsx:91: Guarded `localStorage.getItem("mango-theme-draft")` in useState initializer with `typeof window === 'undefined'` check — returns defaultTheme on server
+- apps/online-store/src/contexts/ThemeContext.tsx:119-121: Guarded `localStorage.setItem("mango-theme-published")` in publishTheme() with `typeof window !== 'undefined'` check
+- apps/online-store/src/components/Providers.tsx:4: Added `import { ThemeProvider as NextThemesProvider } from 'next-themes'`
+- apps/online-store/src/components/Providers.tsx:6: Renamed ThemeContext import to `BrandThemeProvider` to disambiguate from next-themes
+- apps/online-store/src/components/Providers.tsx:24-25: Wrapped BrandThemeProvider inside `<NextThemesProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>`
+
+**Learnings:**
+- The existing ThemeContext is NOT about dark/light mode — it's a **brand customization** context (colors, typography, branding, layout config). `next-themes` handles dark/light mode switching, which is a separate concern.
+- Both providers coexist: `NextThemesProvider` (outer) handles dark/light mode with SSR-safe cookie-based persistence, while `BrandThemeProvider` (inner) handles store brand customization with localStorage persistence.
+- Only one file (`Theme.tsx` admin page) uses `useTheme` from ThemeContext — zero risk of consumer breakage since the import path and API remain identical.
+- `localStorage.setItem` inside `useEffect` doesn't need guarding (useEffect only runs on client), but `localStorage.getItem` in useState initializer DOES need guarding (useState initializer runs during SSR when used in a 'use client' component rendered in a Server Component tree).
+- `disableTransitionOnChange` on NextThemesProvider prevents FOUC by disabling CSS transitions during theme switch.
+
+**Patterns to sync:** None — next-themes integration is standard Next.js pattern.
+
+**Next story suggestion:** US-026 (Convert Cart, Wishlist, Personalization contexts for SSR) — priority 26, Phase 3. Depends on US-004 (done). Groups 3 related contexts with similar localStorage SSR-safety patterns.
+
+---
