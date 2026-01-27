@@ -209,3 +209,24 @@ Commit: 34475a8
 **Next story suggestion:** US-007 (Migrate home page to app router) — depends on US-006 (just completed), lowest priority among stories now unblocked by US-006. First page migration — establishes the pattern for all subsequent page stories.
 
 ---
+
+## 2026-01-27 - US-007: Migrate home page to app router
+Commit: 6fd8092
+
+**Why this story?** Highest priority (7) among unblocked stories, depends only on US-006 (just completed). First page migration — establishes the pattern for all subsequent page stories. Previous session explicitly recommended this as next.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/page.tsx (NEW): Created 'use client' wrapper component importing Index from '@/pages/Index'
+- apps/online-store/src/app/page.tsx (DELETED): Removed root stub page.tsx — home route is now handled by (customer)/page.tsx which maps to / via the route group
+
+**Learnings:**
+- Index.tsx has ZERO react-router-dom imports — it only uses SEO, useTemplate, SectionRenderer, LoadingSpinner, PromotionBannerContainer, PromotionsStripContainer. No Link/useNavigate/useLocation usage at all.
+- The PRD acceptance criterion "replace react-router-dom Link with next/link" was not needed for this file — navigation links exist in child components (SectionRenderer etc.) which are migrated in US-041/US-042.
+- Root `src/app/page.tsx` must be deleted when using route group `(customer)/page.tsx` for `/` — otherwise Next.js has a route conflict since both map to `/`.
+- The page migration pattern is simple: 'use client' wrapper in app/ that imports the existing page component from src/pages/.
+
+**Patterns to sync:** None — the page wrapper pattern is documented in the first migration (this story) and reused in all subsequent page stories.
+
+**Next story suggestion:** US-008 (Migrate Login page) — same phase, depends only on US-006 (done), priority 8. OR US-009 (Migrate Book pages) — same dependencies. US-008 is simpler (complexity 2 vs 3) so recommend that first.
+
+---
