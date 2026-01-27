@@ -97,8 +97,9 @@ export default function ServiceForm() {
     setIsSaving(true);
     try {
       const storeId = localStorage.getItem("storeId") || "";
+      const tenantId = localStorage.getItem("tenantId") || "";
       if (isNew) {
-        await createService(storeId, formData as Omit<Service, "id" | "createdAt" | "updatedAt">);
+        await createService(storeId, tenantId, formData as Omit<Service, "id" | "createdAt" | "updatedAt">);
         toast.success("Service created");
       } else {
         await updateService(id!, formData);

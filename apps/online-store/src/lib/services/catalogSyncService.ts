@@ -276,6 +276,7 @@ function invalidateServicesCache(): void {
  */
 export async function createService(
   storeId: string,
+  tenantId: string,
   service: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Service> {
   if (!supabase) {
@@ -284,6 +285,7 @@ export async function createService(
 
   const row = fromOnlineService(service);
   row.store_id = storeId;
+  row.tenant_id = tenantId;
 
   const { data, error } = await supabase
     .from('menu_services')
@@ -422,6 +424,7 @@ export function getCachedProducts(): Product[] {
  */
 export async function createProduct(
   storeId: string,
+  tenantId: string,
   product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Product> {
   if (!supabase) {
@@ -430,6 +433,7 @@ export async function createProduct(
 
   const row = fromOnlineProduct(product);
   row.store_id = storeId;
+  (row as Record<string, unknown>).tenant_id = tenantId;
   // Generate slug from name
   row.slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -595,6 +599,7 @@ export async function getGiftCardConfig(storeId: string): Promise<GiftCardConfig
  */
 export async function updateGiftCardConfig(
   storeId: string,
+  tenantId: string,
   config: Partial<GiftCardConfig>
 ): Promise<GiftCardConfig> {
   if (!supabase) {
@@ -606,6 +611,7 @@ export async function updateGiftCardConfig(
   try {
     // Upsert settings (gift_card_settings has UNIQUE store_id constraint)
     settings.store_id = storeId;
+    settings.tenant_id = tenantId;
     settings.updated_at = new Date().toISOString();
 
     const { data: settingsData, error: settingsError } = await supabase
@@ -638,6 +644,7 @@ export async function updateGiftCardConfig(
     if (denominations.length > 0) {
       const denomRows = denominations.map((d) => ({
         store_id: storeId,
+        tenant_id: tenantId,
         amount: d.amount,
         label: d.label,
         display_order: d.display_order,
@@ -740,6 +747,7 @@ export function getCachedMembershipPlans(): MembershipPlan[] {
  */
 export async function createMembershipPlan(
   storeId: string,
+  tenantId: string,
   plan: Omit<MembershipPlan, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<MembershipPlan> {
   if (!supabase) {
@@ -748,6 +756,7 @@ export async function createMembershipPlan(
 
   const row = fromOnlineMembershipPlan(plan);
   row.store_id = storeId;
+  row.tenant_id = tenantId;
 
   const { data, error } = await supabase
     .from('membership_plans')

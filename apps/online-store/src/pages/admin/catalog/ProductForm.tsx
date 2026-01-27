@@ -72,8 +72,9 @@ export default function ProductForm() {
     setIsSaving(true);
     try {
       const storeId = localStorage.getItem("storeId") || "";
+      const tenantId = localStorage.getItem("tenantId") || "";
       if (isNew) {
-        await createProduct(storeId, formData as Omit<Product, "id" | "createdAt" | "updatedAt">);
+        await createProduct(storeId, tenantId, formData as Omit<Product, "id" | "createdAt" | "updatedAt">);
         toast.success("Product created");
       } else {
         await updateProduct(id!, formData);

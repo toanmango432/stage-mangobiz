@@ -225,8 +225,9 @@ export default function Services() {
         onDelete={handleDelete}
         onDuplicate={async (service) => {
           try {
+            const tenantId = localStorage.getItem("tenantId") || "";
             const { id, createdAt, updatedAt, ...rest } = service;
-            await createService(storeId, {
+            await createService(storeId, tenantId, {
               ...rest,
               name: `${service.name} (Copy)`,
             });

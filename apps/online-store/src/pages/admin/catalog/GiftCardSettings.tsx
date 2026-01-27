@@ -50,7 +50,8 @@ export default function GiftCardSettings() {
     setIsSaving(true);
     try {
       const storeId = localStorage.getItem('storeId') || '';
-      const updatedConfig = await updateGiftCardConfig(storeId, {
+      const tenantId = localStorage.getItem('tenantId') || '';
+      const updatedConfig = await updateGiftCardConfig(storeId, tenantId, {
         ...config,
         presetAmounts,
       });
