@@ -11,7 +11,7 @@ import { usePromotions } from '@/hooks/usePromotions';
 import { toast } from '@/hooks/use-toast';
 import { RefreshCw, ExternalLink, Tag, Clock, ShoppingCart, Home, Grid } from 'lucide-react';
 import { CountdownTimer } from '@/components/promotions/CountdownTimer';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 const Promotions = () => {
   const { data: settings, isLoading: settingsLoading } = useMarketingSettings();
@@ -77,7 +77,7 @@ const Promotions = () => {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
-            <Link to="/" target="_blank">
+            <Link href="/" target="_blank">
               <ExternalLink className="h-4 w-4 mr-2" />
               View Storefront
             </Link>

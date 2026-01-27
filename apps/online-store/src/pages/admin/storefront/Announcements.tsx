@@ -10,7 +10,7 @@ import { useMarketingSettings, useUpdateMarketingSettings } from '@/hooks/useMar
 import { useAnnouncements, useArchiveAnnouncement, useDuplicateAnnouncement } from '@/hooks/useAnnouncements';
 import { toast } from '@/hooks/use-toast';
 import { Plus, ExternalLink, Edit, Copy, Archive, ChevronDown, ChevronUp, AlertCircle, AlertTriangle, Info, Bell } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { format } from 'date-fns';
 import { AnnouncementDialog } from '@/components/admin/announcements/AnnouncementDialog';
 import { Announcement } from '@/types/announcement';
@@ -106,7 +106,7 @@ const Announcements = () => {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" asChild>
-              <Link to="/" target="_blank">
+              <Link href="/" target="_blank">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 View Storefront
               </Link>
