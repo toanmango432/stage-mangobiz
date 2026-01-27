@@ -666,3 +666,26 @@ Commit: 6f8e3db
 **Next story suggestion:** US-026 (Convert Cart, Wishlist, Personalization contexts for SSR) — priority 26, Phase 3. Depends on US-004 (done). Groups 3 related contexts with similar localStorage SSR-safety patterns.
 
 ---
+
+## 2026-01-27 - US-026: Convert Cart, Wishlist, Personalization contexts for SSR
+Commit: 1e0e36f
+
+**Why this story?** Highest priority (26) among unblocked stories. Previous session explicitly recommended this next. Phase 3 provider conversion continues — groups 3 related contexts with similar localStorage SSR-safety patterns.
+
+**Changes:**
+- apps/online-store/src/contexts/CartContext.tsx:1: Added `'use client'` directive. No other changes needed — all localStorage calls were already inside useEffect (lines 40-87), which only runs on client. State initializes as empty arrays/null — SSR-safe defaults.
+- apps/online-store/src/contexts/WishlistContext.tsx:1: Added `'use client'` directive.
+- apps/online-store/src/contexts/WishlistContext.tsx:16: Added `typeof window === 'undefined'` guard in useState initializer — this was the only SSR hazard. localStorage.getItem was called directly in the useState lazy initializer which runs during SSR.
+- apps/online-store/src/contexts/PersonalizationContext.tsx:1: Added `'use client'` directive. No other changes needed — getUserProfile() already has `typeof window === 'undefined'` guard (returns default profile on server). getSession() and incrementVisitCount() are called inside useEffect — inherently SSR-safe.
+
+**Learnings:**
+- CartContext was already SSR-safe by design — all localStorage access is inside useEffect hooks, and state initializes with empty/null defaults. Only needed the 'use client' directive.
+- WishlistContext had the ONE real SSR hazard: `useState<string[]>(() => { const saved = localStorage.getItem(...) })` — the useState lazy initializer runs during SSR in a 'use client' component rendered within a Server Component tree. Added `typeof window === 'undefined'` guard to return `[]` on server.
+- PersonalizationContext's `getUserProfile()` already had SSR guards in `src/lib/ai/personalization.ts` (lines 7-9: `typeof window === 'undefined'` returns default profile). Similarly, `getSession()` has the same guard (lines 66-72). Only the 'use client' directive was needed.
+- Pattern confirmed: localStorage access in `useEffect` is inherently SSR-safe. Only localStorage in `useState` initializers or module-level code needs explicit window guards.
+
+**Patterns to sync:** None — the localStorage SSR guard pattern is already well-established from US-024 and US-025.
+
+**Next story suggestion:** US-027 (Convert NotificationContext and RealtimeProvider for SSR) — priority 27, Phase 3. Depends on US-004 (done). Last remaining Phase 3 provider conversion. WebSocket/MQTT connections must be client-only.
+
+---
