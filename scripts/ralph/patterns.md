@@ -298,3 +298,6 @@ Next.js 16 uses `jsx: "react-jsx"` (not `"preserve"` like older versions). On fi
 
 ### Consolidated tsconfig for Next.js Migration
 Replace Vite's project-references pattern (`tsconfig.json` with `files:[], references:[]` pointing to `tsconfig.app.json` and `tsconfig.node.json`) with a single primary `tsconfig.json` containing all compiler options. Keep `.app.json` and `.node.json` as extending configs (`"extends": "./tsconfig.json"`) for Vite fallback during migration.
+
+### Server Component Page Wrappers for Metadata
+Next.js `export const metadata` only works in Server Components (no `'use client'`). When migrating `'use client'` page wrappers to support metadata, move `'use client'` to the imported source component (`src/pages/*.tsx`) and make the `app/*/page.tsx` wrapper a Server Component. The source component becomes self-contained as a Client Component, and the wrapper can export metadata.
