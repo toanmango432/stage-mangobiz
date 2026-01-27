@@ -1,3 +1,5 @@
+'use client';
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export interface ThemeConfig {
@@ -88,6 +90,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<ThemeConfig>(() => {
+    if (typeof window === 'undefined') return defaultTheme;
     const saved = localStorage.getItem("mango-theme-draft");
     return saved ? JSON.parse(saved) : defaultTheme;
   });
@@ -115,7 +118,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const publishTheme = () => {
-    localStorage.setItem("mango-theme-published", JSON.stringify(theme));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("mango-theme-published", JSON.stringify(theme));
+    }
     setIsDraft(false);
   };
 
