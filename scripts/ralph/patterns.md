@@ -292,3 +292,9 @@ When migrating a Vite React app to Next.js App Router, if `src/pages/` already c
 - `turbopack.root` should point to monorepo root to avoid lockfile detection warnings
 - `typescript.ignoreBuildErrors` still supported
 - `--no-lint` flag removed from `next build` CLI
+
+### Next.js 16 JSX Setting
+Next.js 16 uses `jsx: "react-jsx"` (not `"preserve"` like older versions). On first `next dev` run, it auto-corrects this in tsconfig.json. Don't fight it — use `react-jsx`.
+
+### Consolidated tsconfig for Next.js Migration
+Replace Vite's project-references pattern (`tsconfig.json` with `files:[], references:[]` pointing to `tsconfig.app.json` and `tsconfig.node.json`) with a single primary `tsconfig.json` containing all compiler options. Keep `.app.json` and `.node.json` as extending configs (`"extends": "./tsconfig.json"`) for Vite fallback during migration.

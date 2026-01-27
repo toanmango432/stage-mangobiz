@@ -26,7 +26,7 @@ import type {
   CategoryWithCount,
   ServiceWithVariants,
   AddOnGroupWithOptions
-} from '../types';
+} from '@mango/types';
 
 // ==================== SERVICE CATEGORIES ====================
 
@@ -240,7 +240,7 @@ export const menuServicesDB = {
       .and(service =>
         service.name.toLowerCase().includes(lowerQuery) ||
         (service.description?.toLowerCase().includes(lowerQuery) ?? false) ||
-        (service.tags?.some(tag => tag.toLowerCase().includes(lowerQuery)) ?? false)
+        (service.tags?.some((tag: string) => tag.toLowerCase().includes(lowerQuery)) ?? false)
       )
       .limit(limit)
       .toArray();

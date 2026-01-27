@@ -12,12 +12,12 @@ import type {
   BusinessSettings,
   CheckoutSettings,
   ReceiptSettings,
-  NotificationSettings,
   AccountSettings,
   SystemSettings,
   PaymentTerminal,
   HardwareDevice,
-} from '../types/settings';
+} from '@mango/types';
+import type { SettingsNotificationSettings as NotificationSettings } from '@mango/types';
 
 // =============================================================================
 // STORE SETTINGS OPERATIONS

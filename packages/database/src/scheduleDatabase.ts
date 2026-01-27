@@ -1,37 +1,193 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './schema';
 import { syncQueueDB } from './database';
-import { createBaseSyncableDefaults } from '../types/common';
+import { createBaseSyncableDefaults } from '@mango/types';
 import type {
   TimeOffType,
-  CreateTimeOffTypeInput,
-  UpdateTimeOffTypeInput,
   TimeOffRequest,
-  CreateTimeOffRequestInput,
   BlockedTimeType,
-  CreateBlockedTimeTypeInput,
-  UpdateBlockedTimeTypeInput,
   BlockedTimeEntry,
-  CreateBlockedTimeEntryInput,
   BusinessClosedPeriod,
-  CreateBusinessClosedPeriodInput,
   Resource,
-  CreateResourceInput,
-  UpdateResourceInput,
   ResourceBooking,
-  CreateResourceBookingInput,
   StaffSchedule,
-  CreateStaffScheduleInput,
-} from '../types/schedule';
-import {
-  DEFAULT_TIME_OFF_TYPES,
-  DEFAULT_BLOCKED_TIME_TYPES,
-  SCHEDULE_SYNC_PRIORITIES,
-  PaginationParams,
-  PaginatedResult,
-  TimeOffRequestFilters,
-  isCustomDateRange,
-} from '../types/schedule';
+} from './schema';
+
+interface CreateTimeOffTypeInput {
+  name: string;
+  code: string;
+  emoji: string;
+  color: string;
+  isPaid: boolean;
+  requiresApproval: boolean;
+  annualLimitDays?: number | null;
+  accrualEnabled?: boolean;
+  accrualRatePerMonth?: number | null;
+  carryOverEnabled?: boolean;
+  maxCarryOverDays?: number | null;
+  displayOrder?: number;
+  isActive?: boolean;
+}
+
+type UpdateTimeOffTypeInput = Partial<Omit<CreateTimeOffTypeInput, 'code'>>;
+
+interface CreateTimeOffRequestInput {
+  staffId: string;
+  staffName: string;
+  typeId: string;
+  startDate: string;
+  endDate: string;
+  isAllDay: boolean;
+  startTime?: string | null;
+  endTime?: string | null;
+  notes?: string | null;
+}
+
+interface CreateBlockedTimeTypeInput {
+  name: string;
+  code: string;
+  emoji: string;
+  color: string;
+  defaultDurationMinutes: number;
+  isPaid: boolean;
+  blocksOnlineBooking: boolean;
+  blocksInStoreBooking: boolean;
+  requiresApproval: boolean;
+  displayOrder?: number;
+  isActive?: boolean;
+}
+
+type UpdateBlockedTimeTypeInput = Partial<Omit<CreateBlockedTimeTypeInput, 'code'>>;
+
+interface CreateBlockedTimeEntryInput {
+  staffId: string;
+  staffName: string;
+  typeId: string;
+  startDateTime: string;
+  endDateTime: string;
+  notes?: string | null;
+  frequency?: 'none' | 'once' | 'daily' | 'weekly' | 'monthly';
+  seriesEndDate?: string | null;
+  repeatEndDate?: string | null;
+  repeatCount?: number | null;
+}
+
+interface CreateBusinessClosedPeriodInput {
+  name: string;
+  startDate: string;
+  endDate: string;
+  reason?: string | null;
+  isAnnual?: boolean;
+  appliesToAllLocations?: boolean;
+  locationIds?: string[] | null;
+  isPartialDay?: boolean;
+  startTime?: string | null;
+  endTime?: string | null;
+  blocksOnlineBooking?: boolean;
+  blocksInStoreBooking?: boolean;
+  color?: string | null;
+  notes?: string | null;
+}
+
+interface CreateResourceInput {
+  name: string;
+  category: string;
+  description?: string | null;
+  displayOrder?: number;
+  isActive?: boolean;
+  capacity?: number;
+  isBookable?: boolean;
+  color?: string | null;
+  linkedServiceIds?: string[];
+}
+
+type UpdateResourceInput = Partial<CreateResourceInput>;
+
+interface CreateResourceBookingInput {
+  resourceId: string;
+  resourceName: string;
+  appointmentId: string;
+  startDateTime: string;
+  endDateTime: string;
+  staffId?: string | null;
+  staffName?: string | null;
+  assignmentType: 'auto' | 'manual';
+  assignedBy?: string | null;
+}
+
+interface CreateStaffScheduleInput {
+  staffId: string;
+  staffName: string;
+  patternType: 'weekly' | 'biweekly' | 'custom';
+  patternWeeks: number;
+  weeks: Array<{
+    days: Array<{
+      dayOfWeek: number;
+      isWorking: boolean;
+      shifts?: Array<{
+        startTime: string;
+        endTime: string;
+      }>;
+    }>;
+  }>;
+  effectiveFrom: string;
+  effectiveUntil?: string | null;
+  patternAnchorDate?: string;
+}
+
+interface PaginationParams {
+  limit?: number;
+  cursor?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface PaginatedResult<T> {
+  items: T[];
+  pagination: {
+    total: number;
+    hasMore: boolean;
+    nextCursor: string | null;
+    prevCursor: string | null;
+  };
+}
+
+interface TimeOffRequestFilters {
+  status?: 'all' | 'pending' | 'approved' | 'denied' | 'cancelled';
+  staffId?: string | null;
+  typeId?: string | null;
+  dateRange?: 'upcoming' | 'past' | 'all' | { start: string; end: string };
+}
+
+function isCustomDateRange(
+  dateRange: TimeOffRequestFilters['dateRange']
+): dateRange is { start: string; end: string } {
+  return typeof dateRange === 'object' && dateRange !== null && 'start' in dateRange;
+}
+
+const DEFAULT_TIME_OFF_TYPES = [
+  { name: 'Vacation', code: 'VAC', emoji: '🏖️', color: '#10B981', isPaid: true, requiresApproval: true, annualLimitDays: null, accrualEnabled: false, accrualRatePerMonth: null, carryOverEnabled: false, maxCarryOverDays: null, displayOrder: 1, isActive: true, isSystemDefault: true },
+  { name: 'Sick Leave', code: 'SICK', emoji: '🤒', color: '#EF4444', isPaid: true, requiresApproval: false, annualLimitDays: null, accrualEnabled: false, accrualRatePerMonth: null, carryOverEnabled: false, maxCarryOverDays: null, displayOrder: 2, isActive: true, isSystemDefault: true },
+  { name: 'Personal Day', code: 'PTO', emoji: '🏠', color: '#8B5CF6', isPaid: true, requiresApproval: true, annualLimitDays: null, accrualEnabled: false, accrualRatePerMonth: null, carryOverEnabled: false, maxCarryOverDays: null, displayOrder: 3, isActive: true, isSystemDefault: true },
+  { name: 'Unpaid Leave', code: 'UNPAID', emoji: '📋', color: '#6B7280', isPaid: false, requiresApproval: true, annualLimitDays: null, accrualEnabled: false, accrualRatePerMonth: null, carryOverEnabled: false, maxCarryOverDays: null, displayOrder: 4, isActive: true, isSystemDefault: true },
+];
+
+const DEFAULT_BLOCKED_TIME_TYPES = [
+  { name: 'Lunch Break', code: 'LUNCH', emoji: '🍽️', color: '#F59E0B', defaultDurationMinutes: 60, isPaid: false, blocksOnlineBooking: true, blocksInStoreBooking: true, requiresApproval: false, displayOrder: 1, isActive: true, isSystemDefault: true },
+  { name: 'Coffee Break', code: 'COFFEE', emoji: '☕', color: '#92400E', defaultDurationMinutes: 15, isPaid: true, blocksOnlineBooking: true, blocksInStoreBooking: true, requiresApproval: false, displayOrder: 2, isActive: true, isSystemDefault: true },
+  { name: 'Training', code: 'TRAIN', emoji: '📚', color: '#3B82F6', defaultDurationMinutes: 120, isPaid: true, blocksOnlineBooking: true, blocksInStoreBooking: true, requiresApproval: false, displayOrder: 3, isActive: true, isSystemDefault: true },
+];
+
+const SCHEDULE_SYNC_PRIORITIES = {
+  timeOffTypes: 4,
+  timeOffRequests: 3,
+  blockedTimeTypes: 4,
+  blockedTimeEntries: 3,
+  businessClosedPeriods: 3,
+  resources: 4,
+  resourceBookings: 2,
+  staffSchedules: 3,
+} as const;
 
 // ============================================================
 // TIME-OFF TYPES
@@ -880,7 +1036,7 @@ export const blockedTimeEntriesDB = {
       startDateTime: input.startDateTime,
       endDateTime: input.endDateTime,
       durationMinutes,
-      frequency: input.frequency,
+      frequency: input.frequency as 'daily' | 'weekly' | 'monthly' | 'none',
       repeatEndDate: input.repeatEndDate ?? null,
       repeatCount: input.repeatCount ?? null,
       seriesId,
@@ -1012,6 +1168,7 @@ export const businessClosedPeriodsDB = {
       color: input.color ?? '#6B7280',
       notes: input.notes ?? null,
       isAnnual: input.isAnnual ?? false,
+      reason: input.reason ?? '',
     };
 
     await db.businessClosedPeriods.put(period);

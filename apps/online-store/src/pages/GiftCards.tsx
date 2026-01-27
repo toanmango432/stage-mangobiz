@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { GiftCardDesignSelector } from "@/components/giftcards/GiftCardDesignSelector";
 import { GiftCardScheduler } from "@/components/giftcards/GiftCardScheduler";
 import { useCart } from "@/contexts/CartContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/navigation";
 import { getGiftCardDesigns, getGiftCardConfig } from "@/lib/api/store";
 import { getGiftCardImage } from "@/lib/images";
 

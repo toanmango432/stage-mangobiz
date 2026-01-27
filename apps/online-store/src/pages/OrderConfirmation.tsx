@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, Copy, Download, Sparkles, ShoppingBag, Calendar as CalendarIcon } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate, getNavigationState } from "@/lib/navigation";
 import { Order } from "@/types/order";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -15,8 +15,8 @@ import { motion } from "framer-motion";
 import { addDays } from "date-fns";
 
 const OrderConfirmation = () => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const [navState] = useState(() => getNavigationState<{ order?: Order }>());
   const [order, setOrder] = useState<Order | null>(null);
   const [showUpsell, setShowUpsell] = useState(true);
 
@@ -30,7 +30,7 @@ const OrderConfirmation = () => {
       });
     });
 
-    const stateOrder = location.state?.order as Order;
+    const stateOrder = navState?.order as Order;
     if (stateOrder) {
       setOrder(stateOrder);
     } else {
@@ -43,7 +43,7 @@ const OrderConfirmation = () => {
         navigate('/');
       }
     }
-  }, [location, navigate]);
+  }, [navState, navigate]);
 
   const copyOrderNumber = () => {
     if (order) {
@@ -210,12 +210,12 @@ const OrderConfirmation = () => {
                       )}
                       <div className="flex gap-2">
                         <Button asChild size="sm" variant="outline">
-                          <Link to={hasServices ? "/shop" : "/book"}>
+                          <Link href={hasServices ? "/shop" : "/book"}>
                             {hasServices ? "Shop Products" : "Book Service"}
                           </Link>
                         </Button>
                         <Button asChild size="sm">
-                          <Link to="/memberships">View Memberships</Link>
+                          <Link href="/memberships">View Memberships</Link>
                         </Button>
                       </div>
                     </div>
@@ -329,7 +329,7 @@ const OrderConfirmation = () => {
               Download Receipt
             </Button>
             <Button asChild className="flex-1">
-              <Link to="/">Continue Shopping</Link>
+              <Link href="/">Continue Shopping</Link>
             </Button>
           </motion.div>
         </div>

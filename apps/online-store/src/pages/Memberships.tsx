@@ -3,7 +3,7 @@ import { MembershipCard } from "@/components/MembershipCard";
 import { MembershipComparisonTable } from "@/components/memberships/MembershipComparisonTable";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/navigation";
 import { toast } from "sonner";
 import { getMembershipPlans } from "@/lib/api/store";
 
