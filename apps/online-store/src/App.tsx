@@ -67,6 +67,7 @@ import ServiceForm from "./pages/admin/catalog/ServiceForm";
 import Products from "./pages/admin/catalog/Products";
 import ProductForm from "./pages/admin/catalog/ProductForm";
 import AdminMemberships from "./pages/admin/catalog/Memberships";
+import MembershipForm from "./pages/admin/catalog/MembershipForm";
 import GiftCardSettings from "./pages/admin/catalog/GiftCardSettings";
 import AdminBookings from "./pages/admin/Bookings";
 import AdminCustomers from "./pages/admin/Customers";
@@ -180,6 +181,7 @@ const App = () => {
                                         <Route path="/catalog/products" element={<Products />} />
                                         <Route path="/catalog/products/:id" element={<ProductForm />} />
                                         <Route path="/catalog/memberships" element={<AdminMemberships />} />
+                                        <Route path="/catalog/memberships/:id" element={<MembershipForm />} />
                                         <Route path="/catalog/giftcards" element={<GiftCardSettings />} />
                                         <Route path="/bookings" element={<AdminBookings />} />
                                         <Route path="/customers" element={<AdminCustomers />} />

@@ -841,6 +841,40 @@ export function getCachedMembershipPlans(): MembershipPlan[] {
 }
 
 /**
+ * Fetch a single membership plan by ID from Supabase
+ * Returns null if not found or deleted
+ */
+export async function getMembershipPlanById(id: string): Promise<MembershipPlan | null> {
+  if (!supabase) {
+    console.warn('[CatalogSync] Supabase client not configured');
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('membership_plans')
+      .select('*')
+      .eq('id', id)
+      .eq('is_deleted', false)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw new Error(`Failed to fetch membership plan: ${error.message}`);
+    }
+
+    if (!data) return null;
+
+    return toOnlineMembershipPlan(data as MembershipPlanRow);
+  } catch (error) {
+    console.error('[CatalogSync] getMembershipPlanById failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Create a new membership plan in Supabase
  * Supabase generates the UUID — do not pass an ID
  */
