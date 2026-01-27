@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingBag, Package } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@/lib/navigation";
 import { useCart } from "@/contexts/CartContext";
 import { CartItemCard } from "@/components/cart/CartItemCard";
 import { OrderSummary } from "@/components/cart/OrderSummary";
@@ -39,7 +39,7 @@ const Cart = () => {
           </h1>
           {items.length > 0 && (
             <Button asChild variant="outline">
-              <Link to="/shop">Continue Shopping</Link>
+              <Link href="/shop">Continue Shopping</Link>
             </Button>
           )}
         </div>

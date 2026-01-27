@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/navigation";
 import { useCart } from "@/contexts/CartContext";
 import { useCheckout } from "@/hooks/useCheckout";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
