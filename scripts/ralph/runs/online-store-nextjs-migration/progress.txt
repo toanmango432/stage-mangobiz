@@ -230,3 +230,24 @@ Commit: 6fd8092
 **Next story suggestion:** US-008 (Migrate Login page) — same phase, depends only on US-006 (done), priority 8. OR US-009 (Migrate Book pages) — same dependencies. US-008 is simpler (complexity 2 vs 3) so recommend that first.
 
 ---
+
+## 2026-01-27 - US-008: Migrate Login page
+Commit: c282281
+
+**Why this story?** Highest priority (8) among unblocked stories with all dependencies met (US-006 ✅). Previous session explicitly recommended this as next. Low complexity (2), continues the page migration pattern from US-007.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/login/page.tsx (NEW): Created 'use client' wrapper importing Login from '@/pages/Login'
+- apps/online-store/src/pages/Login.tsx:2: Replaced `import { useNavigate } from "react-router-dom"` with `import { useNavigate } from "@/lib/navigation"`
+
+**Learnings:**
+- Login.tsx only uses `useNavigate` from react-router-dom — no Link, useLocation, or useSearchParams. Simple single-import swap.
+- The navigate() calls on lines 38, 53, 83 all use `navigate("/")` (simple path navigation) — fully compatible with the compat layer's useNavigate() wrapper.
+- No Link component usage in Login.tsx — navigation links (if any) are in child components like ForgotPasswordDialog.
+- Pre-existing typecheck errors (376+ errors in repository/supabase files) are unrelated to this migration — documented in US-002 progress.
+
+**Patterns to sync:** None — follows established page migration pattern from US-007.
+
+**Next story suggestion:** US-009 (Migrate Book pages) — priority 9, depends only on US-006 (done). Three pages in one story (book, confirmation, success) forming a sequential flow. OR US-010 (Booking module, complexity 1) for a simpler next story.
+
+---
