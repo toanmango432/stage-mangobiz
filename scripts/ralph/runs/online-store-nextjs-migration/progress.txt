@@ -535,3 +535,27 @@ Commit: 317c58b
 **Next story suggestion:** US-021 (Migrate admin Storefront sub-pages: content-builder, ab-tests, ai-copywriter, seo, templates) — priority 21, depends on US-018 (done). Five more admin sub-pages, same thin wrapper pattern. Same directory as US-020.
 
 ---
+
+## 2026-01-27 - US-021: Migrate admin Storefront sub-pages (content-builder, ab-tests, ai-copywriter, seo, templates)
+Commit: 0e4ab44
+
+**Why this story?** Highest priority (21) among unblocked stories. Previous session explicitly recommended this next. Five more admin storefront sub-pages — same directory and pattern as just-completed US-020.
+
+**Changes:**
+- apps/online-store/src/app/admin/storefront/content-builder/page.tsx (NEW): Created 'use client' wrapper importing ContentBuilder from '@/pages/admin/storefront/ContentBuilder'
+- apps/online-store/src/app/admin/storefront/ab-tests/page.tsx (NEW): Created 'use client' wrapper importing ABTests from '@/pages/admin/storefront/ABTests'
+- apps/online-store/src/app/admin/storefront/ai-copywriter/page.tsx (NEW): Created 'use client' wrapper importing CopywriterPanel from '@/components/admin/ai-copywriter/CopywriterPanel'
+- apps/online-store/src/app/admin/storefront/seo/page.tsx (NEW): Created 'use client' wrapper importing SEO from '@/pages/admin/storefront/SEO'
+- apps/online-store/src/app/admin/storefront/templates/page.tsx (NEW): Created 'use client' wrapper importing Templates from '@/pages/admin/Templates'
+
+**Learnings:**
+- All 5 source files have ZERO react-router-dom imports — no migration changes needed for source files. Only wrapper pages created.
+- CopywriterPanel is located at `src/components/admin/ai-copywriter/CopywriterPanel.tsx` (not in src/pages/admin/storefront/) — the PRD `files` array didn't list it, but the acceptance criteria mentions it. Found via glob search.
+- Templates.tsx is at `src/pages/admin/Templates.tsx` (not in storefront/ subdirectory) — the PRD correctly lists this path.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors from this migration.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-022 (Migrate admin Catalog pages) — priority 22, depends on US-018 (done). Six admin catalog pages including first dynamic route [id] for service editing. OR US-023 (admin Management pages, 7 pages) — same dependency, lower complexity.
+
+---
