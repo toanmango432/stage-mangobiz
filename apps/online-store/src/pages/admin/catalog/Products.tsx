@@ -90,8 +90,8 @@ export default function Products() {
 
     try {
       await deleteProduct(product.id);
+      setProducts((prev) => prev.filter((p) => p.id !== product.id));
       toast.success("Product deleted");
-      await loadProducts();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to delete product";
       toast.error(message);
@@ -99,11 +99,12 @@ export default function Products() {
   };
 
   const handleBulkDelete = async () => {
+    const count = selectedItems.length;
     try {
       await bulkDeleteProducts(selectedItems);
+      setProducts((prev) => prev.filter((p) => !selectedItems.includes(p.id)));
       setSelectedItems([]);
-      toast.success(`${selectedItems.length} products deleted`);
-      await loadProducts();
+      toast.success(`${count} products deleted`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to delete products";
       toast.error(message);

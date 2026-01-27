@@ -97,7 +97,7 @@ export default function Memberships() {
 
     try {
       await deleteMembershipPlan(membership.id);
-      await loadMemberships();
+      setMemberships((prev) => prev.filter((m) => m.id !== membership.id));
       toast.success("Membership plan deleted");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to delete membership plan";

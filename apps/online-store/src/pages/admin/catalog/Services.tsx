@@ -106,19 +106,20 @@ export default function Services() {
   const handleDelete = async (service: Service) => {
     try {
       await deleteService(service.id);
+      setServices((prev) => prev.filter((s) => s.id !== service.id));
       toast.success("Service deleted");
-      await loadServices();
     } catch (error) {
       toast.error(`Failed to delete service: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const handleBulkDelete = async () => {
+    const count = selectedItems.length;
     try {
       await bulkDeleteServices(selectedItems);
+      setServices((prev) => prev.filter((s) => !selectedItems.includes(s.id)));
       setSelectedItems([]);
-      toast.success(`${selectedItems.length} services deleted`);
-      await loadServices();
+      toast.success(`${count} services deleted`);
     } catch (error) {
       toast.error(`Failed to delete services: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
