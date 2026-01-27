@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Package, Scissors, ShoppingBag, CreditCard, Gift, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getServices, getProducts, getGiftCardConfig, getMembershipPlans } from "@/lib/services/catalogSyncService";
+import { useStoreContext } from "@/hooks/useStoreContext";
 
 const Catalog = () => {
   const navigate = useNavigate();
+  const { storeId } = useStoreContext();
   const [servicesCount, setServicesCount] = useState<number | null>(null);
   const [giftCardsCount, setGiftCardsCount] = useState<number | null>(null);
   const [productsCount, setProductsCount] = useState<number | null>(null);
@@ -16,7 +18,6 @@ const Catalog = () => {
   useEffect(() => {
     const loadCounts = async () => {
       try {
-        const storeId = localStorage.getItem('storeId') || '';
         const [services, products, giftCardConfig, memberships] = await Promise.all([
           getServices(storeId),
           getProducts(storeId),

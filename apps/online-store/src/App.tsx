@@ -22,6 +22,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { AnnouncementBarContainer } from "@/components/promotions/AnnouncementBarContainer";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { StoreProvider } from "@/contexts/StoreContext";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { ChatDrawer } from "@/components/chat/ChatDrawer";
 import { useChatToggle } from "@/hooks/useChatToggle";
@@ -159,6 +160,7 @@ const App = () => {
                                 path="/admin/*"
                                 element={
                                   <ProtectedRoute requireAdmin>
+                                    <StoreProvider>
                                     <AdminLayout>
                                       <Routes>
                                         <Route path="/" element={<AdminDashboard />} />
@@ -188,6 +190,7 @@ const App = () => {
                                         <Route path="/settings" element={<div>Settings Page</div>} />
                                       </Routes>
                                     </AdminLayout>
+                                    </StoreProvider>
                                   </ProtectedRoute>
                                 }
                               />

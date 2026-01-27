@@ -15,12 +15,14 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, Plus, Loader2 } from "lucide-react";
 import { getCategories, getServices, createService, updateService } from "@/lib/services/catalogSyncService";
 import type { Category } from "@/lib/adapters/catalogAdapters";
+import { useStoreContext } from "@/hooks/useStoreContext";
 
 const durationOptions = [15, 30, 45, 60, 90, 120];
 
 export default function ServiceForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { storeId, tenantId } = useStoreContext();
   const isNew = id === "new";
 
   const [formData, setFormData] = useState<Partial<Service>>({
@@ -47,7 +49,6 @@ export default function ServiceForm() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const storeId = localStorage.getItem("storeId") || "";
         const loaded = await getCategories(storeId);
         setCategories(loaded);
         // Set default category to first one if creating new service
@@ -69,7 +70,6 @@ export default function ServiceForm() {
     if (isNew) return;
     const loadService = async () => {
       try {
-        const storeId = localStorage.getItem("storeId") || "";
         const services = await getServices(storeId);
         const service = services.find((s) => s.id === id);
         if (service) {
@@ -96,8 +96,6 @@ export default function ServiceForm() {
 
     setIsSaving(true);
     try {
-      const storeId = localStorage.getItem("storeId") || "";
-      const tenantId = localStorage.getItem("tenantId") || "";
       if (isNew) {
         await createService(storeId, tenantId, formData as Omit<Service, "id" | "createdAt" | "updatedAt">);
         toast.success("Service created");

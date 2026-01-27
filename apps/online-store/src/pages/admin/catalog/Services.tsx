@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { getServices, getCategories, deleteService, createService, updateService } from "@/lib/services/catalogSyncService";
 import type { Category } from "@/lib/adapters/catalogAdapters";
+import { useStoreContext } from "@/hooks/useStoreContext";
 
 export default function Services() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function Services() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const storeId = localStorage.getItem('storeId') || '';
+  const { storeId, tenantId } = useStoreContext();
 
   const loadServices = async () => {
     try {
@@ -225,7 +226,6 @@ export default function Services() {
         onDelete={handleDelete}
         onDuplicate={async (service) => {
           try {
-            const tenantId = localStorage.getItem("tenantId") || "";
             const { id, createdAt, updatedAt, ...rest } = service;
             await createService(storeId, tenantId, {
               ...rest,

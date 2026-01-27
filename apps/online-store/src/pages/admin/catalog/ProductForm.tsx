@@ -10,10 +10,12 @@ import { Product } from "@/types/catalog";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { getProducts, createProduct, updateProduct } from "@/lib/services/catalogSyncService";
+import { useStoreContext } from "@/hooks/useStoreContext";
 
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { storeId, tenantId } = useStoreContext();
   const isNew = id === "new";
 
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -44,7 +46,6 @@ export default function ProductForm() {
     if (isNew) return;
     const loadProduct = async () => {
       try {
-        const storeId = localStorage.getItem("storeId") || "";
         const products = await getProducts(storeId);
         const product = products.find((p) => p.id === id);
         if (product) {
@@ -71,8 +72,6 @@ export default function ProductForm() {
 
     setIsSaving(true);
     try {
-      const storeId = localStorage.getItem("storeId") || "";
-      const tenantId = localStorage.getItem("tenantId") || "";
       if (isNew) {
         await createProduct(storeId, tenantId, formData as Omit<Product, "id" | "createdAt" | "updatedAt">);
         toast.success("Product created");

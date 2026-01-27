@@ -12,8 +12,10 @@ import {
   updateGiftCardConfig,
 } from "@/lib/services/catalogSyncService";
 import type { GiftCardConfig } from "@/types/catalog";
+import { useStoreContext } from "@/hooks/useStoreContext";
 
 export default function GiftCardSettings() {
+  const { storeId, tenantId } = useStoreContext();
   const [config, setConfig] = useState<GiftCardConfig | null>(null);
   const [presetAmounts, setPresetAmounts] = useState<number[]>([]);
   const [newAmount, setNewAmount] = useState("");
@@ -29,7 +31,6 @@ export default function GiftCardSettings() {
     setIsLoading(true);
     setError(null);
     try {
-      const storeId = localStorage.getItem('storeId') || '';
       const giftCardConfig = await getGiftCardConfig(storeId);
       if (giftCardConfig) {
         setConfig(giftCardConfig);
@@ -49,8 +50,6 @@ export default function GiftCardSettings() {
 
     setIsSaving(true);
     try {
-      const storeId = localStorage.getItem('storeId') || '';
-      const tenantId = localStorage.getItem('tenantId') || '';
       const updatedConfig = await updateGiftCardConfig(storeId, tenantId, {
         ...config,
         presetAmounts,

@@ -11,9 +11,11 @@ import {
   deleteMembershipPlan
 } from "@/lib/services/catalogSyncService";
 import type { MembershipPlan } from "@/types/catalog";
+import { useStoreContext } from "@/hooks/useStoreContext";
 
 export default function Memberships() {
   const navigate = useNavigate();
+  const { storeId } = useStoreContext();
   const [memberships, setMemberships] = useState<MembershipPlan[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState("");
@@ -28,7 +30,6 @@ export default function Memberships() {
     try {
       setIsLoading(true);
       setError(null);
-      const storeId = localStorage.getItem("storeId") || "";
       const plans = await getMembershipPlans(storeId);
       setMemberships(plans);
     } catch (err) {

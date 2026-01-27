@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { getProducts, deleteProduct } from "@/lib/services/catalogSyncService";
+import { useStoreContext } from "@/hooks/useStoreContext";
 
 export default function Products() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function Products() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const storeId = localStorage.getItem("storeId") || "";
+  const { storeId } = useStoreContext();
 
   const loadProducts = async () => {
     try {
