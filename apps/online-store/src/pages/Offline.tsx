@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { WifiOff, Home, RefreshCw, BookOpen, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,7 +66,7 @@ export default function Offline() {
           </Button>
           
           <Button variant="outline" asChild className="w-full">
-            <Link to="/">
+            <Link href="/">
               <Home className="h-4 w-4 mr-2" />
               Go to Homepage
             </Link>
