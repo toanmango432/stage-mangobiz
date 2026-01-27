@@ -186,3 +186,26 @@ Commit: 3677dd9
 **Next story suggestion:** US-006 (Create customer layout with Header and BottomNav) — now unblocked with US-004 ✅ and US-005 ✅. Gates all customer page migrations (US-007 through US-016). Phase 2 begins.
 
 ---
+
+## 2026-01-27 - US-006: Create customer layout with Header and BottomNav
+Commit: 34475a8
+
+**Why this story?** Highest priority (6) among available stories with all dependencies met (US-004 ✅, US-005 ✅). Gates ALL customer page migrations (US-007 through US-016). Previous session explicitly recommended this as next. Phase 2 begins.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/layout.tsx (NEW): Created 'use client' layout component with:
+  - AnnouncementBarContainer, Header, BottomNav, ChatButton, ChatDrawer
+  - useChatToggle hook for chat open/close state
+  - min-h-screen flex-col container with flex-1 main content area
+  - Structure exactly mirrors App.tsx customer routes wrapper (lines 117-152)
+
+**Learnings:**
+- The (customer) route group directory uses parentheses which need escaping in bash (`\(customer\)`) but not in file paths
+- Layout is straightforward — all components already exist and export correctly
+- No new patterns discovered — this is a thin layout wrapper matching the existing App.tsx structure
+
+**Patterns to sync:** None — route group layouts are standard Next.js convention.
+
+**Next story suggestion:** US-007 (Migrate home page to app router) — depends on US-006 (just completed), lowest priority among stories now unblocked by US-006. First page migration — establishes the pattern for all subsequent page stories.
+
+---
