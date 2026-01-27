@@ -466,3 +466,25 @@ Commit: a057780
 **Next story suggestion:** US-018 (Create admin layout with ProtectedRoute) — priority 18, depends on US-004 ✅ and US-005 ✅. Gates ALL admin page migrations (US-019 through US-023). Critical path for completing Phase 2.
 
 ---
+
+## 2026-01-27 - US-018: Create admin layout with ProtectedRoute
+Commit: 0e7a4fe
+
+**Why this story?** Highest priority (18) among unblocked stories. Previous session explicitly recommended this next. Gates ALL admin page migrations (US-019 through US-023). Dependencies US-004 ✅ and US-005 ✅ both met.
+
+**Changes:**
+- apps/online-store/src/app/admin/layout.tsx (NEW): Created 'use client' layout wrapping children with `<ProtectedRoute requireAdmin>` and `<AdminLayout>`. Follows same pattern as (customer)/layout.tsx.
+- apps/online-store/src/components/admin/AdminLayout.tsx:2-3: Replaced `import { Link, useLocation, useNavigate } from "react-router-dom"` with `import Link from "next/link"` and `import { usePathname, useRouter } from "next/navigation"`. Changed `useLocation()` → `usePathname()`, `useNavigate()` → `useRouter()`, `navigate("/login")` → `router.push("/login")`, all `location.pathname` → `pathname`, all `<Link to=` → `<Link href=` (6 occurrences: logo, nav items, "Back to Store", breadcrumb).
+- apps/online-store/src/components/ProtectedRoute.tsx:1-31: Replaced `Navigate` from react-router-dom with `useRouter().replace()` via useEffect. Added 'use client' directive. Uses useEffect to redirect unauthenticated/non-admin users. Shows spinner during loading or redirect states.
+
+**Learnings:**
+- react-router-dom's `<Navigate to="/login" replace />` is a declarative redirect component — Next.js has no equivalent. Replaced with imperative `router.replace()` inside useEffect, which runs on client mount and when auth state changes.
+- ProtectedRoute must show a loading spinner during the redirect period (between useEffect trigger and navigation completing) — otherwise the wrapped admin content would briefly flash before redirect.
+- AdminLayout.tsx had 6 `<Link to=` occurrences → all changed to `<Link href=` (next/link API). Also changed `useLocation()` → `usePathname()` for active nav detection and breadcrumb.
+- No new typecheck errors introduced. Pre-existing errors (376+ in repository/supabase files) unchanged.
+
+**Patterns to sync:** None — ProtectedRoute redirect pattern is app-specific.
+
+**Next story suggestion:** US-019 (Migrate admin Dashboard and Storefront overview) — priority 19, depends on US-018 (just completed). Two admin pages, straightforward wrappers. OR US-020/US-021 (storefront sub-pages) — same dependency, same pattern.
+
+---
