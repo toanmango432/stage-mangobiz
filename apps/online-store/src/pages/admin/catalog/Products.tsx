@@ -86,6 +86,8 @@ export default function Products() {
   };
 
   const handleDelete = async (product: Product) => {
+    if (!confirm(`Delete product "${product.name}"?`)) return;
+
     try {
       await deleteProduct(product.id);
       toast.success("Product deleted");
