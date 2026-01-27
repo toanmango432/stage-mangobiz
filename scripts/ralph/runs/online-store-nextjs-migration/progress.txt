@@ -344,3 +344,28 @@ Commit: a156212
 **Next story suggestion:** US-013 (Migrate OrderConfirmation, Memberships, GiftCards pages) — priority 13, depends only on US-006 (done). Three independent pages bundled, same Phase 2 pattern. OrderConfirmation is the next page in the checkout flow (checkout → order-confirmation).
 
 ---
+
+## 2026-01-27 - US-013: Migrate OrderConfirmation, Memberships, GiftCards pages
+Commit: 20be83f
+
+**Why this story?** Highest priority (13) among unblocked stories. Previous session explicitly recommended this next. Three independent pages bundled — each is straightforward Link/navigate swaps. OrderConfirmation is the next page in the checkout flow (checkout → order-confirmation).
+
+**Changes:**
+- apps/online-store/src/app/(customer)/order-confirmation/page.tsx (NEW): Created 'use client' wrapper importing OrderConfirmation from '@/pages/OrderConfirmation'
+- apps/online-store/src/app/(customer)/memberships/page.tsx (NEW): Created 'use client' wrapper importing Memberships from '@/pages/Memberships'
+- apps/online-store/src/app/(customer)/gift-cards/page.tsx (NEW): Created 'use client' wrapper importing GiftCards from '@/pages/GiftCards'
+- apps/online-store/src/pages/OrderConfirmation.tsx:5: Replaced `import { Link, useLocation, useNavigate } from "react-router-dom"` with `import { Link, useNavigate, getNavigationState } from "@/lib/navigation"`. Replaced `useLocation().state?.order` with `getNavigationState<{ order?: Order }>()` using useState lazy initializer. Changed all `<Link to=` to `<Link href=` (3 occurrences: lines 213, 218, 332).
+- apps/online-store/src/pages/Memberships.tsx:6: Replaced `import { useNavigate } from "react-router-dom"` with `import { useNavigate } from "@/lib/navigation"`
+- apps/online-store/src/pages/GiftCards.tsx:12: Replaced `import { useNavigate } from "react-router-dom"` with `import { useNavigate } from "@/lib/navigation"`
+
+**Learnings:**
+- OrderConfirmation.tsx uses Link (3 occurrences), useLocation (for order state), and useNavigate — the most complex of the three files. Required getNavigationState with generic type parameter `<{ order?: Order }>` to avoid TS2339 "Property 'order' does not exist on type 'unknown'" error.
+- Memberships.tsx and GiftCards.tsx only use useNavigate with simple `navigate('/cart')` calls — single import swap each.
+- Pre-existing errors in OrderConfirmation.tsx: motion.div framer-motion type issues (11 occurrences), `__MODE__` Vite define variable — all documented in prior stories.
+- No new typecheck errors introduced by this migration.
+
+**Patterns to sync:** None — follows established page migration pattern.
+
+**Next story suggestion:** US-014 (Migrate Account page) — priority 14, depends only on US-006 (done). Account page uses useSearchParams for tab state — worth noting for URL params handling. OR US-015 (Info pages, 6 pages bundled) for volume.
+
+---
