@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Accessibility from '@/pages/legal/Accessibility';
+import Accessibility from '@/views/legal/Accessibility';
 
 export const metadata: Metadata = {
   title: 'Accessibility',

@@ -1,6 +1,6 @@
 'use client';
 
-import Storefront from '@/pages/admin/Storefront';
+import Storefront from '@/views/admin/Storefront';
 
 export default function AdminStorefrontPage() {
   return <Storefront />;

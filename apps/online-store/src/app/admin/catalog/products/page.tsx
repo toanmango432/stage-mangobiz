@@ -1,6 +1,6 @@
 'use client';
 
-import Products from '@/pages/admin/catalog/Products';
+import Products from '@/views/admin/catalog/Products';
 
 export default function AdminProductsPage() {
   return <Products />;

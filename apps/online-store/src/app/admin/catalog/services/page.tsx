@@ -1,6 +1,6 @@
 'use client';
 
-import Services from '@/pages/admin/catalog/Services';
+import Services from '@/views/admin/catalog/Services';
 
 export default function AdminServicesPage() {
   return <Services />;

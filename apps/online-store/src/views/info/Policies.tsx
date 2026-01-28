@@ -1,4 +1,5 @@
 'use client';
+import { getSupabaseUrl } from '@/lib/env';
 
 import { useEffect, useState } from "react";
 
@@ -9,7 +10,7 @@ import { trackEvent } from "@/lib/analytics";
 
 const trackNavClick = (page: string) => trackEvent({ event: 'nav_info_click', page });
 
-const STORE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/store`;
+const STORE_API_URL = `${getSupabaseUrl()}/functions/v1/store`;
 
 interface Policy {
   title: string;

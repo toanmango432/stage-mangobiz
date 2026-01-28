@@ -1,3 +1,4 @@
+import { getSupabaseUrl } from '@/lib/env';
 import { useState, useCallback } from 'react';
 import { BookingFormData } from '@/types/booking';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -11,7 +12,7 @@ import { Sparkles, AlertCircle } from 'lucide-react';
 import { getStoreId } from '@/hooks/useStore';
 
 // Edge Function URL for eligibility check
-const ELIGIBILITY_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-booking-eligibility`;
+const ELIGIBILITY_ENDPOINT = `${getSupabaseUrl()}/functions/v1/check-booking-eligibility`;
 
 interface EligibilityResult {
   eligible: boolean;

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getProducts } from '@/lib/api/store';
-import ProductDetail from '@/pages/ProductDetail';
+import ProductDetail from '@/views/ProductDetail';
 import { BreadcrumbJsonLd } from '@/components/JsonLd';
 import { siteConfig } from '@/lib/metadata';
 

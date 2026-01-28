@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import GiftCards from '@/pages/GiftCards';
+import GiftCards from '@/views/GiftCards';
 
 export const metadata: Metadata = {
   title: 'Gift Cards',

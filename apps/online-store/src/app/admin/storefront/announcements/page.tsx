@@ -1,6 +1,6 @@
 'use client';
 
-import Announcements from '@/pages/admin/storefront/Announcements';
+import Announcements from '@/views/admin/storefront/Announcements';
 
 export default function AdminAnnouncementsPage() {
   return <Announcements />;

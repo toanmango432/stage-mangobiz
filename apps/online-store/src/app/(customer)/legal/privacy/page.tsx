@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import PrivacyPolicy from '@/pages/legal/PrivacyPolicy';
+import PrivacyPolicy from '@/views/legal/PrivacyPolicy';
 import { BreadcrumbJsonLd } from '@/components/JsonLd';
 import { siteConfig } from '@/lib/metadata';
 

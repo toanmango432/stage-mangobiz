@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import ServiceForm from '@/pages/admin/catalog/ServiceForm';
+import ServiceForm from '@/views/admin/catalog/ServiceForm';
 
 interface ServiceFormPageProps {
   params: Promise<{ id: string }>;

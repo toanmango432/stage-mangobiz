@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Policies from '@/pages/info/Policies';
+import Policies from '@/views/info/Policies';
 
 export const metadata: Metadata = {
   title: 'Policies',

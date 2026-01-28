@@ -1,3 +1,4 @@
+import { getSupabaseUrl } from '@/lib/env';
 import { BookingFormData } from '@/types/booking';
 import { Service } from '@/types/catalog';
 import { Card } from '@/components/ui/card';
@@ -15,7 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import { getStoreId } from '@/hooks/useStore';
 
 // Edge Function URL for booking validation
-const VALIDATE_BOOKING_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-booking`;
+const VALIDATE_BOOKING_ENDPOINT = `${getSupabaseUrl()}/functions/v1/validate-booking`;
 
 interface ValidationResult {
   valid: boolean;

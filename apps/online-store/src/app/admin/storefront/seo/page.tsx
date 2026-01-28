@@ -1,6 +1,6 @@
 'use client';
 
-import SEO from '@/pages/admin/storefront/SEO';
+import SEO from '@/views/admin/storefront/SEO';
 
 export default function AdminSEOPage() {
   return <SEO />;

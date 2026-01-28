@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Contact from '@/pages/info/Contact';
+import Contact from '@/views/info/Contact';
 
 export const metadata: Metadata = {
   title: 'Contact Us',

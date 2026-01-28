@@ -25,11 +25,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Disable Pages Router: only treat *.page.tsx as Pages Router pages.
-  // App Router (src/app/) uses convention names (page.tsx, layout.tsx, etc.)
-  // which are handled separately from this config in Next.js 16.
-  // src/pages/ contains React view components that must not be compiled as Pages Router pages.
-  pageExtensions: ['page.tsx', 'page.ts', 'page.jsx', 'page.js'],
+  // View components are now in src/views/ (renamed from src/pages/) to avoid
+  // collision with Next.js Pages Router. No pageExtensions override needed.
 
   // Transpile monorepo packages that may use non-standard imports
   transpilePackages: [],

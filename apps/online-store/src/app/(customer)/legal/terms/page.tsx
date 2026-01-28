@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import TermsOfService from '@/pages/legal/TermsOfService';
+import TermsOfService from '@/views/legal/TermsOfService';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',

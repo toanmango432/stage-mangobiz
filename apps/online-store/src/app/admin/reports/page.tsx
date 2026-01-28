@@ -1,6 +1,6 @@
 'use client';
 
-import Reports from '@/pages/admin/Reports';
+import Reports from '@/views/admin/Reports';
 
 export default function AdminReportsPage() {
   return <Reports />;

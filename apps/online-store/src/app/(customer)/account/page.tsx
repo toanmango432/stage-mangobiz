@@ -1,11 +1,8 @@
-import type { Metadata } from 'next';
-import Account from '@/pages/Account';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'My Account',
-  description:
-    'Manage your account, view upcoming appointments, order history, and saved preferences.',
-};
+import Account from '@/views/Account';
+
+// Note: Metadata moved to layout.tsx since this is a client component
 
 export default function AccountPage() {
   return <Account />;

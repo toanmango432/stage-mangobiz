@@ -1416,7 +1416,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 46,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 7: Cleanup",
       "files": [
         "apps/online-store/src/lib/pwa/registration.ts",

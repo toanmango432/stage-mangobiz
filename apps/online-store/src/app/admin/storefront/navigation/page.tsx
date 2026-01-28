@@ -1,6 +1,6 @@
 'use client';
 
-import Navigation from '@/pages/admin/storefront/Navigation';
+import Navigation from '@/views/admin/storefront/Navigation';
 
 export default function AdminNavigationPage() {
   return <Navigation />;

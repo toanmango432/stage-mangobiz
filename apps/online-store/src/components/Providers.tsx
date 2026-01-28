@@ -1,7 +1,9 @@
 'use client';
 
+import { Provider as ReduxProvider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import { store } from '@/store';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider as BrandThemeProvider } from '@/contexts/ThemeContext';
 import { CartProvider } from '@/contexts/CartContext';
@@ -20,8 +22,9 @@ const queryClient = new QueryClient();
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
+      <ReduxProvider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
           <NextThemesProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <BrandThemeProvider>
               <WishlistProvider>
@@ -43,7 +46,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             </BrandThemeProvider>
           </NextThemesProvider>
         </AuthProvider>
-      </QueryClientProvider>
+        </QueryClientProvider>
+      </ReduxProvider>
     </ErrorBoundary>
   );
 }

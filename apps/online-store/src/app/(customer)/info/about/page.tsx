@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import About from '@/pages/info/About';
+import About from '@/views/info/About';
 import { BreadcrumbJsonLd } from '@/components/JsonLd';
 import { siteConfig } from '@/lib/metadata';
 

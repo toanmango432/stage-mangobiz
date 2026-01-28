@@ -7,9 +7,10 @@
 
 import { useMemo } from 'react';
 import { initializeRepositories } from '@/services/supabase/repositories';
+import { getDefaultStoreId } from '@/lib/env';
 
 // Default store ID - comes from environment or hardcoded default
-const DEFAULT_STORE_ID = import.meta.env.VITE_DEFAULT_STORE_ID || 'c0000000-0000-0000-0000-000000000001';
+const DEFAULT_STORE_ID = getDefaultStoreId();
 
 /**
  * Hook to get the current store ID

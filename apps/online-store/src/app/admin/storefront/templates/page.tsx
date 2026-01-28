@@ -1,6 +1,6 @@
 'use client';
 
-import Templates from '@/pages/admin/Templates';
+import Templates from '@/views/admin/Templates';
 
 export default function AdminTemplatesPage() {
   return <Templates />;

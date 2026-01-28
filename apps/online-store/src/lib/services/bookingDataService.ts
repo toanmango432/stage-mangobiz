@@ -500,5 +500,54 @@ class BookingDataService {
   }
 }
 
-// Export singleton instance
-export const bookingDataService = new BookingDataService();
+// Export singleton instance - lazy initialized to avoid SSR issues
+let _instance: BookingDataService | null = null;
+
+export const bookingDataService = {
+  get instance(): BookingDataService {
+    if (!_instance && typeof window !== 'undefined') {
+      _instance = new BookingDataService();
+    }
+    if (!_instance) {
+      throw new Error('BookingDataService requires browser environment (localStorage)');
+    }
+    return _instance;
+  },
+  // Proxy methods to the underlying instance
+  getServices(...args: Parameters<BookingDataService['getServices']>) {
+    return this.instance.getServices(...args);
+  },
+  getServiceById(...args: Parameters<BookingDataService['getServiceById']>) {
+    return this.instance.getServiceById(...args);
+  },
+  getStaff(...args: Parameters<BookingDataService['getStaff']>) {
+    return this.instance.getStaff(...args);
+  },
+  getStaffById(...args: Parameters<BookingDataService['getStaffById']>) {
+    return this.instance.getStaffById(...args);
+  },
+  getAvailableStaff(...args: Parameters<BookingDataService['getAvailableStaff']>) {
+    return this.instance.getAvailableStaff(...args);
+  },
+  getAvailableSlots(...args: Parameters<BookingDataService['getAvailableSlots']>) {
+    return this.instance.getAvailableSlots(...args);
+  },
+  createBooking(...args: Parameters<BookingDataService['createBooking']>) {
+    return this.instance.createBooking(...args);
+  },
+  updateBooking(...args: Parameters<BookingDataService['updateBooking']>) {
+    return this.instance.updateBooking(...args);
+  },
+  cancelBooking(...args: Parameters<BookingDataService['cancelBooking']>) {
+    return this.instance.cancelBooking(...args);
+  },
+  getClientBookings(...args: Parameters<BookingDataService['getClientBookings']>) {
+    return this.instance.getClientBookings(...args);
+  },
+  validateBooking(...args: Parameters<BookingDataService['validateBooking']>) {
+    return this.instance.validateBooking(...args);
+  },
+  getAlternatives(...args: Parameters<BookingDataService['getAlternatives']>) {
+    return this.instance.getAlternatives(...args);
+  },
+};

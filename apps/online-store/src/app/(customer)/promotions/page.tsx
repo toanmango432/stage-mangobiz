@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Promotions from '@/pages/Promotions';
+import Promotions from '@/views/Promotions';
 
 export const metadata: Metadata = {
   title: 'Promotions',

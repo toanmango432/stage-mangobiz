@@ -1,6 +1,8 @@
 'use client';
 
-import BookingConfirmation from '@/pages/BookingConfirmation';
+export const dynamic = 'force-dynamic';
+
+import BookingConfirmation from '@/views/BookingConfirmation';
 
 export default function BookConfirmationPage() {
   return <BookingConfirmation />;

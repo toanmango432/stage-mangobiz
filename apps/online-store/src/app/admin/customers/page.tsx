@@ -1,6 +1,6 @@
 'use client';
 
-import Customers from '@/pages/admin/Customers';
+import Customers from '@/views/admin/Customers';
 
 export default function AdminCustomersPage() {
   return <Customers />;

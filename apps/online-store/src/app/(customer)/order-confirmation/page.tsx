@@ -1,6 +1,6 @@
 'use client';
 
-import OrderConfirmation from '@/pages/OrderConfirmation';
+import OrderConfirmation from '@/views/OrderConfirmation';
 
 export default function OrderConfirmationPage() {
   return <OrderConfirmation />;

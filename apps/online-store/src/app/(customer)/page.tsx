@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Index from '@/pages/Index';
+import Index from '@/views/Index';
 import { LocalBusinessJsonLd } from '@/components/JsonLd';
 import { siteConfig } from '@/lib/metadata';
 

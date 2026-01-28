@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import ShopClient from '@/pages/ShopClient';
+import ShopClient from '@/views/ShopClient';
 import { BreadcrumbJsonLd } from '@/components/JsonLd';
 import { siteConfig } from '@/lib/metadata';
 import { getProducts } from '@/lib/api/store';

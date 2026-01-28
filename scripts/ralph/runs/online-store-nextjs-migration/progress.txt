@@ -1236,3 +1236,31 @@ Commit: 583261f
 **Next story suggestion:** US-045 (Clean up PWA and offline patterns) — priority 46, Phase 7. Dependencies met: US-004✅. Removes Vite-specific PWA registration, updates OfflineIndicator. Then US-046 (final audit) becomes unblocked.
 
 ---
+
+## 2026-01-28 - US-045: Clean up PWA and offline patterns for Next.js
+Commit: 7d0a4f5
+
+**Why this story?** Only unblocked story remaining. Dependencies met: US-004✅. Unblocks US-046 (final audit) → US-047 → US-048. Phase 7 Cleanup.
+
+**Changes:**
+- apps/online-store/src/lib/pwa/registration.ts: DELETED — Vite-specific service worker registration using `import.meta.env.DEV` check
+- apps/online-store/src/lib/pwa/background-sync.ts: DELETED — Service worker background sync utilities (depends on SW registration)
+- apps/online-store/src/lib/pwa/cache.ts: DELETED — PWA cache management utilities (depends on Cache API / SW)
+- apps/online-store/src/lib/pwa/ directory: DELETED (empty after file removal)
+- apps/online-store/src/components/OfflineQueue.tsx: DELETED — Component depended on deleted backgroundSync, was NOT imported anywhere (unused)
+- apps/online-store/src/components/DemoRibbon.tsx: DELETED — Used Vite-specific `__MODE__` constant, was NOT imported anywhere (unused)
+- apps/online-store/src/components/OfflineIndicator.tsx: NO changes needed — already SSR-safe with `typeof window !== 'undefined' ? navigator.onLine : true` check
+- apps/online-store/src/components/Providers.tsx: NO changes needed — already clean (no OfflineQueue import, OfflineIndicator import is correct)
+
+**Learnings:**
+- OfflineIndicator was already Next.js-compatible — it guards navigator.onLine access with typeof window check on line 7. No changes required.
+- OfflineQueue and DemoRibbon were dead code — grep confirmed no imports in any other file. Safe deletion.
+- The entire src/lib/pwa/ directory (3 files, ~280 lines) was Vite/SW-specific and unused by Next.js. Clean removal.
+- Pre-existing typecheck errors in test files (incomplete mock data in src/__tests__/) are not related to this change — they existed before migration.
+- Build succeeds. OfflineIndicator renders correctly (uses only navigator.onLine events, no SW dependency).
+
+**Patterns to sync:** None — straightforward dead code removal.
+
+**Next story suggestion:** US-046 (Final dependency audit and build verification) — priority 47, Phase 7. Now unblocked: US-043✅, US-044✅, US-045✅, US-038✅. Final gate story before review phase.
+
+---

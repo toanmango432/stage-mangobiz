@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,12 +38,13 @@ const Account = () => {
   const [selectedBooking, setSelectedBooking] = useState<BookingFormData | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
-  const bookings: Booking[] = useMemo(() => {
-    return JSON.parse(localStorage.getItem('bookings') || '[]');
-  }, []);
+  // Load bookings and orders from localStorage (client-side only)
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  const orders: Order[] = useMemo(() => {
-    return JSON.parse(localStorage.getItem('mango-orders') || '[]');
+  useEffect(() => {
+    setBookings(JSON.parse(localStorage.getItem('bookings') || '[]'));
+    setOrders(JSON.parse(localStorage.getItem('mango-orders') || '[]'));
   }, []);
 
   const upcomingBookings = useMemo(() => {

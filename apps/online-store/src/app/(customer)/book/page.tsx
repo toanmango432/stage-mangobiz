@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import BookingFlowSimple from '@/pages/BookingFlowSimple';
+import BookingFlowSimple from '@/views/BookingFlowSimple';
 
 export const metadata: Metadata = {
   title: 'Book an Appointment',
