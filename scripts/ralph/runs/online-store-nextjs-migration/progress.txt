@@ -1005,3 +1005,29 @@ Commit: 72c1fa9
 **Next story suggestion:** US-038 (Configure Vercel deployment) — priority 38, Phase 6 begins. Depends only on US-001 (done). Creates vercel.json, security headers, image domain config. OR US-039 (Convert img to next/image) — priority 39, same phase.
 
 ---
+
+## 2026-01-27 - US-038: Configure Vercel deployment
+Commit: 6593889
+
+**Why this story?** Highest priority (38) among unblocked stories. Phase 6 (Deployment) begins. Only dependency is US-001 (done). Unblocks US-040 (redirects/caching). Previous session explicitly recommended this next.
+
+**Changes:**
+- apps/online-store/vercel.json (NEW): Created with framework "nextjs", buildCommand "pnpm run build", installCommand "pnpm install --frozen-lockfile", outputDirectory ".next"
+- apps/online-store/next.config.ts: Added pageExtensions config to disable Pages Router (only match *.page.tsx), security headers array (X-DNS-Prefetch-Control, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy), images.remotePatterns for *.supabase.co/storage and via.placeholder.com, async headers() function applying security headers to all routes
+- apps/online-store/.env.example: Added NEXT_PUBLIC_SITE_URL (optional, for metadata/sitemap/OG tags), VITE_API_BASE_URL (optional), improved section organization with descriptions
+- apps/online-store/src/lib/api/mockAuth.ts:173: Added `typeof window !== 'undefined'` guard around `mockAuthApi.seedDemoUsers()` module-level call — prevents localStorage crash during Next.js SSR page data collection
+
+**Learnings:**
+- **pageExtensions does NOT affect App Router in Next.js 16** — setting `pageExtensions: ['page.tsx']` only controls which files in `src/pages/` are treated as Pages Router routes. App Router files (`src/app/**/page.tsx`, `layout.tsx`, etc.) are resolved by convention name, not by pageExtensions. This contradicts older reports (GitHub issue #51478) which were apparently fixed in newer versions.
+- `src/pages/` files are treated as Pages Router pages by Next.js during `next build` — they get SSR'd which causes failures when they use browser-only APIs (localStorage, sessionStorage, import.meta.env). The `pageExtensions` trick effectively disables Pages Router during the migration.
+- `mockAuthApi.seedDemoUsers()` was called at module scope (line 173 of mockAuth.ts) which calls `localStorage.getItem()` — this crashes during SSR. Adding `typeof window !== 'undefined'` guard is the minimal fix.
+- Vercel's `framework: "nextjs"` in vercel.json tells Vercel to use the Next.js build adapter (handles standalone output, edge functions, etc.)
+- Security headers in Next.js are configured via `async headers()` in next.config.ts — Vercel deploys these as Edge middleware headers automatically.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors. Pre-existing test failures (202/239) unchanged — no new failures.
+
+**Patterns to sync:**
+- Pattern: pageExtensions to disable Pages Router — In Next.js 16, setting `pageExtensions: ['page.tsx', 'page.ts', 'page.jsx', 'page.js']` effectively disables Pages Router by requiring a `.page.` suffix that no files match. App Router files (`page.tsx`, `layout.tsx`, etc.) are NOT affected by this config — they use convention-based resolution.
+
+**Next story suggestion:** US-039 (Convert img tags to next/image) — priority 39, Phase 6. Depends on US-007✅ and US-011✅. Same deployment phase. OR US-041 (replace react-router-dom in layout components) — priority 41, Phase 7 cleanup. OR US-045 (clean up PWA) — priority 45, Phase 7.
+
+---

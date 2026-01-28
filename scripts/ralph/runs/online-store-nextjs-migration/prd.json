@@ -1153,7 +1153,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 6: Deployment",
       "files": [
         "apps/online-store/vercel.json",

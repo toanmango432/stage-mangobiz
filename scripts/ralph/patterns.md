@@ -299,5 +299,8 @@ Next.js 16 uses `jsx: "react-jsx"` (not `"preserve"` like older versions). On fi
 ### Consolidated tsconfig for Next.js Migration
 Replace Vite's project-references pattern (`tsconfig.json` with `files:[], references:[]` pointing to `tsconfig.app.json` and `tsconfig.node.json`) with a single primary `tsconfig.json` containing all compiler options. Keep `.app.json` and `.node.json` as extending configs (`"extends": "./tsconfig.json"`) for Vite fallback during migration.
 
+### pageExtensions to Disable Pages Router
+In Next.js 16, setting `pageExtensions: ['page.tsx', 'page.ts', 'page.jsx', 'page.js']` effectively disables Pages Router by requiring a `.page.` suffix that no existing files match. **App Router is NOT affected** — `src/app/**/page.tsx`, `layout.tsx`, etc. use convention-based resolution separate from `pageExtensions`. Use this when `src/pages/` contains React view components (not Next.js pages) that would crash during SSR page data collection.
+
 ### Server Component Page Wrappers for Metadata
 Next.js `export const metadata` only works in Server Components (no `'use client'`). When migrating `'use client'` page wrappers to support metadata, move `'use client'` to the imported source component (`src/pages/*.tsx`) and make the `app/*/page.tsx` wrapper a Server Component. The source component becomes self-contained as a Client Component, and the wrapper can export metadata.
