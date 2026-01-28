@@ -1386,7 +1386,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 45,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 7: Cleanup",
       "files": [
         "apps/online-store/package.json",
