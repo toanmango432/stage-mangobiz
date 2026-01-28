@@ -976,3 +976,32 @@ Commit: f12e36d
 **Next story suggestion:** US-037 (Add Next.js middleware for auth protection) — priority 37, Phase 5. Depends on US-033✅ and US-024✅. Route-level auth protection via middleware. OR US-038 (Configure Vercel deployment) — priority 38, Phase 6, depends only on US-001 (done).
 
 ---
+
+## 2026-01-27 - US-037: Add Next.js middleware for auth protection
+Commit: 72c1fa9
+
+**Why this story?** Highest priority (37) among unblocked stories with all dependencies met (US-033✅, US-024✅). Previous session explicitly recommended this next. Completes Phase 5 Data Layer — route-level auth protection via middleware replaces client-side ProtectedRoute for initial route access control.
+
+**Changes:**
+- apps/online-store/middleware.ts (NEW): Created Next.js Edge Middleware with:
+  - `isProtectedPath()` helper checking `/admin` and `/account` prefixes
+  - Supabase SSR client using `createServerClient` from `@supabase/ssr` with request/response cookie handling
+  - `setAll()` implementation that updates both request cookies (for downstream server components) and response cookies (for the browser) — enables session refresh via middleware
+  - `supabase.auth.getUser()` call to validate/refresh the auth session
+  - Redirects unauthenticated users to `/login?returnTo=<pathname>` for post-login navigation
+  - `config.matcher` set to `['/admin/:path*', '/account/:path*']` — middleware only runs on protected routes
+
+**Learnings:**
+- Next.js middleware requires a specific cookie handling pattern for @supabase/ssr: the `setAll()` callback must update BOTH `request.cookies` (so downstream server components see refreshed tokens) AND create a new `NextResponse.next()` with updated response cookies (so the browser stores refreshed tokens). This is the documented Supabase SSR middleware pattern.
+- `supabase.auth.getUser()` is preferred over `supabase.auth.getSession()` in middleware — `getUser()` validates the JWT against the Supabase auth server (prevents forged tokens), while `getSession()` only decodes the JWT locally without validation.
+- The middleware is lightweight: only creates a Supabase client and checks auth — no database queries beyond the auth token validation. This is appropriate for Edge runtime.
+- The existing `ProtectedRoute` component (client-side redirect) remains as a defense-in-depth layer — middleware handles route-level protection at the server, ProtectedRoute handles client-side protection with the loading spinner UX. Both layers work together.
+- `config.matcher` uses Next.js path pattern syntax (`:path*` = all nested paths) — more efficient than checking pathname in the middleware function because unmatched routes skip middleware entirely.
+- **Phase 5 (Data Layer) is now COMPLETE** — all 5 data layer stories done (US-033 Supabase utilities, US-034 server component data fetching, US-035 booking API routes, US-036 cart/checkout API routes, US-037 auth middleware).
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — zero new errors from this story.
+
+**Patterns to sync:** None — Supabase SSR middleware pattern is standard @supabase/ssr + Next.js convention.
+
+**Next story suggestion:** US-038 (Configure Vercel deployment) — priority 38, Phase 6 begins. Depends only on US-001 (done). Creates vercel.json, security headers, image domain config. OR US-039 (Convert img to next/image) — priority 39, same phase.
+
+---

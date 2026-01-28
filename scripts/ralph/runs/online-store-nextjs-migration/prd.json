@@ -1125,7 +1125,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 5: Data Layer",
       "files": [
         "apps/online-store/middleware.ts"
