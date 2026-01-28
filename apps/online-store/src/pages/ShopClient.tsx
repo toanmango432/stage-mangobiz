@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { useNavigate, useAppRouter, usePathname, useSearchParams } from "@/lib/navigation";
 import { ProductCard } from "@/components/ProductCard";
 import { FilterPanel } from "@/components/shop/FilterPanel";
@@ -156,10 +157,13 @@ const ShopClient = ({ initialProducts }: ShopClientProps) => {
     return (
       <div className="min-h-screen pb-20 md:pb-8">
         <div className="relative h-48 md:h-64 bg-gradient-hero overflow-hidden">
-          <img
+          <Image
             src={productsHero}
             alt="Shop our products"
-            className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-40"
+            fill
+            priority
+            className="object-cover mix-blend-overlay opacity-40"
+            sizes="100vw"
           />
           <div className="relative container mx-auto px-4 h-full flex flex-col justify-center items-center text-center">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Shop Our Products</h1>
@@ -180,10 +184,13 @@ const ShopClient = ({ initialProducts }: ShopClientProps) => {
     return (
       <div className="min-h-screen pb-20 md:pb-8">
         <div className="relative h-48 md:h-64 bg-gradient-hero overflow-hidden">
-          <img
+          <Image
             src={productsHero}
             alt="Shop our products"
-            className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-40"
+            fill
+            priority
+            className="object-cover mix-blend-overlay opacity-40"
+            sizes="100vw"
           />
           <div className="relative container mx-auto px-4 h-full flex flex-col justify-center items-center text-center">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Shop Our Products</h1>

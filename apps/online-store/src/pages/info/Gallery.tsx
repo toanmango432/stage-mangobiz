@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import NextImage from "next/image";
 import { SEOHead } from "@/components/SEOHead";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Badge } from "@/components/ui/badge";
@@ -134,11 +135,13 @@ export default function Gallery() {
                     className="group relative aspect-square overflow-hidden rounded-lg bg-muted cursor-pointer"
                     onClick={() => setLightboxImage(item)}
                   >
-                    <img 
+                    <NextImage
                       src={item.url}
                       alt={item.caption || `Gallery image at Mango Nail & Beauty Salon`}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                      loading="lazy"
+                      fill
+                      unoptimized
+                      className="object-cover transition-transform duration-300 group-hover:scale-110"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
@@ -166,10 +169,14 @@ export default function Gallery() {
         <DialogContent className="max-w-4xl p-0">
           {lightboxImage && (
             <div className="relative">
-              <img 
+              <NextImage
                 src={lightboxImage.url}
                 alt={lightboxImage.caption || `Gallery image at Mango Nail & Beauty Salon`}
+                width={800}
+                height={600}
+                unoptimized
                 className="w-full h-auto"
+                sizes="(max-width: 1024px) 100vw, 800px"
               />
               <div className="p-4 bg-background">
                 <p className="font-medium">{lightboxImage.caption}</p>

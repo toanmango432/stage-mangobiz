@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,10 +64,12 @@ export const ProductCard = ({ product, onClick }: ProductCardProps) => {
         onClick={onClick}
       >
         <div className="relative aspect-square overflow-hidden bg-muted">
-          <img 
-            src={product.images[0]} 
-            alt={product.name} 
-            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+          <Image
+            src={product.images[0]}
+            alt={product.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
           
           {/* Wishlist & Quick View buttons */}
