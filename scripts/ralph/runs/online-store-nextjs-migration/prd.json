@@ -1277,7 +1277,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 42,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 7: Cleanup",
       "files": [
         "apps/online-store/src/components/booking/BookingSidebar.tsx",

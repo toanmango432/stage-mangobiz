@@ -1115,3 +1115,36 @@ Commit: 0c9d94d
 **Next story suggestion:** US-042 (Replace react-router-dom in customer-facing components) — priority 42, Phase 7. Depends on US-005✅, US-007✅, US-009✅, US-011✅, US-012✅. Same import swap pattern, 13 customer-facing component files. On the critical path for US-043 (remove Vite). OR US-042B (account and admin components) — priority 43, same phase.
 
 ---
+
+## 2026-01-27 - US-042: Replace react-router-dom in customer-facing components
+Commit: 453c288d5b86c450372f81b299972103304a0296
+
+**Why this story?** Highest priority (42) among unblocked stories. Just completed US-041 (layout component Link swaps), so US-042 applies the same pattern to 13 customer-facing components. Critical path for US-043 (remove Vite files).
+
+**Changes:**
+- apps/online-store/src/components/booking/BookingSidebar.tsx: Replaced `useNavigate` from react-router-dom with `useRouter` from next/navigation. Changed `navigate('/account')` to `router.push('/account')`.
+- apps/online-store/src/components/booking/GuestPromptBanner.tsx: Same pattern — `useNavigate` → `useRouter`, `navigate('/login')` → `router.push('/login')`.
+- apps/online-store/src/components/booking/ReviewStep.tsx: Same pattern — `useNavigate` → `useRouter`, `navigate('/account')` → `router.push('/account')`.
+- apps/online-store/src/components/cart/MiniCartDrawer.tsx: Replaced `import { Link } from 'react-router-dom'` with `import Link from 'next/link'`. Changed all 3 `<Link to=` to `<Link href=`.
+- apps/online-store/src/components/cart/EmptyCartRecommendations.tsx: Replaced `useNavigate` → `useRouter`, all `navigate(` → `router.push(`.
+- apps/online-store/src/components/shop/QuickViewModal.tsx: Replaced `useNavigate` → `useRouter`, `navigate(\`/shop/${product.id}\`)` → `router.push(...)`.
+- apps/online-store/src/components/home/AIRecommendations.tsx: Replaced `useNavigate` → `useRouter`. Simplified `navigate('/book', { state: {...} })` to `router.push('/book')` (Next.js router doesn't support state passing). Replaced `navigate(\`/shop/${rec.itemId}\`)` → `router.push(...)`.
+- apps/online-store/src/components/home/TrendingNow.tsx: Same as AIRecommendations — `useNavigate` → `useRouter`, simplified state-passing navigation to plain `router.push('/book')`.
+- apps/online-store/src/components/sections/TeamGallery.tsx: Replaced `import { Link } from 'react-router-dom'` with `import Link from 'next/link'`. Changed `<Link to="/book">` → `<Link href="/book">`.
+- apps/online-store/src/components/sections/MembershipRail.tsx: Same Link swap — `to="/memberships"` → `href="/memberships"`.
+- apps/online-store/src/components/sections/SectionRenderer.tsx: Replaced Link import. Changed all 3 `<Link to=` to `<Link href=` (CTA, GiftCardShowcase, and dynamic ctaLink).
+- apps/online-store/src/components/sections/FAQSection.tsx: Same Link swap — `to="/info/faq"` → `href="/info/faq"`.
+- apps/online-store/src/components/chat/ChatDrawer.tsx: Replaced `useNavigate, useLocation` from react-router-dom with `useRouter, usePathname` from next/navigation. Changed `navigate(card.action!.path)` → `router.push(...)`, `location.pathname` → `pathname` (direct string from usePathname).
+
+**Learnings:**
+- `navigate('/path', { state: {...} })` has no Next.js equivalent — `router.push()` doesn't support state passing. Simplified to plain navigation. If service pre-selection is needed, use query params or context in the future.
+- ChatDrawer used both `useNavigate` and `useLocation` — two hooks replaced with `useRouter` and `usePathname`. `usePathname()` returns the string directly (no `.pathname` property needed), which is cleaner than `useLocation().pathname`.
+- All 13 files successfully converted. Grep confirms zero react-router-dom imports in booking/, cart/, shop/, home/, sections/, chat/ directories.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — zero new errors. Build succeeds.
+- Pre-existing test failures (202 failed / 37 passed / 239 total) unchanged — no new failures.
+
+**Patterns to sync:** None — follows established Link migration and useNavigate→useRouter patterns.
+
+**Next story suggestion:** US-042B (Replace react-router-dom in account/admin components) — priority 43, Phase 7. Depends on US-005✅, US-014✅, US-019✅ — all met. Same import swap pattern, 6 files. After US-042B, US-043 (remove Vite) becomes unblocked.
+
+---
