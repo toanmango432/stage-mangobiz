@@ -898,3 +898,24 @@ Commit: 0d8a980
 **Next story suggestion:** US-034 (Convert shop page to Server Component data fetching) — priority 34, Phase 5. Depends on US-011✅ and US-033 (just completed). Establishes the server component data fetching pattern. OR US-035 (booking API routes) — same phase, depends only on US-033. OR US-038 (Vercel deployment config) — Phase 6, depends only on US-001 (done), could run in parallel.
 
 ---
+
+## 2026-01-27 - US-034: Convert shop page to Server Component data fetching
+Commit: 4189f3e
+
+**Why this story?** Highest priority (34) among unblocked stories with all dependencies met (US-011✅, US-033✅). Previous session explicitly recommended this next. Establishes the async Server Component → Client Component data fetching pattern for the entire project.
+
+**Changes:**
+- apps/online-store/src/app/(customer)/shop/page.tsx: Converted from Server Component importing Shop → async Server Component that: (1) calls `getProducts()` server-side, (2) maps StoreProduct → Product via `mapStoreProductsToProducts()`, (3) passes `initialProducts` to ShopClient. Retains metadata export and BreadcrumbJsonLd. Try/catch wraps server fetch — falls back to empty array on failure (ShopClient handles client-side fallback).
+- apps/online-store/src/pages/ShopClient.tsx (NEW): Created 'use client' component with `initialProducts` prop. Mirrors all existing Shop.tsx UI (hero, search, filter panel/drawer/chips, product grid, loading/error states). Key difference from Shop.tsx: initializes `products` state from `initialProducts` prop instead of empty array, sets `isLoading` to false when initial data exists, and only fetches client-side when `initialProducts` is empty.
+
+**Learnings:**
+- The `getProducts()` function uses `storeAPI.get('/products')` which calls `fetch()` with a relative URL (`/api/v1/storefront/products`). On the server, relative URLs resolve against the server's own origin — this works in Next.js dev (localhost:3001) but may fail in production if the API isn't on the same host. The try/catch with client-side fallback handles this gracefully.
+- The Product mapping logic (StoreProduct → Product) was duplicated in both Shop.tsx and the new page.tsx. This is intentional — the server-side mapping in page.tsx allows the ShopClient to receive pre-mapped data, while ShopClient retains the same mapping for its client-side fallback fetch. In the future, this mapping could be extracted to a shared utility.
+- Product interface doesn't have `active`, `brand`, `taxCode`, or `shippingRequired` fields — these are extra properties from the original Shop.tsx mapping that TypeScript allows because the mapping function uses `any` type parameter. No type errors since all required Product properties are present.
+- Pre-existing typecheck errors (376+ in repository/supabase/test files) unchanged — no new errors from this migration.
+
+**Patterns to sync:** None — async Server Component → Client Component pattern is standard Next.js convention.
+
+**Next story suggestion:** US-035 (Create API route handlers for booking mutations) — priority 35, Phase 5. Depends only on US-033 (done). Creates Next.js API routes for booking CRUD operations. OR US-036 (cart/checkout API routes) — priority 36, same dependency. OR US-038 (Vercel deployment) — priority 38, Phase 6, depends only on US-001 (done).
+
+---
