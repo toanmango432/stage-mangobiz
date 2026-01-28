@@ -979,7 +979,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 4: SEO",
       "files": [
         "apps/online-store/app/sitemap.ts",

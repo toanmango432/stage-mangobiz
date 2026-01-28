@@ -840,3 +840,35 @@ Commit: 4a8c197
 **Next story suggestion:** US-032 (Create sitemap.ts, robots.ts, and JSON-LD components) — priority 32, Phase 4. Depends only on US-028 (done). Completes Phase 4 SEO. Different pattern — file-based sitemap/robots generation and structured data. OR US-033 (Supabase server/client utilities) — priority 33, Phase 5, unblocks US-034/US-035/US-036/US-037.
 
 ---
+
+## 2026-01-27 - US-032: Create sitemap.ts, robots.ts, and JSON-LD components
+Commit: 44a950a (WIP commit from previous session — verified complete)
+
+**Why this story?** Highest priority (32) among unblocked stories. Previous session explicitly recommended this next. Completes Phase 4 SEO. Only dependency is US-028 (done). Previous session created a WIP commit with all implementation — this iteration verified all acceptance criteria are met.
+
+**Changes:**
+- apps/online-store/src/app/sitemap.ts (NEW): Created MetadataRoute.Sitemap function with 18 static public customer routes including home, book, booking, shop, memberships, gift-cards, promotions, updates, 6 info pages, and 3 legal pages. Each route has appropriate changeFrequency (daily/weekly/monthly/yearly) and priority (0.3-1.0).
+- apps/online-store/src/app/robots.ts (NEW): Created MetadataRoute.Robots function allowing all user agents on `/`, disallowing `/admin/`, `/api/`, `/offline`. Includes sitemap URL reference.
+- apps/online-store/src/components/JsonLd.tsx (NEW): Created three components:
+  - `JsonLd` — generic JSON-LD component using next/script with `strategy="afterInteractive"`
+  - `LocalBusinessJsonLd` — BeautySalon schema.org type with optional telephone, address, image, priceRange, openingHours
+  - `BreadcrumbJsonLd` — BreadcrumbList schema.org type with position-indexed items
+- apps/online-store/src/app/(customer)/page.tsx: Added `<LocalBusinessJsonLd>` with siteConfig name/description/url
+- apps/online-store/src/app/(customer)/shop/page.tsx: Added `<BreadcrumbJsonLd>` with Home → Shop breadcrumb
+- apps/online-store/src/app/(customer)/shop/[productId]/page.tsx: Added `<BreadcrumbJsonLd>` with Home → Shop → Product breadcrumb
+- apps/online-store/src/app/(customer)/info/about/page.tsx: Added `<BreadcrumbJsonLd>` with Home → About Us breadcrumb
+- apps/online-store/src/app/(customer)/legal/privacy/page.tsx: Added `<BreadcrumbJsonLd>` with Home → Privacy Policy breadcrumb
+
+**Learnings:**
+- WIP commits from previous sessions can contain complete implementations — always verify acceptance criteria before starting re-implementation.
+- `MetadataRoute.Sitemap` and `MetadataRoute.Robots` are strongly typed Next.js types that auto-generate `/sitemap.xml` and `/robots.txt` from the default exports.
+- `next/script` with `strategy="afterInteractive"` is appropriate for JSON-LD since it doesn't affect rendering but should be available for search engine crawlers after page load.
+- BreadcrumbJsonLd added to representative pages (shop, product detail, about, privacy) — not every page needs breadcrumbs (e.g., home page already has LocalBusiness).
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no errors from US-032 files.
+- **Phase 4 (SEO) is now COMPLETE** — all 5 SEO stories done (US-028 root metadata, US-029 customer page metadata, US-030 info/legal metadata, US-031 dynamic metadata, US-032 sitemap/robots/JSON-LD).
+
+**Patterns to sync:** None — sitemap.ts/robots.ts/JSON-LD are standard Next.js conventions.
+
+**Next story suggestion:** US-033 (Create Supabase server and client utilities for Next.js) — priority 33, Phase 5 begins. Depends only on US-001 (done). Gates US-034 (server component data fetching), US-035 (booking API routes), US-036 (cart/checkout API routes), US-037 (auth middleware). Critical path for backend work.
+
+---
