@@ -947,3 +947,32 @@ Commit: fea8624
 **Next story suggestion:** US-036 (Create API route handlers for cart and checkout) — priority 36, Phase 5. Depends only on US-033 (done). Same backend API route pattern as this story. OR US-037 (Auth middleware) — priority 37, same phase. OR US-038 (Vercel deployment) — priority 38, Phase 6.
 
 ---
+
+## 2026-01-27 - US-036: Create API route handlers for cart and checkout
+Commit: f12e36d
+
+**Why this story?** Highest priority (36) among unblocked stories with all dependencies met (US-033✅). Continues Phase 5 Data Layer work — same backend API route pattern as just-completed US-035. Logical grouping with booking API routes.
+
+**Changes:**
+- apps/online-store/src/app/api/cart/route.ts (NEW): Created Next.js Route Handler with:
+  - GET handler: Fetches cart for authenticated user from `online_carts` table by store_id and client_id. Returns items and calculated summary (subtotal, tax, shipping, total). Handles empty cart gracefully (PGRST116 = no rows).
+  - POST handler: Adds item to cart. Uses upsert to create or update cart. Detects duplicate items — increments quantity for products, skips duplicates for other types. Validates with Zod CartItemSchema matching the CartItem TypeScript interface.
+  - PUT handler: Updates item quantity in cart. Validates item exists in cart. Returns updated items and recalculated summary.
+  - DELETE handler: Removes item from cart by itemId. Returns updated items and recalculated summary.
+- apps/online-store/src/app/api/checkout/route.ts (NEW): Created Next.js Route Handler with:
+  - POST handler: Processes checkout order with full server-side validation. Validates all fields via Zod (items, customer info, shipping address, payment method). Calculates totals server-side (never trusts client-calculated totals). Validates promo codes against server-side promo code registry. Generates order number with date prefix (ORD-YYYYMMDD-XXXX). Requires shipping address for physical items. Inserts into `online_orders` table. Clears user's cart after successful order. Returns complete order data with server-calculated totals.
+- Both files use Supabase server client from `@/lib/supabase/server`, Zod for all input validation, and return proper HTTP status codes (200, 201, 400, 401, 404, 500) with structured error responses matching the pattern from US-035.
+
+**Learnings:**
+- Zod inferred types from schemas with `.optional()` fields make all nested object properties optional at the type level, even when the parent is required. This causes type mismatches when assigning to interfaces with required fields. Solution: use `as CartItemData` cast since Zod validation already guarantees the required fields are present.
+- Cart data is stored as a JSON `items` array column in the `online_carts` table — a single row per user per store. This matches the localStorage pattern from CartContext (one cart per user) but persisted server-side.
+- Server-side total calculation mirrors CartContext's `getCartTotal()` logic exactly: subtotal with add-ons, promo code discount (percent/fixed/shipping types), tax rate, and shipping threshold. This ensures client and server agree on totals.
+- The checkout route validates promo codes against a server-side registry (matching CartContext's PROMO_CODES) — client cannot inject arbitrary discounts.
+- `crypto.randomUUID()` is available in Next.js Route Handlers (Node.js 18+) — no need for external UUID library.
+- Pre-existing typecheck errors (376 in repository/supabase files) unchanged — zero new errors from this story.
+
+**Patterns to sync:** None — follows established Next.js Route Handler patterns from US-035.
+
+**Next story suggestion:** US-037 (Add Next.js middleware for auth protection) — priority 37, Phase 5. Depends on US-033✅ and US-024✅. Route-level auth protection via middleware. OR US-038 (Configure Vercel deployment) — priority 38, Phase 6, depends only on US-001 (done).
+
+---
