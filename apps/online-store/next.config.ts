@@ -64,12 +64,75 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Security headers for all routes
+  // Redirects for legacy routes that changed during migration
+  async redirects() {
+    return [
+      // /book/flow was a react-router-dom <Navigate to="/book" replace /> redirect
+      {
+        source: '/book/flow',
+        destination: '/book',
+        permanent: true,
+      },
+    ];
+  },
+
+  // Security and caching headers
   async headers() {
     return [
+      // Security headers for all routes
       {
         source: '/(.*)',
         headers: securityHeaders,
+      },
+      // Long cache for static assets (fonts)
+      {
+        source: '/fonts/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Long cache for static assets (images)
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Cache for Next.js optimized images
+      {
+        source: '/_next/image/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+      // Cache for static JS/CSS bundles (already hashed by Next.js)
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // No cache for API mutation routes
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate',
+          },
+        ],
       },
     ];
   },
