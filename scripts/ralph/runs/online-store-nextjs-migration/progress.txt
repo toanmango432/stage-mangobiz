@@ -919,3 +919,31 @@ Commit: 4189f3e
 **Next story suggestion:** US-035 (Create API route handlers for booking mutations) — priority 35, Phase 5. Depends only on US-033 (done). Creates Next.js API routes for booking CRUD operations. OR US-036 (cart/checkout API routes) — priority 36, same dependency. OR US-038 (Vercel deployment) — priority 38, Phase 6, depends only on US-001 (done).
 
 ---
+
+## 2026-01-27 - US-035: Create API route handlers for booking mutations
+Commit: fea8624
+
+**Why this story?** Highest priority (35) among unblocked stories with all dependencies met (US-033✅). Continues Phase 5 Data Layer work — same backend category as just-completed US-034. Previous session explicitly recommended this next.
+
+**Changes:**
+- apps/online-store/src/app/api/bookings/route.ts (NEW): Created Next.js Route Handler with:
+  - POST handler: Creates booking with Zod-validated body (serviceId, staffId, requestedDate, requestedTime, guest info, notes, source). Validates service exists, staff belongs to same store if specified. Supports both authenticated users and guest bookings (requires either auth or guest contact info). Inserts into `online_bookings` table. Returns 201 on success.
+  - GET handler: Lists bookings with pagination. Requires authentication. Supports filtering by storeId (required), date, and status. Uses Supabase `select('*', { count: 'exact' })` for total count. Returns paginated response with page/limit/total/totalPages/hasMore.
+- apps/online-store/src/app/api/bookings/[id]/route.ts (NEW): Created Next.js Route Handler with:
+  - GET handler: Fetches single booking by UUID. Requires authentication. Validates ID is UUID format via Zod.
+  - PATCH handler: Updates booking fields (status, staffId, requestedDate, requestedTime, notes). Requires authentication. Auto-sets confirmed_at/confirmed_by when status changes to 'confirmed'. Requires at least one field to update.
+- Both files use Supabase server client from `@/lib/supabase/server`, Zod for all input validation, and return proper HTTP status codes (200, 201, 400, 401, 404, 500) with structured error responses.
+
+**Learnings:**
+- Next.js 16 Route Handler params are async (Promise) — must `await params` before accessing `id`. This matches the pattern from generateMetadata in US-031.
+- `request.nextUrl.searchParams` provides access to URL query parameters via `NextRequest` — use `Object.fromEntries()` to convert to a plain object for Zod parsing.
+- `z.coerce.number()` converts string query params to numbers for pagination (page, limit) — necessary because URL params are always strings.
+- Existing Zod schemas in `src/types/api/schemas.ts` (BookingDraftSchema, BookingConfirmationSchema) are API response schemas, not request validation schemas — created new input-specific schemas for the route handlers.
+- The `online_bookings` table type is defined in `src/services/supabase/types.ts` as `OnlineBookingRow` — the insert object uses snake_case column names matching the database schema.
+- Pre-existing typecheck errors (376 in repository/supabase files) unchanged — zero new errors from this story.
+
+**Patterns to sync:** None — Next.js Route Handler patterns are standard Next.js conventions.
+
+**Next story suggestion:** US-036 (Create API route handlers for cart and checkout) — priority 36, Phase 5. Depends only on US-033 (done). Same backend API route pattern as this story. OR US-037 (Auth middleware) — priority 37, same phase. OR US-038 (Vercel deployment) — priority 38, Phase 6.
+
+---

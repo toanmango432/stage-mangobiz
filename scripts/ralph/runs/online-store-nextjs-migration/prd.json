@@ -1068,7 +1068,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 5: Data Layer",
       "files": [
         "apps/online-store/app/api/bookings/route.ts",
