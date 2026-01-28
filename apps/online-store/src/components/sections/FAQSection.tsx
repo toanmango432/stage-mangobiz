@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 
 interface FAQSectionProps {
   title?: string;
@@ -96,7 +96,7 @@ export function FAQSection({
 
         {showViewAll && (
           <div className="text-center mt-10">
-            <Link to="/info/faq">
+            <Link href="/info/faq">
               <Button variant="outline" size="lg">
                 View All FAQs
               </Button>

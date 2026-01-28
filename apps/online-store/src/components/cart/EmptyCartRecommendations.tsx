@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingBag } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 const recommendations = [
   {
@@ -28,7 +28,7 @@ const recommendations = [
 ];
 
 export const EmptyCartRecommendations = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   return (
     <div className="text-center py-12">
@@ -63,10 +63,10 @@ export const EmptyCartRecommendations = () => {
       </div>
 
       <div className="flex gap-4 justify-center">
-        <Button onClick={() => navigate("/shop")} size="lg">
+        <Button onClick={() => router.push("/shop")} size="lg">
           Shop Products
         </Button>
-        <Button onClick={() => navigate("/book")} variant="outline" size="lg">
+        <Button onClick={() => router.push("/book")} variant="outline" size="lg">
           Book Service
         </Button>
       </div>

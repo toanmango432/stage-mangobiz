@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, Clock, User, Mail, Phone, Shield, Edit, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
 import { getStoreId } from '@/hooks/useStore';
 
@@ -31,7 +31,7 @@ interface ReviewStepProps {
 }
 
 export const ReviewStep = ({ formData, updateFormData, goToStep }: ReviewStepProps) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [agreedToPolicies, setAgreedToPolicies] = useState(formData.agreedToPolicies || false);
   const [isValidating, setIsValidating] = useState(false);
   const [patchTestError, setPatchTestError] = useState<string | null>(null);
@@ -167,7 +167,7 @@ export const ReviewStep = ({ formData, updateFormData, goToStep }: ReviewStepPro
       description: "You'll receive a confirmation email shortly.",
     });
     
-    navigate('/account');
+    router.push('/account');
   };
 
   const { subtotal, tax, total } = calculateTotal();

@@ -61,7 +61,7 @@ Config file: scripts/ralph/config (optional)
     NOTIFICATIONS_ENABLED=true
     TEXTMEBOT_API_KEY="your-key"
     TEXTMEBOT_PHONE="your-phone"
-    CLAUDE_FLAGS="--dangerously-skip-permissions"
+    CLAUDE_FLAGS="--dangerously-skip-permissions --model opus"
 
 Environment:
   RALPH_DEBUG=true    Enable verbose debug output
@@ -219,7 +219,7 @@ CONFIG_FILE="$SCRIPT_DIR/config"
 NOTIFICATIONS_ENABLED=false
 TEXTMEBOT_API_KEY=""
 TEXTMEBOT_PHONE=""
-CLAUDE_FLAGS="--dangerously-skip-permissions"
+CLAUDE_FLAGS="--dangerously-skip-permissions --model opus"
 MAX_CONSECUTIVE_FAILURES=3
 
 # Load config if exists (NOTE: This is shell code, not just data!)
