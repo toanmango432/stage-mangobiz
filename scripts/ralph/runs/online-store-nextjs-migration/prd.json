@@ -1353,7 +1353,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 44,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 7: Cleanup",
       "files": [
         "apps/online-store/vite.config.ts",

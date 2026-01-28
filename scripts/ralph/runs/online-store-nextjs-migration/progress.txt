@@ -1177,3 +1177,30 @@ Commit: 3513de3
 **Next story suggestion:** US-043 (Remove Vite configuration and entry files) — priority 44, Phase 7. Now unblocked: US-041✅, US-042✅, US-042B✅. This deletes vite.config.ts, index.html, main.tsx, App.tsx, vite-env.d.ts. Point of no return for Vite removal.
 
 ---
+
+## 2026-01-27 - US-043: Remove Vite configuration and entry files
+Commit: cf69c3e
+
+**Why this story?** Highest priority (44) among unblocked stories. Critical path — directly unblocks US-044 → US-046 → US-047 → US-048. All dependencies met: US-041✅, US-042✅, US-042B✅. Suggested by previous iteration.
+
+**Changes:**
+- apps/online-store/vite.config.ts: DELETED — Vite build config with react-swc plugin, lovable-tagger, manual chunks, terser minification, define globals (__MODE__, __MOCK_TURBULENCE__, __FEATURE_AI__)
+- apps/online-store/index.html: DELETED — Vite SPA entry HTML with #root div and script tag pointing to /src/main.tsx
+- apps/online-store/src/main.tsx: DELETED — Vite SPA bootstrap: createRoot, Redux Provider, App import, MSW/template initialization
+- apps/online-store/src/App.tsx: DELETED — Vite SPA root component with BrowserRouter, Routes, all page imports, provider wrappers (all replaced by Next.js app/ directory structure)
+- apps/online-store/src/vite-env.d.ts: DELETED — Vite type reference (/// <reference types="vite/client" />)
+- apps/online-store/tsconfig.node.json:10: Removed "vite.config.ts" from include array (file no longer exists)
+
+**Learnings:**
+- tsconfig.node.json still referenced vite.config.ts in its include array — always check tsconfig files when deleting referenced source files
+- Vite define globals (__MODE__, __MOCK_TURBULENCE__, __FEATURE_AI__) are still used in ~15 source files (DemoRibbon, mocks, BookingSuccess, OrderConfirmation, etc.) via typeof guards. These don't cause build failures because the typeof checks handle undefined gracefully. These globals would need to be defined in next.config.ts `env` if their functionality is needed in production.
+- package.json still has Vite fallback scripts (dev:vite, build:vite, preview) and Vite devDependencies — these are cleaned up in US-044
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — zero new errors
+- Pre-existing test failures (202 failed / 37 passed / 239 total) unchanged — zero new failures
+- Next.js build succeeds cleanly after deletion
+
+**Patterns to sync:** None — straightforward file deletion.
+
+**Next story suggestion:** US-044 (Remove react-router-dom and react-helmet-async dependencies) — priority 45, Phase 7. Now unblocked: US-043✅. Removes SPA dependencies and navigation compat layer.
+
+---
