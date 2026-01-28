@@ -1148,3 +1148,32 @@ Commit: 453c288d5b86c450372f81b299972103304a0296
 **Next story suggestion:** US-042B (Replace react-router-dom in account/admin components) — priority 43, Phase 7. Depends on US-005✅, US-014✅, US-019✅ — all met. Same import swap pattern, 6 files. After US-042B, US-043 (remove Vite) becomes unblocked.
 
 ---
+
+## 2026-01-27 - US-042B: Replace react-router-dom in account and admin components
+Commit: 3513de3
+
+**Why this story?** Highest priority (43) among unblocked stories. Just completed US-042 (customer-facing component Link swaps), so US-042B applies the same pattern to account and admin components. Critical path — unblocks US-043 (remove Vite files).
+
+**Changes:**
+- apps/online-store/src/components/account/OnlineBookingsSection.tsx:9,38,97,163,214,268: Replaced `useNavigate` from react-router-dom with `useRouter` from next/navigation. Changed all `navigate(` to `router.push(`. Both the main component and `OnlineBookingCard` sub-component had their own `useNavigate` instances.
+- apps/online-store/src/components/account/AIReminders.tsx:9,16,99: Replaced `useNavigate` → `useRouter`, `navigate(reminder.actionUrl)` → `router.push(reminder.actionUrl)`.
+- apps/online-store/src/components/account/PersonalizedOffers.tsx:6,19,79: Replaced `useNavigate` → `useRouter`, `navigate(offer.actionUrl)` → `router.push(offer.actionUrl)`.
+- apps/online-store/src/components/admin/dashboard/NotificationCenter.tsx:12,25,81: Replaced `useNavigate` → `useRouter`, `navigate(notification.link)` → `router.push(notification.link)`.
+- apps/online-store/src/components/admin/dashboard/QuickActions.tsx:4,7,14-33: Replaced `useNavigate` → `useRouter`, all 4 `navigate('/admin/...')` → `router.push('/admin/...')`.
+- apps/online-store/src/pages/Book.tsx:2,28,364: Replaced `useNavigate` → `useRouter`, `navigate('/')` → `router.push('/')`. Found during grep sweep — not in PRD files list but had react-router-dom import.
+- apps/online-store/src/pages/BookingFlow.tsx:2,16-18,46,86,89,133,140: Replaced `useNavigate, useSearchParams, useLocation` → `useRouter, useSearchParams` from next/navigation. Removed `location.state` usage (Next.js doesn't support router state). Changed `navigate('/book', { replace: true })` → `router.replace('/book')`. Simplified `navigate('/book/confirmation', { state: {...} })` → `router.push('/book/confirmation')`.
+- apps/online-store/src/hooks/useStore.ts: NO changes needed — no react-router-dom imports.
+
+**Learnings:**
+- `Book.tsx` and `BookingFlow.tsx` in `src/pages/` were NOT listed in any story's `files` array but still had react-router-dom imports. Caught by the "grep confirms zero" acceptance criterion. Always run a full grep sweep, not just check the listed files.
+- `BookingFlow.tsx` used all three: `useNavigate`, `useLocation` (for `.state`), and `useSearchParams`. Next.js `useSearchParams()` from next/navigation returns `ReadonlyURLSearchParams` directly (not a `[params]` tuple like react-router-dom).
+- `location.state` (react-router-dom's way to pass data between routes) has no Next.js equivalent. `router.push()` doesn't support state. Simplified to plain navigation — if data passing is needed later, use query params or context.
+- `navigate(path, { replace: true })` maps to `router.replace(path)` in next/navigation (separate method, not an option).
+- Only `App.tsx` (Vite entry, deleted in US-043) and `navigation.ts` (compat layer comments, deleted in US-044) still reference react-router-dom. Zero functional imports remain in any component/hook/page used by the Next.js app.
+- Pre-existing typecheck errors (376+ in repository/supabase files) and test failures (202/239) unchanged — zero new errors. Build succeeds.
+
+**Patterns to sync:** None — follows established useNavigate→useRouter and Link migration patterns.
+
+**Next story suggestion:** US-043 (Remove Vite configuration and entry files) — priority 44, Phase 7. Now unblocked: US-041✅, US-042✅, US-042B✅. This deletes vite.config.ts, index.html, main.tsx, App.tsx, vite-env.d.ts. Point of no return for Vite removal.
+
+---
