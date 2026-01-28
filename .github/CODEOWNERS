@@ -1,36 +1,8 @@
 # CODEOWNERS - EnrichOS19/Mango-Biz
 # Last updated: 2026-01-28
+#
+# ALL changes to main require Owner (Sean) approval
+# Staging branch: dev-team can approve freely
 
-# Default: Dev team can approve most changes
-* @EnrichOS19/dev-team
-
-# === OWNER APPROVAL REQUIRED ===
-
-# Payment processing - money flows through here
-/apps/*/src/**/payment*           @seanncl
-/apps/*/src/**/stripe*            @seanncl
-/apps/*/src/**/checkout*          @seanncl
-**/payment*.ts                    @seanncl
-**/payment*.tsx                   @seanncl
-
-# Authentication & Authorization
-/apps/*/src/**/auth*              @seanncl @EnrichOS19/dev-team
-/apps/*/src/**/session*           @seanncl @EnrichOS19/dev-team
-/packages/**/auth*                @seanncl
-
-# Database migrations - data integrity
-/supabase/migrations/             @seanncl
-
-# Infrastructure & CI/CD
-/.github/                         @seanncl
-/.github/workflows/               @seanncl
-/.github/CODEOWNERS               @seanncl
-/docker*                          @seanncl
-/Dockerfile*                      @seanncl
-
-# Environment & Secrets
-.env*                             @seanncl
-**/config/production*             @seanncl
-
-# Security policies
-/SECURITY.md                      @seanncl
+# Everything requires owner approval for main branch
+* @seanncl
