@@ -1307,3 +1307,45 @@ Commit: 50f94ac
 **Next story suggestion:** US-047 (Ultrathink deep code review) — priority 48, Phase 8 Review. Now unblocked: US-046✅. Comprehensive security and architecture review before merging.
 
 ---
+
+## 2026-01-28 - US-047: Ultrathink deep code review of entire migration
+Commit: (review-findings.md created)
+
+**Why this story?** All 46 implementation stories complete (US-001 through US-046). This is the review phase before final fixes (US-048). Required before merging migration branch.
+
+**Agents Used:**
+- **Architect Agent**: Reviewed next.config.ts, tsconfig, layouts, Providers, middleware structure
+- **Research Agent**: Searched for localStorage SSR issues, hydration problems, react-router-dom remnants
+- **Coder Agent**: Audited API routes, auth security, input validation, data layer
+- **Tester Agent**: Verified SEO completeness, metadata exports, sitemap/robots, dead code cleanup
+
+**Findings Summary:**
+- **CRITICAL (4)**: Provider nesting syntax, TypeScript strict mode disabled, missing store authorization, plaintext password storage (legacy)
+- **HIGH (11)**: SSR/hydration localStorage issues, excessive 'use client' boundaries, middleware cookie handling, client-side security
+- **MEDIUM (10+)**: SEO metadata missing on 4 pages, hardcoded promo codes, no rate limiting, dead code
+- **LOW (4)**: Minor config issues, test file violations
+
+**Key Files Created:**
+- `scripts/ralph/runs/online-store-nextjs-migration/review-findings.md` - Full categorized findings report
+
+**Output:**
+Comprehensive security and architecture review documented in review-findings.md with:
+- 4 CRITICAL issues requiring immediate fix
+- 11 HIGH issues for production readiness
+- 10+ MEDIUM issues for code quality
+- Recommended fix order by phase
+
+**Learnings:**
+- Ultrathink pattern (4 specialist agents) effectively covers different review domains
+- Provider nesting issue existed from US-004 but wasn't caught until architectural review
+- Many SSR/hydration issues are subtle - require targeted grep searches for localStorage patterns
+- Legacy code (authHelpers.ts) can introduce critical vulnerabilities even if not actively used
+- 'use client' boundaries propagate downward - one hook can make entire layout client-rendered
+
+**Patterns to sync:**
+- Pattern: Ultrathink review checklist - Use 4 agents (Architect, Research, Coder, Tester) for comprehensive code review before production
+- Pattern: SSR audit queries - grep for `localStorage`, `sessionStorage`, `window.` in useState initializers and useEffect without guards
+
+**Next story suggestion:** US-048 (Fix all issues found in ultrathink review) - Final story. Must fix all CRITICAL and HIGH issues before merging.
+
+---
