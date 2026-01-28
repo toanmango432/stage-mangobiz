@@ -1212,7 +1212,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 6: Deployment",
       "files": [
         "apps/online-store/next.config.ts"

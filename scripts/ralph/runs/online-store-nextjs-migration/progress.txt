@@ -1058,3 +1058,31 @@ Commit: 4c01ae6
 **Next story suggestion:** US-040 (Configure redirects and caching strategy) — priority 40, Phase 6. Depends on US-038✅. Completes Phase 6 Deployment. OR US-041 (replace react-router-dom in layout components) — priority 41, Phase 7 cleanup. OR US-045 (clean up PWA) — priority 46, Phase 7.
 
 ---
+
+## 2026-01-27 - US-040: Configure redirects and caching strategy
+Commit: 2585527
+
+**Why this story?** Highest priority (40) among unblocked stories with all dependencies met (US-038✅). Completes Phase 6 Deployment. Simple config-only change — only modifies next.config.ts.
+
+**Changes:**
+- apps/online-store/next.config.ts:68-76: Added `async redirects()` with permanent redirect `/book/flow` → `/book` (mirrors the `<Navigate to="/book" replace />` from App.tsx line 126)
+- apps/online-store/next.config.ts:78-130: Extended `async headers()` with caching rules:
+  - `/fonts/:path*` and `/images/:path*`: `public, max-age=31536000, immutable` (1 year, immutable)
+  - `/_next/image/:path*`: `public, max-age=86400, stale-while-revalidate=604800` (1 day fresh, 7 day stale-while-revalidate)
+  - `/_next/static/:path*`: `public, max-age=31536000, immutable` (hashed bundles, permanent cache)
+  - `/api/:path*`: `no-store, no-cache, must-revalidate` (no caching for API routes)
+
+**Learnings:**
+- Only ONE route actually changed during migration: `/book/flow` → `/book`. All other routes kept identical paths (customer routes, admin routes, legal/info pages). The PRD note "Only add redirects for routes that actually changed" was spot-on — over-redirecting would be unnecessary.
+- Next.js `permanent: true` in redirects returns HTTP 308 (permanent redirect with method preservation). This is the modern equivalent of 301 — browsers cache it permanently.
+- `_next/static/` files are already content-hashed by Next.js (e.g., `_next/static/chunks/app/page-abc123.js`). Setting `immutable` and long max-age is safe because the hash changes when content changes.
+- `_next/image/` is the Next.js image optimization endpoint — it serves resized/optimized images. A 1-day cache with 7-day stale-while-revalidate balances freshness (image content may change) with performance.
+- Vercel automatically applies good default caching for `_next/static/` — our explicit headers reinforce this for non-Vercel deployments (e.g., Docker standalone).
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — no new errors. Build succeeds.
+- **Phase 6 (Deployment) is now COMPLETE** — all 3 deployment stories done (US-038 Vercel config, US-039 next/image, US-040 redirects/caching).
+
+**Patterns to sync:** None — Next.js redirects and caching headers are standard configuration.
+
+**Next story suggestion:** US-041 (Replace react-router-dom in shared layout components) — priority 41, Phase 7 begins. Depends on US-005✅, US-006✅, US-018✅. Critical path — US-043 (remove Vite) depends on US-041, US-042, US-042B all completing. OR US-045 (clean up PWA) — priority 46, depends only on US-004 (done), could run in parallel.
+
+---
