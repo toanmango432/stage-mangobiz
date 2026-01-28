@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useBookingFlow } from '@/hooks/useBookingFlow';
 import { mockAuthApi } from '@/lib/api/mockAuth';
 import { SEO } from '@/components/SEO';
@@ -13,9 +13,8 @@ import { generateMockServices } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 
 const BookingFlow = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const serviceId = searchParams.get('service');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -41,14 +40,8 @@ const BookingFlow = () => {
   useEffect(() => {
     if (isInitialized) return;
     
-    // Capture service data in ref immediately to prevent loss
-    const serviceFromState = location.state?.service;
-    if (serviceFromState && !serviceDataRef.current) {
-      serviceDataRef.current = serviceFromState;
-    }
-    
-    // Use ref as source of truth
-    const serviceData = serviceDataRef.current || serviceFromState;
+    // Next.js doesn't support router state — use ref as source of truth
+    const serviceData = serviceDataRef.current;
     
     if (serviceData && !formData.service) {
       // Validate service data before using it
@@ -83,10 +76,10 @@ const BookingFlow = () => {
         setIsInitialized(true);
       } else {
         // Service not found - redirect
-        navigate('/book', { replace: true });
+        router.replace('/book');
       }
     }
-  }, [isInitialized, serviceId, formData.service, location.state, updateFormData, navigate]);
+  }, [isInitialized, serviceId, formData.service, updateFormData, router]);
 
   // Smooth scroll to newly revealed sections
   useEffect(() => {
@@ -130,14 +123,14 @@ const BookingFlow = () => {
       setShowAuthModal(true);
     } else {
       // Navigate to confirmation page with booking data
-      navigate('/book/confirmation', { state: { bookingData: formData } });
+      router.push('/book/confirmation');
     }
   };
 
   const handleAuthSuccess = (userId: string) => {
     setShowAuthModal(false);
     // After successful auth, navigate to confirmation
-    navigate('/book/confirmation', { state: { bookingData: formData } });
+    router.push('/book/confirmation');
   };
 
   return (

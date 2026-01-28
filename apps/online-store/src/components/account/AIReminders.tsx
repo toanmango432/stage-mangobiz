@@ -6,14 +6,14 @@ import { Calendar, Star, Gift, TrendingUp } from "lucide-react";
 import { fetchAIReminders } from "@/lib/api/ai";
 import { AIReminder } from "@/types/ai";
 import { usePersonalization } from "@/hooks/usePersonalization";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function AIReminders() {
   const [reminders, setReminders] = useState<AIReminder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { profile } = usePersonalization();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
     async function loadReminders() {
@@ -96,7 +96,7 @@ export function AIReminders() {
                   </p>
                   
                   <Button
-                    onClick={() => navigate(reminder.actionUrl)}
+                    onClick={() => router.push(reminder.actionUrl)}
                     size="sm"
                   >
                     {reminder.actionLabel}

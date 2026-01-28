@@ -1,35 +1,35 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, UserPlus, ShoppingCart, FileText } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 export const QuickActions = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const actions = [
     {
       icon: Calendar,
       label: 'New Booking',
       description: 'Schedule appointment',
-      onClick: () => navigate('/admin/bookings'),
+      onClick: () => router.push('/admin/bookings'),
     },
     {
       icon: UserPlus,
       label: 'Add Customer',
       description: 'Register new customer',
-      onClick: () => navigate('/admin/customers'),
+      onClick: () => router.push('/admin/customers'),
     },
     {
       icon: ShoppingCart,
       label: 'View Orders',
       description: 'Manage all orders',
-      onClick: () => navigate('/admin/orders'),
+      onClick: () => router.push('/admin/orders'),
     },
     {
       icon: FileText,
       label: 'Reports',
       description: 'View analytics',
-      onClick: () => navigate('/admin/reports'),
+      onClick: () => router.push('/admin/reports'),
     },
   ];
 

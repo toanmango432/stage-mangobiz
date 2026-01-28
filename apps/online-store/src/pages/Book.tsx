@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { ServiceBrowser } from '@/components/booking/v2/ServiceBrowser';
@@ -25,7 +25,7 @@ interface GroupMember {
 const DRAFT_KEY = 'booking-v2-draft';
 
 const Book = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   
   // Load draft from localStorage on mount
   const [currentStep, setCurrentStep] = useState<BookingStep>(() => {
@@ -361,7 +361,7 @@ const Book = () => {
               assignments={assignments}
               cartItems={cart}
               bookingData={bookingData}
-              onGoHome={() => navigate('/')}
+              onGoHome={() => router.push('/')}
               onBookAgain={() => {
                 setCurrentStep('browse');
                 setCart([]);

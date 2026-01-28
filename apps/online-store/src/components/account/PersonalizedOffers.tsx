@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AIBadge } from "@/components/ui/ai-badge";
 import { Sparkles, Clock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 interface Offer {
   id: string;
@@ -16,7 +16,7 @@ interface Offer {
 }
 
 export function PersonalizedOffers() {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // Mock personalized offers
   const offers: Offer[] = [
@@ -76,7 +76,7 @@ export function PersonalizedOffers() {
                   </div>
                   
                   <Button
-                    onClick={() => navigate(offer.actionUrl)}
+                    onClick={() => router.push(offer.actionUrl)}
                     className="w-full"
                   >
                     {offer.actionLabel}
