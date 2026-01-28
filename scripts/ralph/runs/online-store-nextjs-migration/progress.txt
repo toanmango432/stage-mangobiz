@@ -1086,3 +1086,32 @@ Commit: 2585527
 **Next story suggestion:** US-041 (Replace react-router-dom in shared layout components) — priority 41, Phase 7 begins. Depends on US-005✅, US-006✅, US-018✅. Critical path — US-043 (remove Vite) depends on US-041, US-042, US-042B all completing. OR US-045 (clean up PWA) — priority 46, depends only on US-004 (done), could run in parallel.
 
 ---
+
+## 2026-01-27 - US-041: Replace react-router-dom in shared layout components
+Commit: 0c9d94d
+
+**Why this story?** Highest priority (41) among unblocked stories with all dependencies met (US-005✅, US-006✅, US-018✅). Phase 7 (Cleanup) begins. Critical path — US-043 (remove Vite) depends on US-041, US-042, US-042B all completing. Previous session explicitly recommended this next.
+
+**Changes:**
+- apps/online-store/src/components/Header.tsx:1: Replaced `import { Link } from "react-router-dom"` with `import Link from "next/link"`. Changed all 15 `<Link to=` occurrences to `<Link href=` (logo, nav links, info dropdown items, account dropdown items, login button).
+- apps/online-store/src/components/Footer.tsx:1: Replaced `import { Link } from "react-router-dom"` with `import Link from "next/link"`. Changed all 10 `<Link to=` occurrences to `<Link href=` (quick links, info links).
+- apps/online-store/src/components/BottomNav.tsx:2: Replaced `import { Link, useLocation } from "react-router-dom"` with `import Link from "next/link"` and `import { usePathname } from "next/navigation"`. Changed `useLocation()` → `usePathname()`, `location.pathname` → `pathname`. Changed all `to={item.path}` to `href={item.path}` (nav items and info sheet items).
+- apps/online-store/src/components/ProtectedRoute.tsx: Already migrated in US-018 — uses `useRouter` from `next/navigation` directly. No changes needed.
+- apps/online-store/src/components/promotions/AnnouncementBar.tsx:5: Replaced `import { Link } from 'react-router-dom'` with `import Link from 'next/link'`. Changed `<Link to="/updates">` to `<Link href="/updates">`.
+- apps/online-store/src/components/promotions/PromotionBanner.tsx:9: Replaced `import { Link } from 'react-router-dom'` with `import Link from 'next/link'`. Changed `<Link to="/promotions">` to `<Link href="/promotions">`.
+- apps/online-store/src/components/promotions/PromotionsStrip.tsx:6: Replaced `import { Link } from 'react-router-dom'` with `import Link from 'next/link'`. Changed all 3 `<Link to=` to `<Link href=` ("View All", promo card details links).
+
+**Learnings:**
+- ProtectedRoute.tsx was already fully migrated in US-018 — the PRD listing it in the `files` array was just for completeness/verification.
+- DemoRibbon.tsx (mentioned in acceptance criteria as "if it uses router") has ZERO react-router-dom imports — no changes needed.
+- All 6 modified files only use `Link` from react-router-dom — no useNavigate, useLocation (except BottomNav), useParams, or useSearchParams. Simple import + prop swaps.
+- BottomNav.tsx used `useLocation().pathname` for active state detection — direct replacement with `usePathname()` from next/navigation which returns the pathname string directly.
+- next/link's `Link` works seamlessly with Radix UI's `asChild` pattern (used in Header.tsx dropdown items and promotions components) — `<Button asChild><Link href="...">` works identically to the react-router-dom version.
+- Confirmed zero react-router-dom imports remain in Header.tsx, Footer.tsx, BottomNav.tsx, ProtectedRoute.tsx, AnnouncementBar.tsx, PromotionBanner.tsx, PromotionsStrip.tsx.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — zero new errors from this story. Build succeeds.
+
+**Patterns to sync:** None — follows established Link migration pattern (import swap + to→href).
+
+**Next story suggestion:** US-042 (Replace react-router-dom in customer-facing components) — priority 42, Phase 7. Depends on US-005✅, US-007✅, US-009✅, US-011✅, US-012✅. Same import swap pattern, 13 customer-facing component files. On the critical path for US-043 (remove Vite). OR US-042B (account and admin components) — priority 43, same phase.
+
+---
