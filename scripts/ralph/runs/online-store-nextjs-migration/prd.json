@@ -1009,7 +1009,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 5: Data Layer",
       "files": [
         "apps/online-store/src/lib/supabase/server.ts",

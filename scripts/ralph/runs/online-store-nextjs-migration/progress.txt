@@ -872,3 +872,29 @@ Commit: 44a950a (WIP commit from previous session — verified complete)
 **Next story suggestion:** US-033 (Create Supabase server and client utilities for Next.js) — priority 33, Phase 5 begins. Depends only on US-001 (done). Gates US-034 (server component data fetching), US-035 (booking API routes), US-036 (cart/checkout API routes), US-037 (auth middleware). Critical path for backend work.
 
 ---
+
+## 2026-01-27 - US-033: Create Supabase server and client utilities for Next.js
+Commit: 0d8a980
+
+**Why this story?** Highest priority (33) among unblocked stories. Previous session explicitly recommended this next. Phase 5 (Data Layer) begins. Only dependency is US-001 (done). Gates US-034, US-035, US-036, US-037 — critical path for all backend work.
+
+**Changes:**
+- apps/online-store/package.json: Added `@supabase/ssr@^0.8.0` dependency
+- apps/online-store/src/lib/supabase/server.ts (NEW): Created async `createClient()` function using `createServerClient` from `@supabase/ssr` with Next.js `cookies()` API. Handles `getAll()` for reading cookies and `setAll()` with try/catch for write operations (graceful fallback in Server Components where cookies are read-only). Uses `Database` type from `@/services/supabase/types`. Includes `X-Client-Info` header.
+- apps/online-store/src/lib/supabase/client.ts (NEW): Created `createClient()` function using `createBrowserClient` from `@supabase/ssr` with `'use client'` directive. Returns a singleton client that uses `document.cookie` automatically. Uses `Database` type from `@/services/supabase/types`. Includes `X-Client-Info` header.
+- apps/online-store/.env.example (NEW): Created with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_DEFAULT_STORE_ID` plus `VITE_*` fallbacks for migration period.
+- pnpm-lock.yaml: Updated with @supabase/ssr and transitive deps (@supabase/node-fetch)
+
+**Learnings:**
+- `@supabase/ssr` v0.8.0 exports `createServerClient` and `createBrowserClient` — replaces the deprecated `@supabase/auth-helpers-nextjs` package.
+- `createServerClient` requires `cookies.getAll()` and `cookies.setAll()` functions. In Server Components, `setAll()` will fail because cookies are read-only — the try/catch pattern is the documented approach (session refresh is handled by middleware instead).
+- `createBrowserClient` returns a singleton by default — safe to call `createClient()` multiple times in client components without creating multiple instances.
+- In Next.js 16, `cookies()` from `next/headers` returns a `Promise` — must be awaited: `const cookieStore = await cookies()`. This is different from Next.js 14/15 where it was synchronous.
+- The existing `src/services/supabase/client.ts` uses `import.meta.env.VITE_*` — the new `src/lib/supabase/` utilities use `process.env.NEXT_PUBLIC_*`. Both coexist during migration: existing client components import from `@/services/supabase/client`, new server/SSR code imports from `@/lib/supabase/server` or `@/lib/supabase/client`.
+- `Database` type is re-exported from `@/services/supabase/types` which imports from `@mango/supabase` — the import works at the type level even though `@mango/supabase` has module resolution errors at runtime (types are erased at build time).
+
+**Patterns to sync:** None — Supabase SSR client setup is standard Next.js + @supabase/ssr pattern.
+
+**Next story suggestion:** US-034 (Convert shop page to Server Component data fetching) — priority 34, Phase 5. Depends on US-011✅ and US-033 (just completed). Establishes the server component data fetching pattern. OR US-035 (booking API routes) — same phase, depends only on US-033. OR US-038 (Vercel deployment config) — Phase 6, depends only on US-001 (done), could run in parallel.
+
+---
