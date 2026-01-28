@@ -1264,3 +1264,46 @@ Commit: 7d0a4f5
 **Next story suggestion:** US-046 (Final dependency audit and build verification) — priority 47, Phase 7. Now unblocked: US-043✅, US-044✅, US-045✅, US-038✅. Final gate story before review phase.
 
 ---
+
+## 2026-01-28 - US-046: Final dependency audit and build verification
+Commit: 50f94ac
+
+**Why this story?** Final gate story for Phase 7 Cleanup. All dependencies met: US-043✅, US-044✅, US-045✅, US-038✅. Comprehensive verification before review phase (US-047, US-048).
+
+**Changes:**
+- apps/online-store/next.config.ts: Removed `pageExtensions: ['page.tsx']` config — was preventing App Router from finding `page.tsx` files (Next.js 16 behavior change)
+- apps/online-store/src/pages/ → apps/online-store/src/views/: RENAMED entire directory (48+ files) to avoid collision with Next.js Pages Router detection. Updated all imports across the codebase.
+- apps/online-store/src/lib/env.ts (NEW): Centralized environment variable utilities for Next.js/Vite compatibility. Exports `getEnv()`, `getSupabaseUrl()`, `getSupabaseAnonKey()`, `getDefaultStoreId()` with fallbacks for both `NEXT_PUBLIC_*` and `VITE_*` prefixes.
+- apps/online-store/src/services/supabase/supabase.ts: Updated to use new env utilities instead of `import.meta.env.VITE_*`
+- apps/online-store/src/services/supabase/repositories/index.ts: Fixed barrel exports by importing repositories explicitly before using in `initializeRepositories()` — prevents "servicesRepository is not defined" during SSR
+- apps/online-store/src/views/Account.tsx: Fixed localStorage SSR issue — moved from `useMemo` (runs on server) to `useEffect` (runs only on client)
+- apps/online-store/src/lib/services/bookingDataService.ts: Added lazy initialization pattern — `bookingDataService` now returns proxy that lazily creates instance only in browser environment
+- apps/online-store/src/components/Providers.tsx: Added `ReduxProvider` wrapper around the provider tree — Redux store was not being provided to components
+- apps/online-store/src/store/index.ts: No changes — Redux store already properly configured
+- Multiple files: Fixed `'use client'` directive ordering — must be first line before any imports
+
+**Verification Results:**
+- `pnpm audit`: No new high/critical vulnerabilities in online-store (some moderate in other monorepo apps)
+- `pnpm run build`: SUCCESS — 56 pages generated
+- `pnpm run typecheck`: Pre-existing type errors (376+ in test/repository files) — no new errors
+- All key routes return HTTP 200: /, /book, /shop, /cart, /checkout, /account, /admin, /booking
+- Turbo build from monorepo root: SUCCESS — online-store workspace builds cleanly
+- Browser console: Only expected placeholder credential warnings (Supabase URL/key placeholders)
+
+**Learnings:**
+- `pageExtensions: ['page.tsx']` affects App Router in Next.js 16 — contrary to earlier assumptions that it only affected Pages Router. When set, App Router looks for files ending in `.page.tsx` instead of `page.tsx`.
+- Renaming `src/pages/` to `src/views/` is the cleanest solution for avoiding Next.js Pages Router collision while keeping existing component organization.
+- ES module barrel exports (`export { foo } from './foo'`) can fail during SSR prerendering if the export is used in the same file before the re-export is resolved. Solution: import explicitly first, then use, then re-export.
+- `useMemo` runs during SSR — never use it for localStorage/sessionStorage access. Always use `useEffect` for browser-only initialization.
+- Lazy initialization pattern for services that require browser APIs: create a proxy object that lazily instantiates the real service on first access in browser context.
+
+**Patterns to sync:**
+- Pattern: src/views for page components — When migrating to Next.js with existing `src/pages/` directory, rename to `src/views/` to avoid Pages Router detection. Update all imports accordingly.
+- Pattern: Environment variable bridge — Create `src/lib/env.ts` with helpers that check both `NEXT_PUBLIC_*` (process.env) and `VITE_*` (import.meta.env) for compatibility during migration.
+- Pattern: Lazy service initialization — For services requiring browser APIs (localStorage, etc.), use proxy pattern that lazily creates instance only when accessed in browser context.
+
+**Files changed:** 122 files (+324 -110)
+
+**Next story suggestion:** US-047 (Ultrathink deep code review) — priority 48, Phase 8 Review. Now unblocked: US-046✅. Comprehensive security and architecture review before merging.
+
+---

@@ -1450,7 +1450,7 @@
         "Bundle size is reasonable (compare to previous Vite build if available)"
       ],
       "priority": 47,
-      "passes": false,
+      "passes": true,
       "phase": "Phase 7: Cleanup",
       "files": [
         "apps/online-store/package.json",
