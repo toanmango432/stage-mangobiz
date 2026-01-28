@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Shop from '@/pages/Shop';
+import { BreadcrumbJsonLd } from '@/components/JsonLd';
+import { siteConfig } from '@/lib/metadata';
 
 export const metadata: Metadata = {
   title: 'Shop',
@@ -8,5 +10,15 @@ export const metadata: Metadata = {
 };
 
 export default function ShopPage() {
-  return <Shop />;
+  return (
+    <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', url: siteConfig.url },
+          { name: 'Shop', url: `${siteConfig.url}/shop` },
+        ]}
+      />
+      <Shop />
+    </>
+  );
 }

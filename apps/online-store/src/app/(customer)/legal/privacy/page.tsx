@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import PrivacyPolicy from '@/pages/legal/PrivacyPolicy';
+import { BreadcrumbJsonLd } from '@/components/JsonLd';
+import { siteConfig } from '@/lib/metadata';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -7,5 +9,15 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPolicyPage() {
-  return <PrivacyPolicy />;
+  return (
+    <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', url: siteConfig.url },
+          { name: 'Privacy Policy', url: `${siteConfig.url}/legal/privacy` },
+        ]}
+      />
+      <PrivacyPolicy />
+    </>
+  );
 }

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { getProducts } from '@/lib/api/store';
 import ProductDetail from '@/pages/ProductDetail';
+import { BreadcrumbJsonLd } from '@/components/JsonLd';
+import { siteConfig } from '@/lib/metadata';
 
 interface ProductPageProps {
   params: Promise<{ productId: string }>;
@@ -39,5 +41,16 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 }
 
 export default function ProductDetailPage() {
-  return <ProductDetail />;
+  return (
+    <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', url: siteConfig.url },
+          { name: 'Shop', url: `${siteConfig.url}/shop` },
+          { name: 'Product', url: `${siteConfig.url}/shop` },
+        ]}
+      />
+      <ProductDetail />
+    </>
+  );
 }

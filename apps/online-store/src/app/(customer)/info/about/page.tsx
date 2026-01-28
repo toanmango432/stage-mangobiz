@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import About from '@/pages/info/About';
+import { BreadcrumbJsonLd } from '@/components/JsonLd';
+import { siteConfig } from '@/lib/metadata';
 
 export const metadata: Metadata = {
   title: 'About Us',
@@ -7,5 +9,15 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
-  return <About />;
+  return (
+    <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', url: siteConfig.url },
+          { name: 'About Us', url: `${siteConfig.url}/info/about` },
+        ]}
+      />
+      <About />
+    </>
+  );
 }

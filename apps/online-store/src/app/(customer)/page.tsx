@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Index from '@/pages/Index';
+import { LocalBusinessJsonLd } from '@/components/JsonLd';
+import { siteConfig } from '@/lib/metadata';
 
 export const metadata: Metadata = {
   title: 'Home',
@@ -8,5 +10,14 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <Index />;
+  return (
+    <>
+      <LocalBusinessJsonLd
+        name={siteConfig.name}
+        description={siteConfig.description}
+        url={siteConfig.url}
+      />
+      <Index />
+    </>
+  );
 }
