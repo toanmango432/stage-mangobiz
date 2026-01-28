@@ -1,24 +1,36 @@
-# CODEOWNERS — Mango Biz
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# CODEOWNERS - EnrichOS19/Mango-Biz
+# Last updated: 2026-01-28
 
-# Default: Core team reviews everything
-* @EnrichOS19/core
+# Default: Dev team can approve most changes
+* @EnrichOS19/dev-team
 
-# Architecture & docs require owner review
-/docs/ @seanncl
-CLAUDE.md @seanncl
-AGENTS.md @seanncl
+# === OWNER APPROVAL REQUIRED ===
 
-# Electron / desktop — core only
-/electron/ @EnrichOS19/core
+# Payment processing - money flows through here
+/apps/*/src/**/payment*           @seanncl
+/apps/*/src/**/stripe*            @seanncl
+/apps/*/src/**/checkout*          @seanncl
+**/payment*.ts                    @seanncl
+**/payment*.tsx                   @seanncl
 
-# Backend / Supabase — core only
-/backend/ @EnrichOS19/core
-/supabase/ @EnrichOS19/core
+# Authentication & Authorization
+/apps/*/src/**/auth*              @seanncl @EnrichOS19/dev-team
+/apps/*/src/**/session*           @seanncl @EnrichOS19/dev-team
+/packages/**/auth*                @seanncl
 
-# Frontend apps — frontend team can also review
-/apps/ @EnrichOS19/core @EnrichOS19/frontend
-/src/ @EnrichOS19/core @EnrichOS19/frontend
+# Database migrations - data integrity
+/supabase/migrations/             @seanncl
 
-# CI/CD config — owner only
-/.github/ @seanncl
+# Infrastructure & CI/CD
+/.github/                         @seanncl
+/.github/workflows/               @seanncl
+/.github/CODEOWNERS               @seanncl
+/docker*                          @seanncl
+/Dockerfile*                      @seanncl
+
+# Environment & Secrets
+.env*                             @seanncl
+**/config/production*             @seanncl
+
+# Security policies
+/SECURITY.md                      @seanncl
