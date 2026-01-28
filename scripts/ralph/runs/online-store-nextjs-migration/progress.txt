@@ -1031,3 +1031,30 @@ Commit: 6593889
 **Next story suggestion:** US-039 (Convert img tags to next/image) — priority 39, Phase 6. Depends on US-007✅ and US-011✅. Same deployment phase. OR US-041 (replace react-router-dom in layout components) — priority 41, Phase 7 cleanup. OR US-045 (clean up PWA) — priority 45, Phase 7.
 
 ---
+
+## 2026-01-27 - US-039: Convert img tags to next/image
+Commit: 4c01ae6
+
+**Why this story?** Highest priority (39) among unblocked stories with all dependencies met (US-007✅, US-011✅). Continues Phase 6 Deployment work — image optimization improves Core Web Vitals (CLS) and loading performance.
+
+**Changes:**
+- apps/online-store/src/pages/Shop.tsx:3,206,155,180: Added `import Image from "next/image"`. Replaced all 3 `<img>` hero background tags with `<Image>` using `fill`, `priority`, and `sizes="100vw"` props. Removed `absolute inset-0 w-full h-full` from className (handled by `fill`).
+- apps/online-store/src/pages/ShopClient.tsx:3,160,187,214: Same changes as Shop.tsx — added Image import, replaced 3 hero `<img>` tags with next/image `<Image>` using `fill` + `priority` + `sizes="100vw"`.
+- apps/online-store/src/components/ProductCard.tsx:1,67: Added `import Image from "next/image"`. Replaced product card `<img>` with `<Image>` using `fill` prop and responsive `sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"`. Parent `aspect-square` container provides the aspect ratio constraint.
+- apps/online-store/src/pages/info/Gallery.tsx:3,138,172: Added `import NextImage from "next/image"` (aliased to avoid conflict with lucide-react `Image` icon). Grid images: replaced `<img>` with `<NextImage>` using `fill`, `unoptimized`, and responsive `sizes`. Lightbox image: replaced with `<NextImage>` using explicit `width={800} height={600}`, `unoptimized`, and `sizes`.
+
+**Learnings:**
+- **Gallery.tsx has a naming conflict**: `Image` is already imported from `lucide-react` as an icon component. Must alias next/image import as `NextImage` to avoid collision.
+- **Static assets imported via bundler** (like `productsHero from "@/assets/products-hero.jpg"`) work natively with next/image — pass the import directly as `src`. Next.js handles optimization, responsive sizing, and format conversion.
+- **`fill` prop replaces `absolute inset-0 w-full h-full`** — when using `fill`, next/image automatically positions the image absolutely within its relative-positioned parent. The existing `absolute inset-0 w-full h-full` CSS classes from the original `<img>` are redundant and should be removed.
+- **`priority` prop** is used on hero images (above the fold) to disable lazy loading and preload the image — improves LCP (Largest Contentful Paint).
+- **`unoptimized` prop** is used for Gallery images because: (1) mock data uses Vite-era paths (`/src/assets/work-*.jpg`) that won't resolve through next/image loader, (2) real API URLs may come from various domains not yet in `remotePatterns`. This still provides the fill/lazy-loading benefits without requiring all domains to be configured.
+- **`sizes` attribute** is critical for responsive images — tells the browser how wide the image will be at each breakpoint so it can request the appropriate size. Without `sizes`, the browser defaults to `100vw` which over-fetches for grid items.
+- **Index.tsx has no direct `<img>` tags** — it renders via `SectionRenderer` which delegates to section components (AboutSalon, TeamGallery, WorkGallery). These section components DO have `<img>` tags but they're outside the PRD's `files` array scope. Conversion of section component images should be handled in a separate story if needed.
+- Pre-existing typecheck errors (376+ in repository/supabase files) unchanged — zero new errors from this story. Build (`next build`) succeeds.
+
+**Patterns to sync:** None — next/image usage with fill/priority/sizes is standard Next.js convention.
+
+**Next story suggestion:** US-040 (Configure redirects and caching strategy) — priority 40, Phase 6. Depends on US-038✅. Completes Phase 6 Deployment. OR US-041 (replace react-router-dom in layout components) — priority 41, Phase 7 cleanup. OR US-045 (clean up PWA) — priority 46, Phase 7.
+
+---
