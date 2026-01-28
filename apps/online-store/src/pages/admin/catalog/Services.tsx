@@ -7,11 +7,11 @@ import { BulkActions } from "@/components/admin/catalog/BulkActions";
 import { Service } from "@/types/catalog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 import { generateMockServices } from "@/lib/mockData";
 
 export default function Services() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [services, setServices] = useState<Service[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState("");
@@ -119,7 +119,7 @@ export default function Services() {
           <h1 className="text-3xl font-bold">Services</h1>
           <p className="text-muted-foreground">Manage your service catalog</p>
         </div>
-        <Button onClick={() => navigate("/admin/catalog/services/new")}>
+        <Button onClick={() => router.push("/admin/catalog/services/new")}>
           <Plus className="h-4 w-4 mr-2" />
           Add Service
         </Button>
@@ -163,7 +163,7 @@ export default function Services() {
         selectedItems={selectedItems}
         onSelectItem={handleSelectItem}
         onSelectAll={handleSelectAll}
-        onEdit={(service) => navigate(`/admin/catalog/services/${service.id}`)}
+        onEdit={(service) => router.push(`/admin/catalog/services/${service.id}`)}
         onDelete={handleDelete}
         onDuplicate={(service) => {
           const newService = {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { SEOHead } from "@/components/SEOHead";
+
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Phone, Mail, Clock, Instagram, Facebook, Twitter } from "lucide-react";
@@ -90,12 +90,6 @@ export default function About() {
 
   return (
     <>
-      <SEOHead 
-        title={`About ${salonInfo.name}`}
-        description={salonInfo.description}
-        canonical="/info/about"
-      />
-      
       <div className="container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-4">

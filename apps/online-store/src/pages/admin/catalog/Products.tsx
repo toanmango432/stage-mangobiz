@@ -7,7 +7,7 @@ import { BulkActions } from "@/components/admin/catalog/BulkActions";
 import { Product } from "@/types/catalog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 
 const mockProducts: Product[] = [
   {
@@ -36,7 +36,7 @@ const mockProducts: Product[] = [
 ];
 
 export default function Products() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState("");
@@ -110,7 +110,7 @@ export default function Products() {
           <h1 className="text-3xl font-bold">Products</h1>
           <p className="text-muted-foreground">Manage your retail products</p>
         </div>
-        <Button onClick={() => navigate("/admin/catalog/products/new")}>
+        <Button onClick={() => router.push("/admin/catalog/products/new")}>
           <Plus className="h-4 w-4 mr-2" />
           Add Product
         </Button>
@@ -141,7 +141,7 @@ export default function Products() {
         selectedItems={selectedItems}
         onSelectItem={handleSelectItem}
         onSelectAll={handleSelectAll}
-        onEdit={(product) => navigate(`/admin/catalog/products/${product.id}`)}
+        onEdit={(product) => router.push(`/admin/catalog/products/${product.id}`)}
         onDelete={handleDelete}
       />
     </div>

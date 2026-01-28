@@ -1,11 +1,8 @@
 'use client';
 
-import { SEO } from "@/components/SEO";
-
 export default function Accessibility() {
   return (
     <>
-      <SEO title="Accessibility Statement" description="Our commitment to making our website accessible to everyone." />
       <div className="max-w-4xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Accessibility Statement</h1>
         <div className="prose prose-slate max-w-none space-y-6">

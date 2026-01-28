@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getActivePromotions } from '@/lib/api/promotions';
-import { SEO } from '@/components/SEO';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,11 +47,6 @@ export default function Promotions() {
 
   return (
     <>
-      <SEO 
-        title="Current Promotions & Special Offers"
-        description="Save on salon services and products with our exclusive promotions and limited-time offers."
-      />
-
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 md:py-12">
           {/* Header */}

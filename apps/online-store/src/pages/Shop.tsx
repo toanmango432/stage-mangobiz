@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { useNavigate, useSearchParams, useAppRouter, usePathname } from "@/lib/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ProductCard } from "@/components/ProductCard";
 import { FilterPanel } from "@/components/shop/FilterPanel";
 import { FilterDrawer } from "@/components/shop/FilterDrawer";
@@ -15,8 +15,7 @@ import { filterProducts, ProductFilters } from "@/lib/utils/productHelpers";
 import { Product } from "@/types/catalog";
 
 const Shop = () => {
-  const navigate = useNavigate();
-  const router = useAppRouter();
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
@@ -271,7 +270,7 @@ const Shop = () => {
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onClick={() => navigate(`/shop/${product.id}`)}
+                    onClick={() => router.push(`/shop/${product.id}`)}
                   />
                 ))}
               </div>

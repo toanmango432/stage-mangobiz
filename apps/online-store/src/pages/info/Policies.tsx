@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { SEOHead } from "@/components/SEOHead";
+
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,12 +59,6 @@ export default function Policies() {
 
   return (
     <>
-      <SEOHead 
-        title="Policies — Mango Nail & Beauty Salon"
-        description="Read our privacy policy, terms of service, and refund & cancellation policy."
-        canonical="/info/policies"
-      />
-      
       <div className="container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-4">

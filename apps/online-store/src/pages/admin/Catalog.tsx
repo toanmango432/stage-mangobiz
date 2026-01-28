@@ -1,10 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Package, Scissors, ShoppingBag, CreditCard, Gift } from "lucide-react";
-import { useNavigate } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 
 const Catalog = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   
   const catalogSections = [
     {
@@ -76,7 +76,7 @@ const Catalog = () => {
               <CardContent>
                 <Button 
                   className="w-full bg-primary hover:bg-primary-dark"
-                  onClick={() => section.path && navigate(section.path)}
+                  onClick={() => section.path && router.push(section.path)}
                   disabled={!section.path}
                 >
                   Manage

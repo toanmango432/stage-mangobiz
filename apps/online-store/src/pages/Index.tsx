@@ -1,6 +1,6 @@
 'use client';
 
-import { SEO } from '@/components/SEO';
+
 import { useTemplate } from '@/hooks/useTemplate';
 import { SectionRenderer } from '@/components/sections/SectionRenderer';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -21,35 +21,23 @@ const Index = () => {
   if (error) {
     console.error('Template error:', error);
     return (
-      <>
-        <SEO 
-          title="Mango Nail & Beauty Salon - Premium Nail Care & Beauty Services"
-          description="Book your appointment at Mango Nail & Beauty Salon. Professional nail care, beauty treatments, and premium products. Walk-ins welcome!"
-        />
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-2">Welcome to Mango Salon</h1>
-            <p className="text-muted-foreground">Loading content...</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">Welcome to Mango Salon</h1>
+          <p className="text-muted-foreground">Loading content...</p>
         </div>
-      </>
+      </div>
     );
   }
 
   if (!template || sections.length === 0) {
     return (
-      <>
-        <SEO 
-          title="Mango Nail & Beauty Salon - Premium Nail Care & Beauty Services"
-          description="Book your appointment at Mango Nail & Beauty Salon. Professional nail care, beauty treatments, and premium products. Walk-ins welcome!"
-        />
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-2">Welcome to Mango Salon</h1>
-            <p className="text-muted-foreground">No active template found. Please configure your storefront.</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">Welcome to Mango Salon</h1>
+          <p className="text-muted-foreground">No active template found. Please configure your storefront.</p>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -64,11 +52,6 @@ const Index = () => {
 
   return (
     <>
-      <SEO 
-        title="Mango Nail & Beauty Salon - Premium Nail Care & Beauty Services"
-        description="Book your appointment at Mango Nail & Beauty Salon. Professional nail care, beauty treatments, and premium products. Walk-ins welcome!"
-      />
-      
       <div className="min-h-screen pb-20 md:pb-8">
         {/* Hero Section */}
         {heroSection.length > 0 && (

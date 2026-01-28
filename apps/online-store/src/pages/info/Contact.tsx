@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { SEOHead } from "@/components/SEOHead";
+
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -72,12 +72,6 @@ export default function Contact() {
 
   return (
     <>
-      <SEOHead 
-        title={`Contact ${salonInfo.name}`}
-        description={`Get in touch with ${salonInfo.name}. Book appointments, ask questions, or visit us at ${salonInfo.address.street}.`}
-        canonical="/info/contact"
-      />
-      
       <div className="container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-6xl mx-auto space-y-8">
             <div className="text-center space-y-4">

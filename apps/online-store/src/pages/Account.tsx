@@ -9,7 +9,7 @@ import { BookingCard } from "@/components/booking/BookingCard";
 import { Booking, BookingFormData } from "@/types/booking";
 import { Order } from "@/types/order";
 import { parseISO, isAfter } from "date-fns";
-import { useNavigate } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
@@ -27,7 +27,7 @@ import { isActiveOrder } from "@/lib/utils/orderHelpers";
 import { toast } from "@/hooks/use-toast";
 
 const Account = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user, updateUser } = useAuth();
   const { addToCart } = useCart();
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -146,7 +146,7 @@ const Account = () => {
       title: 'Items added to cart',
       description: `${order.items.length} items added to your cart`,
     });
-    navigate('/cart');
+    router.push('/cart');
   };
 
   const handleViewOrderDetails = (order: Order) => {
@@ -162,7 +162,7 @@ const Account = () => {
 
   // Membership handlers
   const handleUpgradeMembership = () => {
-    navigate('/memberships');
+    router.push('/memberships');
   };
 
   const handleCancelMembership = () => {
@@ -173,7 +173,7 @@ const Account = () => {
   };
 
   const handleViewMembershipDetails = () => {
-    navigate('/memberships');
+    router.push('/memberships');
   };
 
   // Gift card handlers
@@ -182,7 +182,7 @@ const Account = () => {
       title: 'Gift card applied',
       description: `Gift card ${code} will be applied to your next purchase`,
     });
-    navigate('/shop');
+    router.push('/shop');
   };
 
   if (!user) {
@@ -195,7 +195,7 @@ const Account = () => {
               <p className="text-muted-foreground mb-6">
                 Access your bookings, memberships, and manage your preferences
               </p>
-              <Button onClick={() => navigate('/login')}>
+              <Button onClick={() => router.push('/login')}>
                 Sign In
               </Button>
             </CardContent>
@@ -240,7 +240,7 @@ const Account = () => {
                     <p>You don't have any upcoming bookings</p>
                     <Button 
                       className="mt-4"
-                      onClick={() => navigate('/book')}
+                      onClick={() => router.push('/book')}
                     >
                       Book a Service
                     </Button>
@@ -323,7 +323,7 @@ const Account = () => {
                     <p>You haven't made any purchases yet</p>
                     <Button 
                       className="mt-4"
-                      onClick={() => navigate('/shop')}
+                      onClick={() => router.push('/shop')}
                     >
                       Shop Products
                     </Button>
@@ -366,7 +366,7 @@ const Account = () => {
                     <p>You don't have an active membership</p>
                     <Button 
                       className="mt-4"
-                      onClick={() => navigate('/memberships')}
+                      onClick={() => router.push('/memberships')}
                     >
                       View Membership Plans
                     </Button>
@@ -403,7 +403,7 @@ const Account = () => {
                     <p>You don't have any gift cards</p>
                     <Button 
                       className="mt-4"
-                      onClick={() => navigate('/gift-cards')}
+                      onClick={() => router.push('/gift-cards')}
                     >
                       Purchase Gift Card
                     </Button>

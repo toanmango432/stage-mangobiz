@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "@/lib/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ const categories = [
 export default function ServiceForm() {
   const params = useParams();
   const id = params.id as string | undefined;
-  const navigate = useNavigate();
+  const router = useRouter();
   const isNew = id === "new";
 
   const [formData, setFormData] = useState<Partial<Service>>({
@@ -88,13 +88,13 @@ export default function ServiceForm() {
     localStorage.setItem("catalog_services", JSON.stringify(updatedServices));
     setIsSaving(false);
     toast.success(isNew ? "Service created" : "Service updated");
-    navigate("/admin/catalog/services");
+    router.push("/admin/catalog/services");
   };
 
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/admin/catalog/services")}>
+        <Button variant="ghost" size="sm" onClick={() => router.push("/admin/catalog/services")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
@@ -331,7 +331,7 @@ export default function ServiceForm() {
           <Save className="h-4 w-4 mr-2" />
           {isSaving ? "Saving..." : "Save Service"}
         </Button>
-        <Button variant="outline" onClick={() => navigate("/admin/catalog/services")}>
+        <Button variant="outline" onClick={() => router.push("/admin/catalog/services")}>
           Cancel
         </Button>
       </div>

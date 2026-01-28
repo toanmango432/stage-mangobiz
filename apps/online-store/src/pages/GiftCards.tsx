@@ -11,12 +11,12 @@ import { toast } from "sonner";
 import { GiftCardDesignSelector } from "@/components/giftcards/GiftCardDesignSelector";
 import { GiftCardScheduler } from "@/components/giftcards/GiftCardScheduler";
 import { useCart } from "@/contexts/CartContext";
-import { useNavigate } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 import { getGiftCardDesigns, getGiftCardConfig } from "@/lib/api/store";
 import { getGiftCardImage } from "@/lib/images";
 
 const GiftCards = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { addToCart } = useCart();
   const [amount, setAmount] = useState("50");
   const [customAmount, setCustomAmount] = useState("");
@@ -72,7 +72,7 @@ const GiftCards = () => {
     });
 
     toast.success("Gift card added to cart!");
-    navigate('/cart');
+    router.push('/cart');
   };
 
   return (

@@ -1,11 +1,8 @@
 'use client';
 
-import { SEO } from "@/components/SEO";
-
 export default function TermsOfService() {
   return (
     <>
-      <SEO title="Terms of Service" description="Read our terms of service to understand the rules and guidelines for using our services." />
       <div className="max-w-4xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Terms of Service</h1>
         <div className="prose prose-slate max-w-none space-y-6">

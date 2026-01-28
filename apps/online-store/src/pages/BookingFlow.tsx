@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useBookingFlow } from '@/hooks/useBookingFlow';
 import { mockAuthApi } from '@/lib/api/mockAuth';
-import { SEO } from '@/components/SEO';
+
 import { Button } from '@/components/ui/button';
 import { ServiceBrowser } from '@/components/booking/v2/ServiceBrowser';
 import { StaffSelector } from '@/components/booking/v2/StaffSelector';
@@ -135,11 +135,6 @@ const BookingFlow = () => {
 
   return (
     <>
-      <SEO
-        title="Book Your Appointment"
-        description="Complete your booking in just a few simple steps. Choose services, select date and time, and confirm your appointment."
-      />
-      
       <div className="min-h-screen bg-background pb-20">
         {/* Two-Column Layout: Main Content + Promo Sidebar */}
         <div className="container max-w-7xl mx-auto px-4 py-8">

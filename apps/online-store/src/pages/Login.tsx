@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,13 +32,13 @@ const Login = () => {
   const [showDemoInfo, setShowDemoInfo] = useState(true);
   
   const { login, signup, user } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
     if (user) {
-      navigate("/");
+      router.push("/");
     }
-  }, [user, navigate]);
+  }, [user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +52,7 @@ const Login = () => {
     try {
       await login(email, password, rememberMe);
       toast.success("Welcome back!");
-      navigate("/");
+      router.push("/");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Invalid credentials");
     } finally {
@@ -82,7 +82,7 @@ const Login = () => {
     try {
       await signup({ email, password, firstName, lastName, phone });
       toast.success("Welcome to Mango! Account created successfully");
-      navigate("/");
+      router.push("/");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Signup failed");
     } finally {

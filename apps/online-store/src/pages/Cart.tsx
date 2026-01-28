@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingBag, Package } from "lucide-react";
-import { Link, useNavigate } from "@/lib/navigation";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/contexts/CartContext";
 import { CartItemCard } from "@/components/cart/CartItemCard";
 import { OrderSummary } from "@/components/cart/OrderSummary";
@@ -17,7 +18,7 @@ import { useState } from "react";
 
 const Cart = () => {
   const { items, getCartItemCount, getCartTotal } = useCart();
-  const navigate = useNavigate();
+  const router = useRouter();
   const itemCount = getCartItemCount();
   const summary = getCartTotal();
   const [giftWrap, setGiftWrap] = useState(false);
@@ -29,7 +30,7 @@ const Cart = () => {
   const remaining = Math.max(freeShippingThreshold - summary.subtotal, 0);
 
   const handleCheckout = () => {
-    navigate('/checkout');
+    router.push('/checkout');
   };
 
   return (

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useNavigate } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/contexts/CartContext";
 import { useCheckout } from "@/hooks/useCheckout";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
@@ -27,7 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const STEPS = ['Contact', 'Shipping', 'Payment', 'Review'];
 
 const Checkout = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useAuth();
   const { items, getCartTotal, clearCart } = useCart();
   const { formData, updateFormData, currentStep, goToStep, nextStep, prevStep, clearCheckoutData } = useCheckout();
@@ -41,9 +41,9 @@ const Checkout = () => {
   useEffect(() => {
     if (items.length === 0) {
       toast.error("Your cart is empty");
-      navigate('/cart');
+      router.push('/cart');
     }
-  }, [items, navigate]);
+  }, [items, router]);
 
   const validateStep = (): boolean => {
     switch (currentStep) {
@@ -163,7 +163,7 @@ const Checkout = () => {
       clearCheckoutData();
 
       // Navigate to confirmation
-      navigate('/order-confirmation', { state: { order: orderResponse.data } });
+      router.push('/order-confirmation');
       toast.success("Order placed successfully!");
     } catch (err) {
       const checkoutError = err as CheckoutError;
@@ -199,7 +199,7 @@ const Checkout = () => {
   const handleResolveError = () => {
     setError(null);
     if (error?.type === 'stock_changed') {
-      navigate('/cart');
+      router.push('/cart');
     } else if (error?.type === 'slot_conflict') {
       goToStep(2); // Go back to booking step
     }
@@ -211,7 +211,7 @@ const Checkout = () => {
   };
 
   const handleReviewCart = () => {
-    navigate('/cart');
+    router.push('/cart');
   };
 
   const summary = getCartTotal();
@@ -223,7 +223,7 @@ const Checkout = () => {
           <div className="max-w-4xl mx-auto">
             <Button
               variant="ghost"
-              onClick={() => navigate('/cart')}
+              onClick={() => router.push('/cart')}
               className="mb-6"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />

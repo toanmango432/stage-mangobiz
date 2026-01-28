@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, getNavigationState } from '@/lib/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CheckCircle2, Calendar, Clock, User, MapPin, RefreshCw } from 'lucide-react';
@@ -11,14 +11,14 @@ import { useRealtime } from '@/providers/RealtimeProvider';
 import { toast } from '@/hooks/use-toast';
 
 export default function BookingSuccess() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { storeId } = useStore();
   const { isConnected, status: realtimeStatus } = useRealtime();
 
   // Get booking from navigation state (passed after creation)
   const [initialBooking] = useState(() => {
-    const state = getNavigationState<{ booking: any }>();
-    return state?.booking ?? null;
+    // TODO: getNavigationState was removed during Next.js migration - retrieve booking data via query params or context
+    return null as any;
   });
   const bookingId = initialBooking?.id;
 
@@ -47,9 +47,9 @@ export default function BookingSuccess() {
   // Redirect if no booking data
   useEffect(() => {
     if (!initialBooking && !bookingId) {
-      navigate('/');
+      router.push('/');
     }
-  }, [initialBooking, bookingId, navigate]);
+  }, [initialBooking, bookingId, router]);
 
   // Handle manual refresh
   const handleRefresh = useCallback(() => {
@@ -203,10 +203,10 @@ export default function BookingSuccess() {
 
         {/* Actions */}
         <div className="flex gap-4">
-          <Button onClick={() => navigate('/account')} className="flex-1">
+          <Button onClick={() => router.push('/account')} className="flex-1">
             View My Bookings
           </Button>
-          <Button onClick={() => navigate('/')} variant="outline" className="flex-1">
+          <Button onClick={() => router.push('/')} variant="outline" className="flex-1">
             Back to Home
           </Button>
         </div>

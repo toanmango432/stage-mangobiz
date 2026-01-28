@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from '@/lib/navigation';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 import { Product } from '@/types/catalog';
 import { getProducts } from '@/lib/api/store';
 import { ProductGallery } from '@/components/shop/ProductGallery';
@@ -23,7 +24,7 @@ import { RecentlyViewed } from '@/components/shop/RecentlyViewed';
 const ProductDetail = () => {
   const params = useParams();
   const productId = params.productId as string | undefined;
-  const navigate = useNavigate();
+  const router = useRouter();
   const { addToCart } = useCart();
   const { wishlist, addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   
@@ -100,16 +101,16 @@ const ProductDetail = () => {
             })), 6);
             setRelatedProducts(related);
           } else {
-            navigate('/shop');
+            router.push('/shop');
           }
         } catch (error) {
           console.error('Failed to load product:', error);
-          navigate('/shop');
+          router.push('/shop');
         }
       }
     }
     fetchProduct();
-  }, [productId, navigate]);
+  }, [productId, router]);
 
   if (!product) {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
@@ -338,7 +339,7 @@ const ProductDetail = () => {
         {/* Related Products */}
         <RelatedProducts 
           products={relatedProducts} 
-          onProductClick={(id) => navigate(`/shop/${id}`)}
+          onProductClick={(id) => router.push(`/shop/${id}`)}
         />
       </div>
 

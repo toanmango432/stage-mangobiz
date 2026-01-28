@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { SEO } from '@/components/SEO';
+
 import { Button } from '@/components/ui/button';
 import { ServiceBrowser } from '@/components/booking/v2/ServiceBrowser';
 import { SmartCart } from '@/components/booking/v2/SmartCart';
@@ -244,11 +244,6 @@ const Book = () => {
 
   return (
     <>
-      <SEO
-        title="Book Your Appointment"
-        description="Complete your booking in just a few simple steps. Choose services, select date and time, and confirm your appointment."
-      />
-      
       <div className="booking-v2">
         {/* Progress Indicator */}
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b">

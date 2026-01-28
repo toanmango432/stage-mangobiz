@@ -4,7 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Search, ThumbsUp, ThumbsDown } from "lucide-react";
-import { SEO } from "@/components/SEO";
+
 import { toast } from "sonner";
 
 const faqCategories = {
@@ -102,11 +102,6 @@ export default function FAQ() {
 
   return (
     <>
-      <SEO
-        title="Frequently Asked Questions"
-        description="Find answers to common questions about our nail salon services, bookings, products, memberships, and policies."
-      />
-      
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto px-4 py-12">
           <div className="text-center mb-12">

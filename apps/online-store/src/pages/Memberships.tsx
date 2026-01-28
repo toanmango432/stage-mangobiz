@@ -5,12 +5,12 @@ import { MembershipCard } from "@/components/MembershipCard";
 import { MembershipComparisonTable } from "@/components/memberships/MembershipComparisonTable";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
-import { useNavigate } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getMembershipPlans } from "@/lib/api/store";
 
 const Memberships = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { addToCart } = useCart();
   const [viewMode, setViewMode] = useState<'cards' | 'comparison'>('cards');
   const [memberships, setMemberships] = useState<Array<any>>([]);
@@ -39,7 +39,7 @@ const Memberships = () => {
     });
 
     toast.success(`${membershipTitle} membership added to cart!`);
-    navigate('/cart');
+    router.push('/cart');
   };
 
   const handleSelectTier = (tierId: string) => {

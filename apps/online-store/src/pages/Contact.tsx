@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { SEO } from "@/components/SEO";
+
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,11 +31,6 @@ export default function Contact() {
 
   return (
     <>
-      <SEO
-        title="Contact Us"
-        description="Get in touch with Mango Nail Salon. Visit us, call, or send a message. We're here to help with bookings, questions, and feedback."
-      />
-      
       <div className="min-h-screen bg-background">
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="text-center mb-12">

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { usePathname } from "@/lib/navigation";
+import { usePathname } from "next/navigation";
 
 const NotFound = () => {
   const pathname = usePathname();

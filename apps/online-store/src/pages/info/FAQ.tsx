@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { SEOHead } from "@/components/SEOHead";
+
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -61,12 +61,6 @@ export default function FAQ() {
 
   return (
     <>
-      <SEOHead 
-        title="FAQ — Mango Nail & Beauty Salon"
-        description="Find answers to frequently asked questions about our services, booking, policies, and more."
-        canonical="/info/faq"
-      />
-      
       <div className="container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-4">

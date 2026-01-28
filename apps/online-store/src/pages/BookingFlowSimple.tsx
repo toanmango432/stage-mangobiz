@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useNavigate } from '@/lib/navigation';
-import { SEO } from '@/components/SEO';
+import { useRouter } from 'next/navigation';
+
 import { UnifiedBookingPage } from '@/components/booking/v2/UnifiedBookingPage';
 import { BookingSuccessScreen } from '@/components/booking/v2/BookingSuccessScreen';
 import { PasswordlessLoginModal } from '@/components/auth/PasswordlessLoginModal';
@@ -16,7 +16,7 @@ import { mockAuthApi } from '@/lib/api/mockAuth';
 type Step = 'booking' | 'confirm' | 'success';
 
 const BookingFlowSimple = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState<Step>('booking');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -94,11 +94,6 @@ const BookingFlowSimple = () => {
 
   return (
     <>
-      <SEO
-        title="Book Your Appointment"
-        description="Book your appointment in just a few simple steps."
-      />
-      
       <div className="min-h-screen bg-background">
         {/* Page 1: Unified Booking (Services + Staff + Time) */}
         {currentStep === 'booking' && (

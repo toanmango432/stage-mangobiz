@@ -5,7 +5,7 @@ import { CatalogTable, Column } from "@/components/admin/catalog/CatalogTable";
 import { SearchFilter } from "@/components/admin/catalog/SearchFilter";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 import { 
   getMembershipPlans, 
   deleteMembershipPlan, 
@@ -13,7 +13,7 @@ import {
 } from "@/lib/storage/membershipStorage";
 
 export default function Memberships() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [memberships, setMemberships] = useState<MembershipPlan[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState("");
@@ -96,7 +96,7 @@ export default function Memberships() {
           <h1 className="text-3xl font-bold">Memberships</h1>
           <p className="text-muted-foreground">Manage membership plans stored in localStorage</p>
         </div>
-        <Button onClick={() => navigate("/admin/catalog/memberships/new")}>
+        <Button onClick={() => router.push("/admin/catalog/memberships/new")}>
           <Plus className="h-4 w-4 mr-2" />
           Add Plan
         </Button>
@@ -113,7 +113,7 @@ export default function Memberships() {
         selectedItems={selectedItems}
         onSelectItem={handleSelectItem}
         onSelectAll={handleSelectAll}
-        onEdit={(membership) => navigate(`/admin/catalog/memberships/${membership.id}`)}
+        onEdit={(membership) => router.push(`/admin/catalog/memberships/${membership.id}`)}
         onDelete={handleDelete}
       />
     </div>

@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, Copy, Download, Sparkles, ShoppingBag, Calendar as CalendarIcon } from "lucide-react";
-import { Link, useNavigate, getNavigationState } from "@/lib/navigation";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Order } from "@/types/order";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -15,8 +16,8 @@ import { motion } from "framer-motion";
 import { addDays } from "date-fns";
 
 const OrderConfirmation = () => {
-  const navigate = useNavigate();
-  const [navState] = useState(() => getNavigationState<{ order?: Order }>());
+  const router = useRouter();
+  const [navState] = useState(() => null as { order?: Order } | null);
   const [order, setOrder] = useState<Order | null>(null);
   const [showUpsell, setShowUpsell] = useState(true);
 
@@ -40,10 +41,10 @@ const OrderConfirmation = () => {
         setOrder(orders[0]);
       } else {
         toast.error("Order not found");
-        navigate('/');
+        router.push('/');
       }
     }
-  }, [navState, navigate]);
+  }, [navState, router]);
 
   const copyOrderNumber = () => {
     if (order) {

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getActiveAnnouncements } from '@/lib/api/promotions';
-import { SEO } from '@/components/SEO';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -42,11 +42,6 @@ export default function Updates() {
 
   return (
     <>
-      <SEO 
-        title="Store Updates & Announcements"
-        description="Stay informed about salon hours, new services, team updates, policy changes, and upcoming events."
-      />
-
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
           {/* Header */}

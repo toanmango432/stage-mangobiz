@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { SEOHead } from "@/components/SEOHead";
+
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -108,12 +108,6 @@ export default function Reviews() {
 
   return (
     <>
-      <SEOHead 
-        title="Reviews — Mango Nail & Beauty Salon"
-        description={`Read ${aggregate.count} verified customer reviews. Average rating: ${aggregate.avg}/5 stars. See what our clients say about our services.`}
-        canonical="/info/reviews"
-      />
-      
       <div className="container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-4">

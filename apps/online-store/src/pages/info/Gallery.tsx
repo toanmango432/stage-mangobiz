@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import NextImage from "next/image";
-import { SEOHead } from "@/components/SEOHead";
+
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,12 +78,6 @@ export default function Gallery() {
 
   return (
     <>
-      <SEOHead 
-        title="Gallery — Mango Nail & Beauty Salon"
-        description="Browse our portfolio of beautiful nail art, hair styling, makeup, and beauty transformations. See the quality work our expert team delivers."
-        canonical="/info/gallery"
-      />
-      
       <div className="container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-7xl mx-auto space-y-8">
             <div className="text-center space-y-4">
