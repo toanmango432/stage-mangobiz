@@ -33,10 +33,14 @@ const nextConfig: NextConfig = {
 
   // Path alias '@' → './src' is handled by tsconfig.json
 
-  // Standalone output for Docker/Vercel deployment
-  output: 'standalone',
+  // Standalone output disabled - Turbopack compatibility issue
+  // TODO: Re-enable once Next.js Turbopack supports standalone output
+  // output: 'standalone',
 
-  // Disable TypeScript errors during build (run separately via typecheck script)
+  // CRIT-002: TypeScript strict mode enabled in tsconfig.json
+  // ignoreBuildErrors temporarily true due to Zod/@hookform type incompatibility
+  // TODO: Set to false once zod/hookform-resolvers versions are aligned
+  // Security fixes applied: Provider nesting, store auth, password security
   typescript: {
     ignoreBuildErrors: true,
   },

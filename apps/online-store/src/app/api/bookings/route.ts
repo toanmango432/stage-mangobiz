@@ -198,6 +198,38 @@ export async function GET(request: NextRequest) {
     }
 
     const { storeId, date, status, page, limit } = parsed.data;
+
+    // SECURITY: Verify user has access to this store (multi-tenant isolation)
+    // Check if user is staff/owner of the store
+    const { data: storeAccess, error: accessError } = await supabase
+      .from('store_staff')
+      .select('store_id, role')
+      .eq('auth_user_id', user.id)
+      .eq('store_id', storeId)
+      .single();
+
+    if (accessError || !storeAccess) {
+      // Fallback: check if user is a client of this store
+      const { data: clientAccess } = await supabase
+        .from('client_auth')
+        .select('store_id')
+        .eq('auth_user_id', user.id)
+        .eq('store_id', storeId)
+        .single();
+
+      if (!clientAccess) {
+        return NextResponse.json(
+          {
+            error: {
+              code: 'FORBIDDEN',
+              message: 'You do not have access to this store',
+            },
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const offset = (page - 1) * limit;
 
     let query = supabase

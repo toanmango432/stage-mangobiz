@@ -25,27 +25,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ReduxProvider store={store}>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-          <NextThemesProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <BrandThemeProvider>
-              <WishlistProvider>
-                <CartProvider>
-                  <PersonalizationProvider>
-                    <NotificationProvider>
-                      <RealtimeProvider>
-                        <TooltipProvider>
-                          <Toaster />
-                          <Sonner />
-                          <OfflineIndicator />
-                          {children}
-                        </TooltipProvider>
-                      </RealtimeProvider>
-                    </NotificationProvider>
-                  </PersonalizationProvider>
-                </CartProvider>
-              </WishlistProvider>
-            </BrandThemeProvider>
-          </NextThemesProvider>
-        </AuthProvider>
+            <NextThemesProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+              <BrandThemeProvider>
+                <WishlistProvider>
+                  <CartProvider>
+                    <PersonalizationProvider>
+                      <NotificationProvider>
+                        <RealtimeProvider>
+                          <TooltipProvider>
+                            <Toaster />
+                            <Sonner />
+                            <OfflineIndicator />
+                            {children}
+                          </TooltipProvider>
+                        </RealtimeProvider>
+                      </NotificationProvider>
+                    </PersonalizationProvider>
+                  </CartProvider>
+                </WishlistProvider>
+              </BrandThemeProvider>
+            </NextThemesProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ReduxProvider>
     </ErrorBoundary>

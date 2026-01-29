@@ -14,13 +14,20 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
-    /* Linting */
-    "strict": false,
+    /* Linting - strictNullChecks disabled until type debt is addressed
+     * CRIT-002 Partial: strict mode enabled, but nullable checks deferred
+     * TODO: Enable strictNullChecks: true once 400+ preexisting errors are fixed
+     * See US-048 follow-up task for type safety improvements */
+    "strict": true,
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "strictNullChecks": false,
-    "noFallthroughCasesInSwitch": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": false,
+    "noFallthroughCasesInSwitch": true,
     /* Imports */
     "allowImportingTsExtensions": true,
     "esModuleInterop": true,

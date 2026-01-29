@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { BookingFormData } from '@/types/booking';
-import { Calendar, Clock, MapPin, User, Phone, Mail, DollarSign, FileText, Download, Share2 } from 'lucide-react';
+import { Calendar, Clock, User, Phone, Mail, DollarSign, FileText, Download, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 
