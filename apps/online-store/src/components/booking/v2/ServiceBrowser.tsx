@@ -43,7 +43,7 @@ export const ServiceBrowser: React.FC<ServiceBrowserProps> = ({
   useEffect(() => {
     const loadServices = async () => {
       try {
-        const storeId = import.meta.env.VITE_STORE_ID || 'demo-store';
+        const storeId = process.env.NEXT_PUBLIC_STORE_ID || 'demo-store';
         const catalogServices = await getServices(storeId);
         const servicesWithImages = catalogServices.map((service, index) => ({
           id: service.id,

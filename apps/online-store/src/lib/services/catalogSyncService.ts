@@ -25,15 +25,15 @@ import {
 } from '@/lib/adapters/catalogAdapters';
 import type { GiftCardConfig, MembershipPlan, Product } from '@/types/catalog';
 
-// Environment variables
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// Environment variables (Next.js uses NEXT_PUBLIC_* prefix)
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string | undefined;
 
 // Validate required environment variables
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   const missing = [];
-  if (!SUPABASE_URL) missing.push('VITE_SUPABASE_URL');
-  if (!SUPABASE_ANON_KEY) missing.push('VITE_SUPABASE_ANON_KEY');
+  if (!SUPABASE_URL) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+  if (!SUPABASE_ANON_KEY) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
   // Log warning but don't throw - allow app to work with mock data if no Supabase config
   console.warn(

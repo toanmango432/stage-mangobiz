@@ -15,9 +15,9 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 // Use vi.hoisted to define mock fns before module code runs
 const { mockFrom, setupChain, setupMultiCallChain } = vi.hoisted(() => {
-  // Set process.env so Vitest populates import.meta.env.VITE_*
-  process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
-  process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
+  // Set process.env for Next.js NEXT_PUBLIC_* vars
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 
   const mockFrom = vi.fn();
 

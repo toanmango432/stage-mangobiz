@@ -115,7 +115,7 @@ class BookingDataService {
     try {
       // Get storeId from environment or config
       // TODO: Replace with actual store ID from auth/config
-      const storeId = import.meta.env.VITE_STORE_ID || 'demo-store';
+      const storeId = process.env.NEXT_PUBLIC_STORE_ID || 'demo-store';
 
       console.log('[BookingDataService] Syncing catalog data from Supabase...');
       const services = await getServices(storeId);
