@@ -60,9 +60,13 @@ const mangoClient = {
 
 // AI Provider (Gemini via Lovable AI)
 async function generateAI(messages: ChatMessage[], tools?: any[]): Promise<AIResponse> {
-  const LOVABLE_API_KEY = import.meta.env.VITE_LOVABLE_API_KEY;
+  // Support both Next.js and Vite env vars
+  const LOVABLE_API_KEY =
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_LOVABLE_API_KEY) ||
+    (typeof import.meta !== 'undefined' &&
+      (import.meta.env as Record<string, string | undefined>)?.VITE_LOVABLE_API_KEY);
   if (!LOVABLE_API_KEY) {
-    throw new Error('VITE_LOVABLE_API_KEY not configured');
+    throw new Error('LOVABLE_API_KEY not configured (NEXT_PUBLIC_LOVABLE_API_KEY or VITE_LOVABLE_API_KEY)');
   }
 
   const body: any = {

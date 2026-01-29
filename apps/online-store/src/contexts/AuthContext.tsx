@@ -1,8 +1,14 @@
+'use client';
+
 /**
  * Authentication Context for Mango Online Store
  *
  * Uses Supabase Auth for customer authentication.
  * Links authenticated users to POS clients via client_auth table.
+ *
+ * SSR Safety: This is a client-only component ('use client').
+ * Auth state initializes as loading on the server and resolves
+ * after client-side hydration via useEffect.
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
@@ -17,7 +23,18 @@ import {
 import { supabase } from "@/services/supabase/client";
 
 // Store ID - should come from environment or route params in production
-const DEFAULT_STORE_ID = import.meta.env.VITE_DEFAULT_STORE_ID || 'c0000000-0000-0000-0000-000000000001';
+// Support both Vite (import.meta.env) and Next.js (process.env) env patterns during migration
+const getDefaultStoreId = (): string => {
+  if (typeof window !== 'undefined') {
+    // Client-side: try both env patterns
+    const viteEnv = typeof import.meta !== 'undefined' && import.meta.env?.VITE_DEFAULT_STORE_ID;
+    const nextEnv = process.env.NEXT_PUBLIC_DEFAULT_STORE_ID;
+    return viteEnv || nextEnv || 'c0000000-0000-0000-0000-000000000001';
+  }
+  // Server-side: use process.env (Next.js)
+  return process.env.NEXT_PUBLIC_DEFAULT_STORE_ID || 'c0000000-0000-0000-0000-000000000001';
+};
+const DEFAULT_STORE_ID = getDefaultStoreId();
 
 interface AuthContextType {
   // User state
@@ -139,8 +156,8 @@ function toAppUser(
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  console.log('🔐 AuthProvider initializing with Supabase Auth...');
-
+  // All state initializes as "loading" / null — safe for SSR.
+  // Auth resolution happens in useEffect (client-only).
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [clientAuth, setClientAuth] = useState<ClientAuthRecord | null>(null);

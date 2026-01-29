@@ -129,19 +129,25 @@ export async function getTeam(): Promise<TeamMember[]> {
 }
 
 export async function getServices(): Promise<StoreService[]> {
-  try {
-    const response = await storeAPI.get('/services');
-    if (!response.success) {
-      throw new Error(response.error?.message || 'Failed to fetch services');
-    }
-    return response.data?.data || [];
-  } catch (error) {
-    console.error('Failed to fetch services:', error);
-    return [];
-  }
+  // TEMP: Return mock data directly - API routes not yet implemented
+  const { generateMockServices } = await import('@/lib/mockData');
+  const mockServices = generateMockServices();
+  return mockServices.map(s => ({
+    id: s.id,
+    name: s.name,
+    description: s.description || '',
+    price: s.basePrice || s.price,
+    durationMin: s.duration,
+    category: s.category,
+    imageUrl: s.imageUrl,
+    tags: [],
+  })) as StoreService[];
 }
 
 export async function getProducts(): Promise<StoreProduct[]> {
+  // TEMP: Return empty array - API routes not yet implemented
+  return [];
+  /* Original API call - disabled until API routes are implemented
   try {
     const response = await storeAPI.get('/products');
     if (!response.success) {
@@ -152,6 +158,7 @@ export async function getProducts(): Promise<StoreProduct[]> {
     console.error('Failed to fetch products:', error);
     return [];
   }
+  */
 }
 
 export async function getMembershipPlans(): Promise<MembershipPlan[]> {

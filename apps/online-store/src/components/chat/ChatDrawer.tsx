@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useRouter, usePathname } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 interface ChatMessage {
@@ -38,8 +38,8 @@ export const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
     setIsLoading(true);
     
     try {
-      const data = await handleChatMessage(sessionId, messageText, location.pathname);
+      const data = await handleChatMessage(sessionId, messageText, pathname);
       
       setMessages(prev => [...prev, { 
         role: "assistant", 
@@ -168,7 +168,7 @@ export const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
                                   size="sm" 
                                   className="w-full"
                                   onClick={() => {
-                                    navigate(card.action!.path);
+                                    router.push(card.action!.path);
                                     onClose();
                                   }}
                                 >

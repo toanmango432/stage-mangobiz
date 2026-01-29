@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -16,7 +16,7 @@ interface BookingSidebarProps {
 }
 
 export const BookingSidebar = ({ formData }: BookingSidebarProps) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [agreedToPolicies, setAgreedToPolicies] = useState(false);
 
   const calculateTotal = () => {
@@ -74,7 +74,7 @@ export const BookingSidebar = ({ formData }: BookingSidebarProps) => {
       description: "You'll receive a confirmation email shortly.",
     });
     
-    navigate('/account');
+    router.push('/account');
   };
 
   const { subtotal, tax, total } = calculateTotal();

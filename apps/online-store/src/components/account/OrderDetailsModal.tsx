@@ -75,7 +75,7 @@ export const OrderDetailsModal = ({ open, onOpenChange, order }: OrderDetailsMod
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{item.name}</p>
                     <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                    <p className="text-sm font-medium mt-1">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-sm font-medium mt-1">${(item.price * (item.quantity ?? 1)).toFixed(2)}</p>
                   </div>
                 </div>
               ))}

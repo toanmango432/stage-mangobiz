@@ -13,7 +13,7 @@ import type {
   AddOnGroup,
   AddOnOption,
   CatalogSettings,
-} from '../types';
+} from '@mango/types';
 
 const SALON_ID = 'default-salon'; // Default salon ID matching seed.ts and auth fallback
 

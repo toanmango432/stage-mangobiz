@@ -1,12 +1,13 @@
 import { Home, Calendar, ShoppingBag, CreditCard, Gift, User, Info, Mail, Image, Star, HelpCircle, FileText } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const BottomNav = () => {
-  const location = useLocation();
-  
-  const isActive = (path: string) => location.pathname === path;
+  const pathname = usePathname();
+
+  const isActive = (path: string) => pathname === path;
   
   const navItems = [
     { path: "/", icon: Home, label: "Home" },
@@ -35,7 +36,7 @@ export const BottomNav = () => {
           return (
             <Link
               key={item.path}
-              to={item.path}
+              href={item.path}
               className={`flex flex-col items-center justify-center gap-1 transition-colors ${
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
@@ -62,7 +63,7 @@ export const BottomNav = () => {
                     return (
                       <Link
                         key={item.path}
-                        to={item.path}
+                        href={item.path}
                         className="flex items-center gap-3 py-3 px-4 rounded-lg hover:bg-accent transition-colors"
                       >
                         <Icon className="h-5 w-5 text-primary" />

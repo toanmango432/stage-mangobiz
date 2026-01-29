@@ -2,12 +2,12 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 export const GuestPromptBanner = () => {
   const { user } = useAuth();
   const [dismissed, setDismissed] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (user || dismissed) return null;
 
@@ -29,7 +29,7 @@ export const GuestPromptBanner = () => {
           <div className="flex items-center gap-2 shrink-0">
             <Button
               size="sm"
-              onClick={() => navigate('/login')}
+              onClick={() => router.push('/login')}
               className="bg-amber-600 hover:bg-amber-700 text-white"
             >
               Sign In

@@ -208,25 +208,29 @@ A story is UI if:
 - `files` array includes React/Vue/Svelte components, HTML, or CSS
 - **When in doubt, treat as UI and verify**
 
-### Available Playwright MCP Tools
+### Available agent-browser Commands
 
-| Tool | Purpose |
-|------|---------|
-| `mcp__playwright__browser_navigate` | Go to a URL |
-| `mcp__playwright__browser_snapshot` | Get accessibility tree (preferred) |
-| `mcp__playwright__browser_click` | Click element by ref |
-| `mcp__playwright__browser_type` | Type into input |
-| `mcp__playwright__browser_take_screenshot` | Capture screenshot |
-| `mcp__playwright__browser_wait_for` | Wait for text/element |
+| Command | Purpose |
+|---------|---------|
+| `agent-browser open <url>` | Navigate to a URL |
+| `agent-browser snapshot` | Get accessibility tree with refs (preferred) |
+| `agent-browser snapshot -i` | Get only interactive elements |
+| `agent-browser click @e1` | Click element by ref |
+| `agent-browser fill @e2 "text"` | Clear and fill input by ref |
+| `agent-browser type @e2 "text"` | Type into input by ref |
+| `agent-browser screenshot [path]` | Capture screenshot |
+| `agent-browser wait --text "Welcome"` | Wait for text to appear |
+| `agent-browser get text @e1` | Get text content of element |
+| `agent-browser close` | Close browser |
 
 ### Browser Testing Workflow
 
-1. Navigate: `browser_navigate` → `http://localhost:5173`
-2. Snapshot: `browser_snapshot` to get accessibility tree
-3. Find elements by `ref` attribute in snapshot
-4. Interact: `browser_click`, `browser_type`
-5. Verify changes are visible
-6. Screenshot for confirmation if needed
+1. Open: `agent-browser open http://localhost:5173`
+2. Snapshot: `agent-browser snapshot` to get accessibility tree with refs
+3. Find elements by `@e1`, `@e2` etc. refs in snapshot output
+4. Interact: `agent-browser click @e3`, `agent-browser fill @e4 "text"`
+5. Verify changes are visible with another snapshot
+6. Screenshot for confirmation if needed: `agent-browser screenshot`
 
 **A UI story is NOT complete until browser verification passes.**
 

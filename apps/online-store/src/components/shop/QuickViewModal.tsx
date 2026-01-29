@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Minus, Plus, ExternalLink } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { VariantSelector } from './VariantSelector';
 
@@ -19,7 +19,7 @@ export const QuickViewModal = ({ product, open, onOpenChange }: QuickViewModalPr
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(product?.variants?.[0]);
   const { addToCart } = useCart();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (!product) return null;
 
@@ -43,7 +43,7 @@ export const QuickViewModal = ({ product, open, onOpenChange }: QuickViewModalPr
   };
 
   const handleViewDetails = () => {
-    navigate(`/shop/${product.id}`);
+    router.push(`/shop/${product.id}`);
     onOpenChange(false);
   };
 

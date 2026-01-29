@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MembershipCard } from "@/components/MembershipCard";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getMembershipPlans } from "@/lib/api/store";
 
@@ -100,7 +100,7 @@ export function MembershipRail({
 
         {showViewAll && (
           <div className="text-center mt-8">
-            <Link to="/memberships">
+            <Link href="/memberships">
               <Button size="lg" variant="outline">
                 View All Membership Plans
               </Button>

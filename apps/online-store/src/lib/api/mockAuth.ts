@@ -170,4 +170,6 @@ export const mockAuthApi = {
   }
 };
 
-mockAuthApi.seedDemoUsers();
+if (typeof window !== 'undefined') {
+  mockAuthApi.seedDemoUsers();
+}

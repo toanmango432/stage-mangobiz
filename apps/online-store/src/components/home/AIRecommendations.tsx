@@ -3,7 +3,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { AIBadge } from "@/components/ui/ai-badge";
 import { useAIRecommendations } from "@/hooks/useAIRecommendations";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 interface AIRecommendationsProps {
   type: 'services' | 'products' | 'both';
@@ -12,7 +12,7 @@ interface AIRecommendationsProps {
 
 export function AIRecommendations({ type, limit = 6 }: AIRecommendationsProps) {
   const { recommendations, isLoading } = useAIRecommendations(type, limit);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (isLoading) {
     return (
@@ -55,17 +55,7 @@ export function AIRecommendations({ type, limit = 6 }: AIRecommendationsProps) {
                   description={rec.description}
                   duration="Varies"
                   price={rec.price}
-                  onSelect={() => navigate('/book', {
-                    state: {
-                      service: {
-                        id: rec.itemId,
-                        name: rec.title,
-                        description: rec.description,
-                        duration: 60, // Default duration
-                        price: rec.price,
-                      }
-                    }
-                  })}
+                  onSelect={() => router.push('/book')}
                 />
                 <div className="absolute top-3 right-3">
                   <AIBadge variant="chip">{rec.reason}</AIBadge>
@@ -87,7 +77,7 @@ export function AIRecommendations({ type, limit = 6 }: AIRecommendationsProps) {
                     category: rec.category || 'Products',
                     stockQuantity: 10,
                   } as any}
-                  onClick={() => navigate(`/shop/${rec.itemId}`)}
+                  onClick={() => router.push(`/shop/${rec.itemId}`)}
                 />
                 <div className="absolute top-3 right-3">
                   <AIBadge variant="chip">{rec.reason}</AIBadge>

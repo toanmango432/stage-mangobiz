@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Promotion } from '@/types/promotion';
 import { CountdownTimer } from './CountdownTimer';
 import { Tag, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface PromotionsStripProps {
@@ -29,7 +29,7 @@ export const PromotionsStrip = ({ promotions }: PromotionsStripProps) => {
           <p className="text-sm text-muted-foreground">Limited time promotions</p>
         </div>
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/promotions" className="gap-1">
+          <Link href="/promotions" className="gap-1">
             View All
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -89,7 +89,7 @@ export const PromotionsStrip = ({ promotions }: PromotionsStripProps) => {
                   className="w-full"
                   asChild
                 >
-                  <Link to={`/promotions#promo-${promo.id}`}>
+                  <Link href={`/promotions#promo-${promo.id}`}>
                     Details
                   </Link>
                 </Button>

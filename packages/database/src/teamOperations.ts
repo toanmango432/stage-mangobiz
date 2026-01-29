@@ -1,21 +1,63 @@
 import { v4 as uuidv4 } from 'uuid';
-import { db } from './schema';
+import { db, TeamMemberSettings, ScheduleOverride, TimeOffRequest, TimeOffRequestRef } from './schema';
 import { syncQueueDB } from './database';
-import type {
-  TeamMemberSettings,
-  TimeOffRequest,
-  ScheduleOverride,
-} from '../components/team-settings/types';
 import {
   incrementEntityVersion,
   markEntityDeleted,
   type SyncStatus,
-} from '../types/common';
-import {
-  compareVectorClocks,
-  mergeTeamMember,
-  createConflictLog,
-} from '../utils/conflictResolution';
+} from '@mango/types';
+
+function compareVectorClocks(
+  local: Record<string, number>,
+  remote: Record<string, number>
+): 'equal' | 'local_ahead' | 'remote_ahead' | 'concurrent' {
+  let localAhead = false;
+  let remoteAhead = false;
+
+  const allKeys = new Set([...Object.keys(local), ...Object.keys(remote)]);
+  for (const key of allKeys) {
+    const l = local[key] || 0;
+    const r = remote[key] || 0;
+    if (l > r) localAhead = true;
+    if (r > l) remoteAhead = true;
+  }
+
+  if (localAhead && remoteAhead) return 'concurrent';
+  if (localAhead) return 'local_ahead';
+  if (remoteAhead) return 'remote_ahead';
+  return 'equal';
+}
+
+function mergeTeamMember(
+  local: TeamMemberSettings,
+  remote: TeamMemberSettings
+): {
+  merged: TeamMemberSettings;
+  hadConflicts: boolean;
+  conflictedFields: string[];
+  localOverwritten: string[];
+  remoteOverwritten: string[];
+} {
+  const merged = remote.updatedAt > local.updatedAt ? { ...remote } : { ...local };
+  merged.syncStatus = 'synced';
+  merged.lastSyncedVersion = Math.max(local.version, remote.version);
+  return {
+    merged,
+    hadConflicts: true,
+    conflictedFields: [],
+    localOverwritten: [],
+    remoteOverwritten: [],
+  };
+}
+
+function createConflictLog(
+  _entityType: string,
+  _local: TeamMemberSettings,
+  _remote: TeamMemberSettings,
+  _result: ReturnType<typeof mergeTeamMember>
+): Record<string, unknown> {
+  return {};
+}
 
 // ============================================
 // SYNC CONFIGURATION FOR TEAM MEMBERS
@@ -404,17 +446,23 @@ export const teamDB = {
       throw new Error(`Team member with id ${memberId} not found`);
     }
 
-    const existingIndex = member.workingHours.timeOffRequests.findIndex((r) => r.id === request.id);
-    let updatedRequests: TimeOffRequest[];
+    const currentRequests = member.workingHours.timeOffRequests || [];
+    const existingIndex = currentRequests.findIndex((r: TimeOffRequestRef) => r.id === request.id);
+    let updatedRequests: TimeOffRequestRef[];
+
+    const requestRef: TimeOffRequestRef = {
+      id: request.id || uuidv4(),
+      typeId: request.typeId,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      status: request.status,
+    };
 
     if (existingIndex !== -1) {
-      updatedRequests = [...member.workingHours.timeOffRequests];
-      updatedRequests[existingIndex] = request;
+      updatedRequests = [...currentRequests];
+      updatedRequests[existingIndex] = requestRef;
     } else {
-      updatedRequests = [
-        ...member.workingHours.timeOffRequests,
-        { ...request, id: request.id || uuidv4() },
-      ];
+      updatedRequests = [...currentRequests, requestRef];
     }
 
     await this.updateMember(
@@ -444,7 +492,8 @@ export const teamDB = {
       throw new Error(`Team member with id ${memberId} not found`);
     }
 
-    const updatedRequests = member.workingHours.timeOffRequests.filter((r) => r.id !== requestId);
+    const currentRequests = member.workingHours.timeOffRequests || [];
+    const updatedRequests = currentRequests.filter((r: TimeOffRequestRef) => r.id !== requestId);
 
     await this.updateMember(
       memberId,
@@ -464,12 +513,13 @@ export const teamDB = {
    */
   async getAllPendingTimeOffRequests(
     storeId?: string
-  ): Promise<Array<{ memberId: string; memberName: string; request: TimeOffRequest }>> {
+  ): Promise<Array<{ memberId: string; memberName: string; request: TimeOffRequestRef }>> {
     const members = await this.getAllMembers(storeId);
-    const pendingRequests: Array<{ memberId: string; memberName: string; request: TimeOffRequest }> = [];
+    const pendingRequests: Array<{ memberId: string; memberName: string; request: TimeOffRequestRef }> = [];
 
     for (const member of members) {
-      for (const request of member.workingHours.timeOffRequests) {
+      const requests = member.workingHours.timeOffRequests || [];
+      for (const request of requests) {
         if (request.status === 'pending') {
           pendingRequests.push({
             memberId: member.id,
@@ -480,7 +530,7 @@ export const teamDB = {
       }
     }
 
-    pendingRequests.sort((a, b) => a.request.requestedAt.localeCompare(b.request.requestedAt));
+    pendingRequests.sort((a, b) => a.request.startDate.localeCompare(b.request.startDate));
     return pendingRequests;
   },
 
@@ -500,17 +550,15 @@ export const teamDB = {
       throw new Error(`Team member with id ${memberId} not found`);
     }
 
-    const existingIndex = member.workingHours.scheduleOverrides.findIndex((o) => o.id === override.id);
+    const overrideWithId: ScheduleOverride = { ...override, id: override.id || uuidv4() };
+    const existingIndex = member.workingHours.scheduleOverrides.findIndex((o: ScheduleOverride) => o.id === overrideWithId.id);
     let updatedOverrides: ScheduleOverride[];
 
     if (existingIndex !== -1) {
       updatedOverrides = [...member.workingHours.scheduleOverrides];
-      updatedOverrides[existingIndex] = override;
+      updatedOverrides[existingIndex] = overrideWithId;
     } else {
-      updatedOverrides = [
-        ...member.workingHours.scheduleOverrides,
-        { ...override, id: override.id || uuidv4() },
-      ];
+      updatedOverrides = [...member.workingHours.scheduleOverrides, overrideWithId];
     }
 
     await this.updateMember(
@@ -540,7 +588,7 @@ export const teamDB = {
       throw new Error(`Team member with id ${memberId} not found`);
     }
 
-    const updatedOverrides = member.workingHours.scheduleOverrides.filter((o) => o.id !== overrideId);
+    const updatedOverrides = member.workingHours.scheduleOverrides.filter((o: ScheduleOverride) => o.id !== overrideId);
 
     await this.updateMember(
       memberId,

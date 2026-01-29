@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { X, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -43,7 +43,7 @@ export const MiniCartDrawer = () => {
             <p className="text-sm text-muted-foreground mb-6">
               Add items to get started
             </p>
-            <Link to="/shop">
+            <Link href="/shop">
               <Button>Browse Products</Button>
             </Link>
           </div>
@@ -102,12 +102,12 @@ export const MiniCartDrawer = () => {
               </div>
 
               <div className="space-y-2">
-                <Link to="/checkout" className="block">
+                <Link href="/checkout" className="block">
                   <Button className="w-full" size="lg">
                     Checkout
                   </Button>
                 </Link>
-                <Link to="/cart" className="block">
+                <Link href="/cart" className="block">
                   <Button variant="outline" className="w-full">
                     View Cart
                   </Button>

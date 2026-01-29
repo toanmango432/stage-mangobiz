@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Clock, User, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
@@ -35,7 +35,7 @@ interface OnlineBooking {
 }
 
 export function OnlineBookingsSection() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { storeId } = useStore();
   const { clientAuth, isAuthenticated } = useAuth();
   const { isConnected } = useRealtime();
@@ -94,7 +94,7 @@ export function OnlineBookingsSection() {
           <p className="text-muted-foreground mb-6">
             Access your appointment history and manage upcoming bookings
           </p>
-          <Button onClick={() => navigate('/login')}>Sign In</Button>
+          <Button onClick={() => router.push('/login')}>Sign In</Button>
         </CardContent>
       </Card>
     );
@@ -160,7 +160,7 @@ export function OnlineBookingsSection() {
           {upcomingBookings.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>You don't have any upcoming appointments</p>
-              <Button className="mt-4" onClick={() => navigate('/book')}>
+              <Button className="mt-4" onClick={() => router.push('/book')}>
                 Book a Service
               </Button>
             </div>
@@ -211,7 +211,7 @@ function OnlineBookingCard({
   booking: OnlineBooking;
   compact?: boolean;
 }) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // Format date and time
   const formattedDate = format(parseISO(booking.requestedDate), 'EEE, MMM d, yyyy');
@@ -265,7 +265,7 @@ function OnlineBookingCard({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/book?reschedule=${booking.id}`)}
+            onClick={() => router.push(`/book?reschedule=${booking.id}`)}
           >
             Reschedule
           </Button>

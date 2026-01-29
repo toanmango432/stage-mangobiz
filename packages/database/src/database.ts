@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './schema';
-import { TAX_RATE } from '../constants/checkoutConfig';
 import type {
   Appointment,
   CreateAppointmentInput,
@@ -27,7 +26,9 @@ import type {
   BulkOperationResult,
   BlockReason,
   StaffAlert,
-} from '../types';
+} from '@mango/types';
+
+const TAX_RATE = 0.0825;
 
 // Re-export db for external use
 export { db };
@@ -83,7 +84,7 @@ export const appointmentsDB = {
       : input.scheduledStartTime;
     const endTime = new Date(
       startTime.getTime() +
-      input.services.reduce((sum, s) => sum + s.duration, 0) * 60000
+      input.services.reduce((sum: number, s: { duration: number }) => sum + s.duration, 0) * 60000
     );
     const appointment: Appointment = {
       id: uuidv4(),
@@ -167,16 +168,16 @@ export const ticketsDB = {
 
   async create(input: CreateTicketInput, userId: string, storeId: string): Promise<Ticket> {
     const now = new Date();
-    const subtotal = input.services.reduce((sum, s) => sum + s.price, 0) +
-                    (input.products?.reduce((sum, p) => sum + p.total, 0) || 0);
+    const subtotal = input.services.reduce((sum: number, s: { price: number }) => sum + s.price, 0) +
+                    (input.products?.reduce((sum: number, p: { total: number }) => sum + p.total, 0) || 0);
 
     // Convert CreateTicketServiceInput to TicketService with defaults
-    const services: TicketService[] = input.services.map(s => ({
+    const services: TicketService[] = input.services.map((s) => ({
       ...s,
-      status: s.status || 'not_started',
+      status: (s as { status?: string }).status || 'not_started',
       statusHistory: [],
       totalPausedDuration: 0,
-    }));
+    })) as TicketService[];
 
     const ticket: Ticket = {
       id: uuidv4(),
@@ -585,8 +586,8 @@ export const clientsDB = {
 
       // Tags filter
       if (filters.tags && filters.tags.length > 0) {
-        const clientTagIds = client.tags?.map(t => t.id) || [];
-        if (!filters.tags.some(tag => clientTagIds.includes(tag))) return false;
+        const clientTagIds = client.tags?.map((t: { id: string }) => t.id) || [];
+        if (!filters.tags.some((tag: string) => clientTagIds.includes(tag))) return false;
       }
 
       // Source filter
@@ -597,7 +598,7 @@ export const clientsDB = {
       // Preferred staff filter
       if (filters.preferredStaff && filters.preferredStaff.length > 0) {
         const preferredIds = client.preferences?.preferredStaffIds || [];
-        if (!filters.preferredStaff.some(id => preferredIds.includes(id))) return false;
+        if (!filters.preferredStaff.some((id: string) => preferredIds.includes(id))) return false;
       }
 
       // Last visit range filter

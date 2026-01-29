@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,20 +46,20 @@ const navItems = [
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/admin") {
-      return location.pathname === "/admin";
+      return pathname === "/admin";
     }
-    return location.pathname.startsWith(path);
+    return pathname.startsWith(path);
   };
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    router.push("/login");
   };
 
   return (
@@ -81,7 +82,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-4 border-b">
             <div className="flex flex-col">
-              <Link to="/admin" className="flex items-center gap-2">
+              <Link href="/admin" className="flex items-center gap-2">
                 <div className="text-xl font-bold bg-gradient-hero bg-clip-text text-transparent">
                   Mango Admin
                 </div>
@@ -108,7 +109,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
               return (
                 <Link
                   key={item.path}
-                  to={item.path}
+                  href={item.path}
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                     active
@@ -175,7 +176,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           {/* Quick Actions */}
           <div className="flex items-center gap-2">
             <NotificationCenter />
-            <Link to="/">
+            <Link href="/">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Store
@@ -187,10 +188,10 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         {/* Breadcrumb */}
         <div className="border-b bg-muted/30 px-4 py-2">
           <div className="flex items-center gap-2 text-sm">
-            <Link to="/admin" className="text-muted-foreground hover:text-foreground">
+            <Link href="/admin" className="text-muted-foreground hover:text-foreground">
               Admin
             </Link>
-            {location.pathname !== "/admin" && (
+            {pathname !== "/admin" && (
               <>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 <span className="text-foreground font-medium">

@@ -2,12 +2,12 @@ import { ServiceCard } from "@/components/ServiceCard";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp } from "lucide-react";
 import { getServices } from "@/lib/api/store";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { StoreService } from "@/types/store";
 
 export function TrendingNow() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [services, setServices] = useState<StoreService[]>([]);
 
   useEffect(() => {
@@ -43,17 +43,7 @@ export function TrendingNow() {
             description={service.description}
             duration={`${service.durationMin} min`}
             price={service.price}
-            onSelect={() => navigate('/book', {
-              state: {
-                service: {
-                  id: service.id,
-                  name: service.name,
-                  description: service.description,
-                  duration: service.durationMin,
-                  price: service.price,
-                }
-              }
-            })}
+            onSelect={() => router.push('/book')}
           />
         ))}
       </div>
