@@ -11,7 +11,7 @@ import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 
 import { useCatalog } from '@/hooks/useCatalog';
-import { selectSalonId, selectCurrentUser } from '@/store/slices/authSlice';
+import { selectSalonId, selectCurrentUser, selectTenantId } from '@/store/slices/authSlice';
 import { colors } from '@/design-system';
 import type { MenuServiceWithEmbeddedVariants, ServiceCategory } from '@/types/catalog';
 
@@ -34,6 +34,7 @@ export function ArchivedServicesTab({
   onRestore,
 }: ArchivedServicesTabProps) {
   const storeId = useSelector(selectSalonId) || '';
+  const tenantId = useSelector(selectTenantId) || storeId;
   const currentUser = useSelector(selectCurrentUser);
   const userId = currentUser?.id || 'system';
 
@@ -42,6 +43,7 @@ export function ArchivedServicesTab({
   // Get catalog hook for restore action
   const { restoreService } = useCatalog({
     storeId: storeId || 'placeholder',
+    tenantId: tenantId || 'placeholder',
     userId,
     toast: (message, type) => {
       if (type === 'success') {

@@ -159,7 +159,8 @@ export default function TicketPanel({
 
   // Gift card catalog data
   const catalogStoreId = storeAuthManager.getState().store?.storeId || '';
-  const { giftCardDenominations, giftCardSettings } = useCatalog({ storeId: catalogStoreId });
+  const catalogTenantId = storeAuthManager.getState().store?.tenantId || catalogStoreId;
+  const { giftCardDenominations, giftCardSettings } = useCatalog({ storeId: catalogStoreId, tenantId: catalogTenantId });
 
   const handleDismissKeyboardHints = () => {
     setKeyboardHintsDismissed(true);

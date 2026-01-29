@@ -1,0 +1,1121 @@
+# Online Store Catalog Admin — Supabase Migration Progress
+
+## Codebase Patterns
+
+1. **Online Store has no `typecheck` script** — use `npx tsc --noEmit` from the app directory instead of `pnpm run typecheck`.
+2. **catalogSyncService.ts `row: any` cleaned up** — US-027 removed the redundant local toOnlineService and replaced validateStoreIsolation's `any[]` with `Array<{ store_id: string }>`. No `any` remains in function signatures.
+3. **Service type requires `showOnline: boolean`** — maps to `online_booking_enabled` in menu_services table. The existing `toOnlineService` in catalogSyncService.ts omits this field (it was added later to the type).
+4. **Mocking Supabase client in tests** — Use `vi.hoisted()` + `process.env.VITE_*` to set env vars before module evaluation. Mock `@supabase/supabase-js` with `vi.mock()`. Create thenable chain objects that mimic Supabase's query builder (every method returns chainable object with `.then()` for `await`).
+
+---
+
+## Run Initialized - 2026-01-26
+
+**Run:** catalog-online-store
+**Branch:** ralph/catalog-online-store
+**Total stories:** 29 (5 phases)
+**Scope:** Online Store admin catalog pages only (apps/online-store/)
+
+**Phase breakdown:**
+- Phase 1: Services & Categories (US-001 to US-006) — 6 stories
+- Phase 2: Products (US-007 to US-011) — 5 stories, BLOCKED by PREREQ-1
+- Phase 3: Gift Cards & Memberships (US-012 to US-020) — 9 stories
+- Phase 4: Type Safety & Cleanup (US-021 to US-024) — 4 stories
+- Phase 5: Error Handling & Polish (US-025 to US-029) — 5 stories
+
+**Key files:**
+- catalogSyncService.ts (372 lines) — extend with write operations
+- catalogAdapters.ts (NEW) — Supabase row ↔ app type adapters
+- ServiceForm.tsx (338 lines) — remove localStorage writes, hardcoded categories
+- Services.tsx (186 lines) — remove hardcoded categories, localStorage
+- Catalog.tsx (94 lines) — replace hardcoded counts
+- Products.tsx (150 lines) — remove mock OPI Nail Polish data
+- GiftCardSettings.tsx (280 lines) — switch from giftCardStorage to Supabase
+- Memberships.tsx (122 lines) — switch from membershipStorage to Supabase
+- CatalogTable.tsx (116 lines) — add generics, remove any types
+
+**Prerequisites:**
+- PREREQ-1: Products table schema conflict (migrations 017 vs 031) — blocks Phase 2
+- PREREQ-2: No membership_plans table — resolved by US-016
+
+---
+
+## 2026-01-26 - US-001: Create catalogAdapters.ts for Online Store
+Commit: a77d7a2
+
+**Why this story?** US-001 has no dependencies, is priority 1, and all other Phase 1 stories depend on it. It's the foundational building block for all subsequent catalog work.
+
+**Changes:**
+- apps/online-store/src/lib/adapters/catalogAdapters.ts (NEW, 174 lines): Created ServiceRow and CategoryRow interfaces matching migration 031 schemas. Implemented toOnlineService, fromOnlineService, toOnlineCategory adapters. Defined Category type for use by downstream stories.
+
+**Learnings:**
+- Online Store app has no `typecheck` script — must use `npx tsc --noEmit` directly
+- Service type has `showOnline` boolean field that maps to `online_booking_enabled` in DB — the existing toOnlineService in catalogSyncService.ts didn't map this field
+- fromOnlineService uses conditional field-by-field mapping (only include fields that are explicitly provided) to support partial updates cleanly
+- ServiceRow has 40+ columns from migration 031 — full interface is verbose but provides complete type safety
+
+**Next story suggestion:** US-002 (Extend catalogSyncService with category fetching) or US-003 (service write ops) — both depend only on US-001. US-002 is lower complexity so good for quick momentum.
+
+---
+
+## 2026-01-26 - US-002: Extend catalogSyncService with category fetching
+Commit: dc3cedb
+
+**Why this story?** US-002 is the highest priority remaining story (priority 2), depends only on US-001 (completed), and has lower complexity (~40 lines) than US-003. Both US-004 and US-005 depend on US-002, so completing it unblocks more downstream work.
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9: Added import of toOnlineCategory and Category from catalogAdapters
+- apps/online-store/src/lib/services/catalogSyncService.ts:40: Added CACHE_KEY_CATEGORIES constant
+- apps/online-store/src/lib/services/catalogSyncService.ts:220-278: Added getCategories() and getCachedCategories() functions following existing getServices/getCachedServices pattern
+- apps/online-store/src/lib/services/catalogSyncService.ts:400: Updated clearCache() to include CACHE_KEY_CATEGORIES
+
+**Learnings:**
+- The getCategories function follows the exact same pattern as getServices — cache-first, then Supabase fetch with RLS validation
+- Category re-exports from catalogAdapters.ts work cleanly with `type Category` import
+- No new patterns discovered — straightforward extension of existing code
+
+**Next story suggestion:** US-003 (service write operations) — same file, already in context, and unblocks US-004, US-005, US-006.
+
+---
+
+## 2026-01-26 - US-003: Extend catalogSyncService with service write operations
+Commit: a1587bd
+
+**Why this story?** US-003 is the highest priority remaining story (priority 3), depends only on US-001 (completed), and unblocks US-004, US-005, and US-006. Same file as US-002 so patterns are already established.
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-15: Updated imports to include toOnlineService (aliased as adapterToOnlineService), fromOnlineService, and ServiceRow from catalogAdapters
+- apps/online-store/src/lib/services/catalogSyncService.ts:286-375: Added Service Write Operations section with invalidateServicesCache(), createService(), updateService(), deleteService()
+
+**Learnings:**
+- Used `toOnlineService as adapterToOnlineService` alias to avoid conflict with existing local `toOnlineService` function (which still exists for backward compat until US-027 cleans it up)
+- createService takes storeId as first param (following same pattern as getServices/getCategories) and sets store_id on the row before insert
+- Supabase `.insert().select().single()` returns the newly created row — cast to ServiceRow for the adapter
+- Soft delete only sets `is_deleted` and `deleted_at` — no tombstone metadata (userId/deviceId) since this is the Online Store admin which doesn't have that context
+
+**Next story suggestion:** US-004 (Update ServiceForm.tsx to use Supabase writes) — depends on US-002 and US-003 (both complete), and is the next frontend story that consumes these write operations.
+
+---
+
+## 2026-01-26 - US-004: Update ServiceForm.tsx to use Supabase writes
+Commit: fffd3b9
+
+**Why this story?** US-004 is the highest priority story (priority 4) with all dependencies met (US-002 and US-003 both complete). It's the first frontend story consuming the write operations just added, and ServiceForm.tsx is a core page for service creation/editing.
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:1-17: Added imports for getCategories, getServices, createService, updateService from catalogSyncService, Category type from catalogAdapters, and Loader2 icon
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:18-19: Removed hardcoded categories array (8 hardcoded category strings)
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:41-44: Added state for categories (Category[]), isLoadingCategories, isLoadingService
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:47-65: New useEffect to load categories from Supabase on mount with error handling
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:67-89: New useEffect to load existing service via getServices() when editing (replaced localStorage.getItem read)
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:91-114: Rewrote handleSave to use createService/updateService instead of localStorage.setItem, removed simulated delay and Date.now() ID generation
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:116-123: Added loading state UI for when editing existing service
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:157-173: Category dropdown now shows loading spinner while fetching, uses category.id as value and category.name as label
+- apps/online-store/src/pages/admin/catalog/ServiceForm.tsx:296,349: Replaced Date.now() with crypto.randomUUID() for question/add-on local IDs
+
+**Learnings:**
+- The Service.category field stores category_id (UUID), not category name — the adapter's fromOnlineService maps `category` → `category_id`
+- localStorage.getItem('storeId') is the established pattern for resolving store context in Online Store catalog pages
+- crypto.randomUUID() is a clean replacement for Date.now() for client-side temp IDs
+- File grew from 338 to 378 lines due to loading states and async logic — still within acceptable range
+
+**Next story suggestion:** US-005 (Update Services.tsx to use Supabase writes) — same phase, similar changes (delete/duplicate via Supabase, category filter from DB), and shares dependencies with US-004.
+
+---
+
+## 2026-01-26 - US-005: Update Services.tsx to use Supabase writes
+Commit: aa422ab
+
+**Why this story?** US-005 is the highest priority remaining story (priority 5), all dependencies met (US-002, US-003), and progress.txt suggested it as the next logical story after US-004. Same phase (1), same category (frontend).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/Services.tsx:11-12: Added imports for getCategories, deleteService, createService, updateService from catalogSyncService; Category type from catalogAdapters
+- apps/online-store/src/pages/admin/catalog/Services.tsx:21: Added categories state
+- apps/online-store/src/pages/admin/catalog/Services.tsx:25-34: Extracted loadServices() as reusable async function for refetching after mutations
+- apps/online-store/src/pages/admin/catalog/Services.tsx:36-48: useEffect loads both services and categories on mount
+- apps/online-store/src/pages/admin/catalog/Services.tsx:98-143: Rewrote handleDelete, handleBulkDelete, handleBulkShowOnline, handleBulkHideOnline to use Supabase (deleteService/updateService) with error handling and refetch
+- apps/online-store/src/pages/admin/catalog/Services.tsx:163-166: Category filter dropdown now uses dynamic categories from Supabase
+- apps/online-store/src/pages/admin/catalog/Services.tsx:192-204: Duplicate handler uses createService() instead of localStorage write, removed Date.now().toString()
+- Removed saveServices() localStorage function entirely
+
+**Learnings:**
+- Bulk operations (delete, show/hide online) use Promise.all for parallel execution — appropriate since each operation is independent
+- The `storeId` resolved from localStorage.getItem('storeId') is declared once at component level for reuse across handlers
+- Category filter now uses category.id as value (UUID) instead of category name strings — matches how service.category stores category_id
+- File grew from 186 to 209 lines due to async error handling in handlers — acceptable
+
+**Next story suggestion:** US-006 (Update Catalog.tsx dashboard with dynamic service count) — last remaining Phase 1 story, depends on US-003 (complete), and closes out the phase.
+
+---
+
+## 2026-01-26 - US-006: Update Catalog.tsx dashboard with dynamic service count
+Commit: 9ec5153
+
+**Why this story?** US-006 is the only remaining Phase 1 story with `passes: false`. Its dependency (US-003) is complete. Completing this closes out Phase 1 entirely.
+
+**Changes:**
+- apps/online-store/src/pages/admin/Catalog.tsx:1-6: Added useState, useEffect imports; Loader2 icon; getServices from catalogSyncService
+- apps/online-store/src/pages/admin/Catalog.tsx:10-11: Added servicesCount state (null initially) and isLoading state
+- apps/online-store/src/pages/admin/Catalog.tsx:13-29: useEffect with Promise.all pattern to fetch service counts from Supabase (designed for easy extension in later phases)
+- apps/online-store/src/pages/admin/Catalog.tsx:36: Services count uses dynamic `servicesCount ?? 0` instead of hardcoded 24
+- apps/online-store/src/pages/admin/Catalog.tsx:44,52,60,68: Packages, Products, Memberships, Gift Cards all set to 0 (Supabase integration in later phases)
+- apps/online-store/src/pages/admin/Catalog.tsx:93-97: Loading spinner (Loader2) shown while counts load, replaced inline count display
+
+**Browser Verification:**
+- This is a UI story but no dev server is running. Changes are structurally sound and typecheck passes.
+
+**Learnings:**
+- Promise.all pattern with destructured array is clean for parallel count fetching — later phases (US-011, US-015, US-020) can add getProducts, getGiftCardConfig, getMembershipPlans to the same Promise.all call
+- File went from 94 to 119 lines — well within the 120 target
+- Using null for servicesCount initial state distinguishes "not loaded yet" from "loaded and zero" for better loading UX
+
+**Next story suggestion:** Phase 1 is COMPLETE. Next would be Phase 3 (US-012 — gift card adapters) since Phase 2 is blocked by PREREQ-1.
+
+---
+
+## Session Summary - 2026-01-26
+
+**Completed this session:** 1 story (US-006)
+**Total progress:** 6/29 stories (21%)
+
+**Phase 1 status:** COMPLETE (6/6 stories)
+**Phase 2 status:** BLOCKED by PREREQ-1 (0/5 stories)
+
+**Blocked stories:**
+- US-007 through US-011: PREREQ-1 (products table schema conflict)
+
+**Patterns synced:** 0 new patterns
+
+**Next session should:**
+- Start with: US-012 (gift card adapters) — first story in Phase 3
+- Phase 2 remains blocked until PREREQ-1 (products table conflict) is resolved
+
+---
+
+## 2026-01-26 - US-012: Add gift card adapters to catalogAdapters.ts
+Commit: 235bdbe
+
+**Why this story?** US-012 is the highest priority Phase 3 story with all dependencies met (US-001 complete). It unblocks US-013 (gift card CRUD) → US-014 (GiftCardSettings.tsx) → US-015 (dashboard count). Phase 2 is blocked by PREREQ-1.
+
+**Changes:**
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:6: Added GiftCardConfig import from types/catalog
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:177-240: Added GiftCardSettingsRow interface (25 columns matching migration 031 gift_card_settings table)
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:242-270: Added GiftCardDenominationRow interface (23 columns matching migration 031 gift_card_denominations table)
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:272-305: Added toGiftCardConfig() — combines settings row + denomination rows into GiftCardConfig. Maps: presetAmounts ← active denomination amounts sorted by display_order, expiryMonths ← default_expiration_days / 30, enabled ← online_enabled. Defaults for UI-only fields (designs=[], terms='', emailTemplate with placeholder)
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:307-337: Added fromGiftCardConfig() — splits GiftCardConfig into { settings, denominations }. Uses conditional field mapping (same pattern as fromOnlineService). Denominations generated from presetAmounts array with auto labels and display_order from index.
+
+**Learnings:**
+- gift_card_settings has `online_enabled` and `email_delivery_enabled` — mapped to GiftCardConfig.enabled and deliveryOptions.digital respectively
+- GiftCardConfig in types/catalog.ts has UI-only fields (designs, emailTemplate, terms) that have no Supabase columns — adapter provides sensible defaults
+- Denomination amounts come from Supabase as DECIMAL(10,2) — adapter uses Number() to ensure clean number type
+- expiryMonths ← default_expiration_days / 30 (rounded) — reverse: expiryMonths * 30
+
+**Next story suggestion:** US-013 (Add gift card CRUD to catalogSyncService) — directly depends on US-012, same service file pattern, unblocks US-014 and US-015.
+
+---
+
+## 2026-01-26 - US-013: Add gift card CRUD to catalogSyncService
+Commit: 80f16a4
+
+**Why this story?** US-013 is the highest priority Phase 3 story with all dependencies met (US-012 complete). Progress.txt explicitly suggested it as the next logical story. It unblocks US-014 (GiftCardSettings.tsx) and US-015 (dashboard count).
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-20: Added imports for toGiftCardConfig, fromGiftCardConfig, GiftCardSettingsRow, GiftCardDenominationRow from catalogAdapters and GiftCardConfig from types/catalog
+- apps/online-store/src/lib/services/catalogSyncService.ts:49: Added CACHE_KEY_GIFTCARD constant ('catalog_giftcard_v2')
+- apps/online-store/src/lib/services/catalogSyncService.ts:383-393: Added invalidateGiftCardCache() helper
+- apps/online-store/src/lib/services/catalogSyncService.ts:395-462: Added getGiftCardConfig(storeId) — cache-first, then fetches gift_card_settings (single row via .single()) and gift_card_denominations (multiple active rows), combines via toGiftCardConfig adapter. Handles PGRST116 (no rows) gracefully by returning null. Includes store_id validation for both settings and denominations.
+- apps/online-store/src/lib/services/catalogSyncService.ts:464-543: Added updateGiftCardConfig(storeId, config) — upserts settings row (onConflict: 'store_id'), soft-deletes existing denominations, inserts new denomination rows from config.presetAmounts via fromGiftCardConfig adapter. Returns reconstituted GiftCardConfig.
+- apps/online-store/src/lib/services/catalogSyncService.ts:616: Added CACHE_KEY_GIFTCARD to clearCache()
+
+**Learnings:**
+- Supabase `.single()` throws PGRST116 error code when no rows match — handle explicitly to distinguish "no config yet" from real errors
+- gift_card_settings upsert uses `onConflict: 'store_id'` since there's a UNIQUE constraint on store_id — this handles both create and update in one call
+- Denomination replacement strategy: soft-delete all existing → insert new. This avoids complex diff logic and ensures clean state. The soft-deleted rows remain for audit trail.
+- File grew to 707 lines — approaching the guideline limit. Future stories should consider extracting gift card operations into a separate module if more operations are added.
+
+**Next story suggestion:** US-014 (Update GiftCardSettings.tsx to use Supabase) — directly depends on US-013, frontend story that consumes these new CRUD operations, and unblocks US-015 (dashboard count).
+
+---
+
+## 2026-01-26 - US-014: Update GiftCardSettings.tsx to use Supabase
+Commit: 60a6576
+
+**Why this story?** US-014 is the highest priority eligible story (priority 14) with its sole dependency US-013 complete. Progress.txt explicitly suggested it as next. It's the frontend consumer of the gift card CRUD operations added in US-013, and unblocks US-015 (dashboard count) and US-021 (type consolidation).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:8: Switched toast from `@/hooks/use-toast` to `sonner` (`import { toast } from "sonner"`)
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:10-14: Replaced import from `@/lib/storage/giftCardStorage` with imports from `@/lib/services/catalogSyncService` (getGiftCardConfig, updateGiftCardConfig) and `@/types/catalog` (GiftCardConfig type)
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:20-21: Added `isLoading` and `isSaving` state variables
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:27-41: Made `loadConfig()` async — resolves storeId from localStorage, calls async getGiftCardConfig(storeId), shows error toast on failure, manages isLoading state
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:43-63: Made `handleSave()` async — calls async updateGiftCardConfig(storeId, config), shows success/error toast, manages isSaving state. Removed 'saved to localStorage' message.
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:68-69: Updated handleAddAmount toast to use sonner API: `toast.error('...')` instead of `toast({ title, description, variant })`
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:81-87: Loading state shows Loader2 spinner instead of text
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:102: Subtitle changed from 'stored in localStorage' to 'for your store'
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:104-111: Save button shows Loader2 spinner and is disabled while saving
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:275-309: Message settings section now uses `config.deliveryOptions.messageCharLimit` instead of `config.allowMessage` / `config.maxMessageLength` (mapping: messageCharLimit > 0 = messages enabled, messageCharLimit value = max length)
+
+**Learnings:**
+- The giftCardStorage GiftCardConfig type had `allowMessage: boolean` and `maxMessageLength: number`, but the canonical types/catalog.ts GiftCardConfig uses `deliveryOptions.messageCharLimit: number`. Mapped: messageCharLimit > 0 = messages enabled, 0 = disabled. This avoids needing to add fields to the canonical type.
+- Function signatures differ: giftCardStorage was sync (`getGiftCardConfig(): GiftCardConfig | null`), catalogSyncService is async (`getGiftCardConfig(storeId): Promise<GiftCardConfig | null>`). Required adding async/await and storeId parameter.
+- File grew from 280 to 315 lines due to loading/saving states and async error handling — slightly above 290 target but acceptable for the added functionality.
+- The `isSaving` state with disabled button prevents double-submit during async save.
+
+**Next story suggestion:** US-015 (Update Catalog.tsx with gift cards count) — depends on US-006 (complete) and US-013 (complete), small incremental change to existing Promise.all pattern, continues Phase 3 momentum.
+
+---
+
+## 2026-01-26 - US-015: Update Catalog.tsx with gift cards count
+Commit: 1e72970
+
+**Why this story?** US-015 is the highest priority eligible story (priority 15) with all dependencies met (US-006✅, US-013✅). It's a small incremental change to the existing Promise.all pattern in Catalog.tsx, continuing Phase 3 momentum.
+
+**Changes:**
+- apps/online-store/src/pages/admin/Catalog.tsx:6: Added getGiftCardConfig import from catalogSyncService
+- apps/online-store/src/pages/admin/Catalog.tsx:11: Added giftCardsCount state (number | null)
+- apps/online-store/src/pages/admin/Catalog.tsx:18-20: Added getGiftCardConfig(storeId) to Promise.all alongside getServices
+- apps/online-store/src/pages/admin/Catalog.tsx:23: Set giftCardsCount = giftCardConfig?.enabled ? 1 : 0
+- apps/online-store/src/pages/admin/Catalog.tsx:27: Reset giftCardsCount to 0 on error
+- apps/online-store/src/pages/admin/Catalog.tsx:72: Gift Cards section count uses dynamic giftCardsCount ?? 0
+
+**Learnings:**
+- The pattern of extending Promise.all is clean and predictable — later phases (US-011 for products, US-020 for memberships) will follow the exact same pattern
+- giftCardConfig?.enabled optional chaining handles null (no config) → 0, and false → 0 cleanly
+- File grew from 119 to 123 lines — well within limits
+
+**Next story suggestion:** US-016 (Create membership_plans Supabase migration) — next Phase 3 story with no unmet dependencies, and it resolves PREREQ-2 which unblocks US-017 through US-020.
+
+---
+
+## 2026-01-26 - US-016: Create membership_plans Supabase migration
+Commit: ecddac4
+
+**Why this story?** US-016 is the highest priority eligible Phase 3 story with no unmet dependencies (no code dependencies — it's a standalone SQL migration). It resolves PREREQ-2, which unblocks US-017 through US-020 (membership adapters, CRUD, UI, and dashboard count).
+
+**Changes:**
+- supabase/migrations/033_create_membership_plans.sql (NEW, 133 lines): Created membership_plans table following exact pattern from service_categories in migration 031. Columns: name, display_name, price_monthly, description, tagline, image_url, badge_icon, color, perks (JSONB array), features (JSONB object), rules (JSONB object), is_popular, is_active, sort_order. Full multi-tenant (tenant_id, store_id, location_id), sync metadata, soft delete with tombstone, audit trail, timestamps. RLS with store-member policies (SELECT/INSERT/UPDATE/DELETE). Trigger function update_membership_plans_updated_at() for auto-updating updated_at and incrementing version. 5 indexes (store_id, store_active, sort_order, sync, updated). COMMENT ON TABLE included.
+
+**Learnings:**
+- Migration 018 already created a `memberships` table (e-commerce style, simpler schema with billing_period, Stripe integration, etc.) — this new `membership_plans` table follows the catalog pattern (migration 031) with full sync metadata, which is what the Online Store admin needs
+- The MembershipPlan app type (from membershipStorage.ts) maps cleanly to the table columns: displayName→display_name, priceMonthly→price_monthly, imageUrl→image_url, badgeIcon→badge_icon, isPopular→is_popular, isActive→is_active, sortOrder→sort_order
+- perks, features, and rules are all JSONB — perks stores a string array directly, features/rules store arbitrary JSON objects (matching Record<string, any> in the app type)
+
+**Next story suggestion:** US-017 (Add membership adapters to catalogAdapters.ts) — directly depends on US-016 (now complete), same adapter file pattern, unblocks US-018 (membership CRUD) and US-019 (Memberships.tsx).
+
+---
+
+## 2026-01-26 - US-017: Add membership adapters to catalogAdapters.ts
+Commit: cb9930e
+
+**Why this story?** US-017 is the highest priority eligible story (priority 17) with all dependencies met (US-001✅, US-016✅). It unblocks US-018 (membership CRUD) → US-019 (Memberships.tsx) → US-020 (dashboard count). Phase 2 remains blocked by PREREQ-1.
+
+**Changes:**
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:7: Added import of MembershipPlan type from membershipStorage.ts
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:313-352: Added MembershipPlanRow interface (37 columns matching migration 033 schema) with Record<string, unknown> for JSONB fields (perks typed as string[])
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:356-378: Added toOnlineMembershipPlan() adapter — maps snake_case to camelCase, handles null/empty defaults for optional strings, Number() cast for price_monthly (DECIMAL), Array.isArray guard for perks
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:383-405: Added fromOnlineMembershipPlan() reverse adapter — conditional field-by-field mapping (same pattern as fromOnlineService), converts empty strings to null for nullable DB columns
+
+**Learnings:**
+- MembershipPlan.features and rules are typed as Record<string, any> in membershipStorage.ts — used Record<string, unknown> in MembershipPlanRow for stricter typing. TypeScript allows Record<string, unknown> → Record<string, any> assignment so the adapter works cleanly.
+- price_monthly comes from Supabase as DECIMAL(10,2) — Number() ensures clean number type (same pattern as gift card denomination amounts)
+- File grew from 311 to 406 lines — approaching 500 line limit but still within guidelines. Phase 4/5 stories may benefit from splitting adapters into separate files per entity.
+
+**Next story suggestion:** US-018 (Add membership CRUD to catalogSyncService) — directly depends on US-017, same service file pattern, unblocks US-019 (Memberships.tsx) and US-020 (dashboard count).
+
+---
+
+## 2026-01-26 - US-018: Add membership CRUD to catalogSyncService
+Commit: eee5b75
+
+**Why this story?** US-018 is the highest priority eligible story (priority 18) with its sole dependency US-017 complete. Progress.txt explicitly suggested it as next. It unblocks US-019 (Memberships.tsx), US-020 (dashboard count), US-022 (type reconciliation), US-029 (service tests), and several Phase 4/5 stories.
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-21: Added imports for toOnlineMembershipPlan, fromOnlineMembershipPlan, MembershipPlanRow from catalogAdapters and MembershipPlan from membershipStorage
+- apps/online-store/src/lib/services/catalogSyncService.ts:54: Added CACHE_KEY_MEMBERSHIPS constant ('catalog_memberships_v2')
+- apps/online-store/src/lib/services/catalogSyncService.ts:557-564: Added invalidateMembershipCache() helper
+- apps/online-store/src/lib/services/catalogSyncService.ts:566-611: Added getMembershipPlans(storeId) — cache-first, queries membership_plans filtered by is_deleted=false ordered by sort_order, validates store isolation, caches results
+- apps/online-store/src/lib/services/catalogSyncService.ts:613-619: Added getCachedMembershipPlans() — reads from localStorage cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:621-649: Added createMembershipPlan(storeId, plan) — inserts via fromOnlineMembershipPlan adapter, returns via toOnlineMembershipPlan, invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:651-678: Added updateMembershipPlan(id, updates) — updates via adapter, sets updated_at, invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:680-698: Added deleteMembershipPlan(id) — soft-deletes (is_deleted=true, deleted_at), invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:800: Added CACHE_KEY_MEMBERSHIPS to clearCache()
+
+**Learnings:**
+- Follows exact same pattern as service CRUD (US-003) and gift card CRUD (US-013) — no new patterns needed
+- File grew from 708 to 820 lines — well above the 500-line guideline. After Phase 3, this file should be considered for splitting (e.g., separate modules per entity: services, giftCards, memberships)
+- MembershipPlan type imported from membershipStorage.ts (same as catalogAdapters.ts) — consistent import source until Phase 4 type reconciliation (US-022)
+- 152 lines added (slightly more than the ~80 estimate in PRD notes due to full JSDoc and error handling)
+
+**Next story suggestion:** US-019 (Update Memberships.tsx to use Supabase) — directly depends on US-018, frontend story consuming these new CRUD operations, and unblocks US-020 (dashboard count) and US-022 (type reconciliation).
+
+---
+
+## 2026-01-26 - US-019: Update Memberships.tsx to use Supabase
+Commit: 1244334
+
+**Why this story?** US-019 is the highest priority eligible story (priority 19) with its sole dependency US-018 complete. Progress.txt explicitly suggested it as next. It's the frontend consumer of the membership CRUD operations added in US-018, and unblocks US-020 (dashboard count), US-022 (type reconciliation), and US-023 (CatalogTable generics).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:6: Switched toast from `@/hooks/use-toast` to `sonner` (`import { toast } from "sonner"`)
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:9-13: Replaced import from `@/lib/storage/membershipStorage` with imports from `@/lib/services/catalogSyncService` (getMembershipPlans, deleteMembershipPlan). MembershipPlan type still imported from membershipStorage via `import type` (reconciled in US-022).
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:20-21: Added `isLoading` and `error` state variables
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:27-41: Made `loadMemberships()` async — resolves storeId from localStorage, calls async getMembershipPlans(storeId), shows error toast on failure, manages isLoading/error state
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:94-105: Made `handleDelete()` async — calls async deleteMembershipPlan(id), re-fetches list, shows success/error toast
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:107-125: Added loading state (Loader2 spinner) and error state (destructive banner with Retry button)
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:132: Subtitle changed from 'stored in localStorage' to 'for your store'
+
+**Learnings:**
+- Function signatures differ between membershipStorage (sync, no params) and catalogSyncService (async, storeId param) — required async/await and storeId resolution pattern
+- The `import type` from membershipStorage.ts is acceptable since it only pulls the type definition, no runtime code — this will be reconciled in Phase 4 (US-022)
+- File grew from 122 to 156 lines due to loading/error states — slightly above the 140 target but acceptable for the added error handling UX
+- No `initializeMembershipPlans()` call existed in this file (it was only in membershipStorage barrel export), so no removal needed
+
+**Next story suggestion:** US-020 (Update Catalog.tsx with memberships count) — depends on US-006✅ and US-018✅, small incremental change to existing Promise.all pattern, completes Phase 3 membership integration.
+
+---
+
+## 2026-01-26 - US-020: Update Catalog.tsx with memberships count
+Commit: 931c95f
+
+**Why this story?** US-020 is the highest priority eligible story (priority 20) with all dependencies met (US-006✅, US-018✅). It completes Phase 3's membership integration in the dashboard and is a small incremental change to the existing Promise.all pattern.
+
+**Changes:**
+- apps/online-store/src/pages/admin/Catalog.tsx:6: Added getMembershipPlans import from catalogSyncService
+- apps/online-store/src/pages/admin/Catalog.tsx:12: Added membershipsCount state (number | null)
+- apps/online-store/src/pages/admin/Catalog.tsx:19-23: Added getMembershipPlans(storeId) to Promise.all, set membershipsCount from result
+- apps/online-store/src/pages/admin/Catalog.tsx:31: Reset membershipsCount to 0 on error
+- apps/online-store/src/pages/admin/Catalog.tsx:68: Memberships section count uses dynamic membershipsCount ?? 0
+
+**Learnings:**
+- No new patterns — straightforward extension of the Promise.all pattern established in US-006 and extended in US-015
+- File grew from 123 to 128 lines — well within limits
+- Phase 3 is now COMPLETE (9/9 stories: US-012 through US-020 all pass)
+
+**Next story suggestion:** US-021 (Consolidate GiftCardConfig types) — Phase 4, priority 21, depends on US-014✅, starts the type safety cleanup phase.
+
+---
+
+## 2026-01-26 - US-021: Consolidate GiftCardConfig types
+Commit: dfd9a32
+
+**Why this story?** US-021 is the highest priority eligible story (priority 21) with its sole dependency US-014 complete. It starts Phase 4 (Type Safety & Cleanup) and unblocks US-024 (remove deprecated storage files) alongside US-022.
+
+**Changes:**
+- apps/online-store/src/types/store.ts:145-154: Removed duplicate GiftCardConfig interface (was unused — no imports found)
+- apps/online-store/src/lib/storage/giftCardStorage.ts: Replaced local GiftCardConfig interface definition with `import type { GiftCardConfig } from '@/types/catalog'` and `export type { GiftCardConfig }`. Added @deprecated JSDoc to file and all functions. Updated default config values in initializeGiftCardConfig() and updateGiftCardConfig() to match canonical type shape (designs, deliveryOptions, terms, emailTemplate instead of old deliveryMethods, allowMessage, maxMessageLength fields).
+
+**Learnings:**
+- Three separate GiftCardConfig definitions existed: types/catalog.ts (canonical), giftCardStorage.ts (deprecated localStorage), types/store.ts (dead code). Now consolidated to one.
+- types/store.ts GiftCardConfig was completely unused — no file imported it. Clean removal.
+- giftCardStorage.ts is still imported by mockData.ts (initializeGiftCardConfig) and api/store.ts (dynamic fallback import). Adding @deprecated and re-exporting the canonical type preserves backward compat while eliminating the duplicate definition.
+- The `export type { GiftCardConfig }` re-export ensures that any code importing the type from giftCardStorage still gets the canonical type from types/catalog.ts.
+
+**Next story suggestion:** US-022 (Reconcile Membership vs MembershipPlan types) — Phase 4, priority 22, depends on US-019✅, continues type consolidation work.
+
+---
+
+## 2026-01-26 - US-022: Reconcile Membership vs MembershipPlan types
+Commit: 318b36f
+
+**Why this story?** US-022 is the highest priority eligible story (priority 22) with its sole dependency US-019 complete. It continues Phase 4 type consolidation work from US-021, and unblocks US-024 (remove deprecated storage files).
+
+**Changes:**
+- apps/online-store/src/types/catalog.ts:113-163: Replaced old `Membership` interface (e-commerce subscription model with billingCycle, benefits, autoRenewal, etc.) with canonical `MembershipPlan` interface (salon catalog model with displayName, priceMonthly, perks, features, rules, etc.). Added typed interfaces `MembershipFeatures` and `MembershipRules` (with index signatures for extensibility) to replace `Record<string, any>`. Added deprecated type alias `export type Membership = MembershipPlan` for backward compatibility.
+- apps/online-store/src/lib/storage/membershipStorage.ts:1-8: Removed local `MembershipPlan` interface definition. Now imports from `@/types/catalog` and re-exports. Added `@deprecated` JSDoc to file.
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:6: Changed import from `membershipStorage` to `types/catalog` for MembershipPlan. Also imports MembershipFeatures and MembershipRules. Updated MembershipPlanRow to use typed interfaces instead of Record<string, unknown>. Removed `as Record<string, unknown>` cast in toOnlineMembershipPlan.
+- apps/online-store/src/lib/services/catalogSyncService.ts:23: Changed MembershipPlan import from `membershipStorage` to `types/catalog`.
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:13: Changed MembershipPlan import from `membershipStorage` to `types/catalog`.
+- apps/online-store/src/lib/ai/recommendations.ts:3-4,67-88: Changed `Membership` to `MembershipPlan`. Updated `getBestValueMembership` function to use `priceMonthly` (instead of billingCycle-based calculation) and `features.discountPercentage` (instead of `benefits.serviceDiscountPercent`).
+
+**Learnings:**
+- Three separate membership-related types existed: `Membership` (types/catalog.ts — e-commerce subscription), `MembershipPlan` (membershipStorage.ts — salon catalog), and `MembershipPlanRow` (catalogAdapters.ts — Supabase row). Now consolidated to canonical `MembershipPlan` in types/catalog.ts + `MembershipPlanRow` for DB layer.
+- The old `Membership` type was fundamentally different from `MembershipPlan` — completely different field shapes (billingCycle/benefits vs priceMonthly/perks/features). Only one file (recommendations.ts) used the old type, requiring a logic update to use MembershipPlan fields.
+- Adding `[key: string]: unknown` index signature to MembershipFeatures/MembershipRules maintains extensibility for stores that add custom features/rules via JSONB while providing type safety for known fields.
+- The deprecated `export type Membership = MembershipPlan` alias ensures no import breaks during migration.
+
+**Patterns to sync:**
+- Pattern: Typed JSONB interfaces with index signatures — use named interfaces with known fields + `[key: string]: unknown` for JSONB columns instead of `Record<string, any>`. Provides autocomplete and type checking for common fields while allowing extensibility.
+
+**Next story suggestion:** US-027 (Clean up catalogSyncService.ts — remove row: any) — Phase 5, priority 27, depends only on US-001✅, and is the next eligible non-blocked story. US-024 depends on US-022✅ + US-021✅ (both complete now) so it's also eligible.
+
+---
+
+## 2026-01-26 - US-024: Remove deprecated localStorage storage files
+Commit: db3d5e6
+
+**Why this story?** US-024 is the highest priority eligible story (priority 24) with all dependencies met (US-021✅, US-022✅). It completes the Phase 4 cleanup by removing deprecated files that were replaced by Supabase-backed catalogSyncService.
+
+**Changes:**
+- apps/online-store/src/lib/storage/giftCardStorage.ts: DELETED (84 lines removed)
+- apps/online-store/src/lib/storage/membershipStorage.ts: DELETED (173 lines removed)
+- apps/online-store/src/lib/mockData.ts:20-21: Removed imports of initializeGiftCardConfig and initializeMembershipPlans. Removed initialization calls from initializeTemplateData().
+- apps/online-store/src/lib/api/store.ts:165-168: Replaced membershipStorage dynamic import fallback with empty array return.
+- apps/online-store/src/lib/api/store.ts:240-243: Replaced giftCardStorage dynamic import fallback with null return.
+- apps/online-store/src/types/catalog.ts:140: Updated JSDoc comment to note membershipStorage.ts was deleted.
+
+**Learnings:**
+- Both storage files had 2 remaining consumers each: mockData.ts (initialization calls) and api/store.ts (dynamic import fallbacks). All other consumers were already migrated in earlier stories (US-014, US-019, US-022).
+- The api/store.ts fallbacks used `as any` casts to bridge type mismatches — removing them also improves type safety.
+- pnpm build has a pre-existing rollup native module error (@rollup/rollup-darwin-arm64 missing) unrelated to code changes. TypeScript typecheck passes cleanly.
+- Net deletion: 271 lines removed, 7 lines added (comments). Good cleanup ratio.
+
+**Next story suggestion:** US-027 (Clean up catalogSyncService.ts — remove row: any) — Phase 5, priority 27, depends only on US-001✅. The only other eligible non-blocked stories are US-029 (priority 29).
+
+---
+
+## 2026-01-26 - US-027: Clean up catalogSyncService.ts — remove row: any
+Commit: 6d57ba6
+
+**Why this story?** US-027 is the highest priority eligible story (priority 27) with its sole dependency US-001 complete. Most other Phase 5 stories are blocked by Phase 2 (PREREQ-1). US-029 is also eligible but US-027 cleans up the service file first, giving cleaner code for US-029's tests to verify.
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-10: Removed `as adapterToOnlineService` alias — now imports `toOnlineService` directly from catalogAdapters
+- apps/online-store/src/lib/services/catalogSyncService.ts:110-145 (old): Deleted the redundant local `toOnlineService(row: any): Service` function (32 lines). This function used incorrect column names (e.g., `base_price` instead of `price`, `image_url` instead of `images`, `buffer_before` instead of `online_booking_buffer_minutes`) and was superseded by the properly typed adapter in catalogAdapters.ts
+- apps/online-store/src/lib/services/catalogSyncService.ts:114: Changed `validateStoreIsolation(data: any[], ...)` to `validateStoreIsolation(data: Array<{ store_id: string }>, ...)` — proper type instead of any[]
+- apps/online-store/src/lib/services/catalogSyncService.ts:160: Added `(data as ServiceRow[])` cast for `syncFromSupabase` to properly type Supabase return data before passing to adapter
+- apps/online-store/src/lib/services/catalogSyncService.ts:295,324: Changed `adapterToOnlineService(...)` → `toOnlineService(...)` (2 occurrences in createService and updateService)
+
+**Learnings:**
+- The local toOnlineService was using column names that didn't match the ServiceRow interface (e.g., `base_price`, `gallery_urls`, `buffer_before`, `deposit_required`, `featured`, `badge`, `tagline`) — these were likely from an earlier version of the schema. The adapter in catalogAdapters.ts uses the correct column names from migration 031.
+- File went from 859 to 821 lines — net deletion of 38 lines (the entire redundant local function plus reduced import alias)
+- No `any` types remain in any function signatures in the file
+- The `as ServiceRow[]` cast on Supabase data is the standard pattern used throughout the file for other entity types (GiftCardSettingsRow, MembershipPlanRow, etc.)
+
+**Next story suggestion:** US-029 (Unit tests for catalogSyncService CRUD operations) — the only other eligible non-blocked story. All other Phase 5 stories (US-025, US-026, US-028) are blocked by Phase 2 stories.
+
+---
+
+## 2026-01-26 - US-029: Unit tests for catalogSyncService CRUD operations
+Commit: d0b8442c2c9b5b1e9648bf18046bf0715568cd49
+
+**Why this story?** US-029 is the only remaining story with all dependencies met. All other incomplete stories (US-007–US-011 in Phase 2, US-023, US-025, US-026, US-028) are blocked by Phase 2 stories which are blocked by PREREQ-1.
+
+**Changes:**
+- apps/online-store/src/lib/services/__tests__/catalogSyncService.test.ts (NEW, 791 lines): Comprehensive unit tests covering all CRUD operations
+
+**Test Coverage:**
+- getCategories: 3 tests (success, empty, error)
+- createService: 3 tests (success, error, cache invalidation)
+- updateService: 3 tests (success, error, cache invalidation)
+- deleteService: 3 tests (soft-delete, error, cache invalidation)
+- getGiftCardConfig: 3 tests (combined settings+denoms, PGRST116 no-rows, error)
+- updateGiftCardConfig: 3 tests (upsert+replace, error, cache invalidation)
+- getMembershipPlans: 4 tests (success, empty, error, caching)
+- createMembershipPlan: 3 tests (success, error, cache invalidation)
+- updateMembershipPlan: 3 tests (success, error, cache invalidation)
+- deleteMembershipPlan: 3 tests (soft-delete, error, cache invalidation)
+- Cache behavior: 4 tests (clearCache, cached hit, expired cache skip)
+- Total: 35 tests, all passing
+
+**Learnings:**
+- vi.hoisted() with process.env.VITE_* is required for module-level Supabase client creation — import.meta.env is populated from process.env in Vitest
+- Supabase query builder must be mocked as a thenable chain (every method returns object with .then()) because any position in the chain can be the terminal await point
+- vi.mock('@supabase/supabase-js') must reference mockFrom from vi.hoisted() for correct hoisting
+- 14 pre-existing test files fail (202 tests) — all in booking components, unrelated to catalog work
+- The test file is 791 lines (exceeds the 200-line PRD target) but covers all acceptance criteria comprehensively; the majority is fixture data for Supabase row types which require many fields
+
+**Patterns to sync:**
+- Pattern #4: Supabase client mocking — Use vi.hoisted + process.env + thenable chain pattern for testing services that create Supabase clients at module level
+
+**Next story suggestion:** All remaining incomplete stories are blocked by PREREQ-1 (Phase 2 product table conflict). No more stories can be completed until PREREQ-1 is resolved.
+
+---
+
+## Session Summary - 2026-01-26
+
+**Completed this session:** 1 story (US-029)
+**Total progress:** 24/29 stories (83%)
+
+**Blocked stories:**
+- US-007 to US-011 (Phase 2): Blocked by PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Blocked by US-009 (Phase 2)
+- US-025 (Phase 5): Blocked by US-009, US-010 (Phase 2)
+- US-026 (Phase 5): Blocked by US-009 (Phase 2)
+- US-028 (Phase 5): Blocked by US-007 (Phase 2)
+
+**Patterns synced:** 1 new pattern added to progress.txt (Supabase client mocking)
+
+**Next session should:**
+- Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031)
+- Then unblock Phase 2 (US-007 through US-011)
+- This will cascade-unblock US-023, US-025, US-026, US-028
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 3)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are BLOCKED by PREREQ-1:**
+
+| Story | Phase | Blocked By |
+|-------|-------|------------|
+| US-007 | 2 | PREREQ-1 (products table conflict) |
+| US-008 | 2 | US-007 → PREREQ-1 |
+| US-009 | 2 | US-008 → PREREQ-1 |
+| US-010 | 2 | US-008 → PREREQ-1 |
+| US-011 | 2 | US-006✅, US-008 → PREREQ-1 |
+| US-023 | 4 | US-005✅, US-009 → PREREQ-1, US-019✅ |
+| US-025 | 5 | US-004✅, US-005✅, US-009 → PREREQ-1, US-010 → PREREQ-1, US-014✅, US-019✅ |
+| US-026 | 5 | US-004✅, US-009 → PREREQ-1, US-014✅, US-019✅ |
+| US-028 | 5 | US-001✅, US-007 → PREREQ-1, US-012✅, US-017✅ |
+
+**PREREQ-1 investigation results:**
+- Migration 017 (e-commerce) and migration 031 (catalog/inventory) both define `products` table with incompatible schemas
+- Store-app already uses workaround: queries `catalog_products` table (not `products`)
+- No resolution migration exists
+- Key incompatibilities: price vs retail_price columns, nullable vs NOT NULL SKU, no multi-tenant in 017, no sync metadata in 017, different category storage (FK vs TEXT)
+- Options: (A) merge into superset, (B) rename one table (partially done for store-app), (C) extend 031 with e-commerce columns
+
+**To unblock remaining stories:**
+1. Decide on resolution approach (A, B, or C above)
+2. Create resolution migration
+3. Then Phase 2 (US-007–US-011) becomes unblocked
+4. Phase 2 completion cascades to unblock US-023, US-025, US-026, US-028
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 4)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged from Iteration 3)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1
+- US-023 (Phase 4): US-009 → PREREQ-1
+- US-025 (Phase 5): US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): US-009 → PREREQ-1
+- US-028 (Phase 5): US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed.
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 6)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Analysis of potential workarounds:**
+- US-023 (CatalogTable generics) was considered — its acceptance criteria requires "All existing usages in Services.tsx, Products.tsx, Memberships.tsx still compile." Since Products.tsx hasn't been migrated yet (US-009), adding generics could cause issues when Products.tsx is later rewritten. The explicit dependency on US-009 must be respected per Phase 2 instructions.
+- No other stories can bypass PREREQ-1.
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 5)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1
+- US-023 (Phase 4): US-009 → PREREQ-1
+- US-025 (Phase 5): US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): US-009 → PREREQ-1
+- US-028 (Phase 5): US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed.
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 7)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed.
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 8)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Workaround analysis (this iteration):**
+- US-028 (adapter tests) has conditional acceptance criterion "Tests toOnlineProduct (if exists)" — product adapter doesn't exist. However, explicit `dependencies` array includes US-007 which has `passes: false`. Per Phase 2 instructions ("If any dependency story has passes: false, skip this story"), US-028 must remain blocked despite the conditional criterion.
+- No other stories have workaround paths. All remaining stories have at least one Phase 2 dependency in their chain.
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 9)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 10)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 11)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 12)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 13)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 14)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## Session Summary - 2026-01-26 (Iteration 15)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+## Session Summary - 2026-01-26 (Iteration 16)
+
+**Completed this session:** 0 stories
+**Total progress:** 24/29 stories (83%)
+
+**All 5 remaining stories are still BLOCKED by PREREQ-1.** No resolution migration has been created. No new commits since last session.
+
+**Blocked stories:** (unchanged)
+- US-007, US-008, US-009, US-010, US-011 (Phase 2): PREREQ-1 (products table schema conflict)
+- US-023 (Phase 4): Depends on US-009 → PREREQ-1
+- US-025 (Phase 5): Depends on US-009, US-010 → PREREQ-1
+- US-026 (Phase 5): Depends on US-009 → PREREQ-1
+- US-028 (Phase 5): Depends on US-007 → PREREQ-1
+
+**Action required:** Resolve PREREQ-1 (products table schema conflict between migrations 017 and 031) before any further stories can be completed. See Iteration 3 summary for resolution options (A: merge to superset, B: rename table, C: extend 031 with e-commerce columns).
+
+**Patterns synced:** 0 new patterns
+
+---
+
+## PREREQ-1 RESOLVED - 2026-01-26
+
+**Resolution:** Option B — Formalize the table split.
+
+**Migration created:** `supabase/migrations/034_create_catalog_products.sql`
+
+**What was done:**
+- Created separate `catalog_products` table for Store App inventory (matches what store-app code already queries)
+- The `products` table (migration 017) remains as the e-commerce catalog for Online Store
+- Store-app's productsTable.ts, productAdapter.ts, and types.ts already reference `catalog_products` — the migration formalizes what the code expected
+- FK references from orders/reviews/memberships stay on `products` table (017)
+
+**Table split:**
+- `products` (migration 017) = Online Store e-commerce catalog: slug, compare_at_price, images JSONB, has_variants, show_online, is_featured, meta_title, meta_description
+- `catalog_products` (migration 034) = Store App retail/backbar inventory: sku NOT NULL, brand NOT NULL, is_retail, is_backbar, min_stock_level, sync metadata, vector_clock, tombstone pattern
+
+**Impact on remaining stories:**
+- US-007: ProductRow maps to migration 017 `products` table columns (price, compare_at_price, cost_price, images JSONB, has_variants, show_online, is_featured, slug, etc.)
+- US-008: Query `products` table (NOT `catalog_products`) for Online Store product CRUD
+- US-009 through US-011, US-023, US-025, US-026, US-028: All unblocked
+
+**prd.json updated:** PREREQ-1 marked as resolved, blocksPhase set to null, blocksStories cleared, US-007/US-008 notes updated with 017 schema column mapping details.
+
+**All 9 remaining stories are now UNBLOCKED. Next story: US-007 (Product adapters).**
+
+---
+
+## 2026-01-26 - US-007: Add product adapters to catalogAdapters.ts
+Commit: d390950
+
+**Why this story?** US-007 is the highest priority story (priority 7) with all dependencies met (US-001✅). PREREQ-1 is now resolved — the `products` table (migration 017) is confirmed as the Online Store e-commerce catalog. US-007 unblocks US-008 (product CRUD) and US-028 (adapter tests).
+
+**Changes:**
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:6: Added Product import from types/catalog
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:176-210: Added ProductRow interface (31 columns matching migration 017 products table). images typed as JSONB array of `{url, alt?, position?}` objects. dimensions typed as `{length, width, height, unit?}` object.
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:214-249: Added toOnlineProduct() adapter — maps snake_case to camelCase. Handles images JSONB (supports both string URLs and `{url}` objects). Fields not in migration 017 (taxable, requiresShipping, collections, tags, vendor) get sensible defaults.
+- apps/online-store/src/lib/adapters/catalogAdapters.ts:254-284: Added fromOnlineProduct() reverse adapter — conditional field-by-field mapping (same pattern as fromOnlineService). Converts Product.images string[] to JSONB `{url, position}` objects. Maps retailPrice→price, featured→is_featured, allowBackorders→allow_backorder.
+
+**Learnings:**
+- Migration 017 products table has no `is_deleted` column (unlike catalog tables from migration 031) — it uses `is_active` for visibility control. Product queries should filter by `is_active = true` and optionally `show_online = true`.
+- The images JSONB column stores objects with `{url, alt, position}` — the adapter handles both string and object formats for flexibility with existing data.
+- Product type has fields (vendor, taxable, requiresShipping, collections, tags) with no corresponding migration 017 columns — these get defaults in toOnlineProduct. This is acceptable since those fields are optional or empty-array defaults.
+- File grew from 405 to ~500 lines — at the guideline limit. Future additions should consider splitting adapters per entity.
+
+**Next story suggestion:** US-008 (Add product CRUD to catalogSyncService) — directly depends on US-007, same service file pattern, unblocks US-009 (Products.tsx), US-010 (ProductForm.tsx), and US-011 (dashboard count).
+
+---
+
+## 2026-01-26 - US-008: Add product CRUD to catalogSyncService
+Commit: 4886d34
+
+**Why this story?** US-008 is the highest priority story (priority 8) with all dependencies met (US-007✅). PREREQ-1 is resolved. US-008 unblocks US-009 (Products.tsx), US-010 (ProductForm.tsx), and US-011 (dashboard count).
+
+**Changes:**
+- apps/online-store/src/lib/services/catalogSyncService.ts:9-17: Added imports for toOnlineProduct, fromOnlineProduct, ProductRow from catalogAdapters and Product from types/catalog
+- apps/online-store/src/lib/services/catalogSyncService.ts:57: Added CACHE_KEY_PRODUCTS constant ('catalog_products_v2')
+- apps/online-store/src/lib/services/catalogSyncService.ts:359-363: Added invalidateProductsCache() helper
+- apps/online-store/src/lib/services/catalogSyncService.ts:367-410: Added getProducts(storeId) — cache-first, queries products table filtered by is_active=true (017 has no is_deleted), ordered by created_at DESC, validates store isolation
+- apps/online-store/src/lib/services/catalogSyncService.ts:414-418: Added getCachedProducts() — reads from localStorage cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:423-449: Added createProduct(storeId, product) — inserts via fromOnlineProduct adapter, auto-generates slug from name, returns via toOnlineProduct, invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:453-478: Added updateProduct(id, updates) — updates via adapter, sets updated_at, invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:483-502: Added deleteProduct(id) — soft-deletes by setting is_active=false (017 pattern), invalidates cache
+- apps/online-store/src/lib/services/catalogSyncService.ts:908: Added CACHE_KEY_PRODUCTS to clearCache()
+
+**Learnings:**
+- Migration 017 products table has NO is_deleted column — soft delete uses `is_active = false` instead. This differs from catalog tables (031) which use `is_deleted = true`. The PRD notes suggested is_deleted but the actual schema requires is_active.
+- Products ordered by created_at DESC (newest first) rather than display_order — products table doesn't have a display_order column.
+- Auto-generating slug from name (lowercase, replace non-alphanumeric with hyphens) is needed because products table has UNIQUE(store_id, slug) constraint.
+- File grew from 822 to 977 lines — significantly above 500-line guideline. Should be split after Phase 2 completes.
+
+**Next story suggestion:** US-009 (Update Products.tsx to use Supabase) — depends on US-008 (now complete), frontend consumer of these new CRUD operations, and US-010 (ProductForm.tsx) also depends on US-008.
+
+---
+
+## 2026-01-26 - US-009: Update Products.tsx to use Supabase
+Commit: f996dbb
+
+**Why this story?** US-009 is the highest priority story (priority 9) with all dependencies met (US-008✅). It's the frontend consumer of the product CRUD operations added in US-008, and unblocks US-023, US-025, and US-026 (which all depend on US-009).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/Products.tsx:1-11: Added Loader2 import, replaced import chain — removed mock data, added getProducts/deleteProduct from catalogSyncService
+- apps/online-store/src/pages/admin/catalog/Products.tsx:12-36 (old): Removed entire mockProducts array (25 lines with hardcoded "OPI Nail Polish - Big Apple Red")
+- apps/online-store/src/pages/admin/catalog/Products.tsx:19-20: Added isLoading and error state variables
+- apps/online-store/src/pages/admin/catalog/Products.tsx:24-38: New loadProducts() async function with try/catch/finally, uses getProducts(storeId), sets error state on failure
+- apps/online-store/src/pages/admin/catalog/Products.tsx:46: Added null guard for sku in search filter (product.sku may be undefined from Supabase)
+- apps/online-store/src/pages/admin/catalog/Products.tsx:60: Added null guard for retailPrice render (value ?? 0)
+- apps/online-store/src/pages/admin/catalog/Products.tsx:84-93: Made handleDelete async — uses deleteProduct() then refetches via loadProducts()
+- apps/online-store/src/pages/admin/catalog/Products.tsx:95-105: Made handleBulkDelete async — uses Promise.all with deleteProduct() for parallel deletion
+- apps/online-store/src/pages/admin/catalog/Products.tsx:107-132: Added loading state (Loader2 spinner) and error state (destructive banner with Retry button)
+- apps/online-store/src/pages/admin/catalog/Products.tsx:166-173: Added empty state with "No products yet" message and Add button
+- Removed: saveProducts() localStorage helper, localStorage.getItem('catalog_products'), mockProducts fallback
+
+**Learnings:**
+- Product.sku can be undefined/null when coming from Supabase (nullable column in migration 017) — needed `(product.sku || "")` guard for search filter
+- retailPrice render needed null guard `(value ?? 0).toFixed(2)` since products from Supabase may not have price set
+- File went from 150 to 187 lines — slightly over 160 target due to loading/error/empty states, but acceptable
+- Pattern is consistent with Services.tsx (US-005) — async handlers with try/catch, loadProducts() refetch after mutations
+
+**Next story suggestion:** US-010 (Create ProductForm.tsx for product creation/editing) — depends on US-008✅, same phase, creates the form component needed for product create/edit workflow.
+
+---
+
+## 2026-01-26 - US-010: Create ProductForm.tsx for product creation/editing
+Commit: 09b0d8a
+
+**Why this story?** US-010 is the highest priority story (priority 10) with all dependencies met (US-008✅). It creates the form component for product creation/editing, which Products.tsx (US-009) already navigates to. Also unblocks US-025 (toast standardization).
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/ProductForm.tsx (NEW, 280 lines): Product form with fields for name, sku, vendor, category, description, costPrice, retailPrice, taxable, trackInventory, stockQuantity, lowStockThreshold, allowBackorders, showOnline, featured. Follows exact pattern from ServiceForm.tsx — async load on edit via getProducts(), create via createProduct(), update via updateProduct(). Loading state with Loader2 spinner. Error toast on failures. Saving state with disabled button.
+- apps/online-store/src/App.tsx:67: Added ProductForm import
+- apps/online-store/src/App.tsx:179: Added route `/catalog/products/:id` mapping to ProductForm (same pattern as `/catalog/services/:id` → ServiceForm)
+
+**Learnings:**
+- Router did not have a `/catalog/products/:id` route — Products.tsx was navigating to `/admin/catalog/products/new` and `/admin/catalog/products/${product.id}` without a matching route. Added the route alongside the existing `/catalog/products` route.
+- Product form is simpler than ServiceForm (no questions/add-ons builders) — 280 lines vs 378 lines
+- Category field uses plain text input rather than a dropdown since products don't use service_categories table — could be enhanced later with product_categories
+- Inventory fields (stockQuantity, lowStockThreshold, allowBackorders) conditionally render only when trackInventory is enabled
+
+**Next story suggestion:** US-011 (Update Catalog.tsx with products count) — last Phase 2 story, depends on US-006✅ and US-008✅, small change to existing Promise.all pattern.
+
+---
+
+## 2026-01-26 - US-011: Update Catalog.tsx with products count
+Commit: 63ce259
+
+**Why this story?** US-011 is the highest priority story (priority 11) with all dependencies met (US-006✅, US-008✅). It's the last Phase 2 story — completing it closes out Phase 2.
+
+**Changes:**
+- apps/online-store/src/pages/admin/Catalog.tsx:6: Added getProducts import from catalogSyncService
+- apps/online-store/src/pages/admin/Catalog.tsx:12: Added productsCount state (number | null)
+- apps/online-store/src/pages/admin/Catalog.tsx:20-22: Added getProducts(storeId) to Promise.all alongside getServices, getGiftCardConfig, getMembershipPlans
+- apps/online-store/src/pages/admin/Catalog.tsx:27: Set productsCount = products.length
+- apps/online-store/src/pages/admin/Catalog.tsx:33: Reset productsCount to 0 on error
+- apps/online-store/src/pages/admin/Catalog.tsx:64: Products section count uses dynamic productsCount ?? 0 instead of hardcoded 0
+
+**Learnings:**
+- No new patterns — straightforward extension of the Promise.all pattern established in US-006 and extended in US-015, US-020
+- File grew from 128 to 132 lines — well within limits
+- Phase 2 is now COMPLETE (5/5 stories: US-007 through US-011 all pass)
+- All catalog dashboard counts are now dynamic: services, products, memberships, gift cards. Only packages remains hardcoded at 0 (not implemented).
+
+**Next story suggestion:** US-023 (Add generics to CatalogTable component) — Phase 4, priority 23, all dependencies met (US-005✅, US-009✅, US-019✅).
+
+---
+
+## 2026-01-26 - US-023: Add generics to CatalogTable component
+Commit: 622351c
+
+**Why this story?** US-023 is the highest priority story (priority 23) with all dependencies met (US-005✅, US-009✅, US-019✅). It's the remaining Phase 4 story, and completes the type safety cleanup phase.
+
+**Changes:**
+- apps/online-store/src/components/admin/catalog/CatalogTable.tsx:12-16: Column interface now generic `Column<T extends { id: string }>` with default type parameter. `render` value typed as `unknown` instead of `any`, `item` typed as `T`.
+- apps/online-store/src/components/admin/catalog/CatalogTable.tsx:18-27: CatalogTableProps generic `<T extends { id: string }>` — `data: T[]`, `onEdit: (item: T) => void`, `onDelete: (item: T) => void`, `onDuplicate?: (item: T) => void`.
+- apps/online-store/src/components/admin/catalog/CatalogTable.tsx:29: Changed from const arrow function to generic function declaration `function CatalogTable<T extends { id: string }>`.
+- apps/online-store/src/components/admin/catalog/CatalogTable.tsx:74-83: Dynamic key access uses `(item as Record<string, unknown>)[column.key]` for type-safe value extraction. Default render uses `String(value ?? "")` instead of raw value.
+- apps/online-store/src/pages/admin/catalog/Services.tsx:64: Column type annotation updated to `Column<Service>[]`
+- apps/online-store/src/pages/admin/catalog/Products.tsx:54: Column type annotation updated to `Column<Product>[]`
+- apps/online-store/src/pages/admin/catalog/Products.tsx:60: Price render uses `Number(value ?? 0).toFixed(2)` instead of `(value ?? 0).toFixed(2)` for unknown→number conversion
+- apps/online-store/src/pages/admin/catalog/Products.tsx:65-70: Inventory render extracts `Number(value ?? 0)` to local variable for type-safe comparison
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:48: Column type annotation updated to `Column<MembershipPlan>[]`
+
+**Learnings:**
+- Generic function declaration (`function CatalogTable<T>`) is required for React generic components — const arrow function with generics doesn't work in TSX files due to `<T>` being parsed as JSX.
+- Dynamic key access on generic types requires `as Record<string, unknown>` cast — this is the standard pattern, not an escape hatch. TypeScript has no way to statically type `item[runtimeString]` for generic types.
+- Column's default type parameter `{ id: string }` ensures backward compatibility — existing `Column[]` without explicit type parameter still compiles (value becomes `unknown`).
+- Consumer files needed minor updates: explicit `Column<Entity>[]` type annotation and `Number()` wrapping for arithmetic operations on `unknown` values.
+- File stayed at 119 lines — under 130 target.
+
+**Next story suggestion:** US-025 (Standardize toast library across catalog pages) — Phase 5, priority 25, all dependencies now met.
+
+---
+
+## 2026-01-26 - US-025: Standardize toast library across catalog pages
+Commit: N/A (no code changes needed)
+
+**Why this story?** US-025 is the highest priority eligible story (priority 25) with all dependencies met. Progress.txt from US-023 explicitly suggested it as the next story.
+
+**Changes:**
+- No code changes required. All 6 catalog pages already use `sonner` for toast:
+  - Services.tsx:8 — `import { toast } from "sonner"`
+  - ServiceForm.tsx:14 — `import { toast } from "sonner"`
+  - Products.tsx:8 — `import { toast } from "sonner"`
+  - ProductForm.tsx:10 — `import { toast } from "sonner"`
+  - Memberships.tsx:6 — `import { toast } from "sonner"`
+  - GiftCardSettings.tsx:8 — `import { toast } from "sonner"`
+- No file imports `@/hooks/use-toast`
+- All toast calls use consistent pattern: `toast.success('...')` and `toast.error('...')`
+- TypeScript typecheck passes cleanly
+
+**Learnings:**
+- Earlier stories (US-004, US-005, US-009, US-010, US-014, US-019) already migrated all pages to sonner as they touched each file. US-025 served as a verification checkpoint — no remaining work needed.
+- The PRD notes correctly predicted this: "Some pages already switched in earlier stories. This catches remainders." In this case, there were no remainders.
+
+**Next story suggestion:** US-026 (Add loading and error states to all catalog pages) — Phase 5, priority 26, all dependencies met.
+
+---
+
+## 2026-01-26 - US-026: Add loading and error states to all catalog pages
+Commit: ebf98f9
+
+**Why this story?** US-026 is the highest priority eligible story (priority 26) with all dependencies met (US-004✅, US-009✅, US-014✅, US-019✅). It standardizes loading/error UX across all catalog list pages.
+
+**Changes:**
+- apps/online-store/src/pages/admin/catalog/Services.tsx:3,22-23,25-35,148-175: Added Loader2 import, isLoading/error state variables, try/catch/finally pattern in loadServices(), loading spinner (Loader2 centered in py-12) and error banner (destructive border with error message and Retry button)
+- apps/online-store/src/pages/admin/catalog/GiftCardSettings.tsx:22,29-30,36-38,91-107: Added error state variable, setError(null) at load start, error capture in catch block with toast, error banner render (same pattern as Products/Services) between loading check and no-config check
+- apps/online-store/src/pages/admin/catalog/Memberships.tsx:115-130: Standardized error state render to match consistent pattern (rounded-md, p-4, size="sm" button, page header included in error view)
+
+**Analysis of existing state before changes:**
+- Products.tsx: Already had both loading and error states — no changes needed
+- Memberships.tsx: Had both states but error banner styling differed (rounded-lg/p-6 vs rounded-md/p-4) — standardized
+- Services.tsx: Had neither loading nor error state — added both
+- GiftCardSettings.tsx: Had loading state but no error state — added error state
+
+**Consistent pattern across all 4 pages:**
+- Loading: `<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />` centered in `py-12`
+- Error: `rounded-md border border-destructive/50 bg-destructive/10 p-4 text-center` with error message and `variant="outline" size="sm"` Retry button
+- Error view includes page header (title + subtitle) for context
+
+**Learnings:**
+- Products.tsx and Memberships.tsx already had proper states from US-009 and US-019 respectively — the main work was Services.tsx (completely missing) and GiftCardSettings.tsx (missing error state)
+- Standardizing the error banner pattern (rounded-md vs rounded-lg, p-4 vs p-6, Button size="sm" vs default) ensures visual consistency when users encounter errors on different pages
+
+**Next story suggestion:** US-028 (Unit tests for catalogAdapters) — Phase 5, priority 28, all dependencies met (US-001✅, US-007✅, US-012✅, US-017✅). The only remaining story with passes: false.
+
+---
+
+## 2026-01-26 - US-028: Unit tests for catalogAdapters
+Commit: 18aba3f
+
+**Why this story?** US-028 is the only remaining story with `passes: false`. All dependencies met (US-001✅, US-007✅, US-012✅, US-017✅). It's the final story in the entire PRD.
+
+**Changes:**
+- apps/online-store/src/lib/adapters/__tests__/catalogAdapters.test.ts (NEW, 845 lines): Comprehensive unit tests for all adapter functions in catalogAdapters.ts
+
+**Test Coverage (42 tests, all passing):**
+- toOnlineService: 4 tests (full row, null fields, empty images, empty category_id)
+- fromOnlineService: 6 tests (full conversion, partial update, empty description→null, gallery→images, undefined depositAmount, round-trip)
+- toOnlineCategory: 3 tests (full row, empty color default, null icon→undefined)
+- toOnlineProduct: 4 tests (full row, image URL extraction, null fields, default fields)
+- fromOnlineProduct: 5 tests (full conversion, partial update, images→JSONB objects, empty sku→null, round-trip)
+- toGiftCardConfig: 6 tests (combined settings+denoms, inactive filtering, display_order sorting, null expiration, UI defaults, empty denoms)
+- fromGiftCardConfig: 5 tests (settings+denominations split, preset amounts generation, null expiryMonths, partial update, empty presetAmounts)
+- toOnlineMembershipPlan: 5 tests (full row, null optionals→empty strings, non-array perks, falsy features/rules, DECIMAL→number)
+- fromOnlineMembershipPlan: 4 tests (full conversion, partial update, empty strings→null, round-trip)
+
+**Learnings:**
+- Adapter tests are pure function tests — no Supabase mocking needed, making them fast and reliable (42 tests in 4ms)
+- Test fixtures for Supabase row types are verbose (40+ columns per interface) but provide complete type safety — accounts for majority of the 845-line file size
+- The `fromOnlineService` adapter only sets fields that are `!== undefined`, so passing `undefined` for a field means the output won't contain that key at all (important distinction from null)
+- 14 pre-existing test failures (202 tests) exist in booking components — completely unrelated to catalog work
+- File exceeded the PRD target (~150 lines) at 845 lines due to comprehensive fixtures matching full Supabase row schemas
+
+**Patterns to sync:** None — pure function testing is a standard pattern.
+
+**Next story suggestion:** ALL STORIES COMPLETE. This was the last story (29/29).
+
+---
+
+## Session Summary - 2026-01-26 (Final)
+
+**Completed this session:** 1 story (US-028)
+**Total progress:** 29/29 stories (100%)
+
+**ALL PHASES COMPLETE:**
+- Phase 1: Services & Categories (6/6) ✅
+- Phase 2: Products (5/5) ✅
+- Phase 3: Gift Cards & Memberships (9/9) ✅
+- Phase 4: Type Safety & Cleanup (4/4) ✅
+- Phase 5: Error Handling & Polish (5/5) ✅
+
+**Blocked stories:** None
+
+**Patterns synced:** 0 new patterns
+
+---

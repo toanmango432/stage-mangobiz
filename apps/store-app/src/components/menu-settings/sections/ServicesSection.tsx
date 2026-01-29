@@ -1,31 +1,29 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Plus,
   Edit3,
-  Trash2,
-  MoreVertical,
   Clock,
   DollarSign,
   Users,
   Globe,
-  Copy,
-  EyeOff,
-  Eye,
   ChevronRight,
   Sparkles,
   Layers,
-  Archive,
 } from 'lucide-react';
+import { ServiceActionsDropdown } from './ServicesSection/components';
 import type {
   MenuService,
   MenuServiceWithEmbeddedVariants,
   CategoryWithCount,
   CatalogViewMode,
   EmbeddedVariant,
+  StaffServiceAssignment,
+  StaffAssignmentData,
 } from '@/types/catalog';
 import { formatDuration, formatPrice } from '../constants';
 import { ServiceModal } from '../modals/ServiceModal';
 import { ArchiveServiceModal } from '../modals/ArchiveServiceModal';
+import { ConfirmDialog, ServiceCardSkeleton, TableRowSkeleton } from '../components';
 import type { ServiceArchiveDependencies, ArchiveServiceResult } from '../../../hooks/useCatalog';
 
 interface ServicesSectionProps {
@@ -35,12 +33,17 @@ interface ServicesSectionProps {
   viewMode: CatalogViewMode;
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
+  /** When true, shows skeleton loaders instead of content */
+  isLoading?: boolean;
   // Action callbacks
   onCreate?: (data: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<MenuService | null>;
   onUpdate?: (id: string, data: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<MenuService | null | undefined>;
   onDelete?: (id: string) => Promise<boolean | null>;
   onArchive?: (id: string) => Promise<ArchiveServiceResult | null>;
   checkServiceDependencies?: (serviceId: string) => Promise<ServiceArchiveDependencies>;
+  // Staff assignment callbacks
+  getStaffAssignments?: (serviceId: string) => Promise<StaffServiceAssignment[]>;
+  saveStaffAssignments?: (serviceId: string, assignments: StaffAssignmentData[]) => Promise<void>;
 }
 
 export function ServicesSection({
@@ -50,15 +53,18 @@ export function ServicesSection({
   viewMode,
   selectedCategoryId,
   onSelectCategory,
+  isLoading = false,
   onCreate,
   onUpdate,
   onDelete,
   onArchive,
   checkServiceDependencies,
+  getStaffAssignments,
+  saveStaffAssignments,
 }: ServicesSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState<MenuServiceWithEmbeddedVariants | undefined>();
-  const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
+  const [editingServiceAssignments, setEditingServiceAssignments] = useState<StaffServiceAssignment[]>([]);
 
   // Archive modal state
   const [showArchiveModal, setShowArchiveModal] = useState(false);
@@ -66,22 +72,47 @@ export function ServicesSection({
   const [archiveDependencies, setArchiveDependencies] = useState<ServiceArchiveDependencies | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
 
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedServiceToDelete, setSelectedServiceToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Load staff assignments when editing a service
+  useEffect(() => {
+    const loadAssignments = async () => {
+      if (editingService && getStaffAssignments) {
+        const assignments = await getStaffAssignments(editingService.id);
+        setEditingServiceAssignments(assignments);
+      } else {
+        setEditingServiceAssignments([]);
+      }
+    };
+    loadAssignments();
+  }, [editingService, getStaffAssignments]);
+
   // Get category by ID
   const getCategory = (categoryId: string) => {
     return categories.find(c => c.id === categoryId);
   };
 
   // Handle save service
-  const handleSaveService = async (serviceData: Partial<MenuService>, variants?: EmbeddedVariant[]) => {
+  const handleSaveService = async (
+    serviceData: Partial<MenuService>,
+    variants?: EmbeddedVariant[],
+    staffAssignments?: StaffAssignmentData[]
+  ) => {
+    let savedServiceId: string | undefined;
+
     if (editingService) {
       // Update existing service
       if (onUpdate) {
         await onUpdate(editingService.id, serviceData, variants);
+        savedServiceId = editingService.id;
       }
     } else {
       // Create new service
       if (onCreate) {
-        await onCreate({
+        const newService = await onCreate({
           categoryId: serviceData.categoryId || categories[0]?.id || '',
           name: serviceData.name || 'New Service',
           description: serviceData.description,
@@ -100,33 +131,57 @@ export function ServicesSection({
           showPriceOnline: serviceData.showPriceOnline ?? true,
           allowCustomDuration: serviceData.allowCustomDuration || false,
         }, variants);
+        savedServiceId = newService?.id;
       }
     }
+
+    // Save staff assignments if provided and we have a service ID
+    if (savedServiceId && staffAssignments && saveStaffAssignments) {
+      await saveStaffAssignments(savedServiceId, staffAssignments);
+    }
+
     setShowModal(false);
     setEditingService(undefined);
   };
 
-  // Handle delete
-  const handleDelete = async (serviceId: string) => {
-    if (confirm('Are you sure you want to delete this service?')) {
-      if (onDelete) {
-        await onDelete(serviceId);
-      }
+  // Handle opening delete confirmation dialog
+  const handleOpenDeleteDialog = useCallback((serviceId: string) => {
+    setSelectedServiceToDelete(serviceId);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  // Handle confirming delete
+  const handleConfirmDelete = async () => {
+    if (!selectedServiceToDelete || !onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(selectedServiceToDelete);
+      setDeleteDialogOpen(false);
+      setSelectedServiceToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
+  // Handle closing delete dialog
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setSelectedServiceToDelete(null);
+  };
+
   // Handle toggle status
-  const handleToggleStatus = async (serviceId: string) => {
+  const handleToggleStatus = useCallback(async (serviceId: string) => {
     const service = allServices.find(s => s.id === serviceId);
     if (service && onUpdate) {
       await onUpdate(serviceId, {
         status: service.status === 'active' ? 'inactive' : 'active',
       });
     }
-  };
+  }, [allServices, onUpdate]);
 
   // Handle duplicate
-  const handleDuplicate = async (service: MenuServiceWithEmbeddedVariants) => {
+  const handleDuplicate = useCallback(async (service: MenuServiceWithEmbeddedVariants) => {
     if (onCreate) {
       await onCreate({
         categoryId: service.categoryId,
@@ -148,12 +203,17 @@ export function ServicesSection({
         allowCustomDuration: service.allowCustomDuration,
       }, service.variants);
     }
-  };
+  }, [onCreate, allServices.length]);
+
+  // Handle edit service
+  const handleEditService = useCallback((service: MenuServiceWithEmbeddedVariants) => {
+    setEditingService(service);
+    setShowModal(true);
+  }, []);
 
   // Handle opening archive modal
-  const handleOpenArchiveModal = async (service: MenuServiceWithEmbeddedVariants) => {
+  const handleOpenArchiveModal = useCallback(async (service: MenuServiceWithEmbeddedVariants) => {
     setSelectedServiceForArchive(service);
-    setExpandedMenuId(null);
 
     // Check dependencies if available
     if (checkServiceDependencies) {
@@ -162,7 +222,7 @@ export function ServicesSection({
     }
 
     setShowArchiveModal(true);
-  };
+  }, [checkServiceDependencies]);
 
   // Handle confirm archive
   const handleConfirmArchive = async () => {
@@ -194,6 +254,45 @@ export function ServicesSection({
     return formatPrice(service.price);
   };
 
+  // Render skeleton loading state based on view mode
+  const renderSkeletons = () => {
+    const skeletonCount = 6;
+
+    if (viewMode === 'grid') {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: skeletonCount }).map((_, index) => (
+            <ServiceCardSkeleton key={index} />
+          ))}
+        </div>
+      );
+    }
+
+    if (viewMode === 'list') {
+      return (
+        <div className="space-y-2">
+          {Array.from({ length: skeletonCount }).map((_, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-xl border border-gray-200 p-4"
+            >
+              <TableRowSkeleton columns={5} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Compact view
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <TableRowSkeleton key={index} columns={3} />
+        ))}
+      </div>
+    );
+  };
+
   // Render Grid View
   const renderGridView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -214,66 +313,15 @@ export function ServicesSection({
               >
                 <Sparkles size={20} style={{ color: category?.color || '#6B7280' }} />
               </div>
-              <div className="relative">
-                <button
-                  onClick={() => setExpandedMenuId(expandedMenuId === service.id ? null : service.id)}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                >
-                  <MoreVertical size={16} />
-                </button>
-                {expandedMenuId === service.id && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setExpandedMenuId(null)} />
-                    <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                      <button
-                        onClick={() => {
-                          setEditingService(service);
-                          setShowModal(true);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Edit3 size={14} /> Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleDuplicate(service);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Copy size={14} /> Duplicate
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleToggleStatus(service.id);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        {service.status === 'active' ? <EyeOff size={14} /> : <Eye size={14} />}
-                        {service.status === 'active' ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button
-                        onClick={() => handleOpenArchiveModal(service)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Archive size={14} /> Archive
-                      </button>
-                      <hr className="my-1" />
-                      <button
-                        onClick={() => {
-                          handleDelete(service.id);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+              <ServiceActionsDropdown
+                service={service}
+                onEdit={handleEditService}
+                onDuplicate={handleDuplicate}
+                onToggleStatus={handleToggleStatus}
+                onArchive={handleOpenArchiveModal}
+                onDelete={handleOpenDeleteDialog}
+                size="sm"
+              />
             </div>
 
             {/* Service Info */}
@@ -391,66 +439,15 @@ export function ServicesSection({
               </div>
 
               {/* Actions */}
-              <div className="relative">
-                <button
-                  onClick={() => setExpandedMenuId(expandedMenuId === service.id ? null : service.id)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                >
-                  <MoreVertical size={18} />
-                </button>
-                {expandedMenuId === service.id && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setExpandedMenuId(null)} />
-                    <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                      <button
-                        onClick={() => {
-                          setEditingService(service);
-                          setShowModal(true);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Edit3 size={14} /> Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleDuplicate(service);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Copy size={14} /> Duplicate
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleToggleStatus(service.id);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        {service.status === 'active' ? <EyeOff size={14} /> : <Eye size={14} />}
-                        {service.status === 'active' ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button
-                        onClick={() => handleOpenArchiveModal(service)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <Archive size={14} /> Archive
-                      </button>
-                      <hr className="my-1" />
-                      <button
-                        onClick={() => {
-                          handleDelete(service.id);
-                          setExpandedMenuId(null);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+              <ServiceActionsDropdown
+                service={service}
+                onEdit={handleEditService}
+                onDuplicate={handleDuplicate}
+                onToggleStatus={handleToggleStatus}
+                onArchive={handleOpenArchiveModal}
+                onDelete={handleOpenDeleteDialog}
+                size="md"
+              />
 
               <ChevronRight size={18} className="text-gray-400" />
             </div>
@@ -482,10 +479,7 @@ export function ServicesSection({
               {renderPrice(service)}
             </span>
             <button
-              onClick={() => {
-                setEditingService(service);
-                setShowModal(true);
-              }}
+              onClick={() => handleEditService(service)}
               className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
             >
               <Edit3 size={14} />
@@ -572,7 +566,9 @@ export function ServicesSection({
         </div>
 
         {/* Content */}
-        {services.length > 0 ? (
+        {isLoading ? (
+          renderSkeletons()
+        ) : services.length > 0 ? (
           viewMode === 'grid' ? renderGridView() :
           viewMode === 'list' ? renderListView() :
           renderCompactView()
@@ -604,9 +600,11 @@ export function ServicesSection({
         onClose={() => {
           setShowModal(false);
           setEditingService(undefined);
+          setEditingServiceAssignments([]);
         }}
         service={editingService}
         categories={categories}
+        initialStaffAssignments={editingServiceAssignments}
         onSave={handleSaveService}
       />
 
@@ -618,6 +616,19 @@ export function ServicesSection({
         service={selectedServiceForArchive}
         dependencies={archiveDependencies}
         isLoading={isArchiving}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={handleCloseDeleteDialog}
+        title="Delete Service"
+        description="Are you sure you want to delete this service? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
       />
     </div>
   );

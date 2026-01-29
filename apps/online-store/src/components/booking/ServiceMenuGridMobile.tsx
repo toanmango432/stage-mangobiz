@@ -296,7 +296,7 @@ export const ServiceMenuGridMobile: React.FC<ServiceMenuGridMobileProps> = ({
                         <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                           {service.description}
                         </p>
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
@@ -310,8 +310,23 @@ export const ServiceMenuGridMobile: React.FC<ServiceMenuGridMobileProps> = ({
                               </div>
                             )}
                           </div>
-                          <div className="font-bold text-lg">${service.price}</div>
+                          {service.showPriceOnline ? (
+                            <div className="font-bold text-lg">
+                              {service.hasVariants ? (
+                                <span className="text-sm text-muted-foreground">From ${service.price}</span>
+                              ) : (
+                                `$${service.price}`
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground italic">Price on request</div>
+                          )}
                         </div>
+                        {service.hasVariants && service.variants && service.variants.length > 0 && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            {service.variants.length} variant{service.variants.length > 1 ? 's' : ''} available
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -391,7 +406,7 @@ export const ServiceMenuGridMobile: React.FC<ServiceMenuGridMobileProps> = ({
                             </Badge>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
@@ -405,8 +420,23 @@ export const ServiceMenuGridMobile: React.FC<ServiceMenuGridMobileProps> = ({
                               </div>
                             )}
                           </div>
-                          <div className="font-bold text-lg">${service.price}</div>
+                          {service.showPriceOnline ? (
+                            <div className="font-bold text-lg">
+                              {service.hasVariants ? (
+                                <span className="text-sm text-muted-foreground">From ${service.price}</span>
+                              ) : (
+                                `$${service.price}`
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground italic">Price on request</div>
+                          )}
                         </div>
+                        {service.hasVariants && service.variants && service.variants.length > 0 && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            {service.variants.length} variant{service.variants.length > 1 ? 's' : ''} available
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>

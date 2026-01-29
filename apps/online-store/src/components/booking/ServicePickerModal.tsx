@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, X } from 'lucide-react';
 import { Service } from '@/types/catalog';
+import { getServices } from '@/lib/services/catalogSyncService';
 
 interface ServicePickerModalProps {
   open: boolean;
@@ -25,30 +26,29 @@ export const ServicePickerModal = ({
   const [services, setServices] = useState<Service[]>([]);
 
   useEffect(() => {
-    // Load services from localStorage or use mock data
-    const stored = localStorage.getItem('catalog_services');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Map to Service format
-      setServices(parsed.map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        description: s.description,
-        duration: s.duration,
-        price: s.basePrice || s.price || 0,
-        category: s.category,
-      })));
-    } else {
-      const mockServices = generateMockServices();
-      setServices(mockServices.map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        description: s.description,
-        duration: s.duration,
-        price: s.basePrice || s.price || 0,
-        category: s.category,
-      })));
-    }
+    const loadServices = async () => {
+      try {
+        // Load services from Supabase via catalogSyncService
+        const storeId = localStorage.getItem('storeId') || '';
+        const loadedServices = await getServices(storeId);
+
+        // Map to Service format
+        setServices(loadedServices.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          duration: s.duration,
+          price: s.basePrice || s.price || 0,
+          category: s.category,
+        })));
+      } catch (error) {
+        console.error('Failed to load services:', error);
+        // Set empty array on error instead of using mock data
+        setServices([]);
+      }
+    };
+
+    loadServices();
   }, []);
 
   const categories = ['all', ...new Set(services.map(s => s.category).filter(Boolean))];

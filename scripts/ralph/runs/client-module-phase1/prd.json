@@ -17,7 +17,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "Create file: supabase/migrations/031_client_merge.sql. Follow migration pattern from 030_create_member_session_revocations.sql. Use ALTER TABLE not CREATE TABLE."
     },
     {
@@ -37,7 +37,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "Append to supabase/migrations/031_client_merge.sql (~80 lines). Use BEGIN...EXCEPTION...END for transaction safety."
     },
     {
@@ -51,7 +51,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "Modify: apps/store-app/src/store/slices/clientsSlice/types.ts (~20 lines). Follow existing type patterns."
     },
     {
@@ -69,7 +69,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": "Modify: apps/store-app/src/store/slices/clientsSlice/thunks.ts (~40 lines). Follow pattern from createClientInSupabase thunk."
     },
     {
@@ -85,7 +85,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": "File: apps/store-app/src/components/client-settings/MergeClientsModal.tsx.bak (389 lines). Full UI already implemented."
     },
     {
@@ -102,7 +102,7 @@
         "Verify in browser: button appears, clicking opens modal"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": "Modify: apps/store-app/src/components/client-settings/ClientSettings.tsx (~25 lines). Follow existing action button patterns."
     },
     {
@@ -116,7 +116,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 7,
-      "passes": true,
+      "passes": false,
       "notes": "Modify: apps/store-app/src/store/slices/clientsSlice/thunks.ts (~15 lines in mergeClientsInSupabase)."
     },
     {
@@ -133,7 +133,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 8,
-      "passes": true,
+      "passes": false,
       "notes": "Create: supabase/functions/check-booking-eligibility/index.ts (NEW, ~50 lines). Security: Never expose blocking reason."
     },
     {
@@ -149,7 +149,7 @@
         "Verify in browser: blocked client cannot book"
       ],
       "priority": 9,
-      "passes": true,
+      "passes": false,
       "notes": "Modify: apps/online-store/src/components/booking/DetailsStep.tsx (~30 lines). Use debounce on blur."
     },
     {
@@ -167,7 +167,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 10,
-      "passes": true,
+      "passes": false,
       "notes": "Create: apps/store-app/src/components/clients/BlockedClientOverrideModal.tsx (NEW, ~80 lines). Follow BlockClientModal.tsx pattern."
     },
     {
@@ -182,7 +182,7 @@
         "Verify in browser: book for blocked client shows warning"
       ],
       "priority": 11,
-      "passes": true,
+      "passes": false,
       "notes": "Modify: apps/store-app/src/components/Book/BookingForm.tsx (~25 lines)."
     },
     {
@@ -195,8 +195,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 12,
-      "passes": true,
-      "notes": "Modify: apps/store-app/src/components/Book/BookingForm.tsx (~10 lines). NOTE: Already implemented in US-011's handleBlockOverride function in NewAppointmentModal.v2.tsx."
+      "passes": false,
+      "notes": "Modify: apps/store-app/src/components/Book/BookingForm.tsx (~10 lines)."
     },
     {
       "id": "US-013",
@@ -212,7 +212,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 13,
-      "passes": true,
+      "passes": false,
       "notes": "Create: supabase/functions/validate-booking/index.ts (NEW, ~80 lines). Reference clients Edge Function patterns."
     },
     {
@@ -228,7 +228,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 14,
-      "passes": true,
+      "passes": false,
       "notes": "Modify: apps/store-app/src/store/slices/clientsSlice/thunks.ts (~30 lines)."
     },
     {
@@ -246,7 +246,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 15,
-      "passes": true,
+      "passes": false,
       "notes": "Create: apps/store-app/src/components/Book/PatchTestWarningBanner.tsx (NEW, ~60 lines). Follow StaffAlertBanner.tsx pattern."
     },
     {
@@ -263,7 +263,7 @@
         "Verify in browser: book service with patch test requirement"
       ],
       "priority": 16,
-      "passes": true,
+      "passes": false,
       "notes": "Modify: apps/store-app/src/components/Book/BookingForm.tsx (~30 lines)."
     },
     {
@@ -279,8 +279,8 @@
         "Verify in browser: Online Store service selection"
       ],
       "priority": 17,
-      "passes": true,
-      "notes": "Modify: apps/online-store/src/components/booking/ServiceSelectionStep.tsx (~25 lines). Also modified ReviewStep.tsx for patch test validation before booking confirmation."
+      "passes": false,
+      "notes": "Modify: apps/online-store/src/components/booking/ServiceSelectionStep.tsx (~25 lines)."
     },
     {
       "id": "US-018",
@@ -292,8 +292,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 18,
-      "passes": true,
-      "notes": "Modify: apps/store-app/src/components/Book/BookingForm.tsx (~15 lines). NOTE: Already implemented in US-016's handlePatchTestOverride function in NewAppointmentModal.v2.tsx."
+      "passes": false,
+      "notes": "Modify: apps/store-app/src/components/Book/BookingForm.tsx (~15 lines)."
     },
     {
       "id": "US-019",
@@ -307,7 +307,7 @@
         "All tests pass"
       ],
       "priority": 19,
-      "passes": true,
+      "passes": false,
       "notes": "Create: apps/store-app/src/store/slices/clientsSlice/__tests__/merge.test.ts (NEW, ~100 lines). Mock Supabase RPC."
     },
     {
@@ -321,7 +321,7 @@
         "All tests pass"
       ],
       "priority": 20,
-      "passes": true,
+      "passes": false,
       "notes": "Create: apps/store-app/src/components/Book/__tests__/blockClient.test.ts (NEW, ~60 lines)."
     },
     {
@@ -336,7 +336,7 @@
         "All tests pass"
       ],
       "priority": 21,
-      "passes": true,
+      "passes": false,
       "notes": "Create: apps/store-app/src/components/Book/__tests__/patchTest.test.ts (NEW, ~80 lines)."
     },
     {
@@ -355,7 +355,7 @@
         "Run pnpm run typecheck and pnpm test before review"
       ],
       "priority": 22,
-      "passes": true,
+      "passes": false,
       "notes": "This story produces a review report, not code changes. Use /ultrathink to coordinate Architect, Research, Coder, and Tester agents. Check browser manually for UI components."
     },
     {

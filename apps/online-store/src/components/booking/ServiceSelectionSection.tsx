@@ -7,7 +7,6 @@ import { ServicePickerModal } from './ServicePickerModal';
 import { ServiceCategoryTabs } from './ServiceCategoryTabs';
 import { useStore } from '@/hooks/useStore';
 import { useServicesByCategory, useServiceCategories } from '@/hooks/queries';
-import { serviceCategories as mockCategories, generateMockServices } from '@/lib/mockData';
 
 interface ServiceSelectionSectionProps {
   formData: Partial<BookingFormData>;
@@ -39,7 +38,7 @@ export const ServiceSelectionSection = ({ formData, updateFormData }: ServiceSel
     id: cat.id,
     name: cat.name,
     description: cat.description || '',
-  })) || mockCategories;
+  })) || [];
 
   // Flatten services for use in components
   const allServices = servicesByCategory?.flatMap(cat =>
@@ -55,10 +54,8 @@ export const ServiceSelectionSection = ({ formData, updateFormData }: ServiceSel
     }))
   ) || [];
 
-  // Fallback to mock data if no real data
-  const displayServices = allServices.length > 0
-    ? allServices
-    : generateMockServices();
+  // Use real services from Supabase (no mock fallback)
+  const displayServices = allServices;
 
   const handleRemoveAddOn = (addOnId: string) => {
     updateFormData({

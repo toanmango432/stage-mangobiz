@@ -12,17 +12,24 @@ import {
   Package,
   Barcode,
   Tag,
+  AlertTriangle,
+  ShoppingCart,
 } from 'lucide-react';
-import type { Product, CreateProductInput } from '@/types/inventory';
+import type { Product, CreateProductInput, InventoryLevel } from '@/types/inventory';
 import type { CatalogViewMode } from '@/types/catalog';
 import { formatPrice } from '../constants';
 import { ProductModal } from '../modals/ProductModal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ProductCardSkeleton } from '../components/skeletons/ProductCardSkeleton';
 
 interface ProductsSectionProps {
   products: Product[];
   productCategories: string[];
   viewMode: CatalogViewMode;
   searchQuery?: string;
+  isLoading?: boolean;
+  /** Inventory levels by product ID - enables low stock indicators */
+  inventoryLevels?: Map<string, InventoryLevel>;
   onCreate?: (data: CreateProductInput) => Promise<Product | null>;
   onUpdate?: (id: string, data: Partial<Product>) => Promise<number | null>;
   onDelete?: (id: string) => Promise<boolean | null>;
@@ -34,6 +41,8 @@ export function ProductsSection({
   productCategories,
   viewMode,
   searchQuery = '',
+  isLoading = false,
+  inventoryLevels,
   onCreate,
   onUpdate,
   onDelete,
@@ -42,6 +51,9 @@ export function ProductsSection({
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter products
   const filteredProducts = products.filter(product =>
@@ -78,12 +90,23 @@ export function ProductsSection({
     setEditingProduct(undefined);
   };
 
-  // Handle delete
-  const handleDelete = async (productId: string) => {
-    if (confirm('Are you sure you want to delete this product?')) {
-      if (onDelete) {
-        await onDelete(productId);
-      }
+  // Handle delete - opens confirmation dialog
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete action
+  const handleConfirmDelete = async () => {
+    if (!productToDelete || !onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(productToDelete.id);
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -122,6 +145,36 @@ export function ProductsSection({
     if (product.retailPrice <= 0) return 0;
     return Math.round(((product.retailPrice - product.costPrice) / product.retailPrice) * 100);
   };
+
+  // Check if product is low stock
+  const isLowStock = (product: Product): boolean => {
+    const level = inventoryLevels?.get(product.id);
+    if (level) {
+      // Use inventory level data if available
+      return level.quantityAvailable < product.minStockLevel;
+    }
+    return false;
+  };
+
+  // Get stock quantity for display
+  const getStockQuantity = (product: Product): number | undefined => {
+    const level = inventoryLevels?.get(product.id);
+    return level?.quantityAvailable;
+  };
+
+  // Render Skeleton Loading View
+  const renderSkeletonView = () => (
+    <div className="space-y-6">
+      <div>
+        <div className="h-5 w-32 bg-gray-200 rounded mb-3 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <ProductCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   // Render Grid View
   const renderGridView = () => (
@@ -199,7 +252,7 @@ export function ProductsSection({
                               <hr className="my-1" />
                               <button
                                 onClick={() => {
-                                  handleDelete(product.id);
+                                  handleDeleteClick(product);
                                   setExpandedMenuId(null);
                                 }}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -212,19 +265,36 @@ export function ProductsSection({
                       </div>
                     </div>
 
-                    {/* SKU and Stock */}
-                    <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-                      <span className="flex items-center gap-1">
-                        <Barcode size={14} />
+                    {/* SKU, Barcode, and Stock */}
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-3">
+                      <span className="flex items-center gap-1" title="SKU">
+                        <Tag size={14} />
                         {product.sku}
                       </span>
-                      {product.size && (
-                        <span className="text-gray-400">|</span>
+                      {product.barcode && (
+                        <>
+                          <span className="text-gray-400">|</span>
+                          <span className="flex items-center gap-1" title="Barcode">
+                            <Barcode size={14} />
+                            {product.barcode}
+                          </span>
+                        </>
                       )}
                       {product.size && (
-                        <span>{product.size}</span>
+                        <>
+                          <span className="text-gray-400">|</span>
+                          <span>{product.size}</span>
+                        </>
                       )}
                     </div>
+
+                    {/* Low Stock Warning */}
+                    {isLowStock(product) && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-medium mb-3">
+                        <AlertTriangle size={14} />
+                        Low Stock ({getStockQuantity(product)} left)
+                      </div>
+                    )}
 
                     {/* Pricing */}
                     <div className="flex items-end justify-between pt-3 border-t border-gray-100">
@@ -241,7 +311,7 @@ export function ProductsSection({
                     <div className="flex items-center gap-2 mt-3">
                       {product.isRetail && (
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full flex items-center gap-1">
-                          <Tag size={12} /> Retail
+                          <ShoppingCart size={12} /> Retail
                         </span>
                       )}
                       {product.isBackbar && (
@@ -288,6 +358,12 @@ export function ProductsSection({
                       Inactive
                     </span>
                   )}
+                  {isLowStock(product) && (
+                    <span className="px-2 py-0.5 bg-red-50 text-red-600 text-xs rounded-full flex items-center gap-1">
+                      <AlertTriangle size={12} />
+                      Low Stock
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-500">
                   {product.brand ? `${product.brand} • ` : ''}{product.category}
@@ -299,6 +375,14 @@ export function ProductsSection({
                 <p className="text-sm font-medium text-gray-900">{product.sku}</p>
                 <p className="text-xs text-gray-500">SKU</p>
               </div>
+
+              {/* Barcode */}
+              {product.barcode && (
+                <div className="text-center px-4 hidden lg:block">
+                  <p className="text-sm font-medium text-gray-900">{product.barcode}</p>
+                  <p className="text-xs text-gray-500">Barcode</p>
+                </div>
+              )}
 
               {/* Cost */}
               <div className="text-center px-4 hidden md:block">
@@ -356,7 +440,7 @@ export function ProductsSection({
                       <hr className="my-1" />
                       <button
                         onClick={() => {
-                          handleDelete(product.id);
+                          handleDeleteClick(product);
                           setExpandedMenuId(null);
                         }}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -400,7 +484,9 @@ export function ProductsSection({
         </div>
 
         {/* Content */}
-        {filteredProducts.length > 0 ? (
+        {isLoading ? (
+          renderSkeletonView()
+        ) : filteredProducts.length > 0 ? (
           viewMode === 'grid' || viewMode === 'compact' ? renderGridView() : renderListView()
         ) : (
           <div className="text-center py-12">
@@ -432,6 +518,19 @@ export function ProductsSection({
         product={editingProduct}
         categories={productCategories}
         onSave={handleSaveProduct}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Product"
+        description={`Are you sure you want to delete "${productToDelete?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
       />
     </div>
   );

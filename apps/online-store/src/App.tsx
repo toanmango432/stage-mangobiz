@@ -22,6 +22,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { AnnouncementBarContainer } from "@/components/promotions/AnnouncementBarContainer";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { StoreProvider } from "@/contexts/StoreContext";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { ChatDrawer } from "@/components/chat/ChatDrawer";
 import { useChatToggle } from "@/hooks/useChatToggle";
@@ -64,7 +65,9 @@ import AdminCatalog from "./pages/admin/Catalog";
 import Services from "./pages/admin/catalog/Services";
 import ServiceForm from "./pages/admin/catalog/ServiceForm";
 import Products from "./pages/admin/catalog/Products";
+import ProductForm from "./pages/admin/catalog/ProductForm";
 import AdminMemberships from "./pages/admin/catalog/Memberships";
+import MembershipForm from "./pages/admin/catalog/MembershipForm";
 import GiftCardSettings from "./pages/admin/catalog/GiftCardSettings";
 import AdminBookings from "./pages/admin/Bookings";
 import AdminCustomers from "./pages/admin/Customers";
@@ -158,6 +161,7 @@ const App = () => {
                                 path="/admin/*"
                                 element={
                                   <ProtectedRoute requireAdmin>
+                                    <StoreProvider>
                                     <AdminLayout>
                                       <Routes>
                                         <Route path="/" element={<AdminDashboard />} />
@@ -175,7 +179,9 @@ const App = () => {
                                         <Route path="/catalog/services" element={<Services />} />
                                         <Route path="/catalog/services/:id" element={<ServiceForm />} />
                                         <Route path="/catalog/products" element={<Products />} />
+                                        <Route path="/catalog/products/:id" element={<ProductForm />} />
                                         <Route path="/catalog/memberships" element={<AdminMemberships />} />
+                                        <Route path="/catalog/memberships/:id" element={<MembershipForm />} />
                                         <Route path="/catalog/giftcards" element={<GiftCardSettings />} />
                                         <Route path="/bookings" element={<AdminBookings />} />
                                         <Route path="/customers" element={<AdminCustomers />} />
@@ -186,6 +192,7 @@ const App = () => {
                                         <Route path="/settings" element={<div>Settings Page</div>} />
                                       </Routes>
                                     </AdminLayout>
+                                    </StoreProvider>
                                   </ProtectedRoute>
                                 }
                               />

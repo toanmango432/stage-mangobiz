@@ -80,6 +80,24 @@ function ServiceTicketCardComponent({
   // Check if ticket is paused
   const isPaused = ticket.serviceStatus === 'paused';
 
+  /**
+   * Calculate total duration from checkoutServices if available.
+   * This ensures staff-specific duration overrides (customDuration) are used.
+   * Falls back to ticket.duration string for backwards compatibility.
+   */
+  const getTotalDuration = (): number => {
+    // Use checkoutServices if available (each service duration may include staff override)
+    if (ticket.checkoutServices && ticket.checkoutServices.length > 0) {
+      return ticket.checkoutServices.reduce((total, service) => {
+        return total + (service.duration || 0);
+      }, 0);
+    }
+    // Fall back to ticket.duration string (legacy format like "30min" or "30")
+    return parseInt(ticket.duration) || 30;
+  };
+
+  const totalDurationMinutes = getTotalDuration();
+
   // Calculate elapsed time and progress
   useEffect(() => {
     if (!ticket.createdAt) return;
@@ -88,7 +106,7 @@ function ServiceTicketCardComponent({
       const now = new Date().getTime();
       const start = new Date(ticket.createdAt!).getTime();
       const elapsed = Math.floor((now - start) / 1000 / 60); // minutes
-      const durationMinutes = parseInt(ticket.duration) || 30;
+      const durationMinutes = totalDurationMinutes;
       const progressPercent = Math.min((elapsed / durationMinutes) * 100, 100);
 
       setElapsedTime(elapsed);
@@ -99,7 +117,7 @@ function ServiceTicketCardComponent({
     const interval = setInterval(updateProgress, 10000); // Update every 10 seconds
 
     return () => clearInterval(interval);
-  }, [ticket.createdAt, ticket.duration]);
+  }, [ticket.createdAt, totalDurationMinutes]);
 
   // Get staff info - support multiple staff
   // Priority: assignedStaff > assignedTo > technician/techColor
@@ -107,9 +125,8 @@ function ServiceTicketCardComponent({
     (ticket.assignedTo ? [ticket.assignedTo] :
       (ticket.technician ? [{ id: '', name: ticket.technician, color: ticket.techColor || '#6B7280' }] : []));
 
-  // Calculate time remaining
-  const durationMinutes = parseInt(ticket.duration) || 30;
-  const timeRemaining = Math.max(0, durationMinutes - elapsedTime);
+  // Calculate time remaining using total duration (includes staff overrides from checkoutServices)
+  const timeRemaining = Math.max(0, totalDurationMinutes - elapsedTime);
 
   const formatTime = (minutes: number) => {
     const hrs = Math.floor(minutes / 60);

@@ -12,12 +12,27 @@ interface Client {
   email?: string;
 }
 
+/**
+ * Embedded variant info for booking UI display
+ */
+interface BookingVariant {
+  id: string;
+  name: string;
+  duration: number;
+  price: number;
+  isDefault?: boolean;
+}
+
 interface Service {
   id: string;
   name: string;
   category: string;
   duration: number;
   price: number;
+  /** Whether this service has variants */
+  hasVariants?: boolean;
+  /** Embedded variants for services with hasVariants=true */
+  variants?: BookingVariant[];
 }
 
 interface ServiceWithTime extends Service {

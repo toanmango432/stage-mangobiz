@@ -354,6 +354,14 @@ export default function TicketWizard({
         total={total}
         onComplete={handleCompletePayment}
         staffMembers={staffMembers.map((s) => ({ id: s.id, name: s.name }))}
+        items={services.map(service => ({
+          name: service.serviceName,
+          quantity: 1,
+          price: service.price,
+          staffName: service.staffName,
+          staffId: service.staffId,
+          serviceId: service.serviceId,
+        }))}
       />
     </>
   );

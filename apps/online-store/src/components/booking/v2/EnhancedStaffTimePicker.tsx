@@ -1,7 +1,7 @@
 // CORRECT Booking Flow: Staff FIRST → Then Date/Time based on staff availability
 // This replaces the old StaffTimePicker with proper flow
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +21,8 @@ import { StickyActionBar } from './StickyActionBar';
 import { Calendar7Day } from '../enhanced/Calendar7Day';
 import { GroupedTimeSlots } from '../enhanced/GroupedTimeSlots';
 import { BookingTimeUtils } from '../enhanced/timeUtils';
-import { generateMockStaff } from '@/lib/mockData';
+import { useStore } from '@/hooks/useStore';
+import { useStaff } from '@/hooks/queries';
 
 interface EnhancedStaffTimePickerProps {
   cartItems: CartItem[];
@@ -42,28 +43,29 @@ export const EnhancedStaffTimePicker: React.FC<EnhancedStaffTimePickerProps> = (
   onBack,
   onContinue,
 }) => {
-  const [staff, setStaff] = useState<Staff[]>([]);
+  const { storeId } = useStore();
+  const { data: staffData, isLoading: loading } = useStaff(storeId);
+
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
 
   // Current service being assigned
   const currentItem = cartItems[currentServiceIndex];
   const currentAssignment = assignments.find(a => a.cartItemId === currentItem?.id);
 
-  // Load staff
-  useEffect(() => {
-    setTimeout(() => {
-      const mockStaff = generateMockStaff();
-      const staffWithAvailability = mockStaff.map(member => ({
-        ...member,
-        availability: Math.random() > 0.3 ? 'available' : 'busy',
-        nextAvailable: Math.random() > 0.3 ? '2:00 PM' : undefined,
-      }));
-      setStaff(staffWithAvailability);
-      setLoading(false);
-    }, 500);
-  }, []);
+  // Transform staff data from Supabase to component format
+  const staff: Staff[] = useMemo(() => {
+    if (!staffData) return [];
+    return staffData.map(member => ({
+      id: member.id,
+      name: member.fullName,
+      role: member.title || '',
+      rating: 5,
+      services: member.specialties || [],
+      avatar: member.avatarUrl || '',
+      availability: {} as Record<string, { start: string; end: string }[]>,
+    }));
+  }, [staffData]);
 
   // Handle staff selection
   const handleStaffSelect = (staffId: string) => {

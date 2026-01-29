@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   ArrowLeft,
@@ -7,7 +7,6 @@ import {
   Grid3X3,
   List,
   LayoutGrid,
-  MoreVertical,
   Settings,
   Users,
   Package,
@@ -22,7 +21,7 @@ import toast from 'react-hot-toast';
 
 import type { CatalogTab } from '../../types/catalog';
 import { useCatalog } from '../../hooks/useCatalog';
-import { selectSalonId, selectCurrentUser } from '../../store/slices/authSlice';
+import { selectSalonId, selectCurrentUser, selectTenantId } from '../../store/slices/authSlice';
 
 import { CategoriesSection } from './sections/CategoriesSection';
 import { ServicesSection } from './sections/ServicesSection';
@@ -33,16 +32,21 @@ import { GiftCardsSection } from './sections/GiftCardsSection';
 import { StaffPermissionsSection } from './sections/StaffPermissionsSection';
 import { MenuGeneralSettingsSection } from './sections/MenuGeneralSettingsSection';
 import { ArchivedServicesTab } from './ArchivedServicesTab';
+import { MoreOptionsDropdown, ErrorState } from './components';
 
 interface MenuSettingsProps {
   onBack?: () => void;
 }
 
 export function MenuSettings({ onBack }: MenuSettingsProps) {
-  // Get storeId and userId from Redux auth state
+  // Get storeId, tenantId, and userId from Redux auth state
   const storeId = useSelector(selectSalonId) || '';
+  const tenantId = useSelector(selectTenantId) || storeId;
   const currentUser = useSelector(selectCurrentUser);
   const userId = currentUser?.id || 'system';
+
+  // Bulk edit mode state
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   // Toast wrapper for useCatalog hook
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -53,10 +57,48 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     }
   }, []);
 
+  // More Options handlers
+  const handleImportJson = useCallback(() => {
+    // TODO: Implement JSON import - create file input and parse JSON
+    toast('Import from JSON - Coming soon', { icon: '📥' });
+  }, []);
+
+  const handleImportCsv = useCallback(() => {
+    // TODO: Implement CSV import - create file input and parse CSV
+    toast('Import from CSV - Coming soon', { icon: '📥' });
+  }, []);
+
+  const handleExportJson = useCallback(() => {
+    // TODO: Implement JSON export - serialize catalog data to JSON file
+    toast('Export to JSON - Coming soon', { icon: '📤' });
+  }, []);
+
+  const handleExportCsv = useCallback(() => {
+    // TODO: Implement CSV export - serialize catalog data to CSV file
+    toast('Export to CSV - Coming soon', { icon: '📤' });
+  }, []);
+
+  const handleToggleBulkEdit = useCallback(() => {
+    setIsBulkEditMode((prev) => !prev);
+    toast(isBulkEditMode ? 'Bulk edit mode disabled' : 'Bulk edit mode enabled', {
+      icon: isBulkEditMode ? '✏️' : '📝',
+    });
+  }, [isBulkEditMode]);
+
+  const handlePrintMenu = useCallback(() => {
+    window.print();
+  }, []);
+
+  // Retry handler for error state - triggers a page refresh to reload data
+  const handleRetry = useCallback(() => {
+    window.location.reload();
+  }, []);
+
   // Use the catalog hook for all data and actions
   // Pass a placeholder storeId if empty to avoid hook order issues
   const catalog = useCatalog({
     storeId: storeId || 'placeholder',
+    tenantId: tenantId || 'placeholder',
     userId,
     toast: showToast,
   });
@@ -82,8 +124,9 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     setSearchQuery,
     setViewMode,
     setShowInactive,
-    // Loading
+    // Loading/Error
     isLoading,
+    error,
     // Actions
     createCategory,
     updateCategory,
@@ -159,6 +202,17 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
 
   // Render content based on active tab
   const renderContent = () => {
+    // Show error state if there's an error loading catalog data
+    if (error) {
+      return (
+        <ErrorState
+          title="Failed to load catalog data"
+          message={error}
+          onRetry={handleRetry}
+        />
+      );
+    }
+
     switch (ui.activeTab) {
       case 'categories':
         return (
@@ -166,6 +220,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             categories={categories || []}
             services={services || []}
             searchQuery={ui.searchQuery}
+            isLoading={isLoading}
             onCreate={createCategory}
             onUpdate={updateCategory}
             onDelete={deleteCategory}
@@ -181,6 +236,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             selectedCategoryId={ui.selectedCategoryId}
             onSelectCategory={setSelectedCategory}
             allServices={services || []}
+            isLoading={isLoading}
             onCreate={createService}
             onUpdate={updateService}
             onDelete={deleteService}
@@ -204,6 +260,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             categories={categories || []}
             viewMode={ui.viewMode}
             searchQuery={ui.searchQuery}
+            isLoading={isLoading}
             onCreate={createPackage}
             onUpdate={updatePackage}
             onDelete={deletePackage}
@@ -216,6 +273,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             productCategories={productCategories || []}
             viewMode={ui.viewMode}
             searchQuery={ui.searchQuery}
+            isLoading={isLoading}
             onCreate={createProduct}
             onUpdate={updateProduct}
             onDelete={deleteProduct}
@@ -230,6 +288,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             services={services || []}
             viewMode={ui.viewMode}
             searchQuery={ui.searchQuery}
+            isLoading={isLoading}
             onCreateGroup={createAddOnGroup}
             onUpdateGroup={updateAddOnGroup}
             onDeleteGroup={deleteAddOnGroup}
@@ -242,7 +301,8 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
         return (
           <GiftCardsSection
             denominations={giftCardDenominations || []}
-            settings={giftCardSettings || undefined}
+            settings={giftCardSettings}
+            isLoading={isLoading}
             onCreateDenomination={createGiftCardDenomination}
             onUpdateDenomination={updateGiftCardDenomination}
             onDeleteDenomination={deleteGiftCardDenomination}
@@ -292,9 +352,6 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
 
           {/* Quick Stats */}
           <div className="hidden lg:flex items-center gap-6">
-            {isLoading && (
-              <div className="text-sm text-gray-500">Loading...</div>
-            )}
             <div className="text-center">
               <p className="text-2xl font-bold text-gray-900">{categories?.length || 0}</p>
               <p className="text-xs text-gray-500">Categories</p>
@@ -406,9 +463,15 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
               </div>
 
               {/* More Options */}
-              <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
-                <MoreVertical size={18} />
-              </button>
+              <MoreOptionsDropdown
+                onImportJson={handleImportJson}
+                onImportCsv={handleImportCsv}
+                onExportJson={handleExportJson}
+                onExportCsv={handleExportCsv}
+                onToggleBulkEdit={handleToggleBulkEdit}
+                isBulkEditActive={isBulkEditMode}
+                onPrintMenu={handlePrintMenu}
+              />
             </div>
           </div>
         </div>

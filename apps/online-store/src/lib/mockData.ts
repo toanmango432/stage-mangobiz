@@ -1,13 +1,28 @@
+/**
+ * @deprecated This file is DEPRECATED and should NOT be used in production code.
+ *
+ * All mock data has been replaced with real data from Supabase via catalogSyncService.
+ * This file is kept only for backwards compatibility with existing tests or demo purposes.
+ *
+ * For production use:
+ * - Services: Use catalogSyncService.getServices()
+ * - Staff: Use useStaff() hook from @/hooks/queries
+ * - Bookings: Use real Supabase data
+ *
+ * @see apps/online-store/src/lib/services/catalogSyncService.ts
+ * @see apps/online-store/src/hooks/queries.ts
+ */
+
 import { Service } from '@/types/catalog';
 import { Staff, Booking } from '@/types/booking';
 import { initializeTemplateStorage } from '@/lib/storage/templateStorage';
 import { initializeStorefrontConfig } from '@/lib/storage/configStorage';
-import { initializeGiftCardConfig } from '@/lib/storage/giftCardStorage';
-import { initializeMembershipPlans } from '@/lib/storage/membershipStorage';
 import { seedTemplateSections } from '@/lib/storage/templateStorage';
 // import salonShowcase from '@/lib/templates/salon-showcase.json';
 
-// Generate mock services - 10 services with proper data structure
+/**
+ * @deprecated Use catalogSyncService.getServices() instead
+ */
 export const generateMockServices = () => {
   const services = [
     // Featured Services (Hero Services)
@@ -367,6 +382,9 @@ export const generateMockServices = () => {
   return services;
 };
 
+/**
+ * @deprecated Use useStaff() hook from @/hooks/queries instead
+ */
 // Generate mock staff - 10 diverse staff members matching booking flow
 export const generateMockStaff = (): Staff[] => {
   return [
@@ -780,11 +798,8 @@ export function initializeTemplateData(): void {
     console.log('⚙️  Initializing storefront config...');
     initializeStorefrontConfig();
     
-    console.log('🎁 Initializing gift card config...');
-    initializeGiftCardConfig();
-    
-    console.log('💎 Initializing membership plans...');
-    initializeMembershipPlans();
+    // Gift card config and membership plans now come from Supabase via catalogSyncService
+    // (giftCardStorage.ts and membershipStorage.ts have been removed)
 
     // Seed default template sections from salon-showcase.json
     console.log('🌱 Seeding template sections...');

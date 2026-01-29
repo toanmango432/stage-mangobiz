@@ -2,15 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { ChevronDown, ChevronUp, User, DollarSign, Clock, Percent } from 'lucide-react';
 import { selectActiveTeamMembers } from '@/store/slices/teamSlice';
-import type { StaffServiceAssignment } from '@/types/catalog';
-
-interface StaffAssignmentData {
-  staffId: string;
-  isAssigned: boolean;
-  customPrice?: number;
-  customDuration?: number;
-  customCommissionRate?: number;
-}
+import type { StaffAssignmentData } from '@/types/catalog';
 
 interface StaffAssignmentEditorProps {
   serviceId?: string;

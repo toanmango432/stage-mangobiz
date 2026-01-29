@@ -56,6 +56,9 @@ export interface Transaction {
     name: string;
     price: number;
     staffName?: string;
+    staffId?: string;
+    commissionRate?: number; // percentage (0-100)
+    commissionAmount?: number; // calculated commission in dollars
   }>;
 
   // Status and timestamps
@@ -96,6 +99,9 @@ export interface CreateTransactionInput {
     name: string;
     price: number;
     staffName?: string;
+    staffId?: string;
+    commissionRate?: number; // percentage (0-100)
+    commissionAmount?: number; // calculated commission in dollars
   }>;
   notes?: string;
   processedBy?: string;

@@ -1876,12 +1876,12 @@ export const sqliteProductsDB = {
     return await _productService.getBySku(storeId, sku);
   },
 
-  async getByBarcode(barcode: string): Promise<unknown | undefined> {
+  async getByBarcode(storeId: string, barcode: string): Promise<unknown | undefined> {
     const adapter = await getAdapter();
     if (!_productService) {
       _productService = new ProductSQLiteService(adapter);
     }
-    return await _productService.getByBarcode(barcode);
+    return await _productService.getByBarcode(storeId, barcode);
   },
 
   async getCategories(storeId: string): Promise<string[]> {

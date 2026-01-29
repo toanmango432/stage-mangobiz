@@ -19,7 +19,8 @@ import {
   catalogSettingsDB,
   appointmentsDB,
 } from '../db/database';
-import { productsDB } from '../db/catalogDatabase';
+import { productsDB, bookingSequencesDB } from '../db/catalogDatabase';
+import { bookingSequencesService } from '../services/domain/catalogDataService';
 import type {
   ServiceCategory,
   MenuService,
@@ -36,6 +37,8 @@ import type {
   CatalogViewMode,
   GiftCardDenomination,
   GiftCardSettings,
+  BookingSequence,
+  CreateBookingSequenceInput,
 } from '../types/catalog';
 import type { Product, CreateProductInput } from '../types/inventory';
 import {
@@ -80,7 +83,9 @@ export interface ArchiveServiceResult {
 
 interface UseCatalogOptions {
   storeId: string;
+  tenantId: string;
   userId?: string;
+  deviceId?: string;
   toast?: ToastFn;
 }
 
@@ -92,7 +97,7 @@ interface CatalogUIState {
   showInactive: boolean;
 }
 
-export function useCatalog({ storeId, userId = 'system', toast = defaultToast }: UseCatalogOptions) {
+export function useCatalog({ storeId, tenantId, userId = 'system', deviceId = 'web-client', toast = defaultToast }: UseCatalogOptions) {
   // ==================== UI STATE ====================
   const [ui, setUI] = useState<CatalogUIState>({
     activeTab: 'services',
@@ -267,13 +272,13 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       // Check if we need to create default settings
       catalogSettingsDB.get(storeId).then(existing => {
         if (!existing) {
-          catalogSettingsDB.getOrCreate(storeId);
+          catalogSettingsDB.getOrCreate(storeId, userId, deviceId, tenantId);
         }
       }).catch(err => {
         console.warn('Failed to initialize catalog settings:', err);
       });
     }
-  }, [storeId, catalogSettings, isValidStoreId]);
+  }, [storeId, userId, deviceId, tenantId, catalogSettings, isValidStoreId]);
 
   // Convert to MenuGeneralSettings for UI
   const settings = useMemo((): MenuGeneralSettings | null => {
@@ -318,6 +323,21 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     },
     [storeId],
     null as GiftCardSettings | null
+  );
+
+  // Booking Sequences (defines service order during booking)
+  const bookingSequences = useLiveQuery(
+    async () => {
+      if (!isValidStoreId) return [];
+      try {
+        return await bookingSequencesDB.getAll(storeId, ui.showInactive);
+      } catch (err) {
+        console.warn('Failed to load booking sequences:', err);
+        return [];
+      }
+    },
+    [storeId, ui.showInactive],
+    [] as BookingSequence[]
   );
 
   // ==================== FILTERED DATA ====================
@@ -509,7 +529,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
               isDefault: v.isDefault || false,
               displayOrder: variants.indexOf(v),
               isActive: true,
-            }, storeId);
+            }, userId, storeId);
           }
         }
 
@@ -555,7 +575,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
                 extraTime: v.processingTime,
                 isDefault: v.isDefault,
                 displayOrder: i,
-              });
+              }, userId);
             } else {
               // Create new
               await serviceVariantsDB.create({
@@ -567,7 +587,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
                 isDefault: v.isDefault || false,
                 displayOrder: i,
                 isActive: true,
-              }, storeId);
+              }, userId, storeId);
             }
           }
         }
@@ -730,7 +750,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           isActive: data.isActive ?? true,
           displayOrder: data.displayOrder ?? 0,
           onlineBookingEnabled: data.onlineBookingEnabled ?? true,
-        }, storeId);
+        }, userId, storeId);
 
         const option = await addOnOptionsDB.create({
           groupId: group.id,
@@ -740,14 +760,14 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           duration: data.duration || 0,
           isActive: data.isActive ?? true,
           displayOrder: 0,
-        }, storeId);
+        }, userId, storeId);
 
         return toServiceAddOn(group, option);
       },
       'Add-on created',
       'Failed to create add-on'
     );
-  }, [storeId, withErrorHandling]);
+  }, [storeId, userId, withErrorHandling]);
 
   const updateAddOn = useCallback(async (id: string, data: Partial<ServiceAddOn>) => {
     return withErrorHandling(
@@ -769,7 +789,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           isActive: data.isActive,
           displayOrder: data.displayOrder,
           onlineBookingEnabled: data.onlineBookingEnabled,
-        });
+        }, userId);
 
         await addOnOptionsDB.update(id, {
           name: data.name,
@@ -777,7 +797,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           price: data.price,
           duration: data.duration,
           isActive: data.isActive,
-        });
+        }, userId);
 
         const updatedOption = await addOnOptionsDB.getById(id);
         const updatedGroup = await addOnGroupsDB.getById(option.groupId);
@@ -787,7 +807,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Add-on updated',
       'Failed to update add-on'
     );
-  }, [withErrorHandling]);
+  }, [userId, withErrorHandling]);
 
   const deleteAddOn = useCallback(async (id: string) => {
     return withErrorHandling(
@@ -830,7 +850,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           isActive: data.isActive ?? true,
           displayOrder: data.displayOrder ?? 0,
           onlineBookingEnabled: data.onlineBookingEnabled ?? true,
-        }, storeId);
+        }, userId, storeId);
         return group;
       },
       'Add-on group created',
@@ -841,13 +861,13 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
   const updateAddOnGroup = useCallback(async (id: string, data: Partial<AddOnGroup>) => {
     return withErrorHandling(
       async () => {
-        await addOnGroupsDB.update(id, data);
+        await addOnGroupsDB.update(id, data, userId);
         return await addOnGroupsDB.getById(id);
       },
       'Add-on group updated',
       'Failed to update add-on group'
     );
-  }, [withErrorHandling]);
+  }, [userId, withErrorHandling]);
 
   const deleteAddOnGroup = useCallback(async (id: string) => {
     return withErrorHandling(
@@ -880,24 +900,24 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           duration: data.duration || 0,
           isActive: data.isActive ?? true,
           displayOrder: data.displayOrder ?? 0,
-        }, storeId);
+        }, userId, storeId);
         return option;
       },
       'Option added',
       'Failed to add option'
     );
-  }, [storeId, withErrorHandling]);
+  }, [userId, storeId, withErrorHandling]);
 
   const updateAddOnOption = useCallback(async (id: string, data: Partial<AddOnOption>) => {
     return withErrorHandling(
       async () => {
-        await addOnOptionsDB.update(id, data);
+        await addOnOptionsDB.update(id, data, userId);
         return await addOnOptionsDB.getById(id);
       },
       'Option updated',
       'Failed to update option'
     );
-  }, [withErrorHandling]);
+  }, [userId, withErrorHandling]);
 
   const deleteAddOnOption = useCallback(async (id: string) => {
     return withErrorHandling(
@@ -913,14 +933,12 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
   // ==================== PRODUCT ACTIONS ====================
 
   const createProduct = useCallback(async (data: CreateProductInput) => {
-    // Get tenantId from auth (using storeId as fallback)
-    const tenantId = storeId; // TODO: Get actual tenantId from auth context
     return withErrorHandling(
       () => productsDB.create(data, storeId, tenantId),
       'Product created',
       'Failed to create product'
     );
-  }, [storeId, withErrorHandling]);
+  }, [storeId, tenantId, withErrorHandling]);
 
   const updateProduct = useCallback(async (id: string, data: Partial<Product>) => {
     return withErrorHandling(
@@ -949,6 +967,14 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     );
   }, [withErrorHandling]);
 
+  const restoreProduct = useCallback(async (id: string) => {
+    return withErrorHandling(
+      () => productsDB.restore(id, userId, deviceId),
+      'Product restored',
+      'Failed to restore product'
+    );
+  }, [userId, deviceId, withErrorHandling]);
+
   // ==================== SETTINGS ACTIONS ====================
 
   const updateSettings = useCallback(async (data: Partial<MenuGeneralSettings>) => {
@@ -969,13 +995,13 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           enableAddOns: data.enableAddOns ?? settings?.enableAddOns ?? true,
         };
         const updates = fromMenuGeneralSettings(merged);
-        await catalogSettingsDB.update(storeId, updates);
+        await catalogSettingsDB.update(storeId, updates, userId, deviceId);
         return merged;
       },
       'Settings updated',
       'Failed to update settings'
     );
-  }, [storeId, settings, withErrorHandling]);
+  }, [storeId, userId, deviceId, settings, withErrorHandling]);
 
   // ==================== GIFT CARD ACTIONS ====================
 
@@ -991,13 +1017,22 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
         const denomination: GiftCardDenomination = {
           id,
           storeId,
+          tenantId,
           amount: data.amount || 50,
           label: data.label,
           isActive: data.isActive ?? true,
           displayOrder: data.displayOrder ?? maxOrder,
           syncStatus: 'local',
+          version: 1,
+          vectorClock: { [deviceId]: 1 },
+          lastSyncedVersion: 0,
           createdAt: now,
           updatedAt: now,
+          createdBy: userId,
+          createdByDevice: deviceId,
+          lastModifiedBy: userId,
+          lastModifiedByDevice: deviceId,
+          isDeleted: false,
         };
         await db.giftCardDenominations.add(denomination);
         return denomination;
@@ -1005,14 +1040,23 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Denomination created',
       'Failed to create denomination'
     );
-  }, [storeId, giftCardDenominations, withErrorHandling]);
+  }, [storeId, tenantId, userId, deviceId, giftCardDenominations, withErrorHandling]);
 
   const updateGiftCardDenomination = useCallback(async (id: string, data: Partial<GiftCardDenomination>) => {
     return withErrorHandling(
       async () => {
+        const existing = await db.giftCardDenominations.get(id);
+        if (!existing) throw new Error('Denomination not found');
+
+        const newVersion = existing.version + 1;
+
         await db.giftCardDenominations.update(id, {
           ...data,
+          version: newVersion,
+          vectorClock: { ...existing.vectorClock, [deviceId]: newVersion },
           updatedAt: new Date().toISOString(),
+          lastModifiedBy: userId,
+          lastModifiedByDevice: deviceId,
           syncStatus: 'pending',
         });
         return await db.giftCardDenominations.get(id);
@@ -1020,7 +1064,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Denomination updated',
       'Failed to update denomination'
     );
-  }, [withErrorHandling]);
+  }, [userId, deviceId, withErrorHandling]);
 
   const deleteGiftCardDenomination = useCallback(async (id: string) => {
     return withErrorHandling(
@@ -1045,9 +1089,14 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
 
         if (existing) {
           // Update using the actual record id
+          const newVersion = existing.version + 1;
           await db.giftCardSettings.update(existing.id, {
             ...data,
+            version: newVersion,
+            vectorClock: { ...existing.vectorClock, [deviceId]: newVersion },
             updatedAt: now,
+            lastModifiedBy: userId,
+            lastModifiedByDevice: deviceId,
             syncStatus: 'pending',
           });
         } else {
@@ -1055,14 +1104,23 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
           const settings: GiftCardSettings = {
             id,
             storeId,
+            tenantId,
             allowCustomAmount: data.allowCustomAmount ?? true,
             minAmount: data.minAmount ?? 10,
             maxAmount: data.maxAmount ?? 500,
             onlineEnabled: data.onlineEnabled ?? true,
             emailDeliveryEnabled: data.emailDeliveryEnabled ?? true,
             syncStatus: 'local',
+            version: 1,
+            vectorClock: { [deviceId]: 1 },
+            lastSyncedVersion: 0,
             createdAt: now,
             updatedAt: now,
+            createdBy: userId,
+            createdByDevice: deviceId,
+            lastModifiedBy: userId,
+            lastModifiedByDevice: deviceId,
+            isDeleted: false,
           };
           await db.giftCardSettings.add(settings);
         }
@@ -1075,7 +1133,60 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       'Gift card settings updated',
       'Failed to update gift card settings'
     );
-  }, [storeId, withErrorHandling]);
+  }, [storeId, tenantId, userId, deviceId, withErrorHandling]);
+
+  // ==================== BOOKING SEQUENCE ACTIONS ====================
+
+  const createBookingSequence = useCallback(async (data: CreateBookingSequenceInput) => {
+    return withErrorHandling(
+      () => bookingSequencesService.create(data, userId, storeId, tenantId, deviceId),
+      'Booking sequence created',
+      'Failed to create booking sequence'
+    );
+  }, [storeId, tenantId, userId, deviceId, withErrorHandling]);
+
+  const updateBookingSequence = useCallback(async (id: string, data: Partial<BookingSequence>) => {
+    return withErrorHandling(
+      () => bookingSequencesService.update(id, data, userId, deviceId),
+      'Booking sequence updated',
+      'Failed to update booking sequence'
+    );
+  }, [userId, deviceId, withErrorHandling]);
+
+  const deleteBookingSequence = useCallback(async (id: string) => {
+    return withErrorHandling(
+      async () => {
+        await bookingSequencesService.delete(id, userId, deviceId);
+        return true;
+      },
+      'Booking sequence deleted',
+      'Failed to delete booking sequence'
+    );
+  }, [userId, deviceId, withErrorHandling]);
+
+  const enableBookingSequence = useCallback(async (id: string) => {
+    return withErrorHandling(
+      () => bookingSequencesService.enable(id, userId, deviceId),
+      'Booking sequence enabled',
+      'Failed to enable booking sequence'
+    );
+  }, [userId, deviceId, withErrorHandling]);
+
+  const disableBookingSequence = useCallback(async (id: string) => {
+    return withErrorHandling(
+      () => bookingSequencesService.disable(id, userId, deviceId),
+      'Booking sequence disabled',
+      'Failed to disable booking sequence'
+    );
+  }, [userId, deviceId, withErrorHandling]);
+
+  const updateBookingSequenceOrder = useCallback(async (id: string, serviceOrder: string[]) => {
+    return withErrorHandling(
+      () => bookingSequencesService.updateServiceOrder(id, serviceOrder, userId, deviceId),
+      undefined, // No success toast for reorder
+      'Failed to update service order'
+    );
+  }, [userId, deviceId, withErrorHandling]);
 
   // ==================== RETURN ====================
 
@@ -1095,6 +1206,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     settings,
     giftCardDenominations,
     giftCardSettings,
+    bookingSequences,
 
     // UI State
     ui,
@@ -1149,6 +1261,7 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     updateProduct,
     deleteProduct,
     archiveProduct,
+    restoreProduct,
 
     // Settings Actions
     updateSettings,
@@ -1158,6 +1271,14 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     updateGiftCardDenomination,
     deleteGiftCardDenomination,
     updateGiftCardSettings,
+
+    // Booking Sequence Actions
+    createBookingSequence,
+    updateBookingSequence,
+    deleteBookingSequence,
+    enableBookingSequence,
+    disableBookingSequence,
+    updateBookingSequenceOrder,
   };
 }
 

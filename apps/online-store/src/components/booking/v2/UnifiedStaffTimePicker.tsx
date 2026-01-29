@@ -1,7 +1,7 @@
 // Option A: Same staff/date for ALL services, sequential booking
 // Industry standard approach (Fresha, Zenoti, Booksy)
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,8 +13,9 @@ import { StaffSelector } from './StaffSelector';
 import { Calendar7Day } from '../enhanced/Calendar7Day';
 import { GroupedTimeSlots } from '../enhanced/GroupedTimeSlots';
 import { BookingTimeUtils } from '../enhanced/timeUtils';
-import { generateMockStaff } from '@/lib/mockData';
 import { BookingSummaryFooter } from './BookingSummaryFooter';
+import { useStore } from '@/hooks/useStore';
+import { useStaff } from '@/hooks/queries';
 
 interface UnifiedStaffTimePickerProps {
   cartItems: CartItem[];
@@ -36,8 +37,9 @@ export const UnifiedStaffTimePicker: React.FC<UnifiedStaffTimePickerProps> = ({
   onBack,
   onContinue,
 }) => {
-  const [staff, setStaff] = useState<Staff[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { storeId } = useStore();
+  const { data: staffData, isLoading: loading } = useStaff(storeId);
+
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
@@ -50,6 +52,20 @@ export const UnifiedStaffTimePicker: React.FC<UnifiedStaffTimePickerProps> = ({
   // Calculate total duration for all services
   const totalDuration = cartItems.reduce((sum, item) => sum + item.service.duration, 0);
 
+  // Transform staff data from Supabase to component format
+  const staff: Staff[] = useMemo(() => {
+    if (!staffData) return [];
+    return staffData.map(member => ({
+      id: member.id,
+      name: member.fullName,
+      role: member.title || '',
+      rating: 5,
+      services: member.specialties || [],
+      avatar: member.avatarUrl || '',
+      availability: {} as Record<string, { start: string; end: string }[]>,
+    }));
+  }, [staffData]);
+
   // Reset state when assignments are cleared (e.g., when editing staff)
   useEffect(() => {
     if (assignments.length === 0) {
@@ -58,20 +74,6 @@ export const UnifiedStaffTimePicker: React.FC<UnifiedStaffTimePickerProps> = ({
       setSelectedTime('');
     }
   }, [assignments]);
-
-  // Load staff
-  useEffect(() => {
-    setTimeout(() => {
-      const mockStaff = generateMockStaff();
-      const staffWithAvailability = mockStaff.map(member => ({
-        ...member,
-        availability: 'available' as const,
-        nextAvailable: undefined,
-      }));
-      setStaff(staffWithAvailability as Staff[]);
-      setLoading(false);
-    }, 500);
-  }, []);
 
   // Handle staff selection
   const handleStaffSelect = (staffId: string) => {

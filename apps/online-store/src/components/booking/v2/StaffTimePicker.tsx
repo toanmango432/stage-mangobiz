@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,8 +18,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CartItem, Assignment, Staff, TimeSlot } from './types';
-import { generateMockStaff } from '@/lib/mockData';
 import { DateTimePicker } from './DateTimePicker';
+import { useStore } from '@/hooks/useStore';
+import { useStaff } from '@/hooks/queries';
 import { StaffSelector } from './StaffSelector';
 import { StickyActionBar } from './StickyActionBar';
 
@@ -38,27 +39,28 @@ export const StaffTimePicker: React.FC<StaffTimePickerProps> = ({
   onBack,
   onContinue,
 }) => {
-  const [staff, setStaff] = useState<Staff[]>([]);
+  const { storeId } = useStore();
+  const { data: staffData, isLoading: loading } = useStaff(storeId);
+
   const [selectedMode, setSelectedMode] = useState<BookingMode>('together');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [loading, setLoading] = useState(true);
 
   const isGroupBooking = cartItems.length > 1;
 
-  useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      const mockStaff = generateMockStaff();
-      const staffWithAvailability = mockStaff.map(member => ({
-        ...member,
-        availability: Math.random() > 0.3 ? 'available' : Math.random() > 0.5 ? 'busy' : 'unavailable',
-        nextAvailable: Math.random() > 0.3 ? '2:00 PM' : undefined,
-      }));
-      setStaff(staffWithAvailability);
-      setLoading(false);
-    }, 500);
-  }, []);
+  // Transform staff data from Supabase to component format
+  const staff: Staff[] = useMemo(() => {
+    if (!staffData) return [];
+    return staffData.map(member => ({
+      id: member.id,
+      name: member.fullName,
+      role: member.title || '',
+      rating: 5,
+      services: member.specialties || [],
+      avatar: member.avatarUrl || '',
+      availability: {} as Record<string, { start: string; end: string }[]>,
+    }));
+  }, [staffData]);
 
   // Generate time slots for the selected date
   const generateTimeSlots = (date: Date): TimeSlot[] => {

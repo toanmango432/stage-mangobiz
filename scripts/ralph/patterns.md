@@ -281,3 +281,298 @@ const result = await withTimeout(
 );
 ```
 **Why:** Prevents UI hangs during slow network conditions. Separating createTimeoutPromise allows reuse for different timeout scenarios (auth, bcrypt, etc.).
+
+## From ralph/catalog-module (2026-01-21)
+
+### Soft Delete with Tombstone Pattern
+For audit trail and eventual cleanup, implement soft delete with full metadata:
+```typescript
+async delete(id: string, userId: string, deviceId: string): Promise<void> {
+  const tombstoneExpiresAt = new Date();
+  tombstoneExpiresAt.setDate(tombstoneExpiresAt.getDate() + 30); // 30-day tombstone
+
+  const { error } = await supabase
+    .from('table_name')
+    .update({
+      is_deleted: true,
+      deleted_at: new Date().toISOString(),
+      deleted_by: userId,
+      deleted_by_device: deviceId,
+      tombstone_expires_at: tombstoneExpiresAt.toISOString(),
+      sync_status: 'pending',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+```
+**Why:** Soft delete with tombstone enables:
+1. Audit trail (who/when/what device)
+2. Sync propagation (deleted records sync to other devices)
+3. Eventual cleanup (scheduled job can hard-delete expired tombstones)
+
+### Archive vs Soft Delete Pattern
+For user-visible archival vs sync-level deletion, use two distinct patterns:
+
+```typescript
+// Archive: User-visible, recoverable, status-based
+async archive(id: string, userId: string): Promise<Row> {
+  return supabase.from('table').update({
+    status: 'archived',
+    archived_at: new Date().toISOString(),
+    archived_by: userId,
+    sync_status: 'pending',
+    updated_at: new Date().toISOString(),
+  }).eq('id', id).select().single();
+}
+
+async restore(id: string): Promise<Row> {
+  return supabase.from('table').update({
+    status: 'active',
+    archived_at: null,
+    archived_by: null,
+    sync_status: 'pending',
+    updated_at: new Date().toISOString(),
+  }).eq('id', id).select().single();
+}
+
+// Soft Delete: Sync propagation, tombstone-based, eventual cleanup
+async delete(id: string, userId: string, deviceId: string): Promise<void> {
+  // ... tombstone pattern (see above)
+}
+```
+
+**Why:** Archive is a business concept (user can see and restore), while soft delete is a technical concern (sync propagation, eventual cleanup). Keep them separate for cleaner semantics.
+
+### Array Contains Filtering in PostgREST
+When filtering by "element in array" (e.g., serviceId in applicable_service_ids), PostgREST's array operators are limited. Use a fetch-then-filter pattern:
+```typescript
+async getForService(storeId: string, serviceId?: string, categoryId?: string): Promise<Row[]> {
+  // Fetch all active rows
+  const { data, error } = await supabase
+    .from('add_on_groups')
+    .select('*')
+    .eq('store_id', storeId)
+    .eq('is_deleted', false)
+    .eq('is_active', true);
+
+  if (error) throw error;
+  if (!data) return [];
+
+  // Filter in JavaScript for complex array contains logic
+  return data.filter((row) => {
+    if (row.applicable_to_all) return true;
+    if (serviceId && row.applicable_service_ids?.includes(serviceId)) return true;
+    if (categoryId && row.applicable_category_ids?.includes(categoryId)) return true;
+    return false;
+  });
+}
+```
+**Why:** PostgREST's `@>` (contains) and `<@` (contained by) operators work for exact matches but not "any element in my list is in your array" scenarios. JavaScript filtering is simpler and more flexible for these cases.
+
+### Settings Table Pattern (getOrCreate)
+For one-per-store settings tables, use getOrCreate pattern with sensible defaults:
+```typescript
+async getOrCreate(storeId: string, tenantId: string, userId?: string, deviceId?: string): Promise<SettingsRow> {
+  // Try to get existing settings
+  const existing = await this.get(storeId);
+  if (existing) return existing;
+
+  // Create with sensible defaults
+  const defaultSettings: SettingsInsert = {
+    tenant_id: tenantId,
+    store_id: storeId,
+    // Feature toggles default to ENABLED (permissive)
+    enable_packages: true,
+    enable_add_ons: true,
+    enable_variants: true,
+    // Amount limits default to REASONABLE values
+    min_amount: 10,
+    max_amount: 500,
+    // Sync metadata
+    sync_status: 'local',
+    version: 1,
+    vector_clock: {},
+    last_synced_version: 0,
+    // Audit
+    created_by: userId || null,
+    created_by_device: deviceId || null,
+  };
+
+  const { data, error } = await supabase
+    .from('settings_table')
+    .insert(defaultSettings)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+```
+**Why:** Settings tables have UNIQUE constraint on store_id. Default to enabled/permissive values so new stores work out-of-the-box. Include audit trail from creation.
+
+### Multi-Tenant Data Access Audit
+When adding lookup methods (getByBarcode, getBySku, getByEmail, etc.), verify ALL data paths include tenant isolation:
+
+```typescript
+// WRONG - Missing tenant isolation (security vulnerability)
+async getByBarcode(barcode: string): Promise<Product | undefined> {
+  return this.findOneWhere('barcode = ?', [barcode]);
+}
+
+// CORRECT - Multi-tenant isolation enforced
+async getByBarcode(storeId: string, barcode: string): Promise<Product | undefined> {
+  return this.findOneWhere('store_id = ? AND barcode = ?', [storeId, barcode]);
+}
+```
+
+**Check ALL data paths:**
+- SQLite path (ProductSQLiteService)
+- IndexedDB path (Dexie productsDB)
+- Supabase path (productsTable)
+
+**Why:** Without storeId filter, lookup methods could return data from other tenants - a critical security vulnerability. All data access must be scoped to the current tenant.
+
+### Supabase Routing in Data Services
+When adding Supabase path to data services, use opt-in flag, check online status, and apply type adapters:
+
+```typescript
+// Feature flag for Supabase routing
+function shouldUseSupabase(): boolean {
+  // Skip if SQLite is enabled (Electron local-first)
+  if (USE_SQLITE) return false;
+
+  // Opt-in via environment variable
+  if (import.meta.env.VITE_USE_SUPABASE !== 'true') return false;
+
+  // Only when online
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+
+  return true;
+}
+
+const USE_SUPABASE = shouldUseSupabase();
+
+// Service method with Supabase routing
+export const categoryService = {
+  async getAll(storeId: string): Promise<Category[]> {
+    // SQLite path (Electron)
+    if (USE_SQLITE) {
+      const result = await sqliteCategoriesDB.getAll(storeId);
+      return result as Category[];
+    }
+
+    // Supabase path (online-only with opt-in)
+    if (USE_SUPABASE) {
+      const rows = await categoriesTable.getByStoreId(storeId);
+      return toCategories(rows);  // Apply adapter
+    }
+
+    // Dexie path (default local-first)
+    return categoriesDB.getAll(storeId);
+  },
+};
+```
+
+**Routing Priority:**
+1. SQLite (if USE_SQLITE=true, Electron only)
+2. Supabase (if USE_SUPABASE=true and online)
+3. Dexie/IndexedDB (default local-first storage)
+
+**Why:** Local-first is the default behavior. Supabase routing is opt-in for online-only devices that don't need offline support. Type adapters ensure consistent camelCase types regardless of data source.
+
+### Async Catalog Loading
+When replacing mock data generation with real catalog sync service, always use async loading pattern:
+```typescript
+// OLD (sync mock data):
+const services = generateMockServices();
+
+// NEW (async real data):
+useEffect(() => {
+  const loadServices = async () => {
+    try {
+      const storeId = localStorage.getItem('storeId') || '';
+      const loadedServices = await getServices(storeId);
+      setServices(loadedServices);
+    } catch (error) {
+      console.error('Failed to load services:', error);
+      setServices([]); // Empty array on error, NOT mock data
+    }
+  };
+  loadServices();
+}, []);
+```
+**Why:** Sync mock generation cannot be replaced with async Supabase calls without proper error handling. Empty arrays on error ensure UI degrades gracefully without showing stale mock data.
+
+### Post-Query RLS Validation (Defense in Depth)
+After querying Supabase with tenant isolation filters, validate ALL returned records match the expected tenant:
+```typescript
+function validateStoreIsolation(data: any[], storeId: string, context: string): void {
+  const invalidRecords = data.filter(row => row.store_id !== storeId);
+  if (invalidRecords.length > 0) {
+    console.error(`[SECURITY] RLS policy violation in ${context}`, {
+      requestedStoreId: storeId,
+      invalidRecordCount: invalidRecords.length,
+      invalidStoreIds: [...new Set(invalidRecords.map(r => r.store_id))],
+    });
+    throw new Error(`Cross-store data leakage prevented in ${context}`);
+  }
+}
+
+// Usage in data service:
+const { data } = await supabase.from('table').eq('store_id', storeId);
+validateStoreIsolation(data, storeId, 'serviceName');
+```
+**Why:** RLS policies can be misconfigured during migrations, schema changes, or policy updates. Application-level validation catches policy failures before data reaches UI. This prevents accidental cross-tenant data exposure in multi-tenant SaaS applications. Detailed error logging helps identify and fix RLS misconfigurations quickly.
+
+### Typed JSONB Interfaces with Index Signatures
+When mapping JSONB columns to TypeScript, use named interfaces with known fields + index signature instead of `Record<string, any>`:
+```typescript
+// GOOD — type-safe known fields + extensible for custom data
+export interface MembershipFeatures {
+  discountPercentage?: number;
+  complimentaryServices?: number;
+  priorityBooking?: boolean;
+  [key: string]: unknown;  // Allows custom features per store
+}
+
+// BAD — no autocomplete, no type checking
+features: Record<string, any>;
+```
+**Why:** Provides IDE autocomplete and type checking for commonly used fields while maintaining extensibility for stores that add custom data via JSONB. The index signature `[key: string]: unknown` (not `any`) preserves strict type checking for unknown fields.
+
+### Testing Supabase Services
+
+When testing modules that create a Supabase client at module level (e.g., `catalogSyncService.ts`):
+
+```typescript
+// 1. Use vi.hoisted to set env vars BEFORE module evaluation
+const { mockFrom } = vi.hoisted(() => {
+  process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
+  process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
+  const mockFrom = vi.fn();
+  return { mockFrom };
+});
+
+// 2. Mock the Supabase package
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(() => ({ from: mockFrom })),
+}));
+
+// 3. Create thenable chain objects (Supabase builder is thenable at any point)
+function createChain(resolveWith: { data?: unknown; error?: unknown }) {
+  const ch = {};
+  const self = () => ch;
+  ch.select = vi.fn(self);
+  ch.insert = vi.fn(self);
+  ch.update = vi.fn(self);
+  ch.eq = vi.fn(self);
+  ch.order = vi.fn(self);
+  ch.single = vi.fn(self);
+  ch.then = (resolve, reject) => Promise.resolve(resolveWith).then(resolve, reject);
+  return ch;
+}
+```
+
+**Why:** The Supabase client is created at module load time using `import.meta.env`. Vitest populates `import.meta.env` from `process.env`, so setting `process.env.VITE_*` in `vi.hoisted()` ensures the env vars exist when the module evaluates. The thenable chain pattern is needed because Supabase's query builder can be awaited at any position in the chain.

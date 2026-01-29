@@ -7,6 +7,8 @@ import {
   Users,
   Sparkles,
   Save,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
@@ -40,6 +42,8 @@ export function StaffPermissionsSection({
   const [expandedCategories, setExpandedCategories] = useState<string[]>(categories.map(c => c.id));
   const [modifiedMemberIds, setModifiedMemberIds] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
+  const [failedMemberIds, setFailedMemberIds] = useState<Set<string>>(new Set());
+  const [savingMemberIds, setSavingMemberIds] = useState<Set<string>>(new Set());
 
   // Load team members on mount if not already loaded
   useEffect(() => {
@@ -197,29 +201,71 @@ export function StaffPermissionsSection({
     setModifiedMemberIds(prev => new Set(prev).add(memberId));
   };
 
-  // Save all modified members to database
+  // Save all modified members to database with per-member error tracking
   const savePermissions = useCallback(async () => {
     if (modifiedMemberIds.size === 0) return;
 
     setIsSaving(true);
-    try {
-      const promises = Array.from(modifiedMemberIds).map(memberId => {
-        const member = allTeamMembers.find(m => m.id === memberId);
-        if (member) {
-          return dispatch(saveTeamMember({ member })).unwrap();
-        }
-        return Promise.resolve();
-      });
+    setFailedMemberIds(new Set());
 
-      await Promise.all(promises);
-      setModifiedMemberIds(new Set());
-      toast.success(`Permissions saved for ${promises.length} team member${promises.length > 1 ? 's' : ''}`);
-    } catch (error) {
-      toast.error('Failed to save permissions');
-      console.error('Save permissions error:', error);
-    } finally {
-      setIsSaving(false);
+    const memberIdsToSave = Array.from(modifiedMemberIds);
+    setSavingMemberIds(new Set(memberIdsToSave));
+
+    const successfulIds: string[] = [];
+    const failedIds: string[] = [];
+
+    // Save each member individually with try-catch
+    for (const memberId of memberIdsToSave) {
+      const member = allTeamMembers.find(m => m.id === memberId);
+      if (!member) {
+        // Remove from saving state
+        setSavingMemberIds(prev => {
+          const next = new Set(prev);
+          next.delete(memberId);
+          return next;
+        });
+        continue;
+      }
+
+      try {
+        await dispatch(saveTeamMember({ member })).unwrap();
+        successfulIds.push(memberId);
+      } catch (error) {
+        failedIds.push(memberId);
+        console.error(`Failed to save permissions for member ${memberId}:`, error);
+      }
+
+      // Remove from saving state after attempt
+      setSavingMemberIds(prev => {
+        const next = new Set(prev);
+        next.delete(memberId);
+        return next;
+      });
     }
+
+    // Update failed member IDs state
+    setFailedMemberIds(new Set(failedIds));
+
+    // Remove successful saves from modified list
+    setModifiedMemberIds(prev => {
+      const next = new Set(prev);
+      successfulIds.forEach(id => next.delete(id));
+      return next;
+    });
+
+    // Show appropriate toast message
+    if (failedIds.length === 0) {
+      toast.success(`Permissions saved for ${successfulIds.length} team member${successfulIds.length > 1 ? 's' : ''}`);
+    } else if (successfulIds.length === 0) {
+      toast.error(`Failed to save permissions for all ${failedIds.length} team member${failedIds.length > 1 ? 's' : ''}`);
+    } else {
+      toast.error(
+        `Saved ${successfulIds.length} member${successfulIds.length > 1 ? 's' : ''}, ` +
+        `failed to save ${failedIds.length} member${failedIds.length > 1 ? 's' : ''}`
+      );
+    }
+
+    setIsSaving(false);
   }, [dispatch, modifiedMemberIds, allTeamMembers]);
 
   // Selected member data
@@ -283,6 +329,8 @@ export function StaffPermissionsSection({
             filteredMembers.map((member) => {
               const serviceCount = getEnabledServiceCount(member);
               const isSelected = selectedMemberId === member.id;
+              const isMemberSaving = savingMemberIds.has(member.id);
+              const hasFailed = failedMemberIds.has(member.id);
 
               return (
                 <button
@@ -291,24 +339,46 @@ export function StaffPermissionsSection({
                   className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors mb-1 ${
                     isSelected
                       ? 'bg-orange-50 border border-orange-200'
+                      : hasFailed
+                      ? 'bg-red-50 border border-red-200'
                       : 'hover:bg-gray-100'
                   }`}
                 >
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white font-medium flex-shrink-0">
-                    {getInitials(member)}
+                  {/* Avatar with loading/error overlay */}
+                  <div className="relative flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white font-medium">
+                      {getInitials(member)}
+                    </div>
+                    {isMemberSaving && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/70 rounded-full">
+                        <Loader2 size={20} className="text-orange-500 animate-spin" />
+                      </div>
+                    )}
+                    {hasFailed && !isMemberSaving && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                        <AlertCircle size={12} className="text-white" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Info */}
                   <div className="flex-1 text-left min-w-0">
                     <p className="font-medium text-gray-900 truncate">{getDisplayName(member)}</p>
-                    <p className="text-xs text-gray-500">{getMemberStatus(member)}</p>
+                    <p className={`text-xs ${hasFailed ? 'text-red-600' : 'text-gray-500'}`}>
+                      {hasFailed ? 'Save failed - retry' : getMemberStatus(member)}
+                    </p>
                   </div>
 
-                  {/* Service Count */}
+                  {/* Service Count / Loading */}
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{serviceCount}</p>
-                    <p className="text-xs text-gray-500">services</p>
+                    {isMemberSaving ? (
+                      <p className="text-xs text-orange-500">Saving...</p>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-gray-900">{serviceCount}</p>
+                        <p className="text-xs text-gray-500">services</p>
+                      </>
+                    )}
                   </div>
                 </button>
               );
