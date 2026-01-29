@@ -3,6 +3,16 @@
  *
  * This module provides a unified way to access environment variables
  * that works in both Next.js (process.env) and Vite (import.meta.env) contexts.
+ */
+
+// Debug: log what Next.js is providing
+if (typeof window !== 'undefined') {
+  console.log('[ENV DEBUG] NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log('[ENV DEBUG] NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
+}
+
+/**
+ * (continuing original comment)
  *
  * For Next.js:
  * - Client-accessible vars must have NEXT_PUBLIC_ prefix
@@ -60,22 +70,16 @@ export function isBuildTime(): boolean {
  * Supabase URL - required for database operations
  */
 export function getSupabaseUrl(): string {
-  return (
-    getEnv('NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL') ||
-    // Build-time placeholder (allows build to succeed without real credentials)
-    'https://placeholder.supabase.co'
-  );
+  // TEMP: Hardcoded for testing - env vars not loading properly
+  return 'https://cpaldkcvdcdyzytosntc.supabase.co';
 }
 
 /**
  * Supabase anonymous key - required for client-side operations
  */
 export function getSupabaseAnonKey(): string {
-  return (
-    getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY') ||
-    // Build-time placeholder
-    'placeholder-anon-key'
-  );
+  // TEMP: Hardcoded for testing - env vars not loading properly
+  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwYWxka2N2ZGNkeXp5dG9zbnRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwODMzNzIsImV4cCI6MjA3OTY1OTM3Mn0.A4tG6cf7Xk5Y0eGE-Wpx5-gX62neCnuD2QlRxZ2qOOQ';
 }
 
 /**

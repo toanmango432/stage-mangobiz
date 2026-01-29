@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
@@ -16,10 +17,26 @@ import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { initializeTemplateStorage, seedTemplateSections } from '@/lib/storage/templateStorage';
+import { initializeStorefrontConfig } from '@/lib/storage/configStorage';
 
 const queryClient = new QueryClient();
 
+// Initialize localStorage data on first load
+function useInitializeStorage() {
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      initializeTemplateStorage();
+      seedTemplateSections();
+      initializeStorefrontConfig();
+    }
+  }, []);
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
+  // Initialize localStorage with default data
+  useInitializeStorage();
+  
   return (
     <ErrorBoundary>
       <ReduxProvider store={store}>
