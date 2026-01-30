@@ -25,8 +25,11 @@ export * from './schemas/staff';
 export * from './schemas/analytics';
 export * from './schemas/system';
 
-// Tool registry (to be implemented in US-009)
-// export * from './registry';
+// Tool registry
+export * from './registry';
+
+// Schema index (all schemas re-exported)
+export * from './schemas';
 
 // Tool handlers (to be implemented in US-010 through US-011)
 // export * from './handlers';
