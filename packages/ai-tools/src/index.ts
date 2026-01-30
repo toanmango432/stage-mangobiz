@@ -22,6 +22,8 @@ export * from './schemas/appointments';
 export * from './schemas/services';
 export * from './schemas/tickets';
 export * from './schemas/staff';
+export * from './schemas/analytics';
+export * from './schemas/system';
 
 // Tool registry (to be implemented in US-009)
 // export * from './registry';
