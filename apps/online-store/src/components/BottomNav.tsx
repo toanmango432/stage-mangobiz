@@ -1,3 +1,5 @@
+'use client';
+
 import { Home, Calendar, ShoppingBag, CreditCard, Gift, User, Info, Mail, Image, Star, HelpCircle, FileText } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";

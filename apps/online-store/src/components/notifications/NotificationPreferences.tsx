@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Save, Bell, Mail, Smartphone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';

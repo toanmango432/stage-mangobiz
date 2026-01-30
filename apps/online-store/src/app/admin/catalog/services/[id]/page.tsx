@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import ServiceForm from '@/views/admin/catalog/ServiceForm';
 
+export const dynamic = 'force-dynamic';
+
 interface ServiceFormPageProps {
   params: Promise<{ id: string }>;
 }

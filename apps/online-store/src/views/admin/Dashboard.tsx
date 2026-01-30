@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from "react";
 import { DollarSign, ShoppingCart, Users, Calendar, TrendingUp, Package } from "lucide-react";
 import { DetailedMetricCard } from "@/components/admin/dashboard/DetailedMetricCard";

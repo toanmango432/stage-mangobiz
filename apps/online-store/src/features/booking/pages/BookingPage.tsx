@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 import { Progress } from '@/components/ui/progress';
