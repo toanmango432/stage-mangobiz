@@ -7,8 +7,17 @@ export interface Service {
   basePrice: number;
   price: number; // For booking flow compatibility
   showOnline: boolean;
+  showPriceOnline: boolean; // Control price visibility online
   image?: string;
   gallery?: string[];
+  hasVariants: boolean; // Service has multiple variants
+  variants?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    duration?: number;
+    isDefault?: boolean;
+  }>;
   addOns: Array<{
     id: string;
     name: string;
@@ -102,32 +111,60 @@ export interface Product {
   updatedAt: string;
 }
 
-export interface Membership {
+/**
+ * Typed interfaces for MembershipPlan JSONB fields.
+ * These replace Record<string, any> for type safety.
+ */
+export interface MembershipFeatures {
+  discountPercentage?: number;
+  complimentaryServices?: number;
+  priorityBooking?: boolean;
+  freeProductSamples?: boolean;
+  vipLoungeAccess?: boolean;
+  unlimitedServices?: boolean;
+  exclusiveEvents?: boolean;
+  personalConcierge?: boolean;
+  [key: string]: unknown;
+}
+
+export interface MembershipRules {
+  minCommitmentMonths?: number;
+  cancellationNoticeDays?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Canonical membership plan type — matches Supabase membership_plans table
+ * and the Online Store admin UI (Memberships.tsx).
+ *
+ * Replaces the old Membership interface (e-commerce subscription model)
+ * and the legacy MembershipPlan interface (previously in membershipStorage.ts, now deleted).
+ */
+export interface MembershipPlan {
   id: string;
   name: string;
+  displayName: string;
+  priceMonthly: number;
   description: string;
-  featured: boolean;
-  price: number;
-  billingCycle: 'monthly' | 'quarterly' | 'yearly';
-  trialDays: number;
-  setupFee?: number;
-  benefits: {
-    serviceDiscountPercent: number;
-    productDiscountPercent: number;
-    priorityBooking: boolean;
-    complimentaryServices: string[];
-    otherPerks: string[];
-  };
-  autoRenewal: boolean;
-  gracePeriodDays: number;
-  cancellationPolicy: 'immediate' | 'end-of-cycle' | 'with-penalty';
-  pauseAllowed: boolean;
-  showOnline: boolean;
-  availableForPurchase: boolean;
-  activeMembersCount: number;
+  tagline: string;
+  imageUrl: string;
+  badgeIcon: string;
+  color: string;
+  perks: string[];
+  features: MembershipFeatures;
+  rules: MembershipRules;
+  isPopular: boolean;
+  isActive: boolean;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * @deprecated Use MembershipPlan instead. This type is kept for backward compatibility
+ * with code that hasn't been migrated yet.
+ */
+export type Membership = MembershipPlan;
 
 export interface GiftCardConfig {
   enabled: boolean;

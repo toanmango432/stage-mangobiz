@@ -26,7 +26,9 @@ import type {
   CatalogSettings,
   CategoryWithCount,
   ServiceWithVariants,
-  AddOnGroupWithOptions
+  AddOnGroupWithOptions,
+  BookingSequence,
+  CreateBookingSequenceInput
 } from '../types';
 import type { Product, CreateProductInput } from '../types/inventory';
 
@@ -164,9 +166,7 @@ export const menuServicesDB = {
     return { ...service, variants };
   },
 
-  async create(input: CreateMenuServiceInput, userId: string, storeId: string): Promise<MenuService> {
-    const now = new Date().toISOString();
-
+  async create(input: CreateMenuServiceInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<MenuService> {
     // Get next display order within category
     const maxOrder = await db.menuServices
       .where('[storeId+categoryId]')
@@ -174,16 +174,14 @@ export const menuServicesDB = {
       .toArray()
       .then(svcs => Math.max(0, ...svcs.map(s => s.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const service: MenuService = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      createdBy: userId,
-      lastModifiedBy: userId,
-      syncStatus: 'local',
+      variantCount: input.variantCount ?? 0,
     };
 
     await db.menuServices.add(service);
@@ -276,9 +274,7 @@ export const serviceVariantsDB = {
     return await db.serviceVariants.get(id);
   },
 
-  async create(input: CreateVariantInput, storeId: string): Promise<ServiceVariant> {
-    const now = new Date().toISOString();
-
+  async create(input: CreateVariantInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<ServiceVariant> {
     // Get next display order
     const maxOrder = await db.serviceVariants
       .where('serviceId')
@@ -286,21 +282,20 @@ export const serviceVariantsDB = {
       .toArray()
       .then(vars => Math.max(0, ...vars.map(v => v.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const variant: ServiceVariant = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     await db.serviceVariants.add(variant);
     return variant;
   },
 
-  async update(id: string, updates: Partial<ServiceVariant>): Promise<ServiceVariant | undefined> {
+  async update(id: string, updates: Partial<ServiceVariant>, userId: string): Promise<ServiceVariant | undefined> {
     const variant = await db.serviceVariants.get(id);
     if (!variant) return undefined;
 
@@ -308,6 +303,7 @@ export const serviceVariantsDB = {
       ...variant,
       ...updates,
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
       syncStatus: 'local',
     };
 
@@ -319,7 +315,7 @@ export const serviceVariantsDB = {
     await db.serviceVariants.delete(id);
   },
 
-  async setDefault(serviceId: string, variantId: string): Promise<void> {
+  async setDefault(serviceId: string, variantId: string, userId: string): Promise<void> {
     await db.transaction('rw', db.serviceVariants, async () => {
       // Remove default from all variants of this service
       const variants = await db.serviceVariants.where('serviceId').equals(serviceId).toArray();
@@ -327,6 +323,7 @@ export const serviceVariantsDB = {
         await db.serviceVariants.update(v.id, {
           isDefault: v.id === variantId,
           updatedAt: new Date().toISOString(),
+          lastModifiedBy: userId,
           syncStatus: 'local',
         });
       }
@@ -353,25 +350,20 @@ export const servicePackagesDB = {
     return await db.servicePackages.get(id);
   },
 
-  async create(input: CreatePackageInput, userId: string, storeId: string): Promise<ServicePackage> {
-    const now = new Date().toISOString();
-
+  async create(input: CreatePackageInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<ServicePackage> {
     const maxOrder = await db.servicePackages
       .where('storeId')
       .equals(storeId)
       .toArray()
       .then(pkgs => Math.max(0, ...pkgs.map(p => p.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const pkg: ServicePackage = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      createdBy: userId,
-      lastModifiedBy: userId,
-      syncStatus: 'local',
     };
 
     await db.servicePackages.add(pkg);
@@ -453,37 +445,52 @@ export const addOnGroupsDB = {
     );
   },
 
-  async create(input: CreateAddOnGroupInput, storeId: string): Promise<AddOnGroup> {
-    const now = new Date().toISOString();
-
+  async create(
+    input: CreateAddOnGroupInput,
+    userId: string,
+    storeId: string,
+    tenantId: string = storeId,
+    deviceId: string = 'web-client'
+  ): Promise<AddOnGroup> {
     const maxOrder = await db.addOnGroups
       .where('storeId')
       .equals(storeId)
       .toArray()
       .then(groups => Math.max(0, ...groups.map(g => g.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const group: AddOnGroup = {
+      ...syncDefaults,
       id: uuidv4(),
-      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     await db.addOnGroups.add(group);
     return group;
   },
 
-  async update(id: string, updates: Partial<AddOnGroup>): Promise<AddOnGroup | undefined> {
+  async update(
+    id: string,
+    updates: Partial<AddOnGroup>,
+    userId: string,
+    deviceId: string = 'web-client'
+  ): Promise<AddOnGroup | undefined> {
     const group = await db.addOnGroups.get(id);
     if (!group) return undefined;
 
     const updated: AddOnGroup = {
       ...group,
       ...updates,
+      version: group.version + 1,
+      vectorClock: {
+        ...group.vectorClock,
+        [deviceId]: group.version + 1,
+      },
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
       syncStatus: 'local',
     };
 
@@ -517,37 +524,52 @@ export const addOnOptionsDB = {
     return await db.addOnOptions.get(id);
   },
 
-  async create(input: CreateAddOnOptionInput, storeId: string): Promise<AddOnOption> {
-    const now = new Date().toISOString();
-
+  async create(
+    input: CreateAddOnOptionInput,
+    userId: string,
+    storeId: string,
+    tenantId: string = storeId,
+    deviceId: string = 'web-client'
+  ): Promise<AddOnOption> {
     const maxOrder = await db.addOnOptions
       .where('groupId')
       .equals(input.groupId)
       .toArray()
       .then(opts => Math.max(0, ...opts.map(o => o.displayOrder)));
 
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
     const option: AddOnOption = {
+      ...syncDefaults,
       id: uuidv4(),
-      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     await db.addOnOptions.add(option);
     return option;
   },
 
-  async update(id: string, updates: Partial<AddOnOption>): Promise<AddOnOption | undefined> {
+  async update(
+    id: string,
+    updates: Partial<AddOnOption>,
+    userId: string,
+    deviceId: string = 'web-client'
+  ): Promise<AddOnOption | undefined> {
     const option = await db.addOnOptions.get(id);
     if (!option) return undefined;
 
     const updated: AddOnOption = {
       ...option,
       ...updates,
+      version: option.version + 1,
+      vectorClock: {
+        ...option.vectorClock,
+        [deviceId]: option.version + 1,
+      },
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
       syncStatus: 'local',
     };
 
@@ -590,30 +612,46 @@ export const staffServiceAssignmentsDB = {
       .first();
   },
 
-  async create(input: CreateStaffAssignmentInput, storeId: string): Promise<StaffServiceAssignment> {
-    const now = new Date().toISOString();
+  async create(
+    input: CreateStaffAssignmentInput,
+    storeId: string,
+    userId: string,
+    deviceId: string,
+    tenantId: string
+  ): Promise<StaffServiceAssignment> {
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
 
     const assignment: StaffServiceAssignment = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       ...input,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     await db.staffServiceAssignments.add(assignment);
     return assignment;
   },
 
-  async update(id: string, updates: Partial<StaffServiceAssignment>): Promise<StaffServiceAssignment | undefined> {
+  async update(
+    id: string,
+    updates: Partial<StaffServiceAssignment>,
+    userId: string,
+    deviceId: string
+  ): Promise<StaffServiceAssignment | undefined> {
     const assignment = await db.staffServiceAssignments.get(id);
     if (!assignment) return undefined;
 
+    const newVersion = assignment.version + 1;
     const updated: StaffServiceAssignment = {
       ...assignment,
       ...updates,
+      version: newVersion,
+      vectorClock: {
+        ...assignment.vectorClock,
+        [deviceId]: newVersion,
+      },
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
       syncStatus: 'local',
     };
 
@@ -629,6 +667,9 @@ export const staffServiceAssignmentsDB = {
     storeId: string,
     staffId: string,
     serviceId: string,
+    userId: string,
+    deviceId: string,
+    tenantId: string,
     options?: { customPrice?: number; customDuration?: number; customCommissionRate?: number }
   ): Promise<StaffServiceAssignment> {
     // Check if already exists
@@ -636,7 +677,7 @@ export const staffServiceAssignmentsDB = {
     if (existing) {
       if (!existing.isActive) {
         // Reactivate
-        const updated = await this.update(existing.id, { isActive: true, ...options });
+        const updated = await this.update(existing.id, { isActive: true, ...options }, userId, deviceId);
         return updated!;
       }
       return existing;
@@ -647,13 +688,18 @@ export const staffServiceAssignmentsDB = {
       serviceId,
       isActive: true,
       ...options,
-    }, storeId);
+    }, storeId, userId, deviceId, tenantId);
   },
 
-  async removeStaffFromService(staffId: string, serviceId: string): Promise<void> {
+  async removeStaffFromService(
+    staffId: string,
+    serviceId: string,
+    userId: string,
+    deviceId: string
+  ): Promise<void> {
     const assignment = await this.getByStaffAndService(staffId, serviceId);
     if (assignment) {
-      await this.update(assignment.id, { isActive: false });
+      await this.update(assignment.id, { isActive: false }, userId, deviceId);
     }
   },
 };
@@ -668,16 +714,21 @@ export const catalogSettingsDB = {
       .first();
   },
 
-  async getOrCreate(storeId: string): Promise<CatalogSettings> {
+  async getOrCreate(
+    storeId: string,
+    userId: string,
+    deviceId: string,
+    tenantId: string
+  ): Promise<CatalogSettings> {
     // Check for existing settings first
     const existing = await this.get(storeId);
     if (existing) return existing;
 
-    // Create default settings
-    const now = new Date().toISOString();
+    // Create default settings with sync fields
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
     const defaults: CatalogSettings = {
       id: uuidv4(),
-      storeId,
+      ...syncDefaults,
       defaultDuration: 60,
       defaultExtraTime: 0,
       defaultExtraTimeType: 'processing',
@@ -692,9 +743,6 @@ export const catalogSettingsDB = {
       enableVariants: true,
       allowCustomPricing: true,
       bookingSequenceEnabled: false,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: 'local',
     };
 
     try {
@@ -710,14 +758,27 @@ export const catalogSettingsDB = {
     }
   },
 
-  async update(storeId: string, updates: Partial<CatalogSettings>): Promise<CatalogSettings | undefined> {
+  async update(
+    storeId: string,
+    updates: Partial<CatalogSettings>,
+    userId: string,
+    deviceId: string
+  ): Promise<CatalogSettings | undefined> {
     const settings = await this.get(storeId);
     if (!settings) return undefined;
 
+    const newVersion = settings.version + 1;
     const updated: CatalogSettings = {
       ...settings,
       ...updates,
+      version: newVersion,
+      vectorClock: {
+        ...settings.vectorClock,
+        [deviceId]: newVersion,
+      },
       updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
       syncStatus: 'local',
     };
 
@@ -888,6 +949,37 @@ export const productsDB = {
   },
 
   /**
+   * Restore an archived product.
+   * Sets isActive=true, isDeleted=false, increments version, updates vectorClock.
+   * @param id - Product ID to restore
+   * @param userId - User performing the restore
+   * @param deviceId - Device performing the restore
+   */
+  async restore(id: string, userId: string, deviceId: string = 'web-client'): Promise<Product | undefined> {
+    const product = await db.products.get(id);
+    if (!product) return undefined;
+
+    const newVersion = product.version + 1;
+    const restored: Product = {
+      ...product,
+      isActive: true,
+      isDeleted: false,
+      version: newVersion,
+      vectorClock: {
+        ...product.vectorClock,
+        [deviceId]: newVersion,
+      },
+      updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
+      syncStatus: 'local',
+    };
+
+    await db.products.put(restored);
+    return restored;
+  },
+
+  /**
    * Hard delete a product (use with caution).
    */
   async hardDelete(id: string): Promise<void> {
@@ -908,5 +1000,128 @@ export const productsDB = {
 
     const categories = new Set(products.map(p => p.category));
     return Array.from(categories).sort();
+  },
+};
+
+// ==================== BOOKING SEQUENCES ====================
+
+/**
+ * Booking Sequences database operations.
+ * Defines the order services should be performed during booking.
+ * Example: Cut → Color → Style
+ */
+export const bookingSequencesDB = {
+  /**
+   * Get all booking sequences for a store.
+   * @param includeDisabled - If true, includes disabled sequences
+   */
+  async getAll(storeId: string, includeDisabled: boolean = false): Promise<BookingSequence[]> {
+    if (!storeId) return [];
+
+    if (includeDisabled) {
+      return await db.bookingSequences
+        .where('storeId')
+        .equals(storeId)
+        .toArray();
+    }
+
+    return await db.bookingSequences
+      .where('storeId')
+      .equals(storeId)
+      .and(seq => seq.isEnabled === true)
+      .toArray();
+  },
+
+  /**
+   * Get a booking sequence by ID.
+   */
+  async getById(id: string): Promise<BookingSequence | undefined> {
+    return await db.bookingSequences.get(id);
+  },
+
+  /**
+   * Create a new booking sequence.
+   */
+  async create(
+    input: CreateBookingSequenceInput,
+    userId: string,
+    storeId: string,
+    tenantId: string = storeId,
+    deviceId: string = 'web-client'
+  ): Promise<BookingSequence> {
+    const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
+
+    const sequence: BookingSequence = {
+      id: uuidv4(),
+      ...syncDefaults,
+      ...input,
+    };
+
+    await db.bookingSequences.add(sequence);
+    return sequence;
+  },
+
+  /**
+   * Update an existing booking sequence.
+   */
+  async update(
+    id: string,
+    updates: Partial<BookingSequence>,
+    userId: string,
+    deviceId: string = 'web-client'
+  ): Promise<BookingSequence | undefined> {
+    const sequence = await db.bookingSequences.get(id);
+    if (!sequence) return undefined;
+
+    const newVersion = sequence.version + 1;
+    const updated: BookingSequence = {
+      ...sequence,
+      ...updates,
+      version: newVersion,
+      vectorClock: {
+        ...sequence.vectorClock,
+        [deviceId]: newVersion,
+      },
+      updatedAt: new Date().toISOString(),
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
+      syncStatus: 'local',
+    };
+
+    await db.bookingSequences.put(updated);
+    return updated;
+  },
+
+  /**
+   * Delete a booking sequence (hard delete).
+   */
+  async delete(id: string): Promise<void> {
+    await db.bookingSequences.delete(id);
+  },
+
+  /**
+   * Enable a booking sequence.
+   */
+  async enable(id: string, userId: string, deviceId: string = 'web-client'): Promise<BookingSequence | undefined> {
+    return await this.update(id, { isEnabled: true }, userId, deviceId);
+  },
+
+  /**
+   * Disable a booking sequence.
+   */
+  async disable(id: string, userId: string, deviceId: string = 'web-client'): Promise<BookingSequence | undefined> {
+    return await this.update(id, { isEnabled: false }, userId, deviceId);
+  },
+
+  /**
+   * Update the service order for a booking sequence.
+   */
+  async updateServiceOrder(
+    id: string,
+    serviceOrder: string[],
+    userId: string,
+    deviceId: string = 'web-client'
+  ): Promise<BookingSequence | undefined> {
+    return await this.update(id, { serviceOrder }, userId, deviceId);
   },
 };

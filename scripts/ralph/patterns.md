@@ -281,3 +281,26 @@ const result = await withTimeout(
 );
 ```
 **Why:** Prevents UI hangs during slow network conditions. Separating createTimeoutPromise allows reuse for different timeout scenarios (auth, bcrypt, etc.).
+
+## From ralph/online-store-nextjs-migration (2026-01-27)
+
+### Next.js App Directory Placement with Existing src/pages
+When migrating a Vite React app to Next.js App Router, if `src/pages/` already contains React components, place the `app/` directory under `src/app/` (not project root). Next.js 16 requires `pages` and `app` directories to share the same parent folder. Setting `app/` at root while `src/pages/` exists triggers: "pages and app directories should be under the same folder".
+
+### Next.js 16 Config Differences
+- `eslint` key removed from `next.config.ts` — configure ESLint via separate config file or CLI
+- `turbopack.root` should point to monorepo root to avoid lockfile detection warnings
+- `typescript.ignoreBuildErrors` still supported
+- `--no-lint` flag removed from `next build` CLI
+
+### Next.js 16 JSX Setting
+Next.js 16 uses `jsx: "react-jsx"` (not `"preserve"` like older versions). On first `next dev` run, it auto-corrects this in tsconfig.json. Don't fight it — use `react-jsx`.
+
+### Consolidated tsconfig for Next.js Migration
+Replace Vite's project-references pattern (`tsconfig.json` with `files:[], references:[]` pointing to `tsconfig.app.json` and `tsconfig.node.json`) with a single primary `tsconfig.json` containing all compiler options. Keep `.app.json` and `.node.json` as extending configs (`"extends": "./tsconfig.json"`) for Vite fallback during migration.
+
+### pageExtensions to Disable Pages Router
+In Next.js 16, setting `pageExtensions: ['page.tsx', 'page.ts', 'page.jsx', 'page.js']` effectively disables Pages Router by requiring a `.page.` suffix that no existing files match. **App Router is NOT affected** — `src/app/**/page.tsx`, `layout.tsx`, etc. use convention-based resolution separate from `pageExtensions`. Use this when `src/pages/` contains React view components (not Next.js pages) that would crash during SSR page data collection.
+
+### Server Component Page Wrappers for Metadata
+Next.js `export const metadata` only works in Server Components (no `'use client'`). When migrating `'use client'` page wrappers to support metadata, move `'use client'` to the imported source component (`src/pages/*.tsx`) and make the `app/*/page.tsx` wrapper a Server Component. The source component becomes self-contained as a Client Component, and the wrapper can export metadata.

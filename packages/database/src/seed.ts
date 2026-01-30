@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './schema';
-import type { Staff, Client, Service } from '../types';
+import type { Staff, Client, Service } from '@mango/types';
 
 const SALON_ID = 'default-salon'; // Default salon ID matching auth fallback
 

@@ -1,3 +1,4 @@
+import { getSupabaseUrl } from '@/lib/env';
 import {
   MarketingDisplaySettings,
   MarketingDisplaySettingsPatch,
@@ -7,7 +8,7 @@ import {
   AnnouncementDisplayConfig,
 } from '@/types/marketing-settings';
 
-const STORE_API_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/store`;
+const STORE_API_BASE = `${getSupabaseUrl()}/functions/v1/store`;
 
 /**
  * Default marketing settings when API is unavailable

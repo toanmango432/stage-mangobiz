@@ -1,6 +1,7 @@
 import { AIRecommendation, AIBundleSuggestion } from "@/types/ai";
 import { UserProfile } from "@/types/personalization";
-import { Service, Product, Membership } from "@/types/catalog";
+import { Service, Product } from "@/types/catalog";
+import type { MembershipPlan } from "@/types/catalog";
 import { getUserProfile } from "./personalization";
 
 export function getPersonalizedServices(
@@ -64,23 +65,21 @@ export function getSimilarItems(itemId: string, items: any[], limit: number = 4)
 }
 
 export function getBestValueMembership(
-  memberships: Membership[]
+  memberships: MembershipPlan[]
 ): string | null {
   const profile = getUserProfile();
-  
+
   if (profile.avgSpend === 0) return null;
 
   const monthlySpend = profile.avgSpend;
-  
+
   // Find membership with best ROI
   const scored = memberships.map(m => {
-    const monthlyCost = m.billingCycle === 'monthly' ? m.price :
-                        m.billingCycle === 'quarterly' ? m.price / 3 :
-                        m.price / 12;
-    
-    const potentialSavings = monthlySpend * (m.benefits.serviceDiscountPercent / 100);
+    const monthlyCost = m.priceMonthly;
+    const discountPercent = (m.features.discountPercentage as number) ?? 0;
+    const potentialSavings = monthlySpend * (discountPercent / 100);
     const roi = potentialSavings - monthlyCost;
-    
+
     return { ...m, roi };
   });
 

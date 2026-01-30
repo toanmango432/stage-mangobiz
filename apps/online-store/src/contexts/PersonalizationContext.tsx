@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { UserProfile } from '@/types/personalization';
 import { getUserProfile, incrementVisitCount, getSession } from '@/lib/ai/personalization';

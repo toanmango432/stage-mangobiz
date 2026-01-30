@@ -9,24 +9,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export interface Column {
+export interface Column<T extends { id: string } = { id: string }> {
   key: string;
   label: string;
-  render?: (value: any, item: any) => React.ReactNode;
+  render?: (value: unknown, item: T) => React.ReactNode;
 }
 
-interface CatalogTableProps {
-  columns: Column[];
-  data: any[];
+interface CatalogTableProps<T extends { id: string }> {
+  columns: Column<T>[];
+  data: T[];
   selectedItems: string[];
   onSelectItem: (id: string) => void;
   onSelectAll: (checked: boolean) => void;
-  onEdit: (item: any) => void;
-  onDelete: (item: any) => void;
-  onDuplicate?: (item: any) => void;
+  onEdit: (item: T) => void;
+  onDelete: (item: T) => void;
+  onDuplicate?: (item: T) => void;
 }
 
-export const CatalogTable = ({
+export function CatalogTable<T extends { id: string }>({
   columns,
   data,
   selectedItems,
@@ -35,7 +35,7 @@ export const CatalogTable = ({
   onEdit,
   onDelete,
   onDuplicate,
-}: CatalogTableProps) => {
+}: CatalogTableProps<T>) {
   const allSelected = data.length > 0 && selectedItems.length === data.length;
 
   return (
@@ -71,13 +71,16 @@ export const CatalogTable = ({
                     onCheckedChange={() => onSelectItem(item.id)}
                   />
                 </TableCell>
-                {columns.map((column) => (
-                  <TableCell key={column.key}>
-                    {column.render
-                      ? column.render(item[column.key], item)
-                      : item[column.key]}
-                  </TableCell>
-                ))}
+                {columns.map((column) => {
+                  const value = (item as Record<string, unknown>)[column.key];
+                  return (
+                    <TableCell key={column.key}>
+                      {column.render
+                        ? column.render(value, item)
+                        : String(value ?? "")}
+                    </TableCell>
+                  );
+                })}
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -112,4 +115,4 @@ export const CatalogTable = ({
       </Table>
     </div>
   );
-};
+}

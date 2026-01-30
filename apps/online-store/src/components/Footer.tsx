@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Facebook, Instagram, Twitter } from "lucide-react";
 
 export const Footer = () => {
@@ -16,22 +16,22 @@ export const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/" className="text-muted-foreground hover:text-foreground">Home</Link></li>
-              <li><Link to="/shop" className="text-muted-foreground hover:text-foreground">Shop</Link></li>
-              <li><Link to="/book" className="text-muted-foreground hover:text-foreground">Book</Link></li>
-              <li><Link to="/memberships" className="text-muted-foreground hover:text-foreground">Memberships</Link></li>
+              <li><Link href="/" className="text-muted-foreground hover:text-foreground">Home</Link></li>
+              <li><Link href="/shop" className="text-muted-foreground hover:text-foreground">Shop</Link></li>
+              <li><Link href="/book" className="text-muted-foreground hover:text-foreground">Book</Link></li>
+              <li><Link href="/memberships" className="text-muted-foreground hover:text-foreground">Memberships</Link></li>
             </ul>
           </div>
           
           <div>
             <h4 className="font-semibold mb-4">Info</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/info/about" className="text-muted-foreground hover:text-foreground">About</Link></li>
-              <li><Link to="/info/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
-              <li><Link to="/info/gallery" className="text-muted-foreground hover:text-foreground">Gallery</Link></li>
-              <li><Link to="/info/reviews" className="text-muted-foreground hover:text-foreground">Reviews</Link></li>
-              <li><Link to="/info/faq" className="text-muted-foreground hover:text-foreground">FAQ</Link></li>
-              <li><Link to="/info/policies" className="text-muted-foreground hover:text-foreground">Policies</Link></li>
+              <li><Link href="/info/about" className="text-muted-foreground hover:text-foreground">About</Link></li>
+              <li><Link href="/info/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
+              <li><Link href="/info/gallery" className="text-muted-foreground hover:text-foreground">Gallery</Link></li>
+              <li><Link href="/info/reviews" className="text-muted-foreground hover:text-foreground">Reviews</Link></li>
+              <li><Link href="/info/faq" className="text-muted-foreground hover:text-foreground">FAQ</Link></li>
+              <li><Link href="/info/policies" className="text-muted-foreground hover:text-foreground">Policies</Link></li>
             </ul>
           </div>
           

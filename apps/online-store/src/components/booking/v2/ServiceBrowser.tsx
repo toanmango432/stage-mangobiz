@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShoppingCart, Plus, Clock, Star, Sparkles, Users, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Service, CartItem } from './types';
-import { generateMockServices } from '@/lib/mockData';
+import { getServices } from '@/lib/services/catalogSyncService';
 import { PromoSidebar } from './PromoSidebar';
 import { StickyActionBar } from './StickyActionBar';
 
@@ -41,23 +41,29 @@ export const ServiceBrowser: React.FC<ServiceBrowserProps> = ({
   const [flyingItem, setFlyingItem] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      const mockServices = generateMockServices();
-      const servicesWithImages = mockServices.map((service, index) => ({
-        id: service.id,
-        name: service.name,
-        description: service.description,
-        price: service.basePrice || service.price,
-        duration: service.duration,
-        category: service.category?.toLowerCase() || (index < 3 ? 'hair' : index < 6 ? 'nails' : index < 8 ? 'spa' : 'packages'),
-        image: service.imageUrl || `/src/assets/${service.name.toLowerCase().replace(/\s+/g, '-')}.jpg`,
-        isFeatured: service.featured || index < 2,
-        promoBadge: service.badge || (index === 0 ? 'Most Popular' : index === 1 ? 'New' : undefined),
-      }));
-      setServices(servicesWithImages);
-      setLoading(false);
-    }, 500);
+    const loadServices = async () => {
+      try {
+        const storeId = process.env.NEXT_PUBLIC_STORE_ID || 'demo-store';
+        const catalogServices = await getServices(storeId);
+        const servicesWithImages = catalogServices.map((service, index) => ({
+          id: service.id,
+          name: service.name,
+          description: service.description || '',
+          price: service.price || service.basePrice || 0,
+          duration: service.duration || 30,
+          category: service.category?.toLowerCase() || (index < 3 ? 'hair' : index < 6 ? 'nails' : index < 8 ? 'spa' : 'packages'),
+          image: service.imageUrl || `/src/assets/${service.name.toLowerCase().replace(/\s+/g, '-')}.jpg`,
+          isFeatured: service.featured || index < 2,
+          promoBadge: service.badge || (index === 0 ? 'Most Popular' : index === 1 ? 'New' : undefined),
+        }));
+        setServices(servicesWithImages);
+        setLoading(false);
+      } catch (error) {
+        console.error('[ServiceBrowser] Failed to load services:', error);
+        setLoading(false);
+      }
+    };
+    loadServices();
   }, []);
 
   const filteredServices = services.filter(service => 

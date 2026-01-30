@@ -76,9 +76,13 @@ export type CreateCategoryInput = Omit<ServiceCategory,
 // SERVICE VARIANT
 // ============================================
 
-export interface ServiceVariant {
-  id: string;
-  storeId: string;
+/**
+ * ServiceVariant - Represents a variant of a service (e.g., "Short Hair", "Long Hair")
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface ServiceVariant extends BaseSyncableEntity {
   serviceId: string;
 
   // Core fields
@@ -93,24 +97,45 @@ export interface ServiceVariant {
   isDefault: boolean;
   displayOrder: number;
   isActive: boolean;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new ServiceVariant
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateVariantInput = Omit<ServiceVariant,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
 // MENU SERVICE (Enhanced Service)
 // ============================================
 
-export interface MenuService {
-  id: string;
-  storeId: string;
+/**
+ * MenuService - Represents a service in the catalog
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface MenuService extends BaseSyncableEntity {
   categoryId: string;
 
   // Core fields
@@ -138,6 +163,7 @@ export interface MenuService {
 
   // Variants
   hasVariants: boolean;
+  variantCount: number; // Number of variants for this service
   // Note: Variants stored in separate table for sync efficiency
 
   // Staff assignment
@@ -169,19 +195,10 @@ export interface MenuService {
   tags?: string[];
 
   // Visibility & Status
-  status: ServiceStatus;
+  status: ServiceStatus; // 'active' | 'inactive' | 'archived'
   displayOrder: number;
   showPriceOnline: boolean;
   allowCustomDuration: boolean;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
-
-  // Audit
-  createdBy?: string;
-  lastModifiedBy?: string;
 
   // === ARCHIVE FIELDS ===
   /**
@@ -201,18 +218,43 @@ export interface MenuService {
   archivedBy?: string;
 }
 
+/**
+ * Input type for creating a new MenuService
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateMenuServiceInput = Omit<MenuService,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
 // SERVICE PACKAGE / BUNDLE
 // ============================================
 
-export interface ServicePackage {
-  id: string;
-  storeId: string;
-
+/**
+ * ServicePackage - Represents a bundled package of services
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface ServicePackage extends BaseSyncableEntity {
   // Core fields
   name: string;
   description?: string;
@@ -247,15 +289,6 @@ export interface ServicePackage {
   // Visual
   color?: string;
   images?: string[];
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
-
-  // Audit
-  createdBy?: string;
-  lastModifiedBy?: string;
 }
 
 export interface PackageServiceItem {
@@ -267,18 +300,43 @@ export interface PackageServiceItem {
   originalPrice: number;
 }
 
+/**
+ * Input type for creating a new ServicePackage
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreatePackageInput = Omit<ServicePackage,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
 // ADD-ON GROUP & OPTIONS (Fresha-style)
 // ============================================
 
-export interface AddOnGroup {
-  id: string;
-  storeId: string;
-
+/**
+ * AddOnGroup - Represents a group of add-on options that can be selected for services
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface AddOnGroup extends BaseSyncableEntity {
   // Core fields
   name: string;
   description?: string;
@@ -298,16 +356,15 @@ export interface AddOnGroup {
   isActive: boolean;
   displayOrder: number;
   onlineBookingEnabled: boolean;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
-export interface AddOnOption {
-  id: string;
-  storeId: string;
+/**
+ * AddOnOption - Represents a single add-on option within an AddOnGroup
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface AddOnOption extends BaseSyncableEntity {
   groupId: string;
 
   // Core fields
@@ -321,28 +378,71 @@ export interface AddOnOption {
   // Status
   isActive: boolean;
   displayOrder: number;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new AddOnGroup
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateAddOnGroupInput = Omit<AddOnGroup,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
+/**
+ * Input type for creating a new AddOnOption
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateAddOnOptionInput = Omit<AddOnOption,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
 // STAFF-SERVICE ASSIGNMENT
 // ============================================
 
-export interface StaffServiceAssignment {
-  id: string;
-  storeId: string;
+/**
+ * StaffServiceAssignment - Links a staff member to a service with optional overrides
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface StaffServiceAssignment extends BaseSyncableEntity {
   staffId: string;
   serviceId: string;
 
@@ -355,25 +455,45 @@ export interface StaffServiceAssignment {
 
   // Status
   isActive: boolean;
-
-  // Timestamps & Sync (ISO 8601 strings)
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new StaffServiceAssignment
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateStaffAssignmentInput = Omit<StaffServiceAssignment,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
 // CATALOG SETTINGS
 // ============================================
 
-export interface CatalogSettings {
-  id: string;
-  storeId: string;
-
+/**
+ * CatalogSettings - Per-store catalog configuration
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
+ */
+export interface CatalogSettings extends BaseSyncableEntity {
   // Default values
   defaultDuration: number;
   defaultExtraTime: number;
@@ -395,12 +515,33 @@ export interface CatalogSettings {
   enableVariants: boolean;
   allowCustomPricing: boolean;
   bookingSequenceEnabled: boolean;
-
-  // Timestamps & Sync
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
+
+/**
+ * Input type for creating new CatalogSettings
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
+export type CreateCatalogSettingsInput = Omit<CatalogSettings,
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
+>;
 
 // ============================================
 // BOOKING SEQUENCE
@@ -409,25 +550,42 @@ export interface CatalogSettings {
 /**
  * BookingSequence - Defines the order services should be performed
  * Used to ensure services are booked in a logical order (e.g., Cut → Color → Style)
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
  */
-export interface BookingSequence {
-  id: string;
-  storeId: string;
-
+export interface BookingSequence extends BaseSyncableEntity {
   // Ordered list of service IDs
   serviceOrder: string[];
 
   // Whether this sequence is enabled
   isEnabled: boolean;
-
-  // Timestamps & Sync
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new BookingSequence
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateBookingSequenceInput = Omit<BookingSequence,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 // ============================================
@@ -543,12 +701,18 @@ export function toServiceAddOn(group: AddOnGroup, option: AddOnOption): ServiceA
 }
 
 /**
- * Convert legacy ServiceAddOn to AddOnGroup + AddOnOption
+ * Convert legacy ServiceAddOn to CreateAddOnGroupInput + CreateAddOnOptionInput
+ * Used for converting old flat add-on data to the new group/option structure
+ *
+ * Note: The returned objects are input types (not full entities) - they need
+ * to be passed through create() methods to get sync fields populated
  */
-export function fromServiceAddOn(addOn: ServiceAddOn, storeId: string): { group: Omit<AddOnGroup, 'id' | 'syncStatus'>; option: Omit<AddOnOption, 'id' | 'groupId' | 'syncStatus'> } {
+export function fromServiceAddOn(addOn: ServiceAddOn, _storeId: string): {
+  group: Omit<CreateAddOnGroupInput, 'displayOrder'> & { displayOrder: number };
+  option: Omit<CreateAddOnOptionInput, 'groupId' | 'displayOrder'> & { displayOrder: number };
+} {
   return {
     group: {
-      storeId,
       name: addOn.name,
       description: addOn.description,
       selectionMode: 'single',
@@ -561,19 +725,14 @@ export function fromServiceAddOn(addOn: ServiceAddOn, storeId: string): { group:
       isActive: addOn.isActive,
       displayOrder: addOn.displayOrder,
       onlineBookingEnabled: addOn.onlineBookingEnabled,
-      createdAt: addOn.createdAt,
-      updatedAt: addOn.updatedAt,
     },
     option: {
-      storeId,
       name: addOn.name,
       description: addOn.description,
       price: addOn.price,
       duration: addOn.duration,
       isActive: addOn.isActive,
       displayOrder: 0,
-      createdAt: addOn.createdAt,
-      updatedAt: addOn.updatedAt,
     },
   };
 }
@@ -680,12 +839,30 @@ export interface CategoryModalProps {
   onSave: (category: Partial<ServiceCategory>) => Promise<void> | void;
 }
 
+/**
+ * Staff assignment data for ServiceModal
+ * Matches the shape expected by StaffAssignmentEditor
+ */
+export interface StaffAssignmentData {
+  staffId: string;
+  isAssigned: boolean;
+  customPrice?: number;
+  customDuration?: number;
+  customCommissionRate?: number;
+}
+
 export interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   service?: MenuServiceWithEmbeddedVariants;
   categories: ServiceCategory[];
-  onSave: (service: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<void> | void;
+  /** Initial staff assignments for editing (loaded from staffServiceAssignments) */
+  initialStaffAssignments?: StaffServiceAssignment[];
+  onSave: (
+    service: Partial<MenuService>,
+    variants?: EmbeddedVariant[],
+    staffAssignments?: StaffAssignmentData[]
+  ) => Promise<void> | void;
 }
 
 export interface PackageModalProps {
@@ -693,6 +870,8 @@ export interface PackageModalProps {
   onClose: () => void;
   package?: ServicePackage;
   services: MenuServiceWithEmbeddedVariants[];
+  /** All packages (for duplicate name validation) */
+  allPackages?: ServicePackage[];
   onSave: (pkg: Partial<ServicePackage>) => Promise<void> | void;
 }
 
@@ -772,11 +951,11 @@ export function fromMenuGeneralSettings(settings: MenuGeneralSettings): Partial<
 /**
  * GiftCardDenomination - Preset gift card amounts for quick sale
  * Managed in Catalog > Gift Cards tab
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
  */
-export interface GiftCardDenomination {
-  id: string;
-  storeId: string;
-
+export interface GiftCardDenomination extends BaseSyncableEntity {
   // Core fields
   amount: number;
   label?: string;  // e.g., "$50 Gift Card", "Holiday Special"
@@ -784,24 +963,41 @@ export interface GiftCardDenomination {
   // Status
   isActive: boolean;
   displayOrder: number;
-
-  // Timestamps & Sync
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
 
+/**
+ * Input type for creating a new GiftCardDenomination
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
 export type CreateGiftCardDenominationInput = Omit<GiftCardDenomination,
-  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
 >;
 
 /**
  * GiftCardSettings - Per-salon gift card configuration
+ * Extends BaseSyncableEntity for multi-device sync support
+ *
+ * @see docs/DATA_STORAGE_STRATEGY.md Section 2.1
  */
-export interface GiftCardSettings {
-  id: string;
-  storeId: string;
-
+export interface GiftCardSettings extends BaseSyncableEntity {
   // Custom amount settings
   allowCustomAmount: boolean;
   minAmount: number;
@@ -813,9 +1009,30 @@ export interface GiftCardSettings {
   // Online settings
   onlineEnabled: boolean;
   emailDeliveryEnabled: boolean;
-
-  // Timestamps & Sync
-  createdAt: string;
-  updatedAt: string;
-  syncStatus: SyncStatus;
 }
+
+/**
+ * Input type for creating new GiftCardSettings
+ * Omits all BaseSyncableEntity fields that are auto-generated
+ */
+export type CreateGiftCardSettingsInput = Omit<GiftCardSettings,
+  | 'id'
+  | 'tenantId'
+  | 'storeId'
+  | 'locationId'
+  | 'syncStatus'
+  | 'version'
+  | 'vectorClock'
+  | 'lastSyncedVersion'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByDevice'
+  | 'lastModifiedBy'
+  | 'lastModifiedByDevice'
+  | 'isDeleted'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deletedByDevice'
+  | 'tombstoneExpiresAt'
+>;

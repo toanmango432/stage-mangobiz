@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>iPaymer Meeting Checklist</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2cm;
+  }
+  @media print {
+    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #1a1a1a;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  h1 {
+    font-size: 22pt;
+    border-bottom: 2px solid #333;
+    padding-bottom: 8px;
+    margin-top: 30px;
+  }
+  h2 {
+    font-size: 16pt;
+    color: #2c3e50;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+    margin-top: 25px;
+  }
+  h3 {
+    font-size: 13pt;
+    color: #34495e;
+    margin-top: 20px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  th {
+    background-color: #2c3e50;
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #ddd;
+    vertical-align: top;
+  }
+  tr:nth-child(even) {
+    background-color: #f8f9fa;
+  }
+  blockquote {
+    background: #f0f7ff;
+    border-left: 4px solid #2c3e50;
+    padding: 12px 16px;
+    margin: 15px 0;
+    font-style: italic;
+  }
+  code {
+    background: #f4f4f4;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 9pt;
+    font-family: 'SF Mono', Monaco, Consolas, monospace;
+  }
+  pre {
+    background: #f4f4f4;
+    padding: 12px;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-size: 9pt;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 20px 0;
+  }
+  ul {
+    padding-left: 20px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+<h1>iPaymer Meeting Checklist</h1>
+<p><strong>Purpose:</strong> Questions based on our review of the iPaymer API documentation
+<strong>API Reviewed:</strong> https://api.ipaymer.com/docs/api
+<strong>Date Prepared:</strong> January 25, 2025</p>
+<hr />
+<h2>What We Found in Their API Documentation</h2>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>What It Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/v1/card</code></td>
+<td>Save and manage customer credit cards</td>
+</tr>
+<tr>
+<td><code>/v2/bills</code></td>
+<td>Create and pay invoices</td>
+</tr>
+<tr>
+<td><code>/v2/bills/{id}/pay</code></td>
+<td>Process a payment</td>
+</tr>
+<tr>
+<td><code>/v1/payment/integration/cardconnect</code></td>
+<td>Connect to CardConnect gateway</td>
+</tr>
+<tr>
+<td><code>/v1/payment/integration/stripe</code></td>
+<td>Connect to Stripe gateway</td>
+</tr>
+<tr>
+<td><code>/v2/transaction</code></td>
+<td>View transaction history</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Part 1: The Gap - Tap to Pay Not in API</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>Context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>"I reviewed your API at api.ipaymer.com/docs/api. I see endpoints for <code>/v1/card</code> and <code>/v2/bills/{id}/pay</code>, but I don't see any endpoint for Tap to Pay or NFC payments. Where is that documented?"</strong></td>
+<td>Shows you did your homework</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>"Is Tap to Pay handled through the CardConnect integration at <code>/v1/payment/integration/cardconnect</code>, or is there a separate SDK?"</strong></td>
+<td>Connects what you found to what they claimed</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>"Your API shows <code>PayBillRequest</code> requires a <code>bank_account_id</code>. How do we submit a Tap to Pay transaction instead?"</strong></td>
+<td>Specific schema question</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes:</strong></p>
+<hr />
+<hr />
+<hr />
+<hr />
+<h2>Part 2: The CardConnect Connection</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>What We Found</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4</td>
+<td><strong>"I see you have <code>/v1/payment/integration/cardconnect</code> endpoints to store gateway credentials. Does this mean we process Tap to Pay through CardConnect/Fiserv directly?"</strong></td>
+<td>Their API stores CardConnect config</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>"CardConnect is owned by Fiserv. Fiserv has a Tap to Pay SDK called <code>FiservTTP</code>. Do we use that SDK and then connect to iPaymer for reporting?"</strong></td>
+<td>Shows you researched the Fiserv side</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>"Do we need a separate merchant account with CardConnect/Fiserv, or does iPaymer provide that?"</strong></td>
+<td>Clarifies the business relationship</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes:</strong></p>
+<hr />
+<hr />
+<hr />
+<hr />
+<h2>Part 3: Missing Documentation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>What's Missing</th>
+<th>Question</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7</td>
+<td>No mobile SDK docs</td>
+<td><strong>"Your API docs show REST endpoints. Where is the mobile SDK documentation for iOS/Android Tap to Pay?"</strong></td>
+</tr>
+<tr>
+<td>8</td>
+<td>No NFC/contactless endpoints</td>
+<td><strong>"I couldn't find any endpoints mentioning NFC, contactless, or card-present transactions. Can you point me to those?"</strong></td>
+</tr>
+<tr>
+<td>9</td>
+<td>No transaction creation</td>
+<td><strong>"The <code>/v2/transaction</code> endpoints appear to be read-only for viewing history. How do we create a new Tap to Pay transaction?"</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes:</strong></p>
+<hr />
+<hr />
+<hr />
+<hr />
+<h2>Part 4: Payment Flow Questions</h2>
+<p>Based on what we found, the current flow appears to be:</p>
+<pre><code>Create Bill --&gt; Pay Bill --&gt; Transaction Created
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>Why It Matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10</td>
+<td><strong>"For a quick sale at checkout, do we need to create a bill first using <code>/v2/bills</code>, then pay it with <code>/v2/bills/{id}/pay</code>? Or is there a direct charge endpoint for Tap to Pay?"</strong></td>
+<td>Need to understand the flow</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>"The <code>PayBillRequest</code> schema shows <code>bank_account_id</code> and <code>amount</code>. What fields do we send for a card tap payment?"</strong></td>
+<td>Schema doesn't match card payments</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>"I see <code>/v1/card/resolve</code> for smart card lookup. Is this used during Tap to Pay to match a returning customer?"</strong></td>
+<td>Connects to their existing endpoint</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes:</strong></p>
+<hr />
+<hr />
+<hr />
+<hr />
+<h2>Part 5: Specific Feature Verification</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Their API Shows</th>
+<th>Question</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13</td>
+<td>CardConnect + Stripe integrations</td>
+<td><strong>"Which gateway handles the actual Tap to Pay processing - CardConnect or Stripe? Or can we choose?"</strong></td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>/v1/card</code> for storing cards</td>
+<td><strong>"After a Tap to Pay, can we save that card using your <code>/v1/card</code> endpoint for future purchases?"</strong></td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>/v2/transaction</code> for history</td>
+<td><strong>"Will Tap to Pay transactions appear in the <code>/v2/transaction</code> endpoint for our reporting?"</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes:</strong></p>
+<hr />
+<hr />
+<hr />
+<hr />
+<h2>Part 6: What We Need From Them</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Request</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16</td>
+<td><strong>"Can you provide the OpenAPI spec or Postman collection that includes Tap to Pay endpoints?"</strong></td>
+<td>We only found billing/invoicing endpoints</td>
+</tr>
+<tr>
+<td>17</td>
+<td><strong>"Can you share the mobile SDK package name and documentation link?"</strong></td>
+<td>Need actual SDK docs</td>
+</tr>
+<tr>
+<td>18</td>
+<td><strong>"Can you show us a sample request/response for a Tap to Pay transaction?"</strong></td>
+<td>See the actual data format</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes:</strong></p>
+<hr />
+<hr />
+<hr />
+<hr />
+<h2>Summary Statement for the Meeting</h2>
+<blockquote>
+<p>"I reviewed your API documentation at api.ipaymer.com/docs/api. I found endpoints for cards, bills, and payment gateway integrations with CardConnect and Stripe. However, I didn't find any endpoints or SDK documentation for Tap to Pay or NFC payments. Can you walk me through how Tap to Pay works with your platform and where that's documented?"</p>
+</blockquote>
+<hr />
+<h2>Quick Reference: What We Found vs. What's Missing</h2>
+<table>
+<thead>
+<tr>
+<th>Found in API</th>
+<th>Not Found</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Card storage (<code>/v1/card</code>)</td>
+<td>Tap to Pay endpoint</td>
+</tr>
+<tr>
+<td>Bill creation (<code>/v2/bills</code>)</td>
+<td>NFC/contactless docs</td>
+</tr>
+<tr>
+<td>Bill payment (<code>/v2/bills/{id}/pay</code>)</td>
+<td>Mobile SDK</td>
+</tr>
+<tr>
+<td>CardConnect config</td>
+<td>Card-present transactions</td>
+</tr>
+<tr>
+<td>Transaction history</td>
+<td>Direct charge endpoint</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>After the Meeting Checklist</h2>
+<p>Get these in writing:</p>
+<ul>
+<li>[ ] Documentation for Tap to Pay / mobile SDK</li>
+<li>[ ] OpenAPI spec or Postman collection with Tap to Pay endpoints</li>
+<li>[ ] Sample request/response for Tap to Pay transaction</li>
+<li>[ ] Pricing sheet</li>
+<li>[ ] Test/sandbox account credentials</li>
+<li>[ ] Technical support contact</li>
+</ul>
+<hr />
+<h2>Meeting Notes</h2>
+<p><strong>Date:</strong> <strong><em>_</em></strong><strong><em>_</em></strong>______</p>
+<p><strong>Attendees:</strong> <strong><em>_</em></strong><strong><em>_</em></strong>______</p>
+<p><strong>Key Takeaways:</strong></p>
+<hr />
+<hr />
+<hr />
+<hr />
+<hr />
+<p><strong>Action Items:</strong></p>
+<hr />
+<hr />
+<hr />
+<p><strong>Follow-up Needed:</strong></p>
+<hr />
+<hr />
+<hr />
+</body>
+</html>

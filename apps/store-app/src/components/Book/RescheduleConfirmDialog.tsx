@@ -89,7 +89,8 @@ export function RescheduleConfirmDialog({
 
   // Get catalog services for current price lookup
   const storeId = useAppSelector(selectStoreId);
-  const { services: catalogServices } = useCatalog({ storeId: storeId || '' });
+  const tenantId = useAppSelector((state) => state.auth.store?.tenantId) || storeId || '';
+  const { services: catalogServices } = useCatalog({ storeId: storeId || '', tenantId });
 
   // Default to setting value
   const defaultKeepOriginal = pricingPolicy.keepPriceOnReschedule;

@@ -1335,9 +1335,11 @@ export class ProductSQLiteService extends BaseSQLiteService<Product, ProductRow>
 
   /**
    * Get product by barcode
+   * @param storeId - Store ID for multi-tenant isolation (REQUIRED)
+   * @param barcode - The barcode to search for
    */
-  async getByBarcode(barcode: string): Promise<Product | undefined> {
-    return this.findOneWhere('barcode = ?', [barcode]);
+  async getByBarcode(storeId: string, barcode: string): Promise<Product | undefined> {
+    return this.findOneWhere('store_id = ? AND barcode = ?', [storeId, barcode]);
   }
 
   /**

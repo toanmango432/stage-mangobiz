@@ -13,14 +13,21 @@ export interface ABTestVariant {
   conversions?: number;
 }
 
+export type ExperimentType = 'promotion' | 'hero' | 'cta' | 'pricing' | 'layout' | 'content' | 'other';
+export type TestType = ExperimentType; // Alias for backward compatibility
+
 export interface ABTestExperiment {
   id: string;
   name: string;
   description: string;
+  type?: ExperimentType;
   status: TestStatus;
   variants: ABTestVariant[];
   startDate?: string;
   endDate?: string;
+  maxDuration?: number;
+  autoConclude?: boolean;
+  minimumDetectableEffect?: number;
   targetAudience?: {
     segments?: string[];
     percentage?: number; // Percentage of users to include

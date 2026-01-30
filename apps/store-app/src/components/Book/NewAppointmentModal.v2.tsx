@@ -284,7 +284,9 @@ export function NewAppointmentModalV2({
           name: s.name,
           category: s.categoryId,
           duration: s.duration,
-          price: s.price
+          price: s.price,
+          bookingAvailability: s.bookingAvailability,
+          requiresPatchTest: s.requiresPatchTest,
         })));
       } catch (error) {
         console.error('Failed to load services:', error);

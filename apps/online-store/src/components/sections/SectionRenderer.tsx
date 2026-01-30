@@ -9,7 +9,7 @@ import { PersonalizedHero } from '@/components/home/PersonalizedHero';
 import { AIRecommendations } from '@/components/home/AIRecommendations';
 import { TrendingNow } from '@/components/home/TrendingNow';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { AboutSalon } from './AboutSalon';
 import { TeamGallery } from './TeamGallery';
 import { ReviewsShowcase } from './ReviewsShowcase';
@@ -93,7 +93,7 @@ function renderSection(section: SectionWithProps) {
             {props.text && (
               <p className="text-lg text-muted-foreground mb-6">{props.text as string}</p>
             )}
-            <Link to={(props.ctaLink as string) || '/book'}>
+            <Link href={(props.ctaLink as string) || '/book'}>
               <Button size="lg" className="bg-primary hover:bg-primary-dark">
                 {(props.ctaText as string) || 'Book Now'}
               </Button>
@@ -145,7 +145,7 @@ function renderSection(section: SectionWithProps) {
             <p className="text-lg text-muted-foreground mb-6">
               {(props.text as string) || 'Perfect for any occasion'}
             </p>
-            <Link to="/gift-cards">
+            <Link href="/gift-cards">
               <Button size="lg" className="bg-primary hover:bg-primary-dark">
                 {(props.ctaText as string) || 'Shop Gift Cards'}
               </Button>

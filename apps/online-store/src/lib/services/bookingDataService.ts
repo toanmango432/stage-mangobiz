@@ -1,6 +1,6 @@
 // Booking Data Service - Unified data management for all booking-related data
-import { generateMockServices } from '@/lib/mockData';
 import { Service } from '@/types/catalog';
+import { getServices, syncFromSupabase } from './catalogSyncService';
 
 export interface Question {
   id: string;
@@ -107,63 +107,46 @@ class BookingDataService {
 
   constructor() {
     this.initializeData();
+    // Trigger initial catalog sync on first load
+    this.syncCatalogData();
+  }
+
+  private async syncCatalogData() {
+    try {
+      // Get storeId from environment or config
+      // TODO: Replace with actual store ID from auth/config
+      const storeId = process.env.NEXT_PUBLIC_STORE_ID || 'demo-store';
+
+      console.log('[BookingDataService] Syncing catalog data from Supabase...');
+      const services = await getServices(storeId);
+
+      if (services.length > 0) {
+        // Replace services with real data from Supabase
+        this.services = services.map(service => ({
+          ...service,
+          price: service.price ?? service.basePrice ?? 0,
+          duration: service.duration ?? 30,
+          featured: service.featured ?? false,
+          badge: service.badge ?? undefined,
+        }));
+
+        console.log(`[BookingDataService] Loaded ${services.length} services from catalog`);
+      } else {
+        console.warn('[BookingDataService] No services loaded - catalog may be empty');
+      }
+    } catch (error) {
+      console.error('[BookingDataService] Failed to sync catalog:', error);
+      // Services remain empty if sync fails
+    }
   }
 
   private initializeData() {
-    // Load services from localStorage or generate mock data
-    const storedServices = localStorage.getItem('catalog_services');
-    if (storedServices) {
-      this.services = JSON.parse(storedServices);
-    } else {
-      this.services = generateMockServices();
-      localStorage.setItem('catalog_services', JSON.stringify(this.services));
-    }
+    // Services are now loaded via syncCatalogData() - no mock data generation
 
-    // Ensure all services have required properties for booking
-    this.services = this.services.map(service => ({
-      ...service,
-      price: service.price ?? service.basePrice ?? 0,
-      duration: service.duration ?? 30,
-      featured: service.featured ?? false,
-      badge: service.badge ?? undefined,
-    }));
-
-    // Initialize staff data
-    this.staff = [
-      {
-        id: 'staff-1',
-        name: 'Sarah Johnson',
-        title: 'Senior Nail Technician',
-        specialties: ['Gel Manicures', 'Nail Art', 'French Tips'],
-        rating: 4.9,
-        image: '/images/staff/sarah.jpg',
-        bio: 'Sarah has been perfecting nail art for over 8 years...',
-        certifications: ['Certified Nail Technician', 'Gel Polish Specialist'],
-        availability: this.generateAvailability('staff-1')
-      },
-      {
-        id: 'staff-2',
-        name: 'Maria Rodriguez',
-        title: 'Master Nail Artist',
-        specialties: ['Acrylics', 'Nail Extensions', '3D Art'],
-        rating: 4.8,
-        image: '/images/staff/maria.jpg',
-        bio: 'Maria specializes in creative nail designs...',
-        certifications: ['Master Nail Artist', 'Acrylic Specialist'],
-        availability: this.generateAvailability('staff-2')
-      },
-      {
-        id: 'staff-3',
-        name: 'Emily Chen',
-        title: 'Nail Technician',
-        specialties: ['Pedicures', 'Manicures', 'Nail Care'],
-        rating: 4.7,
-        image: '/images/staff/emily.jpg',
-        bio: 'Emily focuses on nail health and wellness...',
-        certifications: ['Nail Technician', 'Pedicure Specialist'],
-        availability: this.generateAvailability('staff-3')
-      }
-    ];
+    // Staff data will be loaded from Supabase in future (US-XXX)
+    // For now, using placeholder empty array
+    // TODO: Replace with real staff sync when store-app staff data is available
+    this.staff = [];
 
     // Load clients from localStorage
     const storedClients = localStorage.getItem('booking_clients');
@@ -500,5 +483,54 @@ class BookingDataService {
   }
 }
 
-// Export singleton instance
-export const bookingDataService = new BookingDataService();
+// Export singleton instance - lazy initialized to avoid SSR issues
+let _instance: BookingDataService | null = null;
+
+export const bookingDataService = {
+  get instance(): BookingDataService {
+    if (!_instance && typeof window !== 'undefined') {
+      _instance = new BookingDataService();
+    }
+    if (!_instance) {
+      throw new Error('BookingDataService requires browser environment (localStorage)');
+    }
+    return _instance;
+  },
+  // Proxy methods to the underlying instance
+  getServices(...args: Parameters<BookingDataService['getServices']>) {
+    return this.instance.getServices(...args);
+  },
+  getServiceById(...args: Parameters<BookingDataService['getServiceById']>) {
+    return this.instance.getServiceById(...args);
+  },
+  getStaff(...args: Parameters<BookingDataService['getStaff']>) {
+    return this.instance.getStaff(...args);
+  },
+  getStaffById(...args: Parameters<BookingDataService['getStaffById']>) {
+    return this.instance.getStaffById(...args);
+  },
+  getAvailableStaff(...args: Parameters<BookingDataService['getAvailableStaff']>) {
+    return this.instance.getAvailableStaff(...args);
+  },
+  getAvailableSlots(...args: Parameters<BookingDataService['getAvailableSlots']>) {
+    return this.instance.getAvailableSlots(...args);
+  },
+  createBooking(...args: Parameters<BookingDataService['createBooking']>) {
+    return this.instance.createBooking(...args);
+  },
+  updateBooking(...args: Parameters<BookingDataService['updateBooking']>) {
+    return this.instance.updateBooking(...args);
+  },
+  cancelBooking(...args: Parameters<BookingDataService['cancelBooking']>) {
+    return this.instance.cancelBooking(...args);
+  },
+  getClientBookings(...args: Parameters<BookingDataService['getClientBookings']>) {
+    return this.instance.getClientBookings(...args);
+  },
+  validateBooking(...args: Parameters<BookingDataService['validateBooking']>) {
+    return this.instance.validateBooking(...args);
+  },
+  getAlternatives(...args: Parameters<BookingDataService['getAlternatives']>) {
+    return this.instance.getAlternatives(...args);
+  },
+};

@@ -19,7 +19,7 @@ import PadTransactionStatus from "../PadTransactionStatus";
 import PadCheckoutOverlay from "../PadCheckoutOverlay";
 import { TIP_PERCENTAGES } from "./constants";
 import type { PaymentModalProps } from "./types";
-import { usePaymentModal } from "./hooks";
+import { usePaymentModal, useCommissionCalculation } from "./hooks";
 import {
   StepIndicator,
   TipSection,
@@ -106,6 +106,9 @@ export default function PaymentModal({
     onSentToPad,
   });
 
+  // Calculate commission summary from items
+  const commissionSummary = useCommissionCalculation({ items, staffMembers });
+
   const effectiveSubtotal = subtotal ?? total;
 
   return (
@@ -190,6 +193,7 @@ export default function PaymentModal({
                     paymentMethods={paymentMethods}
                     totalChangeToReturn={totalChangeToReturn}
                     onRemovePayment={(index) => setPaymentMethods(prev => prev.filter((_, i) => i !== index))}
+                    commissionSummary={commissionSummary}
                   />
 
                   {remaining > 0.01 && (

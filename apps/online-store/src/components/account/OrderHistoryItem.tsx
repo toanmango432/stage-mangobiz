@@ -61,7 +61,7 @@ export const OrderHistoryItem = ({
                 <p className="font-medium truncate">{item.name}</p>
                 <p className="text-muted-foreground">Qty: {item.quantity}</p>
               </div>
-              <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+              <span className="font-medium">${(item.price * (item.quantity ?? 1)).toFixed(2)}</span>
             </div>
           ))}
           {remainingCount > 0 && (

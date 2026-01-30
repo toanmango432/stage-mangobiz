@@ -6,7 +6,7 @@ import { CountdownTimer } from './CountdownTimer';
 import { Tag, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '@/contexts/CartContext';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 interface PromotionBannerProps {
   promotion: Promotion;
@@ -80,7 +80,7 @@ export const PromotionBanner = ({ promotion }: PromotionBannerProps) => {
             
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <Button variant="outline" asChild className="w-full sm:w-auto">
-                <Link to="/promotions">View Offer</Link>
+                <Link href="/promotions">View Offer</Link>
               </Button>
               {promotion.code && (
                 <Button 

@@ -21,12 +21,25 @@ export interface TicketItem {
   quantity: number;
   price: number;
   staffName?: string;
+  staffId?: string;
+  serviceId?: string;
 }
 
 export interface StaffMember {
   id: string;
   name: string;
   serviceTotal?: number;
+}
+
+export interface StaffCommission {
+  staffId: string;
+  staffName: string;
+  commissionAmount: number;
+}
+
+export interface CommissionSummary {
+  totalCommission: number;
+  staffCommissions: StaffCommission[];
 }
 
 export interface PaymentCompletionData {

@@ -3,21 +3,93 @@ import { db } from './schema';
 import { syncQueueDB } from './database';
 import type {
   TimesheetEntry,
-  BreakEntry,
-  CreateTimesheetParams,
-  ClockInParams,
-  ClockOutParams,
-  StartBreakParams,
-  EndBreakParams,
-  TimesheetSummary,
   HoursBreakdown,
-} from '../types/timesheet';
+} from '@mango/types';
 import {
   incrementEntityVersion,
   markEntityDeleted,
   type SyncStatus,
-} from '../types/common';
-import { createEmptyHoursBreakdown } from '../types/timesheet';
+} from '@mango/types';
+
+interface BreakEntry {
+  id: string;
+  type: 'paid' | 'unpaid';
+  startTime: string;
+  endTime?: string | null;
+  duration: number;
+  notes?: string;
+  label?: string;
+}
+
+interface CreateTimesheetParams {
+  staffId: string;
+  staffName: string;
+  date: string;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+}
+
+interface ClockInParams {
+  staffId: string;
+  staffName: string;
+  date: string;
+  clockInTime?: string;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  timestamp?: string;
+  location?: { lat: number; lng: number } | null;
+}
+
+interface ClockOutParams {
+  staffId?: string;
+  clockOutTime?: string;
+  notes?: string;
+  timestamp?: string;
+  location?: { lat: number; lng: number } | null;
+}
+
+interface StartBreakParams {
+  staffId?: string;
+  breakType: 'paid' | 'unpaid';
+  notes?: string;
+  timestamp?: string;
+  label?: string;
+}
+
+interface EndBreakParams {
+  staffId?: string;
+  notes?: string;
+  timestamp?: string;
+}
+
+interface TimesheetSummary {
+  staffId: string;
+  staffName: string;
+  periodStart: string;
+  periodEnd: string;
+  totalScheduledHours: number;
+  totalActualHours: number;
+  totalRegularHours: number;
+  totalOvertimeHours: number;
+  totalBreakMinutes: number;
+  variance: number;
+  pendingCount: number;
+  approvedCount: number;
+  disputedCount: number;
+}
+
+function createEmptyHoursBreakdown(): HoursBreakdown {
+  return {
+    scheduledHours: 0,
+    actualHours: 0,
+    regularHours: 0,
+    overtimeHours: 0,
+    doubleTimeHours: 0,
+    breakMinutes: 0,
+    paidBreakMinutes: 0,
+    unpaidBreakMinutes: 0,
+  };
+}
 
 // ============================================
 // SYNC CONFIGURATION FOR TIMESHEETS
@@ -447,6 +519,9 @@ export const timesheetDB = {
     userId: string,
     deviceId: string
   ): Promise<TimesheetEntry> {
+    if (!params.staffId) {
+      throw new Error('staffId is required');
+    }
     const today = new Date().toISOString().split('T')[0];
     const timestamp = params.timestamp || new Date().toISOString();
 
@@ -465,7 +540,7 @@ export const timesheetDB = {
     }
 
     // End any active breaks
-    const updatedBreaks = timesheet.breaks.map((breakEntry) => {
+    const updatedBreaks = timesheet.breaks.map((breakEntry: BreakEntry) => {
       if (!breakEntry.endTime) {
         const startTime = new Date(breakEntry.startTime).getTime();
         const endTime = new Date(timestamp).getTime();
@@ -501,6 +576,9 @@ export const timesheetDB = {
     userId: string,
     deviceId: string
   ): Promise<TimesheetEntry> {
+    if (!params.staffId) {
+      throw new Error('staffId is required');
+    }
     const today = new Date().toISOString().split('T')[0];
     const timestamp = params.timestamp || new Date().toISOString();
 
@@ -519,7 +597,7 @@ export const timesheetDB = {
     }
 
     // Check for active break
-    const activeBreak = timesheet.breaks.find((b) => !b.endTime);
+    const activeBreak = timesheet.breaks.find((b: BreakEntry) => !b.endTime);
     if (activeBreak) {
       throw new Error('Cannot start a new break while another break is active');
     }
@@ -552,6 +630,9 @@ export const timesheetDB = {
     userId: string,
     deviceId: string
   ): Promise<TimesheetEntry> {
+    if (!params.staffId) {
+      throw new Error('staffId is required');
+    }
     const today = new Date().toISOString().split('T')[0];
     const timestamp = params.timestamp || new Date().toISOString();
 
@@ -566,7 +647,7 @@ export const timesheetDB = {
     }
 
     // Find active break
-    const activeBreakIndex = timesheet.breaks.findIndex((b) => !b.endTime);
+    const activeBreakIndex = timesheet.breaks.findIndex((b: BreakEntry) => !b.endTime);
     if (activeBreakIndex === -1) {
       throw new Error('No active break to end');
     }
@@ -819,7 +900,7 @@ export const timesheetDB = {
     const today = new Date().toISOString().split('T')[0];
     const timesheet = await this.getTimesheetByStaffAndDate(storeId, staffId, today);
     if (!timesheet) return false;
-    return timesheet.breaks.some((b) => !b.endTime);
+    return timesheet.breaks.some((b: BreakEntry) => !b.endTime);
   },
 
   /**

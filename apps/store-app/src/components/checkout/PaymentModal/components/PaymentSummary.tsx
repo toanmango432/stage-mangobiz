@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, X } from "lucide-react";
-import type { PaymentMethod } from "../types";
+import { Check, X, DollarSign } from "lucide-react";
+import type { PaymentMethod, CommissionSummary } from "../types";
 
 interface PaymentSummaryProps {
   remaining: number;
@@ -16,6 +16,7 @@ interface PaymentSummaryProps {
   paymentMethods: PaymentMethod[];
   totalChangeToReturn: number;
   onRemovePayment: (index: number) => void;
+  commissionSummary?: CommissionSummary;
 }
 
 export function PaymentSummary({
@@ -24,8 +25,10 @@ export function PaymentSummary({
   paymentMethods,
   totalChangeToReturn,
   onRemovePayment,
+  commissionSummary,
 }: PaymentSummaryProps) {
   const isFullyPaid = remaining <= 0.01 && paymentMethods.length > 0;
+  const hasCommission = commissionSummary && commissionSummary.totalCommission > 0;
 
   return (
     <>
@@ -104,6 +107,44 @@ export function PaymentSummary({
               </div>
             </Card>
           )}
+
+          <Separator />
+        </>
+      )}
+
+      {/* Commission breakdown */}
+      {hasCommission && (
+        <>
+          <Card className="p-4 bg-blue-500/10 border-blue-500/20">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+                <span className="text-sm font-medium">Staff Commission</span>
+              </div>
+
+              {/* Staff breakdown (if multiple staff) */}
+              {commissionSummary && commissionSummary.staffCommissions.length > 1 && (
+                <div className="space-y-2 pl-7">
+                  {commissionSummary.staffCommissions.map((staff) => (
+                    <div key={staff.staffId} className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">{staff.staffName}</span>
+                      <span className="font-medium">${staff.commissionAmount.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Total commission */}
+              <div className="flex justify-between items-center pt-2 border-t border-blue-500/20">
+                <span className="text-sm font-medium">
+                  {commissionSummary && commissionSummary.staffCommissions.length > 1 ? 'Total Commission' : 'Commission'}
+                </span>
+                <span className="text-lg font-bold text-blue-600 dark:text-blue-500">
+                  ${commissionSummary?.totalCommission.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </Card>
 
           <Separator />
         </>

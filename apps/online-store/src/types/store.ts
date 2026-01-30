@@ -142,17 +142,6 @@ export interface GiftCardDesign {
   };
 }
 
-export interface GiftCardConfig {
-  enabled: boolean;
-  presetAmounts: number[];
-  customAmountMin: number;
-  customAmountMax: number;
-  expiryMonths: number | null;
-  deliveryMethods: ('instant' | 'scheduled')[];
-  allowMessage: boolean;
-  maxMessageLength: number;
-}
-
 export interface MembershipPlan {
   id: string;
   name: string;

@@ -73,7 +73,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "MenuService is the largest type. Be careful not to lose existing fields. See existing MenuService for all business fields."
     },
     {
@@ -89,7 +89,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/types/catalog.ts. These are smaller types, should be straightforward."
     },
     {
@@ -104,7 +104,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/types/catalog.ts. AddOnGroup has applicability fields - keep those."
     },
     {
@@ -122,7 +122,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/types/catalog.ts. Complete type system foundation - all types now have sync support."
     },
     {
@@ -140,7 +140,7 @@
         "Add index on [store_id, is_deleted]"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Follow Supabase migration pattern from existing migrations. RLS policy ensures multi-tenant isolation."
     },
     {
@@ -158,7 +158,7 @@
         "Add indexes for common queries"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "File: supabase/migrations/031_create_catalog_tables.sql. Append to existing migration."
     },
     {
@@ -174,7 +174,7 @@
         "Add store_id index"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "PackageServiceItem[] stored as JSONB - Supabase handles JSON well."
     },
     {
@@ -190,7 +190,7 @@
         "Both tables have sync metadata and RLS"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Arrays in Postgres: use TEXT[] type for UUID arrays."
     },
     {
@@ -208,7 +208,7 @@
         "All tables have sync metadata and RLS policies"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Complete the migration file. Verify all 12 tables are created."
     },
     {
@@ -230,7 +230,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/services/supabase/types.ts. Follow existing pattern from clients table."
     },
     {
@@ -249,7 +249,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from clientAdapter.ts. Handle vectorClock JSON parsing."
     },
     {
@@ -266,7 +266,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "MenuService has ~40 fields. Map each one carefully."
     },
     {
@@ -281,7 +281,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Variants are simple. Packages need JSONB parsing for services array."
     },
     {
@@ -296,7 +296,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Arrays in Postgres come back as string[] - direct mapping."
     },
     {
@@ -315,7 +315,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Complete all adapters. Export from index.ts for easy imports."
     },
     {
@@ -336,7 +336,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from clientsTable.ts. Use soft delete with tombstone."
     },
     {
@@ -354,7 +354,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Services need archive/restore and search functionality."
     },
     {
@@ -368,7 +368,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "Straightforward CRUD. Variants filtered by serviceId."
     },
     {
@@ -383,7 +383,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "getForService is key for checkout integration - filter by applicability."
     },
     {
@@ -402,7 +402,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 1 COMPLETE - Backend foundation ready. Verify: pnpm run typecheck"
     },
     {
@@ -418,7 +418,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/db/catalogDatabase.ts. BookingSequence type already exists."
     },
     {
@@ -434,7 +434,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "Products have archive but no restore currently."
     },
     {
@@ -451,7 +451,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/services/domain/catalogDataService.ts. CRITICAL security fix."
     },
     {
@@ -467,7 +467,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Add Supabase routing incrementally. This story does categories only."
     },
     {
@@ -482,7 +482,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "Follow same pattern as categories. Services have more methods."
     },
     {
@@ -502,7 +502,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "Complete Supabase routing - data layer fully functional with Supabase support."
     },
     {
@@ -517,7 +517,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/hooks/useCatalog.ts. Follow pattern from other CRUD operations."
     },
     {
@@ -533,7 +533,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": "tenantId should come from auth context, not default to storeId."
     },
     {
@@ -548,7 +548,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 2 COMPLETE - Data layer fixes done. Verify: pnpm test --run"
     },
     {
@@ -566,7 +566,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": "This replaces all browser confirm() calls in menu-settings."
     },
     {
@@ -585,7 +585,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "notes": "5 skeleton variants for different section card types."
     },
     {
@@ -601,7 +601,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": "Simple presentational components."
     },
     {
@@ -618,7 +618,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "notes": "UI infrastructure for accessible drag-drop."
     },
     {
@@ -635,7 +635,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/CategoriesSection.tsx"
     },
     {
@@ -650,7 +650,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "notes": "Use the skeleton component created in US-032."
     },
     {
@@ -666,7 +666,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "notes": "Enhance existing DndContext with keyboard support."
     },
     {
@@ -681,7 +681,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx"
     },
     {
@@ -696,7 +696,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 39,
-      "passes": false,
+      "passes": true,
       "notes": "ServicesSection has 3 view modes - show appropriate skeletons for each."
     },
     {
@@ -713,7 +713,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "notes": "Grid and list views have nearly identical dropdown code - consolidate."
     },
     {
@@ -728,7 +728,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 41,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/PackagesSection.tsx"
     },
     {
@@ -743,7 +743,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 42,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/ProductsSection.tsx"
     },
     {
@@ -758,7 +758,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 43,
-      "passes": false,
+      "passes": true,
       "notes": "minStockLevel exists in Product type. Check against current stock."
     },
     {
@@ -774,7 +774,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 44,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/AddOnsSection.tsx"
     },
     {
@@ -791,7 +791,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 45,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/StaffPermissionsSection.tsx"
     },
     {
@@ -808,7 +808,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 46,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/MenuGeneralSettingsSection.tsx"
     },
     {
@@ -824,7 +824,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 47,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/sections/GiftCardsSection.tsx"
     },
     {
@@ -840,7 +840,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 48,
-      "passes": false,
+      "passes": true,
       "notes": "Section component accessibility improvements."
     },
     {
@@ -857,7 +857,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 49,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/modals/ServiceModal.tsx"
     },
     {
@@ -873,7 +873,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 50,
-      "passes": false,
+      "passes": true,
       "notes": "Currently staffAssignments is set to empty array and never populated."
     },
     {
@@ -890,7 +890,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 51,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/modals/PackageModal.tsx"
     },
     {
@@ -907,7 +907,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 52,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/modals/ProductModal.tsx"
     },
     {
@@ -925,7 +925,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 53,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/menu-settings/MenuSettings.tsx line ~409"
     },
     {
@@ -941,7 +941,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 54,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 3 COMPLETE - UI components fixed. Verify in browser: no confirm() dialogs, skeletons work."
     },
     {
@@ -958,7 +958,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 55,
-      "passes": false,
+      "passes": true,
       "notes": "Only shown when service.hasVariants is true."
     },
     {
@@ -976,7 +976,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 56,
-      "passes": false,
+      "passes": true,
       "notes": "Complex component - filter by applicability, enforce selection rules."
     },
     {
@@ -992,7 +992,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 57,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/checkout/hooks/useCheckoutServices.ts"
     },
     {
@@ -1004,11 +1004,11 @@
         "When service with variants is clicked, show VariantSelector",
         "After variant selected, proceed to AddOnSelector",
         "Update onAddServices callback to include variant and add-on selections",
-        "Verify in browser: click service → select variant → select add-ons → added to ticket",
+        "Verify in browser: click service \u2192 select variant \u2192 select add-ons \u2192 added to ticket",
         "pnpm run typecheck passes"
       ],
       "priority": 58,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/checkout/ServiceGrid.tsx"
     },
     {
@@ -1025,8 +1025,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 59,
-      "passes": false,
-      "notes": "Checkout variant/add-on integration complete."
+      "passes": true,
+      "notes": "Checkout variant/add-on integration complete. Implemented as part of US-058."
     },
     {
       "id": "US-060",
@@ -1042,7 +1042,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 60,
-      "passes": false,
+      "passes": true,
       "notes": "This enforces booking business rules."
     },
     {
@@ -1057,7 +1057,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 61,
-      "passes": false,
+      "passes": true,
       "notes": "Reuse VariantSelector from checkout module."
     },
     {
@@ -1073,7 +1073,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 62,
-      "passes": false,
+      "passes": true,
       "notes": "Visual indicators help users understand service availability."
     },
     {
@@ -1089,7 +1089,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 63,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/utils/smartAutoAssign.ts. PHASE 4 COMPLETE - Checkout & Booking integration done."
     },
     {
@@ -1104,7 +1104,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 64,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/tickets/ServiceLineItem.tsx or similar"
     },
     {
@@ -1119,7 +1119,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 65,
-      "passes": false,
+      "passes": true,
       "notes": "Tickets integration complete."
     },
     {
@@ -1136,7 +1136,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 66,
-      "passes": false,
+      "passes": true,
       "notes": "Online Store currently uses mock data - replace with real sync."
     },
     {
@@ -1152,7 +1152,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 67,
-      "passes": false,
+      "passes": true,
       "notes": "bookingDataService currently generates fake data."
     },
     {
@@ -1167,7 +1167,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 68,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/online-store/src/components/booking/ServiceMenuGridMobile.tsx"
     },
     {
@@ -1183,7 +1183,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 69,
-      "passes": false,
+      "passes": true,
       "notes": "Online Store integration complete."
     },
     {
@@ -1199,7 +1199,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 70,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/checkout/PaymentModal/PaymentModal.tsx"
     },
     {
@@ -1214,7 +1214,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 71,
-      "passes": false,
+      "passes": true,
       "notes": "Display in PaymentSummary component."
     },
     {
@@ -1231,7 +1231,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 72,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 5 COMPLETE - All module integrations done."
     },
     {
@@ -1249,7 +1249,7 @@
         "90% coverage on adapter files"
       ],
       "priority": 73,
-      "passes": false,
+      "passes": true,
       "notes": "Focus on adapter functions since they handle critical type conversion."
     },
     {
@@ -1267,7 +1267,7 @@
         "85% coverage on table files"
       ],
       "priority": 74,
-      "passes": false,
+      "passes": true,
       "notes": "Use Supabase mock pattern from existing tests."
     },
     {
@@ -1277,13 +1277,13 @@
       "description": "As a developer, I want tests for checkout variant/add-on selection.",
       "acceptanceCriteria": [
         "Create __tests__/checkout-catalog-flow.test.tsx",
-        "Test: select service with variants → variant selector shows",
-        "Test: select variant → add-on selector shows",
-        "Test: complete selection → correct items added to ticket",
+        "Test: select service with variants \u2192 variant selector shows",
+        "Test: select variant \u2192 add-on selector shows",
+        "Test: complete selection \u2192 correct items added to ticket",
         "All tests pass: pnpm test checkout"
       ],
       "priority": 75,
-      "passes": false,
+      "passes": true,
       "notes": "Integration test using Redux Provider wrapper."
     },
     {
@@ -1293,12 +1293,12 @@
       "description": "As a developer, I want E2E test for the full checkout flow.",
       "acceptanceCriteria": [
         "Create e2e/catalog-checkout-flow.spec.ts",
-        "Test: navigate to checkout → add service with variants → select variant → add add-ons → complete payment",
+        "Test: navigate to checkout \u2192 add service with variants \u2192 select variant \u2192 add add-ons \u2192 complete payment",
         "Use Playwright MCP for browser verification",
         "Test passes: pnpm run test:e2e"
       ],
       "priority": 76,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 6 COMPLETE - All testing done. Full catalog module implementation complete."
     },
     {
@@ -1311,7 +1311,7 @@
         "Launch Plan agent to verify architectural decisions align with codebase patterns",
         "Review all type definitions in catalog.ts for correctness and completeness",
         "Review Supabase migration for proper RLS policies and indexes",
-        "Review all adapters for correct snake_case ↔ camelCase conversion",
+        "Review all adapters for correct snake_case \u2194 camelCase conversion",
         "Review all table operations for proper error handling and tenant isolation",
         "Verify pnpm run typecheck passes with no warnings",
         "Document any issues found in progress.txt under 'Phase 1 Review Issues' section",
@@ -1319,7 +1319,7 @@
         "If issues found, list them clearly for US-P1F to address"
       ],
       "priority": 1001,
-      "passes": false,
+      "passes": true,
       "notes": "CRITICAL: Use Task tool with subagent_type=Explore and subagent_type=Plan for thorough analysis. This is a review-only story - do NOT make code changes. Document findings for US-P1F."
     },
     {
@@ -1336,8 +1336,10 @@
         "PHASE 1 FULLY COMPLETE after this story passes"
       ],
       "priority": 1002,
-      "passes": false,
-      "dependencies": ["US-P1R"],
+      "passes": true,
+      "dependencies": [
+        "US-P1R"
+      ],
       "notes": "Only implement fixes for issues documented in US-P1R. If US-P1R found no issues, this story passes automatically."
     },
     {
@@ -1358,7 +1360,7 @@
         "If NO issues found, mark this story as passes: true"
       ],
       "priority": 2001,
-      "passes": false,
+      "passes": true,
       "notes": "CRITICAL: Use Task tool with subagent_type=Explore for thorough analysis. Security-critical: verify multi-tenant isolation in all queries."
     },
     {
@@ -1375,8 +1377,10 @@
         "PHASE 2 FULLY COMPLETE after this story passes"
       ],
       "priority": 2002,
-      "passes": false,
-      "dependencies": ["US-P2R"],
+      "passes": true,
+      "dependencies": [
+        "US-P2R"
+      ],
       "notes": "Only implement fixes for issues documented in US-P2R. If US-P2R found no issues, this story passes automatically."
     },
     {
@@ -1397,7 +1401,7 @@
         "If NO issues found, mark this story as passes: true"
       ],
       "priority": 3001,
-      "passes": false,
+      "passes": true,
       "notes": "CRITICAL: Use browser verification via Playwright MCP. Ensure no browser confirm() or alert() calls remain."
     },
     {
@@ -1415,8 +1419,10 @@
         "PHASE 3 FULLY COMPLETE after this story passes"
       ],
       "priority": 3002,
-      "passes": false,
-      "dependencies": ["US-P3R"],
+      "passes": true,
+      "dependencies": [
+        "US-P3R"
+      ],
       "notes": "Only implement fixes for issues documented in US-P3R. If US-P3R found no issues, this story passes automatically."
     },
     {
@@ -1438,8 +1444,8 @@
         "If NO issues found, mark this story as passes: true"
       ],
       "priority": 4001,
-      "passes": false,
-      "notes": "CRITICAL: Full end-to-end browser testing required. Test: select service → variant → add-ons → verify correct price/duration."
+      "passes": true,
+      "notes": "CRITICAL: Full end-to-end browser testing required. Test: select service \u2192 variant \u2192 add-ons \u2192 verify correct price/duration."
     },
     {
       "id": "US-P4F",
@@ -1456,8 +1462,10 @@
         "PHASE 4 FULLY COMPLETE after this story passes"
       ],
       "priority": 4002,
-      "passes": false,
-      "dependencies": ["US-P4R"],
+      "passes": true,
+      "dependencies": [
+        "US-P4R"
+      ],
       "notes": "Only implement fixes for issues documented in US-P4R. If US-P4R found no issues, this story passes automatically."
     },
     {
@@ -1481,7 +1489,7 @@
         "If NO issues found, mark this story as passes: true"
       ],
       "priority": 5001,
-      "passes": false,
+      "passes": true,
       "notes": "CRITICAL: Verify mock data is completely removed from Online Store. Commission calculation must be accurate."
     },
     {
@@ -1499,8 +1507,10 @@
         "PHASE 5 FULLY COMPLETE after this story passes"
       ],
       "priority": 5002,
-      "passes": false,
-      "dependencies": ["US-P5R"],
+      "passes": true,
+      "dependencies": [
+        "US-P5R"
+      ],
       "notes": "Only implement fixes for issues documented in US-P5R. If US-P5R found no issues, this story passes automatically."
     },
     {
@@ -1523,7 +1533,7 @@
         "If NO issues found, mark this story as passes: true"
       ],
       "priority": 6001,
-      "passes": false,
+      "passes": true,
       "notes": "FINAL REVIEW: This is the last quality gate. Ensure the entire catalog module is production-ready."
     },
     {
@@ -1543,8 +1553,10 @@
         "CATALOG MODULE FULLY COMPLETE after this story passes"
       ],
       "priority": 6002,
-      "passes": false,
-      "dependencies": ["US-P6R"],
+      "passes": true,
+      "dependencies": [
+        "US-P6R"
+      ],
       "notes": "FINAL STORY: Only implement fixes for issues documented in US-P6R. Catalog module is complete when this passes."
     }
   ]

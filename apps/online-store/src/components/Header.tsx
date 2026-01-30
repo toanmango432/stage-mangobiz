@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { ShoppingBag, Search, User, LogOut, Shield, ChevronDown, Home, Mail, Image, Star, HelpCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ export const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-soft">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="text-2xl font-bold bg-gradient-hero bg-clip-text text-transparent">
             Mango
           </div>
@@ -27,19 +27,19 @@ export const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link href="/" className="text-sm font-medium hover:text-primary transition-colors">
             Home
           </Link>
-          <Link to="/book" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link href="/book" className="text-sm font-medium hover:text-primary transition-colors">
             Book
           </Link>
-          <Link to="/shop" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link href="/shop" className="text-sm font-medium hover:text-primary transition-colors">
             Shop
           </Link>
-          <Link to="/memberships" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link href="/memberships" className="text-sm font-medium hover:text-primary transition-colors">
             Memberships
           </Link>
-          <Link to="/gift-cards" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link href="/gift-cards" className="text-sm font-medium hover:text-primary transition-colors">
             Gift Cards
           </Link>
           
@@ -55,37 +55,37 @@ export const Header = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="w-48 bg-card border-border shadow-elevated z-50">
               <DropdownMenuItem asChild>
-                <Link to="/info/about" className="cursor-pointer flex items-center gap-2">
+                <Link href="/info/about" className="cursor-pointer flex items-center gap-2">
                   <Home className="h-4 w-4 text-muted-foreground" />
                   About
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/info/contact" className="cursor-pointer flex items-center gap-2">
+                <Link href="/info/contact" className="cursor-pointer flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   Contact
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/info/gallery" className="cursor-pointer flex items-center gap-2">
+                <Link href="/info/gallery" className="cursor-pointer flex items-center gap-2">
                   <Image className="h-4 w-4 text-muted-foreground" />
                   Gallery
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/info/reviews" className="cursor-pointer flex items-center gap-2">
+                <Link href="/info/reviews" className="cursor-pointer flex items-center gap-2">
                   <Star className="h-4 w-4 text-muted-foreground" />
                   Reviews
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/info/faq" className="cursor-pointer flex items-center gap-2">
+                <Link href="/info/faq" className="cursor-pointer flex items-center gap-2">
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
                   FAQ
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/info/policies" className="cursor-pointer flex items-center gap-2">
+                <Link href="/info/policies" className="cursor-pointer flex items-center gap-2">
                   <FileText className="h-4 w-4 text-muted-foreground" />
                   Policies
                 </Link>
@@ -116,12 +116,12 @@ export const Header = () => {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/account" className="cursor-pointer">
+                  <Link href="/account" className="cursor-pointer">
                     My Account
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/account?tab=bookings" className="cursor-pointer">
+                  <Link href="/account?tab=bookings" className="cursor-pointer">
                     My Bookings
                   </Link>
                 </DropdownMenuItem>
@@ -129,7 +129,7 @@ export const Header = () => {
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link to="/admin" className="cursor-pointer">
+                      <Link href="/admin" className="cursor-pointer">
                         <Shield className="h-4 w-4 mr-2" />
                         Admin Portal
                       </Link>
@@ -144,7 +144,7 @@ export const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link to="/login">
+            <Link href="/login">
               <Button variant="ghost" size="icon">
                 <User className="h-5 w-5" />
               </Button>

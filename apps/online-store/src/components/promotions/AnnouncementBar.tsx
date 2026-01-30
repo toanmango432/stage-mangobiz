@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, AlertCircle, AlertTriangle, Info, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Announcement } from '@/types/announcement';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 interface AnnouncementBarProps {
   announcement: Announcement;
@@ -75,7 +75,7 @@ export const AnnouncementBar = ({ announcement }: AnnouncementBarProps) => {
               announcement.priority === 'important' ? 'text-black hover:bg-yellow-600' : 'hover:bg-white/20'
             }`}
           >
-            <Link to="/updates">View</Link>
+            <Link href="/updates">View</Link>
           </Button>
           <Button
             variant="ghost"

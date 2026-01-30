@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ShoppingBag, DollarSign, Barcode } from 'lucide-react';
+import { X, ShoppingBag, DollarSign, Barcode, AlertTriangle, Loader2 } from 'lucide-react';
 import type { Product, CreateProductInput } from '@/types/inventory';
 
 interface ProductModalProps {
@@ -9,6 +9,18 @@ interface ProductModalProps {
   product?: Product;
   categories: string[];
   onSave: (data: CreateProductInput | Partial<Product>) => void;
+  /** Optional async check for barcode uniqueness. Returns true if barcode exists (not unique). */
+  onCheckBarcode?: (barcode: string, excludeProductId?: string) => Promise<boolean>;
+  /** Optional async check for SKU uniqueness. Returns true if SKU exists (not unique). */
+  onCheckSku?: (sku: string, excludeProductId?: string) => Promise<boolean>;
+}
+
+interface ValidationErrors {
+  name?: string;
+  sku?: string;
+  barcode?: string;
+  retailPrice?: string;
+  costPrice?: string;
 }
 
 const DEFAULT_CATEGORIES = ['Hair Care', 'Styling', 'Skincare', 'Nails', 'Treatments', 'Accessories'];
@@ -19,6 +31,8 @@ export function ProductModal({
   product,
   categories,
   onSave,
+  onCheckBarcode,
+  onCheckSku,
 }: ProductModalProps) {
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
@@ -34,6 +48,11 @@ export function ProductModal({
   const [isBackbar, setIsBackbar] = useState(false);
   const [minStockLevel, setMinStockLevel] = useState('10');
 
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [isCheckingBarcode, setIsCheckingBarcode] = useState(false);
+  const [isCheckingSku, setIsCheckingSku] = useState(false);
+
   // Available categories (merge existing with defaults)
   const allCategories = useMemo(() => {
     const merged = new Set([...DEFAULT_CATEGORIES, ...categories]);
@@ -43,6 +62,11 @@ export function ProductModal({
   // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
+      // Reset validation state
+      setValidationErrors({});
+      setIsCheckingBarcode(false);
+      setIsCheckingSku(false);
+
       if (product) {
         setName(product.name);
         setBrand(product.brand || '');
@@ -82,6 +106,65 @@ export function ProductModal({
     if (retail <= 0) return 0;
     return Math.round(((retail - cost) / retail) * 100);
   }, [retailPrice, costPrice]);
+
+  // Check for negative margin warning
+  const hasNegativeMargin = useMemo(() => {
+    const retail = parseFloat(retailPrice) || 0;
+    const cost = parseFloat(costPrice) || 0;
+    // Only show warning when both values are positive and retail <= cost
+    return retail > 0 && cost > 0 && retail <= cost;
+  }, [retailPrice, costPrice]);
+
+  // Async barcode uniqueness check
+  const handleBarcodeBlur = useCallback(async () => {
+    const trimmedBarcode = barcode.trim();
+    if (!trimmedBarcode || !onCheckBarcode) return;
+
+    setIsCheckingBarcode(true);
+    try {
+      const exists = await onCheckBarcode(trimmedBarcode, product?.id);
+      if (exists) {
+        setValidationErrors(prev => ({ ...prev, barcode: 'This barcode is already in use by another product' }));
+      } else {
+        setValidationErrors(prev => {
+          const { barcode: _, ...rest } = prev;
+          return rest;
+        });
+      }
+    } catch {
+      // Silently fail on network errors - don't block the user
+    } finally {
+      setIsCheckingBarcode(false);
+    }
+  }, [barcode, onCheckBarcode, product?.id]);
+
+  // Async SKU uniqueness check
+  const handleSkuBlur = useCallback(async () => {
+    const trimmedSku = sku.trim();
+    if (!trimmedSku || !onCheckSku) return;
+
+    setIsCheckingSku(true);
+    try {
+      const exists = await onCheckSku(trimmedSku, product?.id);
+      if (exists) {
+        setValidationErrors(prev => ({ ...prev, sku: 'This SKU is already in use by another product' }));
+      } else {
+        setValidationErrors(prev => {
+          const { sku: _, ...rest } = prev;
+          return rest;
+        });
+      }
+    } catch {
+      // Silently fail on network errors - don't block the user
+    } finally {
+      setIsCheckingSku(false);
+    }
+  }, [sku, onCheckSku, product?.id]);
+
+  // Check if form has validation errors
+  const hasValidationErrors = useMemo(() => {
+    return Object.keys(validationErrors).length > 0;
+  }, [validationErrors]);
 
   // Handle save
   const handleSave = () => {
@@ -156,9 +239,23 @@ export function ProductModal({
             </div>
             <div className="text-right">
               <p className="font-bold text-gray-900">${retailPrice || '0.00'}</p>
-              <p className="text-xs text-green-600">{margin}% margin</p>
+              <p className={`text-xs ${hasNegativeMargin ? 'text-red-600' : 'text-green-600'}`}>
+                {margin}% margin
+              </p>
             </div>
           </div>
+          {/* Negative margin warning */}
+          {hasNegativeMargin && (
+            <div className="mt-3 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">Negative Profit Margin</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  The retail price is equal to or less than the cost price. You will not make a profit on this product.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Form - Scrollable */}
@@ -201,11 +298,29 @@ export function ProductModal({
                 <input
                   type="text"
                   value={sku}
-                  onChange={(e) => setSku(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    setSku(e.target.value.toUpperCase());
+                    // Clear error when user starts typing
+                    if (validationErrors.sku) {
+                      setValidationErrors(prev => {
+                        const { sku: _, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
+                  onBlur={handleSkuBlur}
                   placeholder="SH-001"
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className={`w-full pl-10 pr-10 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                    validationErrors.sku ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                  }`}
                 />
+                {isCheckingSku && (
+                  <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />
+                )}
               </div>
+              {validationErrors.sku && (
+                <p className="mt-1 text-xs text-red-600">{validationErrors.sku}</p>
+              )}
             </div>
           </div>
 
@@ -232,6 +347,41 @@ export function ProductModal({
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
+          </div>
+
+          {/* Barcode */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Barcode
+            </label>
+            <div className="relative">
+              <Barcode size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={barcode}
+                onChange={(e) => {
+                  setBarcode(e.target.value);
+                  // Clear error when user starts typing
+                  if (validationErrors.barcode) {
+                    setValidationErrors(prev => {
+                      const { barcode: _, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
+                onBlur={handleBarcodeBlur}
+                placeholder="e.g., 5901234123457"
+                className={`w-full pl-10 pr-10 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                  validationErrors.barcode ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
+              />
+              {isCheckingBarcode && (
+                <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />
+              )}
+            </div>
+            {validationErrors.barcode && (
+              <p className="mt-1 text-xs text-red-600">{validationErrors.barcode}</p>
+            )}
           </div>
 
           {/* Pricing */}
@@ -353,7 +503,7 @@ export function ProductModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={!name.trim() || !sku.trim()}
+            disabled={!name.trim() || !sku.trim() || hasValidationErrors || isCheckingBarcode || isCheckingSku}
             className="px-4 py-2 text-sm font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {product ? 'Save Changes' : 'Create Product'}

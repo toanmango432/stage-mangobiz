@@ -99,6 +99,22 @@ export interface AppointmentService {
    * bookedPrice: 60
    */
   catalogPriceAtBooking?: number;
+
+  /**
+   * Turn weight for fair rotation in auto-assignment.
+   * Higher values indicate more complex services that count more toward
+   * a staff member's workload for rotation purposes.
+   *
+   * Range: 0.0 - 5.0, default 1.0
+   *
+   * @example
+   * // A simple haircut
+   * turnWeight: 1.0
+   *
+   * // A complex color and highlight treatment
+   * turnWeight: 3.5
+   */
+  turnWeight?: number;
 }
 
 export interface Appointment {

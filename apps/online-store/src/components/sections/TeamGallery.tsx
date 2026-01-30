@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Instagram } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { getTeam } from '@/lib/api/store';
 import type { TeamMember } from '@/types/store';
 
@@ -120,7 +120,7 @@ export function TeamGallery({
                     </div>
                   </div>
                   
-                  <Link to="/book">
+                  <Link href="/book">
                     <Button className="w-full">
                       Book with {selectedMember.name.split(' ')[0]}
                     </Button>

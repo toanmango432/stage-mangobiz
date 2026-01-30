@@ -5,13 +5,15 @@ on:
     types: [opened, synchronize, reopened]
 
 env:
-  NODE_VERSION: '18.x'
+  NODE_VERSION: '20.x'
 
 jobs:
   # Build and deploy preview for PRs
   preview:
     name: Deploy PR Preview
     runs-on: ubuntu-latest
+    outputs:
+      preview-url: ${{ steps.vercel.outputs.preview-url }}
 
     steps:
       - name: Checkout code
@@ -31,43 +33,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Build preview
-        run: pnpm run build
-        env:
-          VITE_API_BASE_URL: ${{ secrets.STAGING_API_URL }}
-
-      - name: Deploy preview to Netlify
-        uses: nwtgck/actions-netlify@v2
+      - name: Deploy to Vercel
+        id: vercel
+        uses: amondnet/vercel-action@v25
         with:
-          publish-dir: './apps/store-app/dist'
-          production-deploy: false
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Preview for PR #${{ github.event.pull_request.number }}"
-          alias: pr-${{ github.event.pull_request.number }}
-          enable-pull-request-comment: true
-          enable-commit-comment: true
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        timeout-minutes: 5
-
-      - name: Comment PR with preview URL
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 **Preview deployment ready!**
-
-              **Preview URL:** https://pr-${{ github.event.pull_request.number }}--mango-pos.netlify.app
-
-              This preview will be updated with each commit to this PR.
-
-              ---
-              Built from: \`${{ github.sha }}\``
-            })
+          github-comment: true
+          working-directory: ./
 
   # Lighthouse performance audit on PR
   lighthouse:
@@ -86,6 +61,6 @@ jobs:
         uses: treosh/lighthouse-ci-action@v9
         with:
           urls: |
-            https://pr-${{ github.event.pull_request.number }}--mango-pos.netlify.app
+            ${{ needs.preview.outputs.preview-url }}
           uploadArtifacts: true
           temporaryPublicStorage: true

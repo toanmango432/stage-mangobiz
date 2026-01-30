@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Bell, Calendar, Package, Star, AlertCircle } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 interface Notification {
   id: string;
@@ -22,7 +22,7 @@ interface Notification {
 }
 
 export function NotificationCenter() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: "1",
@@ -78,7 +78,7 @@ export function NotificationCenter() {
     
     // Navigate if link exists
     if (notification.link) {
-      navigate(notification.link);
+      router.push(notification.link);
     }
   };
 

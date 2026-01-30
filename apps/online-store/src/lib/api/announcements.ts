@@ -1,6 +1,7 @@
+import { getSupabaseUrl } from '@/lib/env';
 import { Announcement, AnnouncementCategory, AnnouncementPriority } from '@/types/announcement';
 
-const API_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1/store';
+const API_BASE = getSupabaseUrl() + '/functions/v1/store';
 
 export interface CreateAnnouncementInput {
   title: string;

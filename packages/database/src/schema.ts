@@ -29,19 +29,241 @@ import type {
   TimesheetEntry,
   // Payroll types (Phase 3: Payroll & Pay Runs)
   PayRun,
-} from '../types';
-import type { TeamMemberSettings } from '../components/team-settings/types';
-import type {
-  TimeOffType,
-  TimeOffRequest,
-  BlockedTimeType,
-  BlockedTimeEntry,
-  BusinessClosedPeriod,
-  Resource,
-  ResourceBooking,
-  StaffSchedule
-} from '../types/schedule';
-import type { DeviceMode } from '../types/device';
+} from '@mango/types';
+export type DeviceMode = 'online' | 'offline' | 'hybrid';
+
+type SyncStatus = 'local' | 'synced' | 'pending' | 'syncing' | 'conflict' | 'error';
+
+interface BaseSyncableEntity {
+  id: string;
+  tenantId: string;
+  storeId: string;
+  locationId?: string;
+  syncStatus: SyncStatus;
+  version: number;
+  vectorClock: Record<string, number>;
+  lastSyncedVersion: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  createdByDevice: string;
+  lastModifiedBy: string;
+  lastModifiedByDevice: string;
+  isDeleted: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
+  deletedByDevice?: string;
+  tombstoneExpiresAt?: string;
+}
+
+export interface TimeOffType extends BaseSyncableEntity {
+  name: string;
+  code: string;
+  emoji: string;
+  color: string;
+  isPaid: boolean;
+  requiresApproval: boolean;
+  annualLimitDays: number | null;
+  accrualEnabled: boolean;
+  accrualRatePerMonth: number | null;
+  carryOverEnabled: boolean;
+  maxCarryOverDays: number | null;
+  displayOrder: number;
+  isActive: boolean;
+  isSystemDefault: boolean;
+}
+
+export type TimeOffRequestStatus = 'pending' | 'approved' | 'denied' | 'cancelled';
+
+export interface TimeOffRequest extends BaseSyncableEntity {
+  staffId: string;
+  staffName: string;
+  typeId: string;
+  typeName: string;
+  typeEmoji: string;
+  typeColor: string;
+  isPaid: boolean;
+  startDate: string;
+  endDate: string;
+  isAllDay: boolean;
+  startTime: string | null;
+  endTime: string | null;
+  totalHours: number;
+  totalDays: number;
+  status: TimeOffRequestStatus;
+  statusHistory: Array<{
+    from: TimeOffRequestStatus | null;
+    to: TimeOffRequestStatus;
+    changedAt: string;
+    changedBy: string;
+    changedByDevice: string;
+    reason?: string;
+  }>;
+  notes: string | null;
+  approvedBy: string | null;
+  approvedByName: string | null;
+  approvedAt: string | null;
+  approvalNotes: string | null;
+  deniedBy: string | null;
+  deniedByName: string | null;
+  deniedAt: string | null;
+  denialReason: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+  cancellationReason: string | null;
+  hasConflicts: boolean;
+  conflictingAppointmentIds: string[];
+}
+
+export interface BlockedTimeType extends BaseSyncableEntity {
+  name: string;
+  code: string;
+  emoji: string;
+  color: string;
+  defaultDurationMinutes: number;
+  isPaid: boolean;
+  blocksOnlineBooking: boolean;
+  blocksInStoreBooking: boolean;
+  requiresApproval: boolean;
+  displayOrder: number;
+  isActive: boolean;
+  isSystemDefault: boolean;
+}
+
+export interface BlockedTimeEntry extends BaseSyncableEntity {
+  staffId: string;
+  staffName: string;
+  typeId: string;
+  typeName: string;
+  typeEmoji: string;
+  typeColor: string;
+  startDateTime: string;
+  endDateTime: string;
+  notes: string | null;
+  frequency: 'none' | 'daily' | 'weekly' | 'monthly';
+  seriesId: string | null;
+  seriesEndDate: string | null;
+}
+
+export interface BusinessClosedPeriod extends BaseSyncableEntity {
+  name: string;
+  startDate: string;
+  endDate: string;
+  reason: string | null;
+  isAnnual: boolean;
+  appliesToAllLocations?: boolean;
+  locationIds?: string[] | null;
+  isPartialDay?: boolean;
+  startTime?: string | null;
+  endTime?: string | null;
+  blocksOnlineBooking?: boolean;
+  blocksInStoreBooking?: boolean;
+  color?: string | null;
+  notes?: string | null;
+}
+
+export interface Resource extends BaseSyncableEntity {
+  name: string;
+  category: string;
+  description: string | null;
+  displayOrder: number;
+  isActive: boolean;
+  capacity?: number;
+  isBookable?: boolean;
+  color?: string | null;
+  linkedServiceIds?: string[];
+}
+
+export interface ResourceBooking extends BaseSyncableEntity {
+  resourceId: string;
+  resourceName: string;
+  appointmentId: string;
+  startDateTime: string;
+  endDateTime: string;
+  staffId: string | null;
+  staffName: string | null;
+  assignmentType: 'auto' | 'manual';
+  assignedBy: string | null;
+}
+
+export interface StaffSchedule extends BaseSyncableEntity {
+  staffId: string;
+  staffName: string;
+  patternType: 'weekly' | 'biweekly' | 'custom';
+  patternWeeks: number;
+  weeks: Array<{
+    days: Array<{
+      dayOfWeek: number;
+      isWorking: boolean;
+      shifts?: Array<{
+        startTime: string;
+        endTime: string;
+      }>;
+    }>;
+  }>;
+  effectiveFrom: string;
+  effectiveUntil: string | null;
+  patternAnchorDate: string;
+  isDefault: boolean;
+  copiedFromScheduleId: string | null;
+}
+
+export interface TeamMemberSettings {
+  id: string;
+  tenantId: string;
+  storeId: string;
+  profile: {
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    email: string;
+    phone?: string;
+    avatarUrl?: string;
+  };
+  permissions: {
+    role: string;
+  };
+  onlineBooking: {
+    isBookableOnline: boolean;
+  };
+  workingHours: {
+    scheduleOverrides: ScheduleOverride[];
+    timeOffRequests?: TimeOffRequestRef[];
+  };
+  isActive: boolean;
+  syncStatus: SyncStatus;
+  version: number;
+  vectorClock: Record<string, number>;
+  lastSyncedVersion: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  createdByDevice: string;
+  lastModifiedBy: string;
+  lastModifiedByDevice: string;
+  isDeleted: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
+  deletedByDevice?: string;
+  tombstoneExpiresAt?: string;
+}
+
+export interface ScheduleOverride {
+  id?: string;
+  date: string;
+  type: 'day_off' | 'custom_hours';
+  startTime?: string;
+  endTime?: string;
+  reason?: string;
+}
+
+export interface TimeOffRequestRef {
+  id: string;
+  typeId: string;
+  startDate: string;
+  endDate: string;
+  status: TimeOffRequestStatus;
+}
 
 export interface Settings {
   key: string;

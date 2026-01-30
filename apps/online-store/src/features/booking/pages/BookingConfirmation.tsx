@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,18 +9,18 @@ import { selectBookingSummary } from '../redux/bookingSelectors';
 import { TimeUtils } from '../utils/timeUtils';
 
 export const BookingConfirmation: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const summary = useAppSelector(selectBookingSummary);
 
   const handleNewBooking = () => {
     dispatch(resetBooking());
-    navigate('/booking');
+    router.push('/booking');
   };
 
   const handleGoHome = () => {
     dispatch(resetBooking());
-    navigate('/');
+    router.push('/');
   };
 
   return (

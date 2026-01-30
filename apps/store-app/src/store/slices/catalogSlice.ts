@@ -196,15 +196,15 @@ export const fetchVariants = createAsyncThunk(
 
 export const createVariant = createAsyncThunk(
   'catalog/createVariant',
-  async ({ input, storeId }: { input: CreateVariantInput; storeId: string }) => {
-    return await serviceVariantsDB.create(input, storeId);
+  async ({ input, userId, storeId }: { input: CreateVariantInput; userId: string; storeId: string }) => {
+    return await serviceVariantsDB.create(input, userId, storeId);
   }
 );
 
 export const updateVariant = createAsyncThunk(
   'catalog/updateVariant',
-  async ({ id, updates }: { id: string; updates: Partial<ServiceVariant> }) => {
-    return await serviceVariantsDB.update(id, updates);
+  async ({ id, updates, userId }: { id: string; updates: Partial<ServiceVariant>; userId: string }) => {
+    return await serviceVariantsDB.update(id, updates, userId);
   }
 );
 
@@ -263,15 +263,15 @@ export const fetchAddOnGroupsWithOptions = createAsyncThunk(
 
 export const createAddOnGroup = createAsyncThunk(
   'catalog/createAddOnGroup',
-  async ({ input, storeId }: { input: CreateAddOnGroupInput; storeId: string }) => {
-    return await addOnGroupsDB.create(input, storeId);
+  async ({ input, userId, storeId }: { input: CreateAddOnGroupInput; userId: string; storeId: string }) => {
+    return await addOnGroupsDB.create(input, userId, storeId);
   }
 );
 
 export const updateAddOnGroup = createAsyncThunk(
   'catalog/updateAddOnGroup',
-  async ({ id, updates }: { id: string; updates: Partial<AddOnGroup> }) => {
-    return await addOnGroupsDB.update(id, updates);
+  async ({ id, updates, userId }: { id: string; updates: Partial<AddOnGroup>; userId: string }) => {
+    return await addOnGroupsDB.update(id, updates, userId);
   }
 );
 
@@ -286,15 +286,15 @@ export const deleteAddOnGroup = createAsyncThunk(
 // Add-on Options
 export const createAddOnOption = createAsyncThunk(
   'catalog/createAddOnOption',
-  async ({ input, storeId }: { input: CreateAddOnOptionInput; storeId: string }) => {
-    return await addOnOptionsDB.create(input, storeId);
+  async ({ input, userId, storeId }: { input: CreateAddOnOptionInput; userId: string; storeId: string }) => {
+    return await addOnOptionsDB.create(input, userId, storeId);
   }
 );
 
 export const updateAddOnOption = createAsyncThunk(
   'catalog/updateAddOnOption',
-  async ({ id, updates }: { id: string; updates: Partial<AddOnOption> }) => {
-    return await addOnOptionsDB.update(id, updates);
+  async ({ id, updates, userId }: { id: string; updates: Partial<AddOnOption>; userId: string }) => {
+    return await addOnOptionsDB.update(id, updates, userId);
   }
 );
 
@@ -309,15 +309,30 @@ export const deleteAddOnOption = createAsyncThunk(
 // Settings
 export const fetchCatalogSettings = createAsyncThunk(
   'catalog/fetchSettings',
-  async (storeId: string) => {
-    return await catalogSettingsDB.getOrCreate(storeId);
+  async ({ storeId, userId, deviceId, tenantId }: {
+    storeId: string;
+    userId?: string;
+    deviceId?: string;
+    tenantId?: string;
+  }) => {
+    const effectiveUserId = userId || 'system';
+    const effectiveDeviceId = deviceId || 'web-client';
+    const effectiveTenantId = tenantId || storeId;
+    return await catalogSettingsDB.getOrCreate(storeId, effectiveUserId, effectiveDeviceId, effectiveTenantId);
   }
 );
 
 export const updateCatalogSettings = createAsyncThunk(
   'catalog/updateSettings',
-  async ({ storeId, updates }: { storeId: string; updates: Partial<CatalogSettings> }) => {
-    return await catalogSettingsDB.update(storeId, updates);
+  async ({ storeId, updates, userId, deviceId }: {
+    storeId: string;
+    updates: Partial<CatalogSettings>;
+    userId?: string;
+    deviceId?: string;
+  }) => {
+    const effectiveUserId = userId || 'system';
+    const effectiveDeviceId = deviceId || 'web-client';
+    return await catalogSettingsDB.update(storeId, updates, effectiveUserId, effectiveDeviceId);
   }
 );
 

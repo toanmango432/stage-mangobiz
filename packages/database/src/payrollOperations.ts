@@ -8,15 +8,53 @@ import type {
   PayRunAdjustment,
   CreatePayRunParams,
   AddAdjustmentParams,
-} from '../types/payroll';
-import {
-  createEmptyTotals,
-  calculatePayRunTotals,
-} from '../types/payroll';
+  PayRunTotals,
+} from '@mango/types';
 import {
   incrementEntityVersion,
   markEntityDeleted,
-} from '../types/common';
+} from '@mango/types';
+
+function createEmptyTotals(): PayRunTotals {
+  return {
+    staffCount: 0,
+    totalHours: 0,
+    totalOvertimeHours: 0,
+    totalWages: 0,
+    totalCommission: 0,
+    totalTips: 0,
+    totalAdjustments: 0,
+    grandTotal: 0,
+    paidCount: 0,
+    totalPaid: 0,
+    totalPending: 0,
+  };
+}
+
+function calculatePayRunTotals(staffPayments: StaffPayment[]): PayRunTotals {
+  const totals = createEmptyTotals();
+
+  totals.staffCount = staffPayments.length;
+
+  for (const payment of staffPayments) {
+    totals.totalHours += payment.hours.actualHours;
+    totals.totalOvertimeHours += payment.hours.overtimeHours;
+    totals.totalWages += payment.totalWages;
+    totals.totalCommission += payment.totalCommission;
+    totals.totalTips += payment.totalTips;
+    totals.totalAdjustments += payment.totalAdjustments;
+    totals.grandTotal += payment.netPay;
+
+    if (payment.isPaid) {
+      totals.paidCount += 1;
+      totals.totalPaid += payment.netPay;
+    } else {
+      totals.totalPending += payment.netPay;
+    }
+  }
+
+  return totals;
+}
 
 // ============================================
 // SYNC CONFIGURATION FOR PAY RUNS
@@ -224,7 +262,7 @@ export const payrollDB = {
     }
 
     const existingIndex = payRun.staffPayments.findIndex(
-      (p) => p.staffId === staffPayment.staffId
+      (p: StaffPayment) => p.staffId === staffPayment.staffId
     );
 
     let updatedPayments: StaffPayment[];
@@ -263,7 +301,7 @@ export const payrollDB = {
     }
 
     const staffIndex = payRun.staffPayments.findIndex(
-      (p) => p.staffId === params.staffId
+      (p: StaffPayment) => p.staffId === params.staffId
     );
     if (staffIndex < 0) {
       throw new Error(`Staff ${params.staffId} not found in pay run`);
@@ -284,7 +322,7 @@ export const payrollDB = {
 
     // Recalculate totals for this staff
     staffPayment.totalAdjustments = staffPayment.adjustments.reduce(
-      (sum, adj) => sum + adj.amount,
+      (sum: number, adj: PayRunAdjustment) => sum + adj.amount,
       0
     );
     staffPayment.grossPay =
@@ -324,7 +362,7 @@ export const payrollDB = {
     }
 
     const staffIndex = payRun.staffPayments.findIndex(
-      (p) => p.staffId === staffId
+      (p: StaffPayment) => p.staffId === staffId
     );
     if (staffIndex < 0) {
       throw new Error(`Staff ${staffId} not found in pay run`);
@@ -333,12 +371,12 @@ export const payrollDB = {
     const updatedPayments = [...payRun.staffPayments];
     const staffPayment = { ...updatedPayments[staffIndex] };
     staffPayment.adjustments = staffPayment.adjustments.filter(
-      (adj) => adj.id !== adjustmentId
+      (adj: PayRunAdjustment) => adj.id !== adjustmentId
     );
 
     // Recalculate totals
     staffPayment.totalAdjustments = staffPayment.adjustments.reduce(
-      (sum, adj) => sum + adj.amount,
+      (sum: number, adj: PayRunAdjustment) => sum + adj.amount,
       0
     );
     staffPayment.grossPay =
@@ -474,7 +512,7 @@ export const payrollDB = {
     }
 
     // Mark all staff payments as paid
-    const updatedPayments = payRun.staffPayments.map((payment) => ({
+    const updatedPayments = payRun.staffPayments.map((payment: StaffPayment) => ({
       ...payment,
       isPaid: true,
       paidAt: new Date().toISOString(),
@@ -548,7 +586,7 @@ export const payrollDB = {
     }
 
     const staffIndex = payRun.staffPayments.findIndex(
-      (p) => p.staffId === staffId
+      (p: StaffPayment) => p.staffId === staffId
     );
     if (staffIndex < 0) {
       throw new Error(`Staff ${staffId} not found in pay run`);

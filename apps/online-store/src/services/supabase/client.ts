@@ -7,19 +7,25 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { getSupabaseUrl, getSupabaseAnonKey, isBuildTime } from '@/lib/env';
 
-// Environment configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const supabaseUrl = getSupabaseUrl();
+const supabaseAnonKey = getSupabaseAnonKey();
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase configuration. Please check your .env file.');
+if (!isBuildTime() && typeof window !== 'undefined') {
+  // Warn if real credentials are missing at runtime
+  if (
+    supabaseUrl === 'https://placeholder.supabase.co' ||
+    supabaseAnonKey === 'placeholder-anon-key'
+  ) {
+    console.error('Missing Supabase configuration. Please check your .env file.');
+  }
 }
 
 // Create Supabase client with auth configuration for customers
 export const supabase: SupabaseClient<Database> = createClient<Database>(
-  supabaseUrl || '',
-  supabaseAnonKey || '',
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       persistSession: true,
