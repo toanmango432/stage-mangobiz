@@ -24,26 +24,19 @@ interface GroupMember {
 
 const DRAFT_KEY = 'booking-v2-draft';
 
+// SSR-safe default values
+const DEFAULT_STEP: BookingStep = 'browse';
+const DEFAULT_CART: CartItem[] = [];
+const DEFAULT_ASSIGNMENTS: Assignment[] = [];
+
 const Book = () => {
   const router = useRouter();
-  
-  // Load draft from localStorage on mount
-  const [currentStep, setCurrentStep] = useState<BookingStep>(() => {
-    const draft = localStorage.getItem(DRAFT_KEY);
-    const savedStep = draft ? JSON.parse(draft).currentStep : 'browse';
-    // If saved step is 'cart' (old flow), reset to 'browse'
-    return savedStep === 'cart' ? 'browse' : savedStep;
-  });
-  
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const draft = localStorage.getItem(DRAFT_KEY);
-    return draft ? JSON.parse(draft).cart : [];
-  });
-  
-  const [assignments, setAssignments] = useState<Assignment[]>(() => {
-    const draft = localStorage.getItem(DRAFT_KEY);
-    return draft ? JSON.parse(draft).assignments : [];
-  });
+
+  // Use SSR-safe defaults, load from localStorage in useEffect
+  const [currentStep, setCurrentStep] = useState<BookingStep>(DEFAULT_STEP);
+  const [cart, setCart] = useState<CartItem[]>(DEFAULT_CART);
+  const [assignments, setAssignments] = useState<Assignment[]>(DEFAULT_ASSIGNMENTS);
+  const [isHydrated, setIsHydrated] = useState(false);
   
   const [isBooking, setIsBooking] = useState(false);
   const [bookingData, setBookingData] = useState<any>(null);
@@ -56,27 +49,41 @@ const Book = () => {
   const [showQuestionsModal, setShowQuestionsModal] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [availableAddOns, setAvailableAddOns] = useState<AddOn[]>([]);
-  
-  // Clean up old localStorage data with 'cart' step on mount
+
+  // Load draft from localStorage on client mount (SSR-safe)
   useEffect(() => {
-    const draft = localStorage.getItem(DRAFT_KEY);
-    if (draft) {
-      try {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const draft = localStorage.getItem(DRAFT_KEY);
+      if (draft) {
         const parsed = JSON.parse(draft);
+
+        // Handle old 'cart' step from previous flow
         if (parsed.currentStep === 'cart') {
-          // Clear old draft with 'cart' step
           localStorage.removeItem(DRAFT_KEY);
-          setCurrentStep('browse');
+          setCurrentStep(DEFAULT_STEP);
+        } else {
+          // Load saved draft data
+          if (parsed.currentStep) setCurrentStep(parsed.currentStep);
+          if (parsed.cart) setCart(parsed.cart);
+          if (parsed.assignments) setAssignments(parsed.assignments);
+          if (parsed.specialRequests) setSpecialRequests(parsed.specialRequests);
         }
-      } catch (e) {
-        // Invalid draft, clear it
-        localStorage.removeItem(DRAFT_KEY);
       }
+    } catch {
+      // Invalid draft, clear it
+      localStorage.removeItem(DRAFT_KEY);
     }
+
+    setIsHydrated(true);
   }, []);
-  
-  // Auto-save to localStorage
+
+  // Auto-save to localStorage (only after hydration)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isHydrated) return; // Don't save until we've loaded from localStorage
+
     const draft = {
       currentStep,
       cart,
@@ -85,17 +92,21 @@ const Book = () => {
       timestamp: new Date().toISOString(),
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [currentStep, cart, assignments, specialRequests]);
-  
+  }, [currentStep, cart, assignments, specialRequests, isHydrated]);
+
   // Clear draft on successful booking
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     if (currentStep === 'success') {
       localStorage.removeItem(DRAFT_KEY);
     }
   }, [currentStep]);
-  
+
   // Save on page unload
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleBeforeUnload = () => {
       const draft = {
         currentStep,
@@ -106,7 +117,7 @@ const Book = () => {
       };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     };
-    
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
