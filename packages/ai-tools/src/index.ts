@@ -31,9 +31,8 @@ export * from './registry';
 // Schema index (all schemas re-exported)
 export * from './schemas';
 
-// Tool handlers
-export * from './handlers/clients';
-export * from './handlers/appointments';
+// Tool handlers (all categories + dispatcher)
+export * from './handlers';
 
 /**
  * Package version for tracking compatibility

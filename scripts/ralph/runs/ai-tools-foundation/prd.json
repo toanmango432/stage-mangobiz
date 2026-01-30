@@ -132,7 +132,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Service recommendations should consider client history and staff expertise."
     },
     {
@@ -159,7 +159,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Ticket operations are sensitive. Include permission requirements in descriptions."
     },
     {
@@ -185,7 +185,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Staff data can be sensitive. Note which fields might be restricted."
     },
     {
@@ -210,7 +210,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "System tools provide context AI needs. Store hours are critical for booking validation."
     },
     {
@@ -236,7 +236,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "The registry is what Mango Connect imports. It's the single source of truth."
     },
     {
@@ -261,7 +261,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Handlers bridge AI tool calls to business operations. Must be reliable and well-logged."
     },
     {
@@ -290,7 +290,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Focus on consistency across all handlers. Ticket operations need permission checks."
     },
     {

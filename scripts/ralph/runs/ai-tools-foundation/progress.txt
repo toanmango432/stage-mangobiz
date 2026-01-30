@@ -153,3 +153,306 @@ Commit: c8bf8788
 - Pre-existing typecheck failures in @mango/utils are unrelated to ai-tools changes
 
 **Next story suggestion:** US-005 (Service schemas) - similar complexity (2), next in priority order (5), continues the pattern of completing all schemas before US-009 (Tool Registry)
+
+---
+
+## 2026-01-30 - US-005: Create Service tool schemas
+Commit: 261a6ce4
+
+**Why this story?** Lowest complexity (2) among unblocked schema stories, next in priority order (5), and progress.txt suggested US-005 after US-004. Same category (backend schema) as just-completed US-004 - code patterns fresh in context. Must complete all schemas (US-005-008) before US-009 (Tool Registry).
+
+**Changes:**
+- `packages/ai-tools/src/schemas/services.ts (NEW)`: Complete service tool schemas with 5 tools
+  - searchServicesSchema: query (optional), category, minPrice, maxPrice, maxDurationMinutes, includeInactive, limit, offset
+  - getServiceSchema: serviceId (UUID)
+  - getServicesByStaffSchema: staffId, includeInactive - for booking when client requests specific stylist
+  - getPopularServicesSchema: limit, timeRange ('week'|'month'|'quarter'), category - for recommendations
+  - getServicePricingSchema: serviceId, staffId (optional), includeAddons - handles price tiers
+  - Each schema includes AITool definitions with returns schemas
+  - serviceSchemas and serviceTools exports for registry consumption
+  - Added serviceCategorySchema enum with 16 salon/spa categories
+- `packages/ai-tools/src/index.ts:22`: Added export for services schemas
+
+**Learnings:**
+- Service category enum is extensive (16 values) to cover salon/spa-specific offerings
+- Price tiers (junior/senior/master) are common in salons - schema handles staff-specific pricing
+- getPopularServices enables AI recommendations based on booking frequency data
+- Consistent pattern: each schema file exports both schemas object and tools array
+
+**Next story suggestion:** US-006 (Ticket schemas) - next in priority order (6), similar complexity (3), continues completing schemas before Tool Registry
+
+---
+
+## 2026-01-30 - US-006: Create Ticket tool schemas
+Commit: af97895f
+
+**Why this story?** Next in priority order (6) after US-005. Progress.txt suggested US-006. Same category (backend schema) - code patterns fresh in context. Must complete all schemas (US-006-008) to unblock US-009 (Tool Registry).
+
+**Changes:**
+- `packages/ai-tools/src/schemas/tickets.ts (NEW)`: Complete ticket tool schemas with 8 tools
+  - getOpenTicketsSchema: staffId (optional), includeDetails, limit - for front desk overview
+  - getTicketSchema: ticketId (UUID) - full ticket details with items, discounts, payments
+  - createTicketSchema: clientId (optional), staffId, notes, source, appointmentId - create new sale
+  - addTicketItemSchema: ticketId, serviceId OR productId, quantity, staffId, price override, notes
+    - Uses .refine() for XOR validation (must have one but not both of serviceId/productId)
+  - applyDiscountSchema: ticketId, discountType (percentage/fixed_amount/complimentary/price_override), value, reason (required for audit), itemId (optional), promotionCode
+  - closeTicketSchema: ticketId, paymentMethod, tipAmount, tipRecipientId, splitPayments array, receipt options (print/email/sms)
+  - voidTicketSchema: ticketId, reason (min 5 chars), managerApproval (required), managerPin, refundPayment
+  - removeTicketItemSchema: ticketId, itemId, reason (recommended)
+  - Each schema includes AITool definitions with returns schemas
+  - ticketSchemas and ticketTools exports for registry consumption
+  - Added permission metadata: requiresPermission, permissionLevel ('staff'/'manager') for sensitive operations
+- `packages/ai-tools/src/index.ts:23`: Added export for tickets schemas
+
+**Learnings:**
+- Zod's .refine() method is ideal for XOR validation (serviceId OR productId, not both)
+- Ticket operations benefit from permission level metadata (staff vs manager) for UI hints and enforcement
+- Split payment support requires array of payment methods with amounts
+- Void operations require detailed reason (min 5 chars) and manager approval for audit trail
+- Pre-existing typecheck failures in @mango/utils continue (unrelated to ai-tools changes)
+
+**Next story suggestion:** US-007 (Staff schemas) - next in priority order (7), lowest complexity (2) among remaining schemas, continues completing all schemas before US-009
+
+---
+
+## 2026-01-30 - US-007: Create Staff tool schemas
+Commit: a47cb811
+
+**Why this story?** Next in priority order (7) after US-006. Progress.txt suggested US-007. Same category (backend schema) - code patterns fresh in context. Must complete all schemas (US-007, US-008) to unblock US-009 (Tool Registry).
+
+**Changes:**
+- `packages/ai-tools/src/schemas/staff.ts (NEW)`: Complete staff tool schemas with 6 tools
+  - searchStaffSchema: query (optional), role, available (boolean), canPerformServiceId, includeInactive, limit, offset
+  - getStaffSchema: staffId (UUID), includePerformance, includeSchedule
+  - getStaffScheduleSchema: staffId, startDate, endDate, includeAppointments, includeTimeOff
+  - getStaffAvailabilitySchema: staffId, date, serviceId (optional), minDurationMinutes, startTime, endTime
+  - getOnDutyStaffSchema: date (optional), time (optional), role, includeStatus
+  - getStaffPerformanceSchema: staffId, period, includeRevenue, includeRatings, includeProductivity, compareToAverage
+    - Marked with requiresPermission: true and permissionLevel: 'manager'
+  - Each schema includes AITool definitions with returns schemas
+  - staffSchemas and staffTools exports for registry consumption
+  - Added staffRoleSchema enum (12 roles: stylist, colorist, nail_tech, esthetician, etc.)
+  - Added staffStatusSchema enum for current working status
+- `packages/ai-tools/src/index.ts:25`: Added export for staff schemas
+
+**Learnings:**
+- Staff data requires permission metadata for sensitive fields like performance metrics and revenue
+- Role enum covers common salon/spa positions (12 values)
+- Status tracking (available/busy/on_break/off_duty/checked_out) is essential for real-time availability
+- Time validation for HH:MM format uses regex /^\d{2}:\d{2}$/
+- Consistent pattern maintained: schema file exports both schemas object and tools array
+
+**Next story suggestion:** US-008 (Analytics and System schemas) - last remaining schema story, same complexity (3), will unblock US-009 (Tool Registry)
+
+---
+
+## 2026-01-30 - US-008: Create Analytics and System tool schemas
+Commit: e9172051
+
+**Why this story?** Last remaining schema story with passes: false, depends only on US-002 which is complete. Progress.txt suggested US-008 as natural next step after US-007. Completing this unblocks US-009 (Tool Registry) which depends on all schema stories.
+
+**Changes:**
+- `packages/ai-tools/src/schemas/analytics.ts (NEW)`: Complete analytics tool schemas with 5 tools
+  - getDashboardMetricsSchema: date, includeComparison, includeStaffBreakdown, includeGoals
+  - getSalesReportSchema: timeRange, startDate/endDate (for custom), comparison, granularity, breakdowns by service/product/payment/staff, discounts, tips
+  - getClientRetentionSchema: timeRange, comparison, includeChurnAnalysis, includeNewClientSources, includeTopClients, churnThresholdDays
+  - getServicePopularitySchema: timeRange, comparison, sortBy (bookings/revenue/growth/average_ticket), category filter, includeStaffPerformance, includeTrends
+  - getPeakHoursSchema: timeRange, metric (bookings/revenue/staff_utilization/walk_ins), dayOfWeek filter, includeHeatmap, includeRecommendations
+  - Sales report and client retention marked with requiresPermission: true, permissionLevel: 'manager'
+- `packages/ai-tools/src/schemas/system.ts (NEW)`: Complete system tool schemas with 6 tools
+  - getStoreInfoSchema: includeSettings, includeStaff, includeServices - business context
+  - getCurrentTimeSchema: format (iso/human/components), includeTimezone - essential for time-sensitive ops
+  - getBusinessHoursSchema: date (optional), includeSpecialHours, daysAhead - for booking validation
+  - isStoreOpenSchema: date, time, includeNextChange - quick open/closed check
+  - getSystemStatusSchema: includeFeatureFlags, includeIntegrations, includeAlerts - system health
+  - logAIActionSchema: action, category, details, reasoning, relatedEntity, severity - audit logging
+- `packages/ai-tools/src/index.ts:26-27`: Added exports for analytics and system schemas
+
+**Learnings:**
+- Analytics schemas benefit from rich comparison options (previous_period, same_period_last_year)
+- Time-based queries need granularity options (hour/day/week/month) for trend analysis
+- System tools are essential context providers - AI needs to know store hours before booking
+- logAIAction enables AI audit trail with reasoning capture for debugging/compliance
+- Peak hours analysis with recommendations enables AI-driven scheduling optimization
+- Pre-existing typecheck failures in @mango/utils continue (unrelated to ai-tools changes)
+
+**Patterns to sync:**
+- Pattern: Analytics schema granularity - use enum for time granularity (hour/day/week/month) to enable flexible trend visualization
+
+**Next story suggestion:** US-009 (Tool Registry) - now unblocked with all schema stories complete (US-003 through US-008). Registry is critical as it's the single source of truth that Mango Connect imports
+
+---
+
+## 2026-01-30 - US-009: Create Tool Registry
+Commit: c280921a
+
+**Why this story?** Highest priority (9) among unblocked stories. All schema dependencies (US-003 through US-008) are complete. Progress.txt suggested US-009. Registry is the single source of truth that Mango Connect imports - critical for downstream stories (US-010, US-014, US-015).
+
+**Changes:**
+- `packages/ai-tools/src/schemas/index.ts (NEW):1-208`: Re-exports all schema files with organized imports
+  - Exports all schemas, tools, and input types from each category module
+  - Exports allSchemas object grouping schemas by category
+- `packages/ai-tools/src/registry.ts (NEW):1-381`: Central tool registry implementation
+  - toolRegistry object with O(1) lookup by tool name
+  - getToolByName(name) for single tool lookup
+  - getToolsByCategory(category) for category filtering
+  - getAllToolDefinitions(format) with overloads for 'unified', 'openai', 'anthropic' formats
+  - validateToolInput(toolName, input) using Zod parse with ValidationResult type
+  - Additional utilities: getAllTools(), getToolNames(), getCategories(), hasTools()
+  - getRegistryStats() for tool registry statistics
+  - filterTools(options) for advanced filtering by categories, tags, permissions, search
+- `packages/ai-tools/src/index.ts:28-32`: Export registry and schemas modules
+
+**Learnings:**
+- Using Map for toolsByName/toolsByCategory enables O(1) lookup performance
+- Function overloads in TypeScript allow type-safe format selection for getAllToolDefinitions
+- ZodError can be formatted into human-readable messages by iterating issues
+- Pre-existing @mango/utils typecheck failures continue (unrelated to ai-tools changes)
+
+**Patterns to sync:**
+- Pattern: Registry Map pattern - Use Map<string, T> for O(1) lookup registries, convert to Record for export compatibility
+
+**Next story suggestion:** US-010 (Client and Appointment handlers) - now unblocked by US-009. It's the first handler implementation story and will establish patterns for remaining handlers in US-011
+
+---
+
+## 2026-01-30 - US-010: Create Client and Appointment handlers
+Commit: a3e1a75c
+
+**Why this story?** Highest priority (10) among unblocked stories. Progress.txt suggested US-010. First handler implementation story that establishes patterns for remaining handlers. US-011 depends on this.
+
+**Changes:**
+- `packages/ai-tools/src/handlers/clients.ts (NEW):1-614`: Client tool handlers
+  - ClientDataProvider interface for dependency injection (decouples handlers from data layer)
+  - Type definitions: ClientSummary, ClientDetails, ClientHistory, CreateClientData, UpdateClientData, CreatedClient, UpdatedClient, ClientNote
+  - setClientDataProvider() for runtime data provider injection
+  - handleSearchClients - search clients with filters, pagination
+  - handleGetClient - retrieve full client details
+  - handleGetClientHistory - get appointment/ticket history with summary stats
+  - handleCreateClient - create new client with validation
+  - handleUpdateClient - partial update with field tracking
+  - handleAddClientNote - add notes with auto-private for medical category
+  - clientHandlers registry object for tool dispatcher integration
+- `packages/ai-tools/src/handlers/appointments.ts (NEW):1-545`: Appointment tool handlers
+  - AppointmentDataProvider interface for dependency injection
+  - Type definitions: AppointmentStatus, AppointmentSummary, AppointmentDetails, AvailabilityResult, BookAppointmentData, BookedAppointment, RescheduledAppointment, CancelledAppointment
+  - setAppointmentDataProvider() for runtime injection
+  - handleSearchAppointments - search by date with staff/client/status filters
+  - handleGetAppointment - retrieve full appointment details
+  - handleCheckAvailability - find available time slots for service
+  - handleBookAppointment - create new appointment with confirmation
+  - handleRescheduleAppointment - change time with notification
+  - handleCancelAppointment - cancel with fee handling and permission checks
+  - appointmentHandlers registry object
+- `packages/ai-tools/src/index.ts:34-35`: Export handlers modules
+
+**Learnings:**
+- Data provider pattern enables dependency injection - handlers are decoupled from specific data layer (Supabase, IndexedDB, etc.)
+- Each handler follows consistent pattern: start time tracking, log input, try/catch with typed errors, return ToolResult
+- Error mapping is critical - convert provider errors to appropriate ToolErrorCodes (NOT_FOUND, CONFLICT, PERMISSION_DENIED)
+- Medical notes are auto-private (business rule embedded in handler)
+- Pre-existing @mango/utils typecheck failures continue (unrelated to ai-tools changes)
+
+**Patterns to sync:**
+- Pattern: Data Provider Interface - Define interfaces for data operations and inject at runtime. Enables testing with mocks and swapping implementations.
+- Pattern: Handler Error Mapping - Map provider error messages to ToolErrorCodes (NOT_FOUND for "not found", CONFLICT for "conflict"/"not available", PERMISSION_DENIED for "permission"/"approval")
+
+**Next story suggestion:** US-011 (Remaining handlers and dispatcher) - depends on US-010 which is now complete. Will create services, tickets, staff, analytics, system handlers plus the unified executeTool dispatcher
+
+---
+
+## 2026-01-30 - US-011: Create remaining handlers and dispatcher
+Commit: c47da841
+
+**Why this story?** Direct continuation of US-010 handler patterns, highest priority (11) among unblocked stories, and US-013 (Edge function) depends on this completing the handler layer.
+
+**Changes:**
+- `packages/ai-tools/src/handlers/services.ts (NEW):1-444`: Service tool handlers
+  - ServiceDataProvider interface for dependency injection
+  - Type definitions: ServiceSummary, ServiceDetails, PricingTier, PopularService
+  - setServiceDataProvider() for runtime injection
+  - handleSearchServices - search with category, price, duration filters
+  - handleGetService - retrieve full service details
+  - handleGetServicesByStaff - services a specific staff member can perform
+  - handleGetPopularServices - trending services by time range
+  - handleGetServicePricing - price tiers including staff-specific pricing
+  - serviceHandlers registry object
+
+- `packages/ai-tools/src/handlers/tickets.ts (NEW):1-709`: Ticket tool handlers
+  - TicketDataProvider interface for dependency injection
+  - Type definitions: TicketSummary, TicketDetails, TicketItem, CreatedTicket, TicketWithDiscount, ClosedTicket, VoidedTicket
+  - setTicketDataProvider() for runtime injection
+  - handleGetOpenTickets - list open tickets with staff filter
+  - handleGetTicket - retrieve full ticket with items, payments
+  - handleCreateTicket - start new sale
+  - handleAddTicketItem - add service/product to ticket (XOR validated)
+  - handleApplyDiscount - apply percentage/fixed/complimentary discounts
+  - handleCloseTicket - process payment with tips and receipt options
+  - handleVoidTicket - void with manager approval (logs sensitive operation warning)
+  - handleRemoveTicketItem - remove item with reason tracking
+  - ticketHandlers registry object
+
+- `packages/ai-tools/src/handlers/staff.ts (NEW):1-528`: Staff tool handlers
+  - StaffDataProvider interface for dependency injection
+  - Type definitions: StaffSummary, StaffDetails, ScheduleEntry, AvailabilitySlot, OnDutyStaff, PerformanceMetrics
+  - setStaffDataProvider() for runtime injection
+  - handleSearchStaff - search with role, availability, skill filters
+  - handleGetStaff - retrieve staff details with optional performance/schedule
+  - handleGetStaffSchedule - schedule for date range with appointments
+  - handleGetStaffAvailability - available time slots for a date
+  - handleGetOnDutyStaff - currently working staff
+  - handleGetStaffPerformance - metrics with manager permission check
+  - staffHandlers registry object
+
+- `packages/ai-tools/src/handlers/analytics.ts (NEW):1-491`: Analytics tool handlers
+  - AnalyticsDataProvider interface for dependency injection
+  - Type definitions: DashboardMetrics, SalesReport, RetentionMetrics, ServicePopularity, PeakHoursAnalysis
+  - setAnalyticsDataProvider() for runtime injection
+  - handleGetDashboardMetrics - daily summary with comparison
+  - handleGetSalesReport - detailed sales with breakdowns (manager required)
+  - handleGetClientRetention - churn analysis and top clients (manager required)
+  - handleGetServicePopularity - trending services by various metrics
+  - handleGetPeakHours - hour-by-hour analysis with heatmap and recommendations
+  - analyticsHandlers registry object
+
+- `packages/ai-tools/src/handlers/system.ts (NEW):1-463`: System tool handlers
+  - SystemDataProvider interface for dependency injection
+  - Type definitions: StoreInfo, BusinessHours, StoreOpenStatus, SystemStatus
+  - setSystemDataProvider() for runtime injection
+  - handleGetStoreInfo - business context (name, address, settings)
+  - handleGetCurrentTime - current time in requested format (computed locally)
+  - handleGetBusinessHours - operating hours with special hours
+  - handleIsStoreOpen - quick open/closed check with next change
+  - handleGetSystemStatus - health with feature flags, integrations, alerts
+  - handleLogAIAction - audit logging (returns partial success if logging fails)
+  - systemHandlers registry object
+
+- `packages/ai-tools/src/handlers/index.ts (NEW):1-233`: Unified dispatcher and utilities
+  - allHandlers object combining all category handlers
+  - executeTool<T>(toolName, input, context, options) - main dispatcher
+    - Validates tool exists in registry
+    - Validates input against Zod schema
+    - Finds and calls appropriate handler
+    - Returns ToolResult with timing metadata
+  - executeToolsParallel<T>(requests, context, options) - batch parallel execution
+  - executeToolsSequential<T>(requests, context) - sequential with results array
+  - getImplementedHandlers() - list tools with handlers
+  - hasHandler(toolName) - check if handler exists
+  - getHandlerStats() - statistics (implemented, unimplemented, by category)
+  - Re-exports all handlers, data providers, and setter functions
+
+- `packages/ai-tools/src/index.ts:34`: Updated to export handlers module
+
+**Learnings:**
+- TypeScript generic type constraint required `Record<string, ToolHandler<any, any>>` with eslint-disable for the combined handler registry (variance issue)
+- Permission checks are embedded in handlers - analytics/staff performance require manager level
+- System tools like getCurrentTime compute locally (no data provider needed)
+- logAIAction uses partial success pattern - non-blocking if logging fails
+- Consistent pattern: each handler file exports handlers object + data provider interface + setter function
+
+**Patterns to sync:**
+- Pattern: Permission Validation - Handlers check context for permission level before returning sensitive data (analytics reports, staff performance)
+- Pattern: Partial Success - For non-critical operations like logging, return success with metadata.partialFailure instead of failing the entire request
+- Pattern: Handler Stats - Provide getHandlerStats() to track implementation coverage across categories
+
+**Next story suggestion:** US-012 (Create audit table) - next in priority order, creates the database schema needed for AI action audit logging that US-011's logAIAction handler writes to
