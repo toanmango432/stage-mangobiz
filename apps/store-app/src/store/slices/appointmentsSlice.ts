@@ -212,7 +212,7 @@ export const fetchAppointmentsFromSupabase = createAsyncThunk(
  */
 export const fetchUpcomingAppointments = createAsyncThunk(
   'appointments/fetchUpcoming',
-  async (limit = 50) => {
+  async (limit: number = 50) => {
     // dataService already returns Appointment[] (converted from Supabase rows)
     return await dataService.appointments.getUpcoming(limit);
   }

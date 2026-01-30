@@ -94,7 +94,7 @@ export interface StaffSidebarCustomEvents {
 
 // Extend global WindowEventMap
 declare global {
-  type WindowEventMap = StaffSidebarCustomEvents
+  interface WindowEventMap extends StaffSidebarCustomEvents {}
 }
 
 /**
