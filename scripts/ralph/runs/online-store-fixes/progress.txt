@@ -1,0 +1,114 @@
+## Codebase Patterns
+
+> Add reusable patterns discovered during implementation here.
+> These persist across iterations and help future Ralph runs.
+
+### Next.js SSR + localStorage Pattern
+When accessing browser APIs (localStorage, sessionStorage, window) in Next.js:
+1. Never use them in useState initializers (runs on server)
+2. Use useEffect with `typeof window !== 'undefined'` guards
+3. Use default values during SSR, hydrate on client
+
+---
+
+# Ralph Progress Log
+
+Started: 2026-01-29
+Branch: ralph/online-store-fixes
+Run: online-store-fixes
+
+---
+
+## 2026-01-29 - US-001: Fix Provider nesting syntax error
+Commit: c7c0292c
+
+**Why this story?** Lowest complexity (1), highest priority (1), no dependencies, and marked as CRIT-001.
+
+**Changes:**
+- `apps/online-store/src/components/Providers.tsx:20`: Removed unused `seedTemplateSections` import
+- `apps/online-store/src/components/Providers.tsx:29-30`: Removed broken `seedTemplateSections()` call (was called without required arguments: templateId and sections)
+
+**Learnings:**
+- PRD notes mentioned "malformed JSX nesting" but the actual issue was a broken function call with missing arguments
+- `seedTemplateSections(templateId, sections)` requires both params; the call with 0 args was causing TS2554 error
+- Provider hierarchy was already correct (Redux → Query → Auth → Theme)
+
+**Next story suggestion:** US-002 (Delete authHelpers.ts) - Security vulnerability fix with no dependencies, priority 2
+
+---
+
+## 2026-01-29 - US-002: Delete authHelpers.ts plaintext password storage
+Commit: N/A (Already complete - no changes needed)
+
+**Why this story?** Highest priority (2) among incomplete stories with no dependencies. Security vulnerability fix (CRIT-004).
+
+**Changes:**
+- No changes needed - file already doesn't exist
+
+**Verification:**
+- `authHelpers.ts` file does NOT exist at `apps/online-store/src/lib/authHelpers.ts`
+- grep found NO references to `authHelpers` in the codebase
+- `authService.ts` at `apps/online-store/src/services/auth/authService.ts` properly uses Supabase Auth
+- `roleHelpers.ts` has a comment explaining why NOT to use plaintext password storage (proper security pattern)
+
+**Learnings:**
+- PRD indicated file existed but it was already deleted or never created
+- Always verify file existence before assuming deletion work is needed
+- Typecheck has pre-existing test file errors (AdditiveGroupBooking.test.tsx) unrelated to this story
+
+**Next story suggestion:** US-003 (Add store authorization check to bookings API) - Security fix with no dependencies, priority 3
+
+---
+
+## 2026-01-29 - US-003: Add store authorization check to bookings API
+Commit: N/A (Already complete - no changes needed)
+
+**Why this story?** Next highest priority (3) among incomplete stories with no dependencies. Security fix (CRIT-003).
+
+**Changes:**
+- No changes needed - store authorization already implemented
+
+**Verification:**
+- GET endpoint (lines 202-231) already checks `store_staff` and `client_auth` tables
+- Returns 403 Forbidden if user doesn't belong to requested store
+- POST endpoint allows guest bookings by design (store_id derived from service, not user input)
+
+**Acceptance Criteria Check:**
+- ✅ GET endpoint verifies user belongs to requested storeId (lines 204-218)
+- ✅ Query client_auth table to verify store membership (lines 213-218)
+- ✅ Return 403 Forbidden if user doesn't belong to store (lines 221-230)
+- ✅ POST derives store_id from service lookup - secure by design
+
+**Learnings:**
+- PRD notes referenced "Lines 166-182" as problematic, but those lines (GET endpoint auth check) already have proper store authorization
+- Guest booking in POST is intentional - public booking forms need to work without auth
+- Typecheck has pre-existing errors in test file only
+
+**Next story suggestion:** US-004 (Fix ThemeContext localStorage SSR issue) - Frontend fix with no dependencies, priority 4
+
+---
+
+## 2026-01-29 - US-004: Fix ThemeContext localStorage SSR issue
+Commit: 634f8d03
+
+**Why this story?** Next highest priority (4) among incomplete stories with no dependencies. SSR hydration fix (HIGH-004).
+
+**Changes:**
+- `apps/online-store/src/contexts/ThemeContext.tsx:92-116`:
+  - Changed useState initializer from localStorage read to use defaultTheme directly
+  - Added isHydrated state to track client-side hydration
+  - Added useEffect to load saved theme from localStorage after client mount
+  - Added guard in persist effect to prevent writing before hydration
+  - Added try/catch for JSON.parse to handle corrupted localStorage
+
+**Learnings:**
+- Original code had a window check in useState but still caused hydration issues
+- The pattern: useState(default) + useEffect(loadFromStorage) + isHydrated guard is reliable
+- The isHydrated flag prevents the persist effect from running on first render
+
+**Patterns to sync:**
+- Pattern: SSR-safe localStorage with hydration guard - Use isHydrated flag to prevent effects from writing to localStorage before client hydration is complete
+
+**Next story suggestion:** US-005 (Fix PersonalizationContext SSR violation) - Same pattern as US-004, priority 5
+
+---
