@@ -55,7 +55,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Tool format should be compatible with both OpenAI function calling and Anthropic tool use."
     },
     {
@@ -81,7 +81,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Descriptions should be natural language. Example: 'Search for clients by name, phone, or visit history.'"
     },
     {

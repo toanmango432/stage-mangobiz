@@ -66,3 +66,62 @@ Commit: b7ae2e78
 - Package uses workspace:* protocol for peer dependencies following existing monorepo patterns
 
 **Next story suggestion:** US-002 (Create base tool types and schema converter) - it's the direct dependency for all schema stories (US-003 through US-008)
+
+---
+
+## 2026-01-30 - US-002: Create base tool types and schema converter
+Commit: 8675a934
+
+**Why this story?** Only unblocked story after US-001 completed. All schema stories (US-003 through US-008) depend on this for AITool type and schema converter utilities.
+
+**Changes:**
+- `packages/ai-tools/src/types.ts (NEW)`: Core type definitions
+  - AITool<TParams, TReturns> interface with name, description, category, parameters, returns
+  - AIToolCategory union type for 7 categories
+  - ExecutionContext with storeId, userId, logger, timezone
+  - ToolResult<T> with success, data, error, errorCode, metadata
+  - ToolLogger interface for structured logging
+  - Helper functions: successResult(), errorResult()
+  - OpenAIFunctionDefinition, AnthropicToolDefinition types
+- `packages/ai-tools/src/utils/schema-converter.ts (NEW)`: Schema conversion utilities
+  - zodToJsonSchema() using zod-to-json-schema with target: 'openAi'
+  - generateOpenAIDefinition() for OpenAI function calling format
+  - generateAnthropicDefinition() for Anthropic tool use format
+  - generateToolDefinition() for unified format with metadata
+  - Batch converters: generateOpenAIDefinitions(), generateAnthropicDefinitions()
+  - Schema inspection: getToolParameterNames(), hasRequiredParameters(), getRequiredParameters()
+- `packages/ai-tools/src/index.ts`: Updated to export types and utils
+
+**Learnings:**
+- zod-to-json-schema has built-in `target: 'openAi'` option for optimal OpenAI function calling format
+- Using `$refStrategy: 'none'` prevents complex $ref structures that AI models may struggle with
+- Separating OpenAI and Anthropic formats allows flexibility for different AI providers
+
+**Next story suggestion:** US-003 through US-008 are all now unblocked. US-003 (Client tool schemas) or US-005 (Service tool schemas, lower complexity) would be good next choices since they are fundamental business entities
+
+---
+
+## 2026-01-30 - US-003: Create Client tool schemas
+Commit: 7003aedc
+
+**Why this story?** Highest priority (3) among unblocked stories after US-002. Clients are a core business entity that other tools will reference. Progress.txt also suggested US-003 or US-005.
+
+**Changes:**
+- `packages/ai-tools/src/schemas/clients.ts (NEW)`: Complete client tool schemas with 6 tools
+  - searchClientsSchema: query, filters (loyalty, VIP, blocked, visit history, etc.), limit, offset
+  - getClientSchema: clientId (UUID)
+  - getClientHistorySchema: clientId, includeAppointments, includeTickets, limit, date range
+  - createClientSchema: firstName, lastName, phone (required), email, birthday, address, source, communication prefs
+  - updateClientSchema: clientId + partial updates for any field, with nullable support for clearing
+  - addClientNoteSchema: clientId, note, category (general/service/preference/medical/important), isPrivate
+  - Each schema includes AITool definitions with returns schemas
+  - clientSchemas and clientTools exports for registry consumption
+- `packages/ai-tools/src/index.ts`: Updated to export client schemas
+
+**Learnings:**
+- Rich .describe() annotations are critical for AI understanding - they explain not just what a field is but when/why to use it
+- Using nullable() with optional() allows distinguishing "not updating" from "clearing the value"
+- Zod default() values must come after other modifiers (min, max) to compile correctly
+- Building reusable schema building blocks (uuidSchema, clientFiltersSchema) reduces duplication
+
+**Next story suggestion:** US-004 (Appointment schemas) or US-005 (Service schemas) - both depend only on US-002 which is complete. US-004 has higher priority (4) and similar complexity (3)

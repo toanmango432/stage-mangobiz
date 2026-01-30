@@ -18,6 +18,7 @@ export * from './utils/schema-converter';
 
 // Tool schemas by category
 export * from './schemas/clients';
+export * from './schemas/appointments';
 
 // Tool registry (to be implemented in US-009)
 // export * from './registry';
