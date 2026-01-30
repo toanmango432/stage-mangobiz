@@ -48,7 +48,7 @@ const validatePaymentMethod = (method: PaymentMethod, details?: any): boolean =>
 const validateRefundAmount = (
   refundAmount: number,
   transactionTotal: number,
-  existingRefund: number = 0
+  existingRefund = 0
 ): boolean => {
   return refundAmount > 0 && (existingRefund + refundAmount) <= transactionTotal;
 };

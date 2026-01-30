@@ -62,7 +62,7 @@ function calculateBonusTurn(
 function calculateTardyTurn(
   tardyMinutes: number,
   settings: TurnSettings,
-  tardyThreshold: number = 15
+  tardyThreshold = 15
 ): number {
   if (tardyMinutes <= tardyThreshold) return 0;
   return settings.tardyPenalty;

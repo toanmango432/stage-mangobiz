@@ -1,0 +1,77 @@
+# Deploy to Staging Workflow
+# Copy to .github/workflows/deploy-staging.yml after review
+
+name: Deploy Staging
+
+on:
+  push:
+    branches: [staging]
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.mango.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          VITE_ENV: staging
+
+      # Database migrations for staging
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Run migrations (staging)
+        run: |
+          supabase link --project-ref ${{ secrets.SUPABASE_STAGING_REF }}
+          supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # Vercel handles deployment automatically via Git integration
+      # This step just confirms deployment started
+      - name: Deployment triggered
+        run: |
+          echo "✅ Staging deployment triggered"
+          echo "🔗 URL: https://staging.mango.com"
+          echo "📊 Vercel will deploy automatically via Git integration"
+
+      - name: Notify Slack (optional)
+        if: vars.ENABLE_SLACK_NOTIFICATIONS == 'true'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🚀 Staging Deployed
+            Branch: staging
+            Commit: ${{ github.sha }}
+            URL: https://staging.mango.com
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

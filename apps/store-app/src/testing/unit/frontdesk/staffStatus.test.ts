@@ -307,7 +307,7 @@ function calculateBreakDuration(breakStartedAt: string): number {
   return Math.floor((now - start) / 60000); // Returns minutes
 }
 
-function isBreakOverdue(breakStartedAt: string, maxBreakMinutes: number = 15): boolean {
+function isBreakOverdue(breakStartedAt: string, maxBreakMinutes = 15): boolean {
   return calculateBreakDuration(breakStartedAt) > maxBreakMinutes;
 }
 

@@ -150,7 +150,7 @@ function isServiceAvailableForContext(
 function calculateBookingWindow(
   minDays: number,
   maxDays: number,
-  bufferMinutes: number = 0
+  bufferMinutes = 0
 ): { earliestDate: Date; latestDate: Date } {
   const now = new Date();
 
@@ -177,7 +177,7 @@ function isDateWithinBookingWindow(
   bookingDate: Date,
   minDays: number,
   maxDays: number,
-  bufferMinutes: number = 0
+  bufferMinutes = 0
 ): boolean {
   const { earliestDate, latestDate } = calculateBookingWindow(
     minDays,
@@ -235,7 +235,7 @@ export function useBookingServices(
           : allServices.filter((s) => s.status === 'active');
 
         // Load variants if needed
-        let variantsByService = new Map<string, EmbeddedVariant[]>();
+        const variantsByService = new Map<string, EmbeddedVariant[]>();
         if (embedVariants) {
           const servicesWithVariants = filteredByStatus.filter(
             (s) => s.hasVariants

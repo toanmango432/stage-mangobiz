@@ -191,7 +191,7 @@ export function getBadgeColors(clientType: 'vip' | 'priority' | 'new' | 'regular
 /**
  * Helper: Get combined shadow with inset highlights
  */
-export function getCombinedShadow(elevation: 'sm' | 'md' | 'lg' | 'xl', withInset: boolean = true) {
+export function getCombinedShadow(elevation: 'sm' | 'md' | 'lg' | 'xl', withInset = true) {
   const shadow = ticketShadows[elevation];
   if (withInset) {
     return `${shadow}, ${ticketShadows.insetSubtle}`;

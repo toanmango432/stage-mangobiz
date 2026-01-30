@@ -128,7 +128,7 @@ class SlidingWindowRateLimiter {
   checkAndRecord(
     key: string,
     config: RateLimitConfig,
-    weight: number = 1
+    weight = 1
   ): RateLimitResult {
     const now = Date.now();
 
@@ -245,7 +245,7 @@ class RateLimiterService {
    */
   async checkRequest(
     tenantId: string,
-    operation: string = 'read'
+    operation = 'read'
   ): Promise<RateLimitResult> {
     const tier = await this.getTenantTier(tenantId);
     const config = TIER_LIMITS[tier];
@@ -261,7 +261,7 @@ class RateLimiterService {
   async checkStoreRequest(
     tenantId: string,
     storeId: string,
-    operation: string = 'read'
+    operation = 'read'
   ): Promise<RateLimitResult> {
     const tier = await this.getTenantTier(tenantId);
     const config = TIER_LIMITS[tier];
@@ -353,7 +353,7 @@ class RateLimiterService {
 export function withRateLimit<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   getTenantId: (...args: Parameters<T>) => string,
-  operation: string = 'read'
+  operation = 'read'
 ): T {
   return (async (...args: Parameters<T>) => {
     const tenantId = getTenantId(...args);

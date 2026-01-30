@@ -83,10 +83,10 @@ export function transition(
  */
 export function keyframeAnimation(
   name: string,
-  duration: string = '300ms',
-  easing: string = 'ease-out',
-  delay: string = '0ms',
-  fillMode: string = 'forwards'
+  duration = '300ms',
+  easing = 'ease-out',
+  delay = '0ms',
+  fillMode = 'forwards'
 ): string {
   return `${name} ${duration} ${easing} ${delay} ${fillMode}`;
 }
@@ -101,14 +101,14 @@ export function keyframeAnimation(
  * @param baseDelay - Base delay in ms
  * @returns Delay in ms
  */
-export function staggerDelay(index: number, baseDelay: number = 50): number {
+export function staggerDelay(index: number, baseDelay = 50): number {
   return index * baseDelay;
 }
 
 /**
  * Generate CSS delay string for stagger effect
  */
-export function staggerDelayStyle(index: number, baseDelay: number = 50): React.CSSProperties {
+export function staggerDelayStyle(index: number, baseDelay = 50): React.CSSProperties {
   return {
     animationDelay: `${staggerDelay(index, baseDelay)}ms`,
   };
@@ -167,7 +167,7 @@ export function scrollToElement(
 /**
  * Smooth scroll to top
  */
-export function scrollToTop(smooth: boolean = true) {
+export function scrollToTop(smooth = true) {
   window.scrollTo({
     top: 0,
     behavior: smooth ? 'smooth' : 'auto',
@@ -256,7 +256,7 @@ export function triggerHaptic(type: 'light' | 'medium' | 'heavy' = 'light') {
 /**
  * Visual feedback - brief highlight effect
  */
-export function highlightElement(element: HTMLElement, duration: number = 300) {
+export function highlightElement(element: HTMLElement, duration = 300) {
   element.classList.add('ring-2', 'ring-brand-500', 'ring-offset-2');
   setTimeout(() => {
     element.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-2');
@@ -388,7 +388,7 @@ export function withWillChange(
   element: HTMLElement | null,
   properties: string,
   callback: () => void,
-  duration: number = 300
+  duration = 300
 ): void {
   if (!element) return;
 
@@ -441,7 +441,7 @@ export function getAnimationDuration(defaultDuration: number): number {
 export function animateIf(
   condition: boolean,
   animationClass: string,
-  fallbackClass: string = ''
+  fallbackClass = ''
 ): string {
   if (prefersReducedMotion()) return fallbackClass;
   return condition ? animationClass : fallbackClass;

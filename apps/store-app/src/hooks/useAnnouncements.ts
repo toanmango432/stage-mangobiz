@@ -59,7 +59,7 @@ export function useAnnouncements(): UseAnnouncementsResult {
     loadAnnouncements();
   }, [loadAnnouncements]);
 
-  const dismiss = useCallback(async (id: string, acknowledged: boolean = false) => {
+  const dismiss = useCallback(async (id: string, acknowledged = false) => {
     await dismissAnnouncement(id, acknowledged);
     setAnnouncements((prev) => prev.filter((a) => a.id !== id));
   }, []);
@@ -118,7 +118,7 @@ export function useBannerAnnouncements(): {
     load();
   }, []);
 
-  const dismiss = useCallback(async (id: string, acknowledged: boolean = false) => {
+  const dismiss = useCallback(async (id: string, acknowledged = false) => {
     await dismissAnnouncement(id, acknowledged);
     setBanners((prev) => prev.filter((a) => a.id !== id));
   }, []);
@@ -154,7 +154,7 @@ export function useModalAnnouncements(): {
   const hasModals = modals.length > 0;
 
   const dismiss = useCallback(
-    async (acknowledged: boolean = false) => {
+    async (acknowledged = false) => {
       if (currentModal) {
         await dismissAnnouncement(currentModal.id, acknowledged);
         setModals((prev) => prev.filter((a) => a.id !== currentModal.id));

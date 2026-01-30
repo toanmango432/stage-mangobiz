@@ -1,0 +1,383 @@
+# Contributing to Mango Biz
+
+Welcome! This guide explains how to contribute code to Mango Biz.
+
+## Quick Start
+
+```bash
+# 1. Clone and setup
+git clone https://github.com/your-org/mango-biz.git
+cd mango-biz
+pnpm install
+
+# 2. Start from staging
+git checkout staging
+git pull origin staging
+
+# 3. Create your branch
+git checkout -b feature/your-feature-name
+
+# 4. Start development
+pnpm dev
+```
+
+---
+
+## Branch Strategy
+
+We use a simple two-branch strategy:
+
+```
+main     →  Production (live users)
+staging  →  Testing & QA
+feature/*  →  Your work (merges to staging)
+```
+
+### Rules
+
+| Branch | Can push directly? | Requires PR? | Requires approval? |
+|--------|-------------------|--------------|-------------------|
+| `main` | ❌ No | ✅ Yes | ✅ Yes (1 person) |
+| `staging` | ❌ No | ✅ Yes | ❌ No |
+| `feature/*` | ✅ Yes | - | - |
+
+---
+
+## Development Workflow
+
+### 1. Start a Feature
+
+```bash
+# Always start from staging!
+git checkout staging
+git pull origin staging
+
+# Create feature branch
+git checkout -b feature/US-123-add-booking-notes
+```
+
+### 2. Write Code
+
+- Keep changes focused on one feature
+- Write tests for new functionality
+- Follow existing code patterns
+
+### 3. Commit Your Changes
+
+Use **conventional commits**:
+
+```bash
+# Format
+<type>(<scope>): <description>
+
+# Types
+feat:     New feature
+fix:      Bug fix
+docs:     Documentation
+style:    Formatting (no code change)
+refactor: Code restructuring
+test:     Tests
+chore:    Maintenance
+
+# Examples
+git commit -m "feat(booking): add recurring appointment option"
+git commit -m "fix(checkout): correct tax calculation for CA"
+git commit -m "docs: update API documentation"
+git commit -m "chore: upgrade React to v19"
+```
+
+### 4. Push and Create PR
+
+```bash
+# Push your branch
+git push -u origin feature/US-123-add-booking-notes
+
+# Create PR to staging
+gh pr create --base staging --title "feat: [US-123] Add booking notes"
+```
+
+Or create PR via GitHub web interface.
+
+### 5. PR Review Process
+
+1. **CI runs automatically** - Must pass lint, typecheck, tests, build
+2. **Vercel deploys preview** - Test your changes at the preview URL
+3. **Review** - Address any feedback
+4. **Merge** - Squash merge to staging
+
+### 6. Test on Staging
+
+After merge to staging:
+- Visit https://staging.mango.com
+- Verify your feature works correctly
+- Test edge cases
+
+### 7. Release to Production
+
+When staging is ready for production:
+
+```bash
+# Create release PR
+gh pr create --base main --head staging --title "Release: v1.x.x"
+```
+
+After approval and merge → automatically deploys to production.
+
+---
+
+## Branch Naming
+
+```
+feature/US-123-short-description    # New features
+fix/US-456-bug-description          # Bug fixes
+chore/description                   # Maintenance
+hotfix/critical-issue               # Emergency (rare!)
+```
+
+**Examples:**
+- `feature/US-045-staff-scheduling`
+- `fix/US-102-checkout-calculation`
+- `chore/upgrade-dependencies`
+- `hotfix/payment-timeout`
+
+---
+
+## Commit Messages
+
+### Format
+
+```
+<type>(<scope>): <short description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `feat` | New feature | `feat(booking): add waitlist` |
+| `fix` | Bug fix | `fix(auth): handle expired token` |
+| `docs` | Documentation | `docs: update README` |
+| `style` | Formatting | `style: fix indentation` |
+| `refactor` | Restructure | `refactor: extract BookingCard` |
+| `test` | Tests | `test: add checkout tests` |
+| `chore` | Maintenance | `chore: update deps` |
+| `perf` | Performance | `perf: optimize list render` |
+
+### Good Commit Messages
+
+```bash
+# ✅ Good
+feat(booking): add recurring appointment scheduling
+fix(checkout): correct tax calculation for California
+refactor(staff): extract availability logic to hook
+
+# ❌ Bad
+fixed stuff
+update
+WIP
+asdfasdf
+```
+
+---
+
+## Pull Request Guidelines
+
+### PR Title
+
+Follow the same format as commits:
+
+```
+feat: [US-123] Add booking notes feature
+fix: [US-456] Resolve checkout timeout issue
+```
+
+### PR Description
+
+Include:
+- **What** - What does this PR do?
+- **Why** - Why is this change needed?
+- **How** - How was it implemented?
+- **Testing** - How was it tested?
+
+### PR Checklist
+
+Before requesting review:
+
+- [ ] Code compiles: `pnpm build`
+- [ ] Tests pass: `pnpm test`
+- [ ] No lint errors: `pnpm lint`
+- [ ] Types correct: `pnpm typecheck`
+- [ ] PR description is clear
+- [ ] Commits are meaningful
+
+### PR Size
+
+- Aim for **< 400 lines changed**
+- One feature per PR
+- Easier to review = faster merge
+
+---
+
+## Hotfix Process
+
+**Use only for emergencies** when production is broken.
+
+```bash
+# 1. Branch from main (not staging!)
+git checkout main
+git pull origin main
+git checkout -b hotfix/payment-crash
+
+# 2. Make minimal fix
+git commit -m "fix: increase payment timeout to 30s"
+
+# 3. PR direct to main
+gh pr create --base main --title "hotfix: payment timeout"
+
+# 4. Get fast-track review (Slack the team)
+
+# 5. After merge, backport to staging
+git checkout staging
+git pull origin staging
+git merge main
+git push origin staging
+```
+
+---
+
+## Environment Setup
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 9+
+- Git
+
+### Environment Variables
+
+Copy `.env.example` to `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Required variables:
+```bash
+VITE_SUPABASE_URL=https://your-staging-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-staging-anon-key
+```
+
+### Database
+
+Local development uses the **staging** Supabase database.
+
+To run migrations:
+```bash
+supabase db push
+```
+
+---
+
+## Code Style
+
+### General
+
+- Use TypeScript for all new code
+- Follow existing patterns in the codebase
+- Keep files under 500 lines
+- Use meaningful variable names
+
+### Imports
+
+```typescript
+// 1. React and core libraries
+import React, { useState, useEffect } from 'react';
+
+// 2. Third-party libraries
+import { format } from 'date-fns';
+
+// 3. Store and hooks
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+
+// 4. Components
+import { Button } from '@/components/ui/button';
+
+// 5. Utils and services
+import { dataService } from '@/services/dataService';
+
+// 6. Types (use 'import type')
+import type { Client } from '@/types';
+
+// 7. Local files
+import { STATUS_OPTIONS } from './constants';
+```
+
+### Styling
+
+- Use Tailwind CSS
+- Use design tokens from `@/design-system`
+- No hardcoded colors
+
+---
+
+## Testing
+
+### Run Tests
+
+```bash
+pnpm test              # Run all tests
+pnpm test --watch      # Watch mode
+pnpm test:coverage     # With coverage report
+```
+
+### Write Tests
+
+- Test behavior, not implementation
+- Cover edge cases
+- Use meaningful test names
+
+```typescript
+describe('BookingForm', () => {
+  it('should show error when date is in the past', () => {
+    // ...
+  });
+
+  it('should submit successfully with valid data', () => {
+    // ...
+  });
+});
+```
+
+---
+
+## Getting Help
+
+- **Slack**: #mango-dev channel
+- **Issues**: GitHub Issues for bugs
+- **Docs**: `docs/` folder in repo
+
+---
+
+## Quick Reference
+
+```bash
+# Start feature
+git checkout staging && git pull && git checkout -b feature/xyz
+
+# Commit
+git commit -m "feat(module): description"
+
+# PR to staging
+gh pr create --base staging
+
+# Release to production
+gh pr create --base main --head staging
+
+# Emergency hotfix
+git checkout main && git checkout -b hotfix/xyz
+gh pr create --base main
+```

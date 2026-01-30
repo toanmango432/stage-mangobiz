@@ -66,7 +66,7 @@ export const serviceCategoriesDB = {
     }));
   },
 
-  async create(input: CreateCategoryInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<ServiceCategory> {
+  async create(input: CreateCategoryInput, userId: string, storeId: string, tenantId: string = storeId, deviceId = 'web-client'): Promise<ServiceCategory> {
     // Get next display order
     const maxOrder = await db.serviceCategories
       .where('storeId')
@@ -166,7 +166,7 @@ export const menuServicesDB = {
     return { ...service, variants };
   },
 
-  async create(input: CreateMenuServiceInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<MenuService> {
+  async create(input: CreateMenuServiceInput, userId: string, storeId: string, tenantId: string = storeId, deviceId = 'web-client'): Promise<MenuService> {
     // Get next display order within category
     const maxOrder = await db.menuServices
       .where('[storeId+categoryId]')
@@ -274,7 +274,7 @@ export const serviceVariantsDB = {
     return await db.serviceVariants.get(id);
   },
 
-  async create(input: CreateVariantInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<ServiceVariant> {
+  async create(input: CreateVariantInput, userId: string, storeId: string, tenantId: string = storeId, deviceId = 'web-client'): Promise<ServiceVariant> {
     // Get next display order
     const maxOrder = await db.serviceVariants
       .where('serviceId')
@@ -350,7 +350,7 @@ export const servicePackagesDB = {
     return await db.servicePackages.get(id);
   },
 
-  async create(input: CreatePackageInput, userId: string, storeId: string, tenantId: string = storeId, deviceId: string = 'web-client'): Promise<ServicePackage> {
+  async create(input: CreatePackageInput, userId: string, storeId: string, tenantId: string = storeId, deviceId = 'web-client'): Promise<ServicePackage> {
     const maxOrder = await db.servicePackages
       .where('storeId')
       .equals(storeId)
@@ -450,7 +450,7 @@ export const addOnGroupsDB = {
     userId: string,
     storeId: string,
     tenantId: string = storeId,
-    deviceId: string = 'web-client'
+    deviceId = 'web-client'
   ): Promise<AddOnGroup> {
     const maxOrder = await db.addOnGroups
       .where('storeId')
@@ -475,7 +475,7 @@ export const addOnGroupsDB = {
     id: string,
     updates: Partial<AddOnGroup>,
     userId: string,
-    deviceId: string = 'web-client'
+    deviceId = 'web-client'
   ): Promise<AddOnGroup | undefined> {
     const group = await db.addOnGroups.get(id);
     if (!group) return undefined;
@@ -529,7 +529,7 @@ export const addOnOptionsDB = {
     userId: string,
     storeId: string,
     tenantId: string = storeId,
-    deviceId: string = 'web-client'
+    deviceId = 'web-client'
   ): Promise<AddOnOption> {
     const maxOrder = await db.addOnOptions
       .where('groupId')
@@ -554,7 +554,7 @@ export const addOnOptionsDB = {
     id: string,
     updates: Partial<AddOnOption>,
     userId: string,
-    deviceId: string = 'web-client'
+    deviceId = 'web-client'
   ): Promise<AddOnOption | undefined> {
     const option = await db.addOnOptions.get(id);
     if (!option) return undefined;
@@ -799,7 +799,7 @@ export const productsDB = {
    * Get all products for a store.
    * @param includeInactive - If true, includes inactive products
    */
-  async getAll(storeId: string, includeInactive: boolean = false): Promise<Product[]> {
+  async getAll(storeId: string, includeInactive = false): Promise<Product[]> {
     if (!storeId) return [];
 
     if (includeInactive) {
@@ -888,7 +888,7 @@ export const productsDB = {
   /**
    * Create a new product from input data.
    */
-  async create(data: CreateProductInput, storeId: string, tenantId: string, userId: string = 'system', deviceId: string = 'unknown'): Promise<Product> {
+  async create(data: CreateProductInput, storeId: string, tenantId: string, userId = 'system', deviceId = 'unknown'): Promise<Product> {
     const now = new Date().toISOString();
     const product: Product = {
       id: uuidv4(),
@@ -955,7 +955,7 @@ export const productsDB = {
    * @param userId - User performing the restore
    * @param deviceId - Device performing the restore
    */
-  async restore(id: string, userId: string, deviceId: string = 'web-client'): Promise<Product | undefined> {
+  async restore(id: string, userId: string, deviceId = 'web-client'): Promise<Product | undefined> {
     const product = await db.products.get(id);
     if (!product) return undefined;
 
@@ -1015,7 +1015,7 @@ export const bookingSequencesDB = {
    * Get all booking sequences for a store.
    * @param includeDisabled - If true, includes disabled sequences
    */
-  async getAll(storeId: string, includeDisabled: boolean = false): Promise<BookingSequence[]> {
+  async getAll(storeId: string, includeDisabled = false): Promise<BookingSequence[]> {
     if (!storeId) return [];
 
     if (includeDisabled) {
@@ -1047,7 +1047,7 @@ export const bookingSequencesDB = {
     userId: string,
     storeId: string,
     tenantId: string = storeId,
-    deviceId: string = 'web-client'
+    deviceId = 'web-client'
   ): Promise<BookingSequence> {
     const syncDefaults = createBaseSyncableDefaults(userId, deviceId, tenantId, storeId);
 
@@ -1068,7 +1068,7 @@ export const bookingSequencesDB = {
     id: string,
     updates: Partial<BookingSequence>,
     userId: string,
-    deviceId: string = 'web-client'
+    deviceId = 'web-client'
   ): Promise<BookingSequence | undefined> {
     const sequence = await db.bookingSequences.get(id);
     if (!sequence) return undefined;
@@ -1102,14 +1102,14 @@ export const bookingSequencesDB = {
   /**
    * Enable a booking sequence.
    */
-  async enable(id: string, userId: string, deviceId: string = 'web-client'): Promise<BookingSequence | undefined> {
+  async enable(id: string, userId: string, deviceId = 'web-client'): Promise<BookingSequence | undefined> {
     return await this.update(id, { isEnabled: true }, userId, deviceId);
   },
 
   /**
    * Disable a booking sequence.
    */
-  async disable(id: string, userId: string, deviceId: string = 'web-client'): Promise<BookingSequence | undefined> {
+  async disable(id: string, userId: string, deviceId = 'web-client'): Promise<BookingSequence | undefined> {
     return await this.update(id, { isEnabled: false }, userId, deviceId);
   },
 
@@ -1120,7 +1120,7 @@ export const bookingSequencesDB = {
     id: string,
     serviceOrder: string[],
     userId: string,
-    deviceId: string = 'web-client'
+    deviceId = 'web-client'
   ): Promise<BookingSequence | undefined> {
     return await this.update(id, { serviceOrder }, userId, deviceId);
   },

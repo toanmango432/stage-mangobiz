@@ -275,7 +275,7 @@ describe('calculateAssignmentScore', () => {
         mockStaff
       );
 
-      expect(score3.reasons).toContainEqual('Fair rotation: 0 appointments today (below average)');
+      expect(score3.reasons).toContainEqual('Fair rotation: 0.0 weighted workload (below average)');
       expect(score1.reasons.find(r => r.includes('below average'))).toBeDefined();
     });
 

@@ -694,7 +694,7 @@ export interface SyncOperation {
 }
 
 export const sqliteSyncQueueDB = {
-  async getAll(limit: number = 100, _offset: number = 0): Promise<SyncOperation[]> {
+  async getAll(limit = 100, _offset = 0): Promise<SyncOperation[]> {
     const adapter = await getAdapter();
     if (!_syncQueueService) {
       _syncQueueService = new SyncQueueSQLiteService(adapter);
@@ -718,7 +718,7 @@ export const sqliteSyncQueueDB = {
     }));
   },
 
-  async getPending(limit: number = 50): Promise<SyncOperation[]> {
+  async getPending(limit = 50): Promise<SyncOperation[]> {
     const adapter = await getAdapter();
     if (!_syncQueueService) {
       _syncQueueService = new SyncQueueSQLiteService(adapter);
@@ -874,7 +874,7 @@ export const sqlitePatchTestsDB = {
     return test as unknown as AppPatchTest | undefined;
   },
 
-  async getExpiring(clientId: string, daysAhead: number = 7): Promise<AppPatchTest[]> {
+  async getExpiring(clientId: string, daysAhead = 7): Promise<AppPatchTest[]> {
     const adapter = await getAdapter();
     if (!_patchTestService) {
       _patchTestService = new PatchTestSQLiteService(adapter);
@@ -921,7 +921,7 @@ export const sqlitePatchTestsDB = {
  * SQLite Form Response Service with Dexie-compatible interface
  */
 export const sqliteFormResponsesDB = {
-  async getByClientId(clientId: string, _limit: number = 50): Promise<AppFormResponse[]> {
+  async getByClientId(clientId: string, _limit = 50): Promise<AppFormResponse[]> {
     const adapter = await getAdapter();
     if (!_formResponseService) {
       _formResponseService = new FormResponseSQLiteService(adapter);
@@ -1077,7 +1077,7 @@ export const sqliteReferralsDB = {
  * SQLite Client Review Service with Dexie-compatible interface
  */
 export const sqliteClientReviewsDB = {
-  async getByClientId(clientId: string, _limit: number = 50): Promise<AppClientReview[]> {
+  async getByClientId(clientId: string, _limit = 50): Promise<AppClientReview[]> {
     const adapter = await getAdapter();
     if (!_clientReviewService) {
       _clientReviewService = new ClientReviewSQLiteService(adapter);
@@ -1095,7 +1095,7 @@ export const sqliteClientReviewsDB = {
     return review as unknown as AppClientReview | undefined;
   },
 
-  async getByStaffId(staffId: string, _limit: number = 100): Promise<AppClientReview[]> {
+  async getByStaffId(staffId: string, _limit = 100): Promise<AppClientReview[]> {
     const adapter = await getAdapter();
     if (!_clientReviewService) {
       _clientReviewService = new ClientReviewSQLiteService(adapter);
@@ -1141,7 +1141,7 @@ export const sqliteClientReviewsDB = {
  * SQLite Loyalty Reward Service with Dexie-compatible interface
  */
 export const sqliteLoyaltyRewardsDB = {
-  async getByClientId(clientId: string, _includeRedeemed: boolean = false): Promise<AppLoyaltyReward[]> {
+  async getByClientId(clientId: string, _includeRedeemed = false): Promise<AppLoyaltyReward[]> {
     const adapter = await getAdapter();
     if (!_loyaltyRewardService) {
       _loyaltyRewardService = new LoyaltyRewardSQLiteService(adapter);
@@ -1205,7 +1205,7 @@ export const sqliteReviewRequestsDB = {
     return request as unknown as AppReviewRequest | undefined;
   },
 
-  async getByClientId(clientId: string, _limit: number = 50): Promise<AppReviewRequest[]> {
+  async getByClientId(clientId: string, _limit = 50): Promise<AppReviewRequest[]> {
     const adapter = await getAdapter();
     if (!_reviewRequestService) {
       _reviewRequestService = new ReviewRequestSQLiteService(adapter);
@@ -1214,7 +1214,7 @@ export const sqliteReviewRequestsDB = {
     return requests as unknown as AppReviewRequest[];
   },
 
-  async getBySalonId(storeId: string, _limit: number = 100): Promise<AppReviewRequest[]> {
+  async getBySalonId(storeId: string, _limit = 100): Promise<AppReviewRequest[]> {
     const adapter = await getAdapter();
     if (!_reviewRequestService) {
       _reviewRequestService = new ReviewRequestSQLiteService(adapter);
@@ -1223,7 +1223,7 @@ export const sqliteReviewRequestsDB = {
     return requests as unknown as AppReviewRequest[];
   },
 
-  async getByStatus(storeId: string, status: AppReviewRequestStatus, _limit: number = 100): Promise<AppReviewRequest[]> {
+  async getByStatus(storeId: string, status: AppReviewRequestStatus, _limit = 100): Promise<AppReviewRequest[]> {
     const adapter = await getAdapter();
     if (!_reviewRequestService) {
       _reviewRequestService = new ReviewRequestSQLiteService(adapter);
@@ -1323,7 +1323,7 @@ export const sqliteCustomSegmentsDB = {
     return segment as unknown as AppCustomSegment | undefined;
   },
 
-  async getBySalonId(storeId: string, _activeOnly: boolean = true): Promise<AppCustomSegment[]> {
+  async getBySalonId(storeId: string, _activeOnly = true): Promise<AppCustomSegment[]> {
     const adapter = await getAdapter();
     if (!_customSegmentService) {
       _customSegmentService = new CustomSegmentSQLiteService(adapter);

@@ -110,7 +110,7 @@
       ],
       "testCommand": "cd apps/online-store && pnpm run typecheck",
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "HIGH-005: Lines 16-31 access localStorage during SSR."
     },
     {
@@ -131,7 +131,7 @@
       ],
       "testCommand": "cd apps/online-store && pnpm run typecheck",
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "HIGH-006: Lines 8-19 access localStorage without window check."
     },
     {
@@ -153,7 +153,7 @@
       ],
       "testCommand": "cd apps/online-store && pnpm run typecheck",
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "HIGH-007: Lines 31-45, 60-88 have multiple SSR violations."
     },
     {
@@ -174,7 +174,7 @@
       ],
       "testCommand": "cd apps/online-store && pnpm run typecheck",
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "HIGH-008: Lines 42-89 have multiple storage effects without window checks."
     },
     {
@@ -195,7 +195,7 @@
       ],
       "testCommand": "cd apps/online-store && pnpm run typecheck",
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "MED-010: Lines 54-105 have inconsistent guards."
     },
     {
@@ -218,7 +218,7 @@
       ],
       "testCommand": "cd apps/online-store && pnpm run typecheck",
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "HIGH-002: Entire layout is client-rendered due to one hook."
     },
     {
@@ -240,7 +240,7 @@
       ],
       "testCommand": "cd apps/online-store && pnpm run typecheck",
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "HIGH-003: Double auth causes UX flash."
     },
     {

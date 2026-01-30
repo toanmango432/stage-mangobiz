@@ -153,7 +153,7 @@ export const giftCardDB = {
     storeId: string,
     userId: string,
     deviceId: string,
-    tenantId: string = 'default-tenant',
+    tenantId = 'default-tenant',
     ticketId?: string
   ): Promise<{ giftCard: GiftCard; transaction: GiftCardTransaction }> {
     const now = new Date().toISOString();

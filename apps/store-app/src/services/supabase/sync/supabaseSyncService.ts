@@ -59,7 +59,7 @@ class SupabaseSyncService {
   private isOnline: boolean = navigator.onLine;
   private status: SyncStatus = 'idle';
   private lastSyncAt: string | null = null;
-  private pendingCount: number = 0;
+  private pendingCount = 0;
   private error: string | null = null;
   private listeners: Set<SyncListener> = new Set();
   private syncInterval: NodeJS.Timeout | null = null;
@@ -99,7 +99,7 @@ class SupabaseSyncService {
   /**
    * Start automatic sync (for offline-enabled devices)
    */
-  startAutoSync(intervalMs: number = 120000): void {
+  startAutoSync(intervalMs = 120000): void {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
     }

@@ -36,7 +36,7 @@ export { db };
 // ==================== APPOINTMENTS ====================
 
 export const appointmentsDB = {
-  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Appointment[]> {
+  async getAll(storeId: string, limit = 100, offset = 0): Promise<Appointment[]> {
     return await db.appointments
       .where('storeId')
       .equals(storeId)
@@ -49,7 +49,7 @@ export const appointmentsDB = {
     return await db.appointments.get(id);
   },
 
-  async getByDate(storeId: string, date: Date, limit: number = 200): Promise<Appointment[]> {
+  async getByDate(storeId: string, date: Date, limit = 200): Promise<Appointment[]> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
@@ -68,7 +68,7 @@ export const appointmentsDB = {
       .toArray();
   },
 
-  async getByStatus(storeId: string, status: string, limit: number = 100, offset: number = 0): Promise<Appointment[]> {
+  async getByStatus(storeId: string, status: string, limit = 100, offset = 0): Promise<Appointment[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId) return [];
 
@@ -138,7 +138,7 @@ export const appointmentsDB = {
 // ==================== TICKETS ====================
 
 export const ticketsDB = {
-  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Ticket[]> {
+  async getAll(storeId: string, limit = 100, offset = 0): Promise<Ticket[]> {
     return await db.tickets
       .where('storeId')
       .equals(storeId)
@@ -151,7 +151,7 @@ export const ticketsDB = {
     return await db.tickets.get(id);
   },
 
-  async getByStatus(storeId: string, status: string, limit: number = 100, offset: number = 0): Promise<Ticket[]> {
+  async getByStatus(storeId: string, status: string, limit = 100, offset = 0): Promise<Ticket[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId) return [];
 
@@ -163,7 +163,7 @@ export const ticketsDB = {
       .toArray();
   },
 
-  async getActive(storeId: string, limit: number = 100): Promise<Ticket[]> {
+  async getActive(storeId: string, limit = 100): Promise<Ticket[]> {
     return await db.tickets
       .where('storeId')
       .equals(storeId)
@@ -172,7 +172,7 @@ export const ticketsDB = {
       .toArray();
   },
 
-  async getByDate(storeId: string, date: Date, limit: number = 200): Promise<Ticket[]> {
+  async getByDate(storeId: string, date: Date, limit = 200): Promise<Ticket[]> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
@@ -399,7 +399,7 @@ export const ticketsDB = {
 // ==================== TRANSACTIONS ====================
 
 export const transactionsDB = {
-  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Transaction[]> {
+  async getAll(storeId: string, limit = 100, offset = 0): Promise<Transaction[]> {
     return await db.transactions
       .where('storeId')
       .equals(storeId)
@@ -413,7 +413,7 @@ export const transactionsDB = {
     return await db.transactions.get(id);
   },
 
-  async getByDateRange(storeId: string, startDate: Date, endDate: Date, limit: number = 100): Promise<Transaction[]> {
+  async getByDateRange(storeId: string, startDate: Date, endDate: Date, limit = 100): Promise<Transaction[]> {
     const startIso = startDate.toISOString();
     const endIso = endDate.toISOString();
     return await db.transactions
@@ -425,7 +425,7 @@ export const transactionsDB = {
       .toArray();
   },
 
-  async getByDate(date: Date, limit: number = 200): Promise<Transaction[]> {
+  async getByDate(date: Date, limit = 200): Promise<Transaction[]> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
@@ -485,7 +485,7 @@ export const transactionsDB = {
 // ==================== STAFF ====================
 
 export const staffDB = {
-  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Staff[]> {
+  async getAll(storeId: string, limit = 100, offset = 0): Promise<Staff[]> {
     return await db.staff
       .where('storeId')
       .equals(storeId)
@@ -498,7 +498,7 @@ export const staffDB = {
     return await db.staff.get(id);
   },
 
-  async getAvailable(storeId: string, limit: number = 100): Promise<Staff[]> {
+  async getAvailable(storeId: string, limit = 100): Promise<Staff[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId) return [];
 
@@ -561,7 +561,7 @@ export const staffDB = {
 
 export const clientsDB = {
   // Basic CRUD operations
-  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Client[]> {
+  async getAll(storeId: string, limit = 100, offset = 0): Promise<Client[]> {
     return await db.clients
       .where('storeId')
       .equals(storeId)
@@ -578,7 +578,7 @@ export const clientsDB = {
     return await db.clients.where('id').anyOf(ids).toArray();
   },
 
-  async search(storeId: string, query: string, limit: number = 50): Promise<Client[]> {
+  async search(storeId: string, query: string, limit = 50): Promise<Client[]> {
     const lowerQuery = query.toLowerCase();
     return await db.clients
       .where('storeId')
@@ -643,8 +643,8 @@ export const clientsDB = {
     storeId: string,
     filters: ClientFilters,
     sort: ClientSortOptions = { field: 'name', order: 'asc' },
-    limit: number = 100,
-    offset: number = 0
+    limit = 100,
+    offset = 0
   ): Promise<{ clients: Client[]; total: number }> {
     return measureAsync('clientsDB.getFiltered', async () => {
       // Build filter function to apply on indexed collection
@@ -764,7 +764,7 @@ export const clientsDB = {
   },
 
   // Blocking operations (PRD 2.3.2)
-  async getBlocked(storeId: string, limit: number = 100): Promise<Client[]> {
+  async getBlocked(storeId: string, limit = 100): Promise<Client[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId) return [];
 
@@ -821,7 +821,7 @@ export const clientsDB = {
   },
 
   // VIP operations
-  async getVips(storeId: string, limit: number = 100): Promise<Client[]> {
+  async getVips(storeId: string, limit = 100): Promise<Client[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId) return [];
 
@@ -917,7 +917,7 @@ export const clientsDB = {
 // ==================== SERVICES ====================
 
 export const servicesDB = {
-  async getAll(storeId: string, limit: number = 200, offset: number = 0): Promise<Service[]> {
+  async getAll(storeId: string, limit = 200, offset = 0): Promise<Service[]> {
     return await db.services
       .where('storeId')
       .equals(storeId)
@@ -930,7 +930,7 @@ export const servicesDB = {
     return await db.services.get(id);
   },
 
-  async getByCategory(storeId: string, category: string, limit: number = 100): Promise<Service[]> {
+  async getByCategory(storeId: string, category: string, limit = 100): Promise<Service[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId || !category) return [];
 
@@ -979,7 +979,7 @@ export const servicesDB = {
 // ==================== SYNC QUEUE ====================
 
 export const syncQueueDB = {
-  async getAll(limit: number = 100, offset: number = 0): Promise<SyncOperation[]> {
+  async getAll(limit = 100, offset = 0): Promise<SyncOperation[]> {
     return await db.syncQueue
       .orderBy('priority')
       .offset(offset)
@@ -987,7 +987,7 @@ export const syncQueueDB = {
       .toArray();
   },
 
-  async getPending(limit: number = 50): Promise<SyncOperation[]> {
+  async getPending(limit = 50): Promise<SyncOperation[]> {
     return await db.syncQueue
       .where('status')
       .equals('pending')
@@ -1065,7 +1065,7 @@ export const patchTestsDB = {
     return tests.find(t => t.result === 'pass' && t.expiresAt > now);
   },
 
-  async getExpiring(clientId: string, daysAhead: number = 7): Promise<PatchTest[]> {
+  async getExpiring(clientId: string, daysAhead = 7): Promise<PatchTest[]> {
     const now = new Date();
     const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000).toISOString();
 
@@ -1114,7 +1114,7 @@ export const patchTestsDB = {
 // ==================== FORM TEMPLATES (PRD 2.3.4) ====================
 
 export const formTemplatesDB = {
-  async getAll(storeId: string, activeOnly: boolean = true): Promise<FormTemplate[]> {
+  async getAll(storeId: string, activeOnly = true): Promise<FormTemplate[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId) return [];
 
@@ -1190,7 +1190,7 @@ export const formTemplatesDB = {
 // ==================== FORM RESPONSES (PRD 2.3.4) ====================
 
 export const formResponsesDB = {
-  async getByClientId(clientId: string, limit: number = 50): Promise<ClientFormResponse[]> {
+  async getByClientId(clientId: string, limit = 50): Promise<ClientFormResponse[]> {
     return await db.formResponses
       .where('clientId')
       .equals(clientId)
@@ -1326,7 +1326,7 @@ export const referralsDB = {
 // ==================== CLIENT REVIEWS (PRD 2.3.9) ====================
 
 export const clientReviewsDB = {
-  async getByClientId(clientId: string, limit: number = 50): Promise<ClientReview[]> {
+  async getByClientId(clientId: string, limit = 50): Promise<ClientReview[]> {
     return await db.clientReviews
       .where('clientId')
       .equals(clientId)
@@ -1339,7 +1339,7 @@ export const clientReviewsDB = {
     return await db.clientReviews.get(id);
   },
 
-  async getByStaffId(staffId: string, limit: number = 100): Promise<ClientReview[]> {
+  async getByStaffId(staffId: string, limit = 100): Promise<ClientReview[]> {
     return await db.clientReviews
       .where('staffId')
       .equals(staffId)
@@ -1393,7 +1393,7 @@ export const clientReviewsDB = {
 // ==================== LOYALTY REWARDS (PRD 2.3.7) ====================
 
 export const loyaltyRewardsDB = {
-  async getByClientId(clientId: string, includeRedeemed: boolean = false): Promise<LoyaltyReward[]> {
+  async getByClientId(clientId: string, includeRedeemed = false): Promise<LoyaltyReward[]> {
     const rewards = await db.loyaltyRewards
       .where('clientId')
       .equals(clientId)
@@ -1451,7 +1451,7 @@ export const reviewRequestsDB = {
     return await db.reviewRequests.get(id);
   },
 
-  async getByClientId(clientId: string, limit: number = 50): Promise<ReviewRequest[]> {
+  async getByClientId(clientId: string, limit = 50): Promise<ReviewRequest[]> {
     return await db.reviewRequests
       .where('clientId')
       .equals(clientId)
@@ -1460,7 +1460,7 @@ export const reviewRequestsDB = {
       .toArray();
   },
 
-  async getBySalonId(storeId: string, limit: number = 100): Promise<ReviewRequest[]> {
+  async getBySalonId(storeId: string, limit = 100): Promise<ReviewRequest[]> {
     return await db.reviewRequests
       .where('storeId')
       .equals(storeId)
@@ -1469,7 +1469,7 @@ export const reviewRequestsDB = {
       .toArray();
   },
 
-  async getByStatus(storeId: string, status: ReviewRequestStatus, limit: number = 100): Promise<ReviewRequest[]> {
+  async getByStatus(storeId: string, status: ReviewRequestStatus, limit = 100): Promise<ReviewRequest[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId) return [];
 
@@ -1497,7 +1497,7 @@ export const reviewRequestsDB = {
       .first();
   },
 
-  async getByStaffId(staffId: string, limit: number = 100): Promise<ReviewRequest[]> {
+  async getByStaffId(staffId: string, limit = 100): Promise<ReviewRequest[]> {
     return await db.reviewRequests
       .where('staffId')
       .equals(staffId)
@@ -1579,7 +1579,7 @@ export const reviewRequestsDB = {
   /**
    * Get requests that need reminders sent
    */
-  async getNeedingReminder(storeId: string, maxReminders: number = 1): Promise<ReviewRequest[]> {
+  async getNeedingReminder(storeId: string, maxReminders = 1): Promise<ReviewRequest[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId) return [];
 
@@ -1608,7 +1608,7 @@ export const reviewRequestsDB = {
   /**
    * Count requests for a client in a time period
    */
-  async countRecentByClient(clientId: string, daysBack: number = 30): Promise<number> {
+  async countRecentByClient(clientId: string, daysBack = 30): Promise<number> {
     const cutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
     const requests = await db.reviewRequests
       .where('clientId')
@@ -1627,7 +1627,7 @@ export const customSegmentsDB = {
     return await db.customSegments.get(id);
   },
 
-  async getBySalonId(storeId: string, activeOnly: boolean = true): Promise<CustomSegment[]> {
+  async getBySalonId(storeId: string, activeOnly = true): Promise<CustomSegment[]> {
     // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
     if (!storeId) return [];
     if (activeOnly) {

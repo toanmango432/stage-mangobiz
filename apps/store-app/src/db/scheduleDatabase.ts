@@ -306,7 +306,7 @@ export const timeOffRequestsDB = {
     const today = new Date().toISOString().split('T')[0];
 
     // Get all matching results first
-    let results = await db.timeOffRequests
+    const results = await db.timeOffRequests
       .where('storeId')
       .equals(storeId)
       .filter(r => {

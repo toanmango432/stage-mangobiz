@@ -446,7 +446,7 @@ export function calculateMargin(retailPrice: number, costPrice: number): number 
 /**
  * Generates a purchase order number.
  */
-export function generatePONumber(locationPrefix: string = 'PO'): string {
+export function generatePONumber(locationPrefix = 'PO'): string {
   const year = new Date().getFullYear();
   const random = Math.floor(Math.random() * 10000)
     .toString()

@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = 'book-sidebar-open';
 
-export function useBookSidebar(defaultOpen: boolean = true) {
+export function useBookSidebar(defaultOpen = true) {
   // Initialize from localStorage or use default
   const [isOpen, setIsOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return defaultOpen;

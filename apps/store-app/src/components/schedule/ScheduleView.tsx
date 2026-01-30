@@ -568,7 +568,7 @@ export function ScheduleView() {
     setAddEditScheduleModalOpen(true);
   };
 
-  const handleSetOffDay = (staffId: string, day: string, reason: string = "Personal") => {
+  const handleSetOffDay = (staffId: string, day: string, reason = "Personal") => {
     // Store the original schedule before replacing with off day
     setOriginalSchedules(prev => ({
       ...prev,

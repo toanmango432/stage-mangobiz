@@ -1075,7 +1075,7 @@ export async function migrateServicesToCatalog(storeId: string): Promise<{
  */
 export async function initializeCatalog(
   storeId: string,
-  seedIfEmpty: boolean = false
+  seedIfEmpty = false
 ): Promise<{
   action: 'migrated' | 'seeded' | 'existing' | 'empty';
   details?: any;

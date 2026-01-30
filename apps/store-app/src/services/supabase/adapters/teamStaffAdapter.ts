@@ -39,7 +39,7 @@ export function teamMemberToStaff(member: TeamMemberSettings): Staff {
     .map((s) => s.serviceId);
 
   // Map status - team uses isActive boolean, staff uses status string
-  const status: StaffStatus = member.isActive ? 'available' : 'clocked-out';
+  const status: StaffStatus = member.isActive ? 'available' : 'unavailable';
 
   return {
     id: member.id,

@@ -436,7 +436,7 @@ export function generateApiKey(): { key: string; prefix: string } {
 /**
  * Calculates retry delay with exponential backoff.
  */
-export function calculateRetryDelay(attemptNumber: number, baseDelayMs: number = 1000): number {
+export function calculateRetryDelay(attemptNumber: number, baseDelayMs = 1000): number {
   // Exponential backoff: 1s, 2s, 4s, 8s, max 5 min
   const delay = baseDelayMs * Math.pow(2, attemptNumber - 1);
   return Math.min(delay, 5 * 60 * 1000);

@@ -72,7 +72,7 @@ export function ExpandedDayTab({
     return endMinutes >= startMinutes ? (endMinutes - startMinutes) / 60 : (1440 - startMinutes + endMinutes) / 60;
   }
 
-  function getNextTimeSlot(currentTime: string, hoursToAdd: number = 1): string {
+  function getNextTimeSlot(currentTime: string, hoursToAdd = 1): string {
     const minutes = timeToMinutes(currentTime) + hoursToAdd * 60;
     const hour24 = Math.floor(minutes / 60) % 24;
     const minute = minutes % 60;

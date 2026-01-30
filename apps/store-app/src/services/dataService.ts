@@ -478,7 +478,7 @@ export const patchTestsService = {
     return patchTest || null;
   },
 
-  async getExpiring(clientId: string, daysAhead: number = 7): Promise<PatchTest[]> {
+  async getExpiring(clientId: string, daysAhead = 7): Promise<PatchTest[]> {
     if (USE_SQLITE) {
       return sqlitePatchTestsDB.getExpiring(clientId, daysAhead);
     }
@@ -527,7 +527,7 @@ export const patchTestsService = {
  * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteFormResponsesDB
  */
 export const formResponsesService = {
-  async getByClientId(clientId: string, limit: number = 50): Promise<ClientFormResponse[]> {
+  async getByClientId(clientId: string, limit = 50): Promise<ClientFormResponse[]> {
     if (USE_SQLITE) {
       return sqliteFormResponsesDB.getByClientId(clientId, limit);
     }
@@ -681,7 +681,7 @@ export const referralsService = {
  * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteClientReviewsDB
  */
 export const reviewsService = {
-  async getByClientId(clientId: string, limit: number = 50): Promise<ClientReview[]> {
+  async getByClientId(clientId: string, limit = 50): Promise<ClientReview[]> {
     if (USE_SQLITE) {
       return sqliteClientReviewsDB.getByClientId(clientId, limit);
     }
@@ -697,7 +697,7 @@ export const reviewsService = {
     return review || null;
   },
 
-  async getByStaffId(staffId: string, limit: number = 100): Promise<ClientReview[]> {
+  async getByStaffId(staffId: string, limit = 100): Promise<ClientReview[]> {
     if (USE_SQLITE) {
       return sqliteClientReviewsDB.getByStaffId(staffId, limit);
     }
@@ -749,7 +749,7 @@ export const reviewsService = {
  * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteLoyaltyRewardsDB
  */
 export const loyaltyService = {
-  async getByClientId(clientId: string, includeRedeemed: boolean = false): Promise<LoyaltyReward[]> {
+  async getByClientId(clientId: string, includeRedeemed = false): Promise<LoyaltyReward[]> {
     if (USE_SQLITE) {
       return sqliteLoyaltyRewardsDB.getByClientId(clientId, includeRedeemed);
     }
@@ -813,14 +813,14 @@ export const reviewRequestsService = {
     return request || null;
   },
 
-  async getByClientId(clientId: string, limit: number = 50): Promise<ReviewRequest[]> {
+  async getByClientId(clientId: string, limit = 50): Promise<ReviewRequest[]> {
     if (USE_SQLITE) {
       return sqliteReviewRequestsDB.getByClientId(clientId, limit);
     }
     return reviewRequestsDB.getByClientId(clientId, limit);
   },
 
-  async getBySalonId(limit: number = 100): Promise<ReviewRequest[]> {
+  async getBySalonId(limit = 100): Promise<ReviewRequest[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
     if (USE_SQLITE) {
@@ -829,7 +829,7 @@ export const reviewRequestsService = {
     return reviewRequestsDB.getBySalonId(storeId, limit);
   },
 
-  async getByStatus(status: ReviewRequestStatus, limit: number = 100): Promise<ReviewRequest[]> {
+  async getByStatus(status: ReviewRequestStatus, limit = 100): Promise<ReviewRequest[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
     if (USE_SQLITE) {
@@ -947,7 +947,7 @@ export const segmentsService = {
     return segment || null;
   },
 
-  async getAll(activeOnly: boolean = true): Promise<CustomSegment[]> {
+  async getAll(activeOnly = true): Promise<CustomSegment[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
     if (USE_SQLITE) {

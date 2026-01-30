@@ -76,7 +76,7 @@ export function calculateWaitingMinutes(completedAt?: Date | string | null): num
 export function getUrgencyLevel(
   completedAt: Date | string | null | undefined,
   thresholds: UrgencyThresholds = DEFAULT_URGENCY_THRESHOLDS,
-  enabled: boolean = true
+  enabled = true
 ): UrgencyLevel {
   if (!enabled || !completedAt) return 'normal';
 
@@ -139,7 +139,7 @@ export function getUrgencyPriority(level: UrgencyLevel): number {
 export function sortByUrgency<T extends { completedAt?: Date | string | null }>(
   tickets: T[],
   thresholds: UrgencyThresholds = DEFAULT_URGENCY_THRESHOLDS,
-  enabled: boolean = true
+  enabled = true
 ): T[] {
   if (!enabled) return tickets;
 
@@ -163,7 +163,7 @@ export function sortByUrgency<T extends { completedAt?: Date | string | null }>(
 export function hasUrgentTickets<T extends { completedAt?: Date | string | null }>(
   tickets: T[],
   thresholds: UrgencyThresholds = DEFAULT_URGENCY_THRESHOLDS,
-  enabled: boolean = true
+  enabled = true
 ): boolean {
   if (!enabled) return false;
 
@@ -179,7 +179,7 @@ export function hasUrgentTickets<T extends { completedAt?: Date | string | null 
 export function getHighestUrgency<T extends { completedAt?: Date | string | null }>(
   tickets: T[],
   thresholds: UrgencyThresholds = DEFAULT_URGENCY_THRESHOLDS,
-  enabled: boolean = true
+  enabled = true
 ): UrgencyLevel {
   if (!enabled || tickets.length === 0) return 'normal';
 
