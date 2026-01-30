@@ -17,7 +17,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { initializeTemplateStorage, seedTemplateSections } from '@/lib/storage/templateStorage';
+import { initializeTemplateStorage } from '@/lib/storage/templateStorage';
 import { initializeStorefrontConfig } from '@/lib/storage/configStorage';
 
 const queryClient = new QueryClient();
@@ -27,7 +27,6 @@ function useInitializeStorage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       initializeTemplateStorage();
-      seedTemplateSections();
       initializeStorefrontConfig();
     }
   }, []);
