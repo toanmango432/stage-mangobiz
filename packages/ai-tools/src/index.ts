@@ -20,6 +20,7 @@ export * from './utils/schema-converter';
 export * from './schemas/clients';
 export * from './schemas/appointments';
 export * from './schemas/services';
+export * from './schemas/tickets';
 
 // Tool registry (to be implemented in US-009)
 // export * from './registry';
