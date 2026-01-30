@@ -31,8 +31,9 @@ export * from './registry';
 // Schema index (all schemas re-exported)
 export * from './schemas';
 
-// Tool handlers (to be implemented in US-010 through US-011)
-// export * from './handlers';
+// Tool handlers
+export * from './handlers/clients';
+export * from './handlers/appointments';
 
 /**
  * Package version for tracking compatibility
