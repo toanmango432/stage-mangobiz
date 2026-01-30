@@ -16,8 +16,8 @@ export * from './types';
 // Schema converter utilities - Convert Zod schemas to JSON Schema
 export * from './utils/schema-converter';
 
-// Tool schemas by category (to be implemented in US-003 through US-008)
-// export * from './schemas';
+// Tool schemas by category
+export * from './schemas/clients';
 
 // Tool registry (to be implemented in US-009)
 // export * from './registry';
