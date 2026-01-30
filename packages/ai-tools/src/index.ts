@@ -10,11 +10,11 @@
  * - Import registry for tool discovery and validation
  */
 
-// Types (to be implemented in US-002)
-// export * from './types';
+// Types - Core type definitions for AI tools
+export * from './types';
 
-// Schema converter utilities (to be implemented in US-002)
-// export * from './utils/schema-converter';
+// Schema converter utilities - Convert Zod schemas to JSON Schema
+export * from './utils/schema-converter';
 
 // Tool schemas by category (to be implemented in US-003 through US-008)
 // export * from './schemas';
@@ -29,29 +29,3 @@
  * Package version for tracking compatibility
  */
 export const AI_TOOLS_VERSION = '1.0.0';
-
-/**
- * Placeholder: Tool categories supported by this package
- * Full implementation in US-002
- */
-export type AIToolCategory =
-  | 'clients'
-  | 'appointments'
-  | 'services'
-  | 'tickets'
-  | 'staff'
-  | 'analytics'
-  | 'system';
-
-/**
- * Placeholder: List of supported categories
- */
-export const SUPPORTED_CATEGORIES: AIToolCategory[] = [
-  'clients',
-  'appointments',
-  'services',
-  'tickets',
-  'staff',
-  'analytics',
-  'system',
-];

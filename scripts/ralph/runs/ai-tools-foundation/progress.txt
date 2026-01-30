@@ -1,0 +1,68 @@
+# AI Tools Foundation - Ralph Session Progress
+
+## Session Info
+- Branch: ralph/ai-tools-foundation
+- Created: 2026-01-29
+- Agent: Claude Code (not AMP)
+- Purpose: Make Mango Biz AI-controllable for Mango Connect integration
+
+## Vision
+"Make Mango Biz a house AI loves to live in"
+- AI can see everything (comprehensive tool schemas)
+- AI can do anything (every operation exposed)
+- AI can understand context (rich metadata, clear descriptions)
+- AI can react instantly (MQTT events)
+- AI doesn't get confused (predictable patterns)
+
+## Stories Summary
+- Total: 18 stories
+- Priority 1 (Foundation): US-001, US-002 (2 stories)
+- Priority 2 (Schemas): US-003 through US-007, US-010 (6 stories)
+- Priority 3 (Handlers): US-008, US-009, US-011, US-012, US-013 (5 stories)
+- Priority 4 (Integration): US-014, US-015, US-016 (3 stories)
+- Priority 5 (Polish): US-017, US-018 (2 stories)
+
+## Categories
+- Infrastructure: 3 stories (package setup, types, registry)
+- Tools (Schemas): 7 stories (clients, appointments, services, tickets, staff, analytics, system)
+- Handlers: 3 stories (implement actual tool execution)
+- Backend: 1 story (edge function)
+- Database: 1 story (audit table)
+- Documentation: 3 stories (catalog, guide, MQTT events)
+- Testing: 1 story
+
+## Estimated Complexity
+- Simple (1-2): 4 stories
+- Medium (3): 7 stories
+- Complex (4): 4 stories
+- Very Complex (5): 3 stories
+
+## Key Deliverables
+1. packages/ai-tools/ - New package with all tool definitions
+2. 40+ tool schemas covering all business operations
+3. Handlers connecting tools to dataService
+4. Edge function endpoint for Mango Connect to call
+5. Audit logging for all AI operations
+6. Comprehensive documentation
+
+## Progress
+
+---
+
+## 2026-01-29 - US-001: Initialize packages/ai-tools package structure
+Commit: b7ae2e78
+
+**Why this story?** Foundation story with no dependencies, highest priority (1), and all other schema stories depend on it.
+
+**Changes:**
+- `packages/ai-tools/package.json (NEW)`: Created @mango/ai-tools package with zod, zod-to-json-schema deps and peer deps for @mango/types, @mango/api-contracts
+- `packages/ai-tools/tsconfig.json (NEW)`: Extends ../../tooling/tsconfig/base.json following existing package patterns
+- `packages/ai-tools/src/index.ts (NEW)`: Placeholder exports with AI_TOOLS_VERSION, AIToolCategory type, SUPPORTED_CATEGORIES constant
+- `packages/ai-tools/README.md (NEW)`: Documents purpose for Mango Connect integration with quick start and category overview
+
+**Learnings:**
+- PRD noted "extends ../../tsconfig.base.json" but that path doesn't exist. Followed existing package pattern (packages/types) using "../../tooling/tsconfig/base.json"
+- electron-builder postinstall failure is pre-existing issue unrelated to ai-tools package
+- Package uses workspace:* protocol for peer dependencies following existing monorepo patterns
+
+**Next story suggestion:** US-002 (Create base tool types and schema converter) - it's the direct dependency for all schema stories (US-003 through US-008)
