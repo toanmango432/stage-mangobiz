@@ -1,34 +1,50 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { BookingFormData } from '@/types/booking';
 
 const DRAFT_KEY = 'booking-draft';
 
+const DEFAULT_FORM_DATA: Partial<BookingFormData> = {
+  addOns: [],
+  agreedToPolicies: false,
+  isGroup: false,
+  groupChoiceMade: false,
+  groupSetupComplete: false,
+  members: [],
+};
+
 export const useBookingFlow = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [formData, setFormData] = useState<Partial<BookingFormData>>(() => {
-    // Load draft from localStorage
-    const draft = localStorage.getItem(DRAFT_KEY);
-    return draft ? JSON.parse(draft) : { 
-      addOns: [], 
-      agreedToPolicies: false,
-      isGroup: false,
-      groupChoiceMade: false,
-      groupSetupComplete: false,
-      members: [],
-    };
-  });
+  // SSR-safe: Use default state initially, load from localStorage in useEffect
+  const [formData, setFormData] = useState<Partial<BookingFormData>>(DEFAULT_FORM_DATA);
+
+  // Load draft from localStorage after client hydration
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const draft = localStorage.getItem(DRAFT_KEY);
+      if (draft) {
+        setFormData(JSON.parse(draft));
+      }
+    } catch (e) {
+      // Ignore corrupted localStorage data
+    }
+  }, []);
 
   // Manual save function to prevent re-render loops
   const saveDraft = useCallback(() => {
+    if (typeof window === 'undefined') return;
     localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
   }, [formData]);
 
   // Save on window beforeunload
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleBeforeUnload = () => {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
     };
-    
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -67,7 +83,9 @@ export const useBookingFlow = () => {
       // Save draft when important fields change
       if (data.groupChoiceMade || data.service || data.members || data.staff || (data.date && data.time)) {
         setTimeout(() => {
-          localStorage.setItem(DRAFT_KEY, JSON.stringify(newData));
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(newData));
+          }
         }, 0);
       }
       return newData;
@@ -75,20 +93,22 @@ export const useBookingFlow = () => {
   }, []);
 
   const resetFlow = useCallback(() => {
-    setFormData({ 
-      addOns: [], 
-      agreedToPolicies: false, 
-      isGroup: false, 
+    setFormData({
+      addOns: [],
+      agreedToPolicies: false,
+      isGroup: false,
       groupChoiceMade: false,
       groupSetupComplete: false,
       members: [],
       questionsAnswered: undefined,
       readyForTechnician: false,
       readyForDateTime: false,
-      readyForSummary: false
+      readyForSummary: false,
     });
     setShowConfirmation(false);
-    localStorage.removeItem(DRAFT_KEY);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(DRAFT_KEY);
+    }
   }, []);
 
   // Section completion checks
