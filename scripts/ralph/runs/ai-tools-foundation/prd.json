@@ -1,0 +1,394 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/ai-tools-foundation",
+  "description": "Create packages/ai-tools with comprehensive tool schemas and handlers to make Mango Biz AI-controllable for Mango Connect integration.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Initialize packages/ai-tools package structure",
+      "description": "As a developer, I need a new package for AI tool definitions that integrates with the monorepo.",
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "packages/ai-tools/package.json (NEW)",
+        "packages/ai-tools/tsconfig.json (NEW)",
+        "packages/ai-tools/src/index.ts (NEW)",
+        "packages/ai-tools/README.md (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "package.json has name '@mango/ai-tools'",
+        "package.json has dependencies: zod, zod-to-json-schema",
+        "package.json has peerDependencies: @mango/types, @mango/api-contracts",
+        "tsconfig.json extends ../../tsconfig.base.json",
+        "src/index.ts has placeholder exports",
+        "README.md documents purpose: AI tool definitions for Mango Connect",
+        "pnpm install succeeds at repo root",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm install && pnpm run typecheck",
+      "priority": 1,
+      "passes": true,
+      "notes": "Follow existing package patterns from packages/types and packages/api-contracts."
+    },
+    {
+      "id": "US-002",
+      "title": "Create base tool types and schema converter",
+      "description": "As a developer, I need base types for AI tools and utilities to convert Zod schemas to JSON Schema.",
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": ["US-001"],
+      "files": [
+        "packages/ai-tools/src/types.ts (NEW)",
+        "packages/ai-tools/src/utils/schema-converter.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "types.ts exports AITool interface with: name, description, category, parameters (Zod), returns (Zod)",
+        "types.ts exports AIToolCategory type: 'clients' | 'appointments' | 'services' | 'tickets' | 'staff' | 'analytics' | 'system'",
+        "types.ts exports ToolResult<T> type with: success, data, error, metadata",
+        "types.ts exports ExecutionContext type with: storeId, userId, logger",
+        "schema-converter.ts exports zodToJsonSchema() using zod-to-json-schema library",
+        "schema-converter.ts exports generateToolDefinition() for OpenAI/Anthropic format",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 2,
+      "passes": false,
+      "notes": "Tool format should be compatible with both OpenAI function calling and Anthropic tool use."
+    },
+    {
+      "id": "US-003",
+      "title": "Create Client tool schemas",
+      "description": "As an AI assistant, I need tool schemas to search, view, create, and update clients.",
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": ["US-002"],
+      "files": [
+        "packages/ai-tools/src/schemas/clients.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Exports searchClientsSchema: query (string), filters (optional), limit (number default 10)",
+        "Exports getClientSchema: clientId (UUID string)",
+        "Exports getClientHistorySchema: clientId, includeAppointments, includeTickets, limit",
+        "Exports createClientSchema: required Client fields from @mango/types",
+        "Exports updateClientSchema: clientId, partial Client fields",
+        "Exports addClientNoteSchema: clientId, note, category",
+        "Each schema uses .describe() with natural language for AI understanding",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 3,
+      "passes": false,
+      "notes": "Descriptions should be natural language. Example: 'Search for clients by name, phone, or visit history.'"
+    },
+    {
+      "id": "US-004",
+      "title": "Create Appointment tool schemas",
+      "description": "As an AI assistant, I need tool schemas to manage appointments and check availability.",
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": ["US-002"],
+      "files": [
+        "packages/ai-tools/src/schemas/appointments.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Exports searchAppointmentsSchema: date, staffId (optional), clientId (optional), status (optional)",
+        "Exports getAppointmentSchema: appointmentId (UUID)",
+        "Exports checkAvailabilitySchema: staffId (optional), serviceId, date, durationMinutes",
+        "Exports bookAppointmentSchema: clientId, staffId, serviceId, startTime (ISO), notes",
+        "Exports rescheduleAppointmentSchema: appointmentId, newStartTime, reason",
+        "Exports cancelAppointmentSchema: appointmentId, reason, notifyClient (boolean)",
+        "Each schema uses .describe() for AI understanding",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 4,
+      "passes": false,
+      "notes": "All time fields should be ISO 8601 format. Include timezone handling notes in descriptions."
+    },
+    {
+      "id": "US-005",
+      "title": "Create Service tool schemas",
+      "description": "As an AI assistant, I need tool schemas to search and recommend services.",
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": ["US-002"],
+      "files": [
+        "packages/ai-tools/src/schemas/services.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Exports searchServicesSchema: query, category, minPrice, maxPrice, maxDurationMinutes",
+        "Exports getServiceSchema: serviceId (UUID)",
+        "Exports getServicesByStaffSchema: staffId",
+        "Exports getPopularServicesSchema: limit, timeRange ('week'|'month'|'quarter')",
+        "Exports getServicePricingSchema: serviceId, staffId (optional)",
+        "Each schema uses .describe() for AI understanding",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 5,
+      "passes": false,
+      "notes": "Service recommendations should consider client history and staff expertise."
+    },
+    {
+      "id": "US-006",
+      "title": "Create Ticket tool schemas",
+      "description": "As an AI assistant, I need tool schemas to manage tickets and transactions.",
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": ["US-002"],
+      "files": [
+        "packages/ai-tools/src/schemas/tickets.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Exports getOpenTicketsSchema: staffId (optional)",
+        "Exports getTicketSchema: ticketId (UUID)",
+        "Exports createTicketSchema: clientId (optional), staffId",
+        "Exports addTicketItemSchema: ticketId, serviceId or productId, quantity, staffId",
+        "Exports applyDiscountSchema: ticketId, discountType, value, reason",
+        "Exports closeTicketSchema: ticketId, paymentMethod, tipAmount (optional)",
+        "Exports voidTicketSchema: ticketId, reason, managerApproval (boolean)",
+        "Each schema uses .describe() for AI understanding",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 6,
+      "passes": false,
+      "notes": "Ticket operations are sensitive. Include permission requirements in descriptions."
+    },
+    {
+      "id": "US-007",
+      "title": "Create Staff tool schemas",
+      "description": "As an AI assistant, I need tool schemas to query staff schedules and availability.",
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": ["US-002"],
+      "files": [
+        "packages/ai-tools/src/schemas/staff.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Exports searchStaffSchema: query, role, available (boolean)",
+        "Exports getStaffSchema: staffId (UUID)",
+        "Exports getStaffScheduleSchema: staffId, startDate, endDate",
+        "Exports getStaffAvailabilitySchema: staffId, date",
+        "Exports getOnDutyStaffSchema: date (optional, defaults to now)",
+        "Exports getStaffPerformanceSchema: staffId, period ('week'|'month'|'quarter')",
+        "Each schema uses .describe() for AI understanding",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 7,
+      "passes": false,
+      "notes": "Staff data can be sensitive. Note which fields might be restricted."
+    },
+    {
+      "id": "US-008",
+      "title": "Create Analytics and System tool schemas",
+      "description": "As an AI assistant, I need tool schemas to query analytics and system context.",
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": ["US-002"],
+      "files": [
+        "packages/ai-tools/src/schemas/analytics.ts (NEW)",
+        "packages/ai-tools/src/schemas/system.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "analytics.ts exports getDashboardMetricsSchema, getSalesReportSchema, getClientRetentionSchema",
+        "analytics.ts exports getServicePopularitySchema, getPeakHoursSchema",
+        "system.ts exports getStoreInfoSchema, getCurrentTimeSchema, getBusinessHoursSchema",
+        "system.ts exports isStoreOpenSchema, getSystemStatusSchema, logAIActionSchema",
+        "Each schema uses .describe() for AI understanding",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 8,
+      "passes": false,
+      "notes": "System tools provide context AI needs. Store hours are critical for booking validation."
+    },
+    {
+      "id": "US-009",
+      "title": "Create Tool Registry",
+      "description": "As a developer, I need a central registry of all tools for discovery and validation.",
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": ["US-003", "US-004", "US-005", "US-006", "US-007", "US-008"],
+      "files": [
+        "packages/ai-tools/src/schemas/index.ts (NEW)",
+        "packages/ai-tools/src/registry.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "schemas/index.ts re-exports all schema files",
+        "registry.ts exports toolRegistry object with all tool definitions",
+        "registry.ts exports getToolByName(name: string) function",
+        "registry.ts exports getToolsByCategory(category: AIToolCategory) function",
+        "registry.ts exports getAllToolDefinitions() returning OpenAI/Anthropic format",
+        "registry.ts exports validateToolInput(toolName, input) using Zod parse",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 9,
+      "passes": false,
+      "notes": "The registry is what Mango Connect imports. It's the single source of truth."
+    },
+    {
+      "id": "US-010",
+      "title": "Create Client and Appointment handlers",
+      "description": "As a developer, I need handlers that execute client and appointment tools via dataService.",
+      "category": "backend",
+      "complexity": 4,
+      "dependencies": ["US-009"],
+      "files": [
+        "packages/ai-tools/src/handlers/clients.ts (NEW)",
+        "packages/ai-tools/src/handlers/appointments.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "clients.ts exports handleSearchClients, handleGetClient, handleCreateClient, handleUpdateClient",
+        "appointments.ts exports handleCheckAvailability, handleBookAppointment, handleReschedule, handleCancel",
+        "Each handler accepts validated input and ExecutionContext",
+        "Each handler returns ToolResult<T> with success/error",
+        "Handlers use dataService abstraction, no direct DB calls",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 10,
+      "passes": false,
+      "notes": "Handlers bridge AI tool calls to business operations. Must be reliable and well-logged."
+    },
+    {
+      "id": "US-011",
+      "title": "Create remaining handlers and dispatcher",
+      "description": "As a developer, I need handlers for all remaining tools and a unified dispatcher.",
+      "category": "backend",
+      "complexity": 4,
+      "dependencies": ["US-010"],
+      "files": [
+        "packages/ai-tools/src/handlers/services.ts (NEW)",
+        "packages/ai-tools/src/handlers/tickets.ts (NEW)",
+        "packages/ai-tools/src/handlers/staff.ts (NEW)",
+        "packages/ai-tools/src/handlers/analytics.ts (NEW)",
+        "packages/ai-tools/src/handlers/system.ts (NEW)",
+        "packages/ai-tools/src/handlers/index.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Each file exports handlers for its category's schemas",
+        "handlers/index.ts exports executeTool(toolName, input, context) dispatcher",
+        "Dispatcher validates input against schema before calling handler",
+        "Ticket handlers validate permissions for sensitive operations",
+        "All handlers return ToolResult<T>",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 11,
+      "passes": false,
+      "notes": "Focus on consistency across all handlers. Ticket operations need permission checks."
+    },
+    {
+      "id": "US-012",
+      "title": "Create ai_tool_invocations audit table",
+      "description": "As a system administrator, I need an audit log of all AI tool invocations.",
+      "category": "database",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "supabase/migrations/045_create_ai_tool_invocations.sql (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Creates ai_tool_invocations table",
+        "Columns: id (UUID PK), store_id, user_id, tool_name, parameters (JSONB), result (JSONB), success, error_message, execution_time_ms, created_at",
+        "Index on (store_id, created_at)",
+        "Index on (tool_name, created_at)",
+        "RLS policy for store admins to read their logs",
+        "Migration follows existing naming convention"
+      ],
+      "testCommand": "supabase db diff",
+      "priority": 12,
+      "passes": false,
+      "notes": "Audit logging is essential for debugging AI behavior and security monitoring."
+    },
+    {
+      "id": "US-013",
+      "title": "Create ai-tools edge function",
+      "description": "As Mango Connect, I need an edge function endpoint to invoke tools in Mango Biz.",
+      "category": "backend",
+      "complexity": 4,
+      "dependencies": ["US-011", "US-012"],
+      "files": [
+        "supabase/functions/ai-tools/index.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Accepts POST with: toolName, parameters, context (storeId)",
+        "Validates authentication via Authorization header",
+        "Validates toolName exists in registry",
+        "Validates parameters against tool schema",
+        "Executes handler via executeTool dispatcher",
+        "Logs invocation to ai_tool_invocations table",
+        "Returns JSON: success, data, error, executionTimeMs",
+        "Includes CORS headers",
+        "No forbidden strings: 'as any', 'void _'"
+      ],
+      "testCommand": "supabase functions serve ai-tools",
+      "priority": 13,
+      "passes": false,
+      "notes": "Main entry point for Mango Connect. Security and logging are critical."
+    },
+    {
+      "id": "US-014",
+      "title": "Document tool catalog and integration guide",
+      "description": "As a developer integrating Mango Connect, I need documentation of available tools.",
+      "category": "documentation",
+      "complexity": 2,
+      "dependencies": ["US-009"],
+      "files": [
+        "packages/ai-tools/README.md",
+        "packages/ai-tools/docs/TOOL_CATALOG.md (NEW)",
+        "packages/ai-tools/docs/INTEGRATION_GUIDE.md (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "README.md has quick start and tool category overview",
+        "TOOL_CATALOG.md lists all tools by category with descriptions",
+        "TOOL_CATALOG.md includes parameters for each tool",
+        "INTEGRATION_GUIDE.md explains authentication requirements",
+        "INTEGRATION_GUIDE.md documents error handling patterns"
+      ],
+      "testCommand": "cat packages/ai-tools/docs/*.md",
+      "priority": 14,
+      "passes": false,
+      "notes": "Good docs help both humans and AI understand tool usage."
+    },
+    {
+      "id": "US-015",
+      "title": "Add unit tests for schemas and registry",
+      "description": "As a developer, I need tests ensuring tool schemas validate correctly.",
+      "category": "test",
+      "complexity": 3,
+      "dependencies": ["US-009"],
+      "files": [
+        "packages/ai-tools/src/__tests__/schemas.test.ts (NEW)",
+        "packages/ai-tools/src/__tests__/registry.test.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "schemas.test.ts tests each schema accepts valid input",
+        "schemas.test.ts tests each schema rejects invalid input",
+        "registry.test.ts tests getToolByName returns correct tool",
+        "registry.test.ts tests getToolsByCategory filters correctly",
+        "registry.test.ts tests validateToolInput returns proper results",
+        "All tests pass with pnpm test"
+      ],
+      "testCommand": "pnpm test -- packages/ai-tools",
+      "priority": 15,
+      "passes": false,
+      "notes": "Tests ensure tool definitions don't break when modified."
+    }
+  ]
+}

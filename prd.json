@@ -1,0 +1,186 @@
+{
+  "project": "Mango-Biz",
+  "branchName": "ralph/sqlite-complete",
+  "description": "SQLite Complete Migration - Schema fixes, utilities, and remaining infrastructure",
+  "userStories": [
+    {
+      "id": "US-036-A",
+      "title": "Add client basic columns to schema",
+      "description": "Add first batch of client columns: personal info fields",
+      "acceptanceCriteria": [
+        "Add columns: first_name, last_name, email, phone, mobile, gender, date_of_birth",
+        "Add columns: profile_image_url, notes, preferred_name, pronouns",
+        "Proper data types (TEXT, INTEGER for booleans)",
+        "pnpm typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Part 1 of client schema fix"
+    },
+    {
+      "id": "US-036-B",
+      "title": "Add client address and contact columns",
+      "description": "Add address and additional contact fields to clients",
+      "acceptanceCriteria": [
+        "Add columns: address_line1, address_line2, city, state, zip, country",
+        "Add columns: emergency_contact_name, emergency_contact_phone",
+        "Add columns: referral_source, how_heard_about_us",
+        "pnpm typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Part 2 of client schema fix"
+    },
+    {
+      "id": "US-036-C",
+      "title": "Add client preferences and status columns",
+      "description": "Add client preferences, flags, and status fields",
+      "acceptanceCriteria": [
+        "Add columns: is_vip, is_blocked, block_reason, is_active",
+        "Add columns: preferred_staff_id, preferred_services (JSON)",
+        "Add columns: communication_preferences (JSON), marketing_opt_in",
+        "Add columns: loyalty_points, membership_id, membership_status",
+        "pnpm typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Part 3 of client schema fix"
+    },
+    {
+      "id": "US-036-D",
+      "title": "Add client metadata and indexes",
+      "description": "Add remaining metadata columns and create indexes",
+      "acceptanceCriteria": [
+        "Add columns: created_at, updated_at, last_visit_at, total_visits, total_spent",
+        "Add columns: average_ticket, tags (JSON), custom_fields (JSON)",
+        "Create indexes: [store_id+last_name], [store_id+is_vip], [store_id+created_at], [store_id+email]",
+        "Match Dexie schema v16 exactly",
+        "pnpm typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Part 4 of client schema fix - completes US-036"
+    },
+    {
+      "id": "US-037-A",
+      "title": "Add ticket core columns to schema",
+      "description": "Add essential ticket fields",
+      "acceptanceCriteria": [
+        "Add columns: number, status, type, client_id, staff_id, appointment_id",
+        "Add columns: created_at, updated_at, closed_at, start_time, end_time",
+        "Add columns: is_group_ticket, is_walk_in, is_no_show",
+        "pnpm typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Part 1 of ticket schema fix"
+    },
+    {
+      "id": "US-037-B",
+      "title": "Add ticket financial columns",
+      "description": "Add ticket pricing and payment fields",
+      "acceptanceCriteria": [
+        "Add columns: subtotal, tax_amount, discount_amount, tip_amount, total",
+        "Add columns: payment_status, payment_method, payment_reference",
+        "Add columns: services (JSON), products (JSON), payments (JSON)",
+        "Add columns: discounts (JSON), taxes (JSON)",
+        "pnpm typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Part 2 of ticket schema fix"
+    },
+    {
+      "id": "US-037-C",
+      "title": "Add ticket metadata and indexes",
+      "description": "Add remaining ticket columns and indexes",
+      "acceptanceCriteria": [
+        "Add columns: notes, internal_notes, clients (JSON for group tickets)",
+        "Add columns: signature_url, receipt_sent, receipt_email",
+        "Create indexes: [store_id+number], [store_id+status], [store_id+created_at], [store_id+client_id]",
+        "pnpm typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Part 3 of ticket schema fix - completes US-037"
+    },
+    {
+      "id": "US-038",
+      "title": "Implement bi-directional sync for rollback safety",
+      "description": "Continue writing to Dexie during SQLite operation for safe rollback",
+      "acceptanceCriteria": [
+        "Create DualWriteService that wraps SQLite and Dexie writes",
+        "On every SQLite write, also write to Dexie",
+        "Add config flag: ENABLE_DUAL_WRITE (default true on first migration)",
+        "On rollback, Dexie has all data created during SQLite period",
+        "Add logging for dual-write operations",
+        "pnpm typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Critical for safe rollback - prevents data loss"
+    },
+    {
+      "id": "US-039",
+      "title": "Add database health monitoring",
+      "description": "Monitor SQLite database health and detect issues",
+      "acceptanceCriteria": [
+        "Create healthCheck() function that runs PRAGMA integrity_check",
+        "Detect corruption, missing tables, schema mismatches",
+        "Log health status periodically (every 5 minutes)",
+        "Expose health status via IPC for Electron renderer",
+        "pnpm typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Optimize getStaffTicketCounts with SQL",
+      "description": "Replace JS iteration with efficient SQL query",
+      "acceptanceCriteria": [
+        "Use SQLite json_each() function for services parsing",
+        "Query: SELECT json_extract(value, '$.staffId'), COUNT(*) FROM tickets, json_each(services) GROUP BY 1",
+        "Handle 10k+ tickets without memory issues",
+        "Add performance benchmark test",
+        "pnpm typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Current impl loads ALL tickets into memory"
+    },
+    {
+      "id": "US-041",
+      "title": "Add migration checkpointing",
+      "description": "Save progress during large migrations for resume capability",
+      "acceptanceCriteria": [
+        "Create _migration_progress table with: table_name, last_id, total_count, migrated_count",
+        "Checkpoint every 1000 records",
+        "On resume, skip already-migrated records",
+        "Clear checkpoint on successful completion",
+        "pnpm typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Prevents restart from scratch on failure"
+    },
+    {
+      "id": "US-042",
+      "title": "Create type-safe conversion utilities",
+      "description": "Add utility functions for reliable type conversion",
+      "acceptanceCriteria": [
+        "toISOString(value: unknown): string - handles Date, string, null",
+        "boolToSQLite(value: unknown): 0 | 1 - strict boolean conversion",
+        "sqliteToBool(value: 0 | 1 | null): boolean",
+        "jsonToString(value: unknown): string - safe JSON.stringify",
+        "stringToJson<T>(value: string): T - safe JSON.parse with default",
+        "Unit tests for all utilities",
+        "pnpm typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Prevents String(new Date()) producing wrong format"
+    }
+  ]
+}
