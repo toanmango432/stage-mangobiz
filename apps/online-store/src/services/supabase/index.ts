@@ -13,7 +13,6 @@ export {
   getCircuitStatus,
   withCircuitBreaker,
   createStoreQuery,
-  validateStoreAccess,
 } from './client';
 
 // Types
