@@ -125,3 +125,31 @@ Commit: 7003aedc
 - Building reusable schema building blocks (uuidSchema, clientFiltersSchema) reduces duplication
 
 **Next story suggestion:** US-004 (Appointment schemas) or US-005 (Service schemas) - both depend only on US-002 which is complete. US-004 has higher priority (4) and similar complexity (3)
+
+---
+
+## 2026-01-30 - US-004: Create Appointment tool schemas
+Commit: c8bf8788
+
+**Why this story?** Highest priority (4) among unblocked schema stories. Appointments are core to salon/spa operations. Progress.txt suggested US-004 as natural progression after client schemas.
+
+**Changes:**
+- `packages/ai-tools/src/schemas/appointments.ts (NEW)`: Complete appointment tool schemas with 6 tools
+  - searchAppointmentsSchema: date (required), staffId, clientId, status, includeAllStatuses, limit
+  - getAppointmentSchema: appointmentId (UUID)
+  - checkAvailabilitySchema: serviceId, date (required), staffId (optional), durationMinutes, preferredTime, includeBreaks
+  - bookAppointmentSchema: clientId, staffId, serviceId, startTime (ISO 8601), notes, clientNotes, sendConfirmation, source, additionalServices
+  - rescheduleAppointmentSchema: appointmentId, newStartTime, newStaffId (optional), reason, notifyClient, initiatedBy
+  - cancelAppointmentSchema: appointmentId, reason, notifyClient, cancellationType, waiveCancellationFee, initiatedBy
+  - Each schema includes AITool definitions with returns schemas
+  - appointmentSchemas and appointmentTools exports for registry consumption
+- `packages/ai-tools/src/index.ts:21`: Added export for appointments schemas
+
+**Learnings:**
+- ISO 8601 datetime validation uses z.string().datetime() which enforces proper format
+- Date-only validation uses regex /^\d{4}-\d{2}-\d{2}$/ for YYYY-MM-DD format
+- Appointment operations benefit from tracking "initiatedBy" (client/staff/ai_assistant) for audit
+- Cancellation requires careful handling: fee waivers, notification options, reason tracking
+- Pre-existing typecheck failures in @mango/utils are unrelated to ai-tools changes
+
+**Next story suggestion:** US-005 (Service schemas) - similar complexity (2), next in priority order (5), continues the pattern of completing all schemas before US-009 (Tool Registry)

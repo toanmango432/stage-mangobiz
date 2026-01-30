@@ -107,7 +107,7 @@
       ],
       "testCommand": "pnpm run typecheck",
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "All time fields should be ISO 8601 format. Include timezone handling notes in descriptions."
     },
     {
