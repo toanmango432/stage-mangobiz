@@ -132,10 +132,27 @@ npm run build
 ```
 
 **Environment Variables:**
+
+Create a `.env.local` file in the `apps/online-store` directory with:
+
 ```bash
-# Required for AI chat functionality
-VITE_LOVABLE_API_KEY=your_lovable_api_key
+# Required - Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Optional - Override defaults
+NEXT_PUBLIC_DEFAULT_STORE_ID=your-store-uuid
+NEXT_PUBLIC_API_BASE_URL=/api/v1
+NEXT_PUBLIC_SITE_URL=https://book.mangobiz.com
 ```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key for client operations |
+| `NEXT_PUBLIC_DEFAULT_STORE_ID` | No | Default store UUID (defaults to dev UUID) |
+| `NEXT_PUBLIC_API_BASE_URL` | No | API base URL (defaults to `/api/v1`) |
+| `NEXT_PUBLIC_SITE_URL` | No | Site URL for metadata (defaults to `https://book.mangobiz.com`) |
 
 ## Documentation
 
