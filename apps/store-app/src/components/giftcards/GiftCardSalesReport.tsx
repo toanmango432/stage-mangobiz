@@ -25,7 +25,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
-import { giftCardDB } from '../../db/giftCardOperations';
+import { dataService } from '../../services/dataService';
 import { formatCurrency } from '../../utils/formatters';
 
 // Date range presets
@@ -95,7 +95,7 @@ export default function GiftCardSalesReport({ onBack }: GiftCardSalesReportProps
     setLoading(true);
     try {
       const { startDate, endDate } = getDateRange(dateRange);
-      const data = await giftCardDB.getSalesSummary(storeId, startDate, endDate);
+      const data = await dataService.giftCards.getSalesSummary(storeId, startDate, endDate) as SalesSummary;
       setSummary(data);
     } catch (error) {
       console.error('Failed to load sales summary:', error);

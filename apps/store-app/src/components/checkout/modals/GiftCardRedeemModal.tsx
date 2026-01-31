@@ -18,8 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { giftCardDB } from '@/db/giftCardOperations';
 import { useAppSelector } from '@/store/hooks';
+import { dataService } from '@/services/dataService';
 import type { GiftCard } from '@/types/gift-card';
 
 // ============================================================================
@@ -199,7 +199,7 @@ export default function GiftCardRedeemModal({
     setError(null);
 
     try {
-      const giftCard = await giftCardDB.getGiftCardByCode(storeId, normalizedCode);
+      const giftCard = await dataService.giftCards.getByCode(storeId, normalizedCode) as GiftCard | undefined;
 
       if (!giftCard) {
         setError('Gift card not found');

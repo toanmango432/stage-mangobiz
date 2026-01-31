@@ -160,6 +160,19 @@ export const appointmentsService = {
   },
 
   /**
+   * Get appointments for a specific client
+   */
+  async getByClientId(clientId: string): Promise<Appointment[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      return sqliteAppointmentsDB.getByClientId(storeId, clientId);
+    }
+    return appointmentsDB.getByClientId(storeId, clientId);
+  },
+
+  /**
    * Delete an appointment
    */
   async delete(id: string): Promise<void> {

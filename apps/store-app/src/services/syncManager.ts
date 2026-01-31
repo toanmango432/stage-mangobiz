@@ -1,3 +1,22 @@
+/**
+ * @deprecated This sync manager is superseded by backgroundSyncService.ts
+ *
+ * backgroundSyncService provides:
+ * - More comprehensive entity coverage
+ * - Better error handling and retry logic
+ * - Integration with hydrationService for initial data load
+ * - Proper type adapter usage
+ *
+ * This file is kept for backwards compatibility but should not be used
+ * for new development. All sync operations should go through:
+ *   - backgroundSyncService.ts (background sync processing)
+ *   - hydrationService.ts (initial data hydration)
+ *   - SupabaseSyncProvider.tsx (real-time subscriptions)
+ *
+ * See: DATA_ARCHITECTURE_REMEDIATION_PLAN.md Phase 5.1
+ * TODO: Remove this file after verifying all consumers have migrated
+ */
+
 import { syncQueueDB, settingsDB } from '../db/database';
 import { syncAPI } from '../api/endpoints';
 import { store } from '../store';

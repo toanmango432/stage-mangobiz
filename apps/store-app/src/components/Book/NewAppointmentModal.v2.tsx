@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { X, Calendar, Clock, Plus, PanelRightClose, Maximize, Check, ArrowDownToLine, LayoutPanelLeft, Lock, User } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { menuServicesDB, clientsDB } from '../../db/database';
+import { dataService } from '../../services/dataService';
 import toast from 'react-hot-toast';
 import { getTestSalonId } from '../../db/seed';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
@@ -86,7 +86,7 @@ export function NewAppointmentModalV2({
   // Handler for when a blocked client is selected (defined early, doesn't depend on clientHandlers)
   const handleBlockedClientSelected = useCallback(async (info: { id: string; name: string; blockReason: string }) => {
     // Fetch the full client to store for potential override
-    const fullClient = await clientsDB.getById(info.id);
+    const fullClient = await dataService.clients.getById(info.id);
     if (fullClient) {
       setPendingClient(fullClient);
     }
@@ -278,7 +278,7 @@ export function NewAppointmentModalV2({
   useEffect(() => {
     async function loadServices() {
       try {
-        const servicesList = await menuServicesDB.getAll(storeId, false);
+        const servicesList = await dataService.menuServices.getAll(storeId, false);
         formState.setServices(servicesList.map(s => ({
           id: s.id,
           name: s.name,
@@ -292,7 +292,7 @@ export function NewAppointmentModalV2({
         console.error('Failed to load services:', error);
       }
     }
-    if (isOpen) {
+    if (isOpen && storeId) {
       loadServices();
     }
   }, [isOpen, storeId]);

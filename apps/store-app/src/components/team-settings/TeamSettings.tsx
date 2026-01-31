@@ -17,7 +17,6 @@ import { NotificationsSection } from './sections/NotificationsSection';
 import { PerformanceSection } from './sections/PerformanceSection';
 import { LoginCredentialsSection } from './sections/LoginCredentialsSection';
 import { supabase } from '../../services/supabase/client';
-import { fetchSupabaseMembers } from '../../services/supabase/memberService';
 import { selectStoreId } from '../../store/slices/authSlice';
 
 // Redux imports
@@ -102,28 +101,13 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // Load team data on mount - from Supabase if store ID available
+  // Load team data on mount using unified fetchTeamMembers thunk
+  // The thunk handles IndexedDB-first with Supabase fallback internally
   useEffect(() => {
     const loadData = async () => {
       try {
-        // If we have a store ID from auth, fetch from Supabase
-        if (storeId) {
-          console.log('📡 Fetching team members from Supabase for store:', storeId);
-          const supabaseMembers = await fetchSupabaseMembers(storeId);
-
-          if (supabaseMembers.length > 0) {
-            dispatch(setMembers(supabaseMembers));
-            if (!selectedMemberId) {
-              dispatch(setSelectedMember(supabaseMembers[0].id));
-            }
-            console.log(`✅ Loaded ${supabaseMembers.length} members from Supabase`);
-            return;
-          }
-        }
-
-        // Fallback: fetch from IndexedDB
-        console.log('📦 Fetching team members from IndexedDB');
-        const result = await dispatch(fetchTeamMembers(undefined)).unwrap();
+        console.log('📡 Fetching team members via Redux thunk for store:', storeId);
+        const result = await dispatch(fetchTeamMembers(storeId ?? undefined)).unwrap();
 
         // If no data, seed with mock data
         if (result.length === 0) {
@@ -135,6 +119,7 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
         } else if (result.length > 0 && !selectedMemberId) {
           dispatch(setSelectedMember(result[0].id));
         }
+        console.log(`✅ Loaded ${result.length} team members`);
       } catch (err) {
         console.error('Failed to load team data:', err);
         // Fall back to mock data on error

@@ -16,6 +16,7 @@ import { backgroundSyncService, type BackgroundSyncState } from '@/services/back
 import { searchService } from '@/services/search';
 import { db } from '@/db/schema';
 import { setAppointments } from '@/store/slices/appointmentsSlice';
+import { setPendingOperations } from '@/store/slices/syncSlice';
 import { toAppointments } from '@/services/supabase/adapters';
 // MQTT Integration (Phase 3)
 import { mqttBridge, isMqttEnabled, isMqttFeatureEnabled } from '@/services/mqtt';
@@ -196,7 +197,11 @@ export function SupabaseSyncProvider({
 
         // LOCAL-FIRST: Start background sync service
         backgroundSyncService.start();
-        backgroundSyncService.subscribe(setBgSyncState);
+        backgroundSyncService.subscribe((state) => {
+          setBgSyncState(state);
+          // Keep Redux pendingOperations in sync with actual queue count
+          dispatch(setPendingOperations(state.stats.pending));
+        });
         console.log('🔄 SupabaseSyncProvider: Background sync started');
 
         // MQTT Integration (Phase 3): Initialize and connect to MQTT broker

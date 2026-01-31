@@ -313,7 +313,7 @@
       ],
       "testCommand": "supabase db diff",
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Audit logging is essential for debugging AI behavior and security monitoring."
     },
     {
@@ -339,7 +339,7 @@
       ],
       "testCommand": "supabase functions serve ai-tools",
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "Main entry point for Mango Connect. Security and logging are critical."
     },
     {
@@ -363,7 +363,7 @@
       ],
       "testCommand": "cat packages/ai-tools/docs/*.md",
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Good docs help both humans and AI understand tool usage."
     },
     {
@@ -387,7 +387,7 @@
       ],
       "testCommand": "pnpm test -- packages/ai-tools",
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Tests ensure tool definitions don't break when modified."
     }
   ]

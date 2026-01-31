@@ -1303,6 +1303,36 @@ const giftCardsService = {
     if (byCode) return [byCode];
     return giftCardsDB.getGiftCardsByRecipientEmail(storeId, query);
   },
+
+  async getLiability(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.getTotalOutstandingBalance(storeId);
+    }
+    return giftCardsDB.getTotalLiability(storeId);
+  },
+
+  async getExpiring(storeId: string, withinDays: number) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.getExpiringSoon(storeId, withinDays);
+    }
+    return giftCardsDB.getExpiringGiftCards(storeId, withinDays);
+  },
+
+  async getSalesSummary(storeId: string, startDate: string, endDate: string) {
+    if (USE_SQLITE) {
+      // Combine SQLite transaction totals into the expected format
+      const totals = await sqliteGiftCardTransactionsDB.getTotalsByType(storeId, startDate, endDate);
+      const transactions = await sqliteGiftCardTransactionsDB.getByDateRange(storeId, startDate, endDate) as Array<{ type: string }>;
+      return {
+        totalIssued: totals.purchase || 0,
+        totalRedeemed: totals.redeem || 0,
+        totalReloaded: totals.reload || 0,
+        countIssued: transactions.filter(t => t.type === 'purchase').length,
+        countRedeemed: transactions.filter(t => t.type === 'redeem').length,
+      };
+    }
+    return giftCardsDB.getSalesSummary(storeId, startDate, endDate);
+  },
 };
 
 const giftCardTransactionsService = {

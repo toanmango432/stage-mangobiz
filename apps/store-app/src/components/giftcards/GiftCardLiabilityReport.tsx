@@ -25,7 +25,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
-import { giftCardDB } from '../../db/giftCardOperations';
+import { dataService } from '../../services/dataService';
 import type { GiftCard } from '../../types/gift-card';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -58,11 +58,11 @@ export default function GiftCardLiabilityReport({
     try {
       const [totalLiability, activeCards, expiring30, expiring60, expiring90] =
         await Promise.all([
-          giftCardDB.getTotalLiability(storeId),
-          giftCardDB.getGiftCardsByStatus(storeId, 'active'),
-          giftCardDB.getExpiringGiftCards(storeId, 30),
-          giftCardDB.getExpiringGiftCards(storeId, 60),
-          giftCardDB.getExpiringGiftCards(storeId, 90),
+          dataService.giftCards.getLiability(storeId) as Promise<number>,
+          dataService.giftCards.getByStatus(storeId, 'active') as Promise<GiftCard[]>,
+          dataService.giftCards.getExpiring(storeId, 30) as Promise<GiftCard[]>,
+          dataService.giftCards.getExpiring(storeId, 60) as Promise<GiftCard[]>,
+          dataService.giftCards.getExpiring(storeId, 90) as Promise<GiftCard[]>,
         ]);
 
       setData({

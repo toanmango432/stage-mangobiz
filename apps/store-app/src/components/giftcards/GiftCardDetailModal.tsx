@@ -31,7 +31,7 @@ import {
   Edit3,
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
-import { giftCardDB } from '../../db/giftCardOperations';
+import { dataService } from '../../services/dataService';
 import type { GiftCard, GiftCardTransaction, GiftCardStatus } from '../../types/gift-card';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -139,7 +139,7 @@ export default function GiftCardDetailModal({
     if (!giftCard.id) return;
     setLoading(true);
     try {
-      const txns = await giftCardDB.getTransactionsByGiftCard(giftCard.id);
+      const txns = await dataService.giftCardTransactions.getByCard(giftCard.id) as GiftCardTransaction[];
       setTransactions(txns);
     } catch (error) {
       console.error('Failed to load transactions:', error);
@@ -161,7 +161,7 @@ export default function GiftCardDetailModal({
 
     setActionLoading('reload');
     try {
-      await giftCardDB.reloadGiftCard(
+      await dataService.giftCards.reload(
         { giftCardId: giftCard.id, amount, staffId: userId },
         storeId,
         userId,
@@ -184,7 +184,7 @@ export default function GiftCardDetailModal({
 
     setActionLoading('void');
     try {
-      await giftCardDB.voidGiftCard(
+      await dataService.giftCards.void(
         giftCard.id,
         voidReason,
         storeId,

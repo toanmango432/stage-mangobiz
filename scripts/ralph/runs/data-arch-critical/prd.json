@@ -24,7 +24,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "The goal is to use Redux as the single source of truth for team data."
     },
     {
@@ -45,7 +45,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Keep the service functional for rollback purposes, but add warnings."
     },
     {
@@ -67,7 +67,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Check dataService interface for exact method names."
     },
     {
@@ -87,7 +87,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "File may have multiple gift card operations."
     },
     {
@@ -107,7 +107,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Check for gift card validation and redemption logic."
     },
     {
@@ -133,7 +133,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Multiple files to update. Check dataService for available methods."
     },
     {
@@ -158,7 +158,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Reference other adapters like appointmentAdapter.ts for patterns."
     },
     {
@@ -178,7 +178,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Replace clientsDB.search with dataService.clients.search or Redux selector."
     },
     {
@@ -198,7 +198,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Replace clientsDB with dataService.clients."
     },
     {
@@ -218,7 +218,7 @@
       ],
       "testCommand": "pnpm --filter store-app run typecheck",
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "This is a hook, so it may need to use async dataService calls."
     },
     {
@@ -240,7 +240,7 @@
       ],
       "testCommand": "pnpm run lint",
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Use 'warn' not 'error' to avoid breaking existing code. Add pattern for **/db/database and **/db/*Operations."
     }
   ]

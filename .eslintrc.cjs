@@ -14,6 +14,32 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
+    // Data Architecture: ERROR on direct database imports in components
+    // Use dataService instead: import { dataService } from '@/services/dataService'
+    // Changed from 'warn' to 'error' per DATA_ARCHITECTURE_REMEDIATION_PLAN.md Phase 2.4
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['**/db/database', '**/db/database.ts'],
+            message: 'Use dataService instead of direct DB imports. Import from @/services/dataService.',
+          },
+          {
+            group: ['**/db/*Operations', '**/db/*Operations.ts'],
+            message: 'Use dataService instead of direct DB operations. Import from @/services/dataService.',
+          },
+          {
+            group: ['**/db/catalogDatabase', '**/db/catalogDatabase.ts'],
+            message: 'Use dataService instead of direct catalog DB. Import from @/services/dataService.',
+          },
+          {
+            group: ['**/db/scheduleDatabase', '**/db/scheduleDatabase.ts'],
+            message: 'Use dataService instead of direct schedule DB. Import from @/services/dataService.',
+          },
+        ],
+      },
+    ],
     // Design System: Warn on legacy teal colors - use brand-* instead
     'no-restricted-syntax': [
       'warn',

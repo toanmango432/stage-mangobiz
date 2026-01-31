@@ -13,7 +13,7 @@ import { memo, useState, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
 import { Search, X, Plus, Phone,  CheckCircle2, Mail, Sparkles,  } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
-import { clientsDB } from '../../db/database';
+import { dataService } from '../../services/dataService';
 import type { Client } from '../../types';
 import toast from 'react-hot-toast';
 import { PremiumInput, PremiumButton, PremiumAvatar } from '../premium';
@@ -90,7 +90,7 @@ export const QuickClientModal = memo(function QuickClientModal({
 
     setIsSearching(true);
 
-    clientsDB.search(storeId, debouncedSearch)
+    dataService.clients.search(debouncedSearch)
       .then(results => {
         setSearchResults(results);
         setIsSearching(false);
@@ -182,7 +182,7 @@ export const QuickClientModal = memo(function QuickClientModal({
 
     try {
       const fullName = `${capitalizeName(quickAddFirstName.trim())} ${capitalizeName(quickAddLastName.trim())}`;
-      const newClient = await clientsDB.create({
+      const newClient = await dataService.clients.create({
         storeId,
         firstName: capitalizeName(quickAddFirstName.trim()),
         lastName: capitalizeName(quickAddLastName.trim()),
@@ -190,7 +190,8 @@ export const QuickClientModal = memo(function QuickClientModal({
         phone: quickAddPhone.trim(),
         email: quickAddEmail.trim() || undefined,
         isBlocked: false,
-      } as any);
+        isVip: false,
+      });
 
       setJustAdded(true);
 

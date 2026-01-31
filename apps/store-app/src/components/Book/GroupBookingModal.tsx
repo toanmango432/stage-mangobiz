@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import type { Client, Service, Staff } from '../../types';
 import type { LocalAppointment } from '../../types/appointment';
-import { clientsDB, servicesDB } from '../../db/database';
+import { dataService } from '../../services/dataService';
 import toast from 'react-hot-toast';
 import { ModalContainer, ModalHeader } from '../common/ModalContainer';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -85,13 +85,13 @@ export function GroupBookingModal({
 
   const loadServices = async () => {
     if (!storeId) return;
-    const services = await servicesDB.getAll(storeId);
+    const services = await dataService.services.getAll();
     setAllServices(services.filter(s => s.isActive !== false));
   };
 
   const loadRecentClients = async () => {
     if (!storeId) return;
-    const clients = await clientsDB.getAll(storeId);
+    const clients = await dataService.clients.getAll();
     // Sort by last visit if that data exists, or just take first 5
     setRecentClients(clients.slice(0, 5));
   };
@@ -106,7 +106,7 @@ export function GroupBookingModal({
       }
 
       setIsSearching(true);
-      const results = await clientsDB.search(storeId, clientSearch);
+      const results = await dataService.clients.search(clientSearch);
       setSearchResults(results);
       setIsSearching(false);
     };

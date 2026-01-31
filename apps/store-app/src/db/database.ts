@@ -80,6 +80,18 @@ export const appointmentsDB = {
       .toArray();
   },
 
+  async getByClientId(storeId: string, clientId: string, limit = 100): Promise<Appointment[]> {
+    // Guard: return empty array if storeId or clientId is invalid
+    if (!storeId || !clientId) return [];
+
+    return await db.appointments
+      .where('storeId')
+      .equals(storeId)
+      .and(apt => apt.clientId === clientId)
+      .limit(limit)
+      .toArray();
+  },
+
   async create(input: CreateAppointmentInput, userId: string, storeId: string): Promise<Appointment> {
     const now = new Date().toISOString();
     const startTime = typeof input.scheduledStartTime === 'string'

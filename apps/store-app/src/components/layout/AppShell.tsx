@@ -55,7 +55,6 @@ import { storeAuthManager } from '../../services/storeAuthManager';
 import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
 import { initializeCatalog, migrateCatalogToStore } from '../../db/catalogSeed';
-import { syncManager } from '../../services/syncManager';
 import { teamDB } from '../../db/teamOperations';
 import { mockTeamMembers } from '../team-settings/constants';
 import { NetworkStatus } from '../NetworkStatus';
@@ -301,11 +300,7 @@ function AppShellContent() {
         await dispatch(loadFrontDeskSettings());
         console.log('✅ Front desk settings loaded');
 
-        // 11. Start sync manager
-        syncManager.start();
-        console.log('✅ Sync Manager started');
-
-        // 12. Set initial online status
+        // 11. Set initial online status (sync handled by SupabaseSyncProvider)
         dispatch(setOnlineStatus(navigator.onLine));
 
         setIsInitialized(true);
@@ -316,12 +311,7 @@ function AppShellContent() {
     }
 
     initApp();
-
-    // Cleanup on unmount
-    return () => {
-      syncManager.stop();
-      console.log('🛑 Sync Manager stopped');
-    };
+    // Note: Sync cleanup handled by SupabaseSyncProvider
   }, [dispatch, fallbackStoreId]);
 
   // Monitor online/offline status

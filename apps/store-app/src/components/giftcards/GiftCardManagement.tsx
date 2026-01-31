@@ -37,7 +37,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
-import { giftCardDB } from '../../db/giftCardOperations';
+import { dataService } from '../../services/dataService';
 import type { GiftCard, GiftCardStatus } from '../../types/gift-card';
 import { formatCurrency } from '../../utils/formatters';
 import GiftCardDetailModal from './GiftCardDetailModal';
@@ -117,7 +117,7 @@ export default function GiftCardManagement({ onBack }: GiftCardManagementProps) 
     if (!storeId) return;
     setLoading(true);
     try {
-      const cards = await giftCardDB.getAllGiftCards(storeId);
+      const cards = await dataService.giftCards.getAll(storeId) as GiftCard[];
       setGiftCards(cards);
     } catch (error) {
       console.error('Failed to load gift cards:', error);

@@ -2,6 +2,15 @@
  * Client Type Adapter
  *
  * Converts between Supabase ClientRow and app Client types.
+ *
+ * @deprecated This adapter is a duplicate of packages/supabase/src/adapters/clientAdapter.ts
+ * This version includes merge tracking fields (mergedIntoId, mergedAt, mergedBy) that
+ * are not yet in the packages version. Once those fields are added to @mango/types and
+ * packages/supabase, this file should be deleted and imports updated to use:
+ *   import { toClient, toClients } from '@mango/supabase/adapters';
+ *
+ * TODO: Move merge fields to packages/supabase and delete this file
+ * See: DATA_ARCHITECTURE_REMEDIATION_PLAN.md Phase 4.5
  */
 
 import type { ClientRow, ClientInsert, ClientUpdate, Json } from '../types';

@@ -10,8 +10,7 @@ import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { Client } from '../../types/client';
 import toast from 'react-hot-toast';
-import { clientsDB } from '../../db/database';
-import { db } from '../../db/schema';
+import { dataService } from '../../services/dataService';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { PremiumButton, PremiumAvatar, StatusBadge } from '../premium';
 
@@ -62,7 +61,7 @@ export function AppointmentDetailsModal({
     async function loadClientData() {
       if (appointment?.clientId) {
         try {
-          const clientData = await clientsDB.getById(appointment.clientId);
+          const clientData = await dataService.clients.getById(appointment.clientId);
           if (clientData) {
             setClient(clientData);
             setClientNotes(Array.isArray(clientData.notes) ? clientData.notes.map(n => n.content).join('\n') : (clientData.notes as any || ''));
@@ -87,15 +86,16 @@ export function AppointmentDetailsModal({
 
     setLoadingHistory(true);
     try {
-      // Get all appointments for this client
-      const allAppointments = await db.appointments
-        .where('clientId')
-        .equals(appointment.clientId)
-        .and(apt => apt.status === 'completed' && apt.id !== appointment.id)
-        .reverse()
-        .sortBy('scheduledStartTime');
+      // Get all appointments for this client via dataService
+      const allAppointments = await dataService.appointments.getByClientId(appointment.clientId);
 
-      setServiceHistory(allAppointments.slice(0, 10)); // Show last 10
+      // Filter to completed appointments (excluding current) and sort by date descending
+      const completedHistory = allAppointments
+        .filter(apt => apt.status === 'completed' && apt.id !== appointment.id)
+        .sort((a, b) => new Date(b.scheduledStartTime).getTime() - new Date(a.scheduledStartTime).getTime())
+        .slice(0, 10); // Show last 10
+
+      setServiceHistory(completedHistory);
       setShowHistory(true);
     } catch (error) {
       console.error('Error loading service history:', error);
@@ -109,7 +109,7 @@ export function AppointmentDetailsModal({
 
     setIsSavingClientNotes(true);
     try {
-      await clientsDB.update(client.id, { notes: typeof clientNotes === 'string' ? [] : clientNotes });
+      await dataService.clients.update(client.id, { notes: typeof clientNotes === 'string' ? [] : clientNotes });
       setClient({ ...client, notes: typeof clientNotes === 'string' ? [] : clientNotes });
       setIsEditingClientNotes(false);
     } catch (error) {

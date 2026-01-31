@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { paymentBridge } from "@/services/payment";
-import { giftCardDB } from "@/db/giftCardOperations";
+import { dataService } from "@/services/dataService";
 import {
   selectActivePadTransaction,
   selectCustomerStarted,
@@ -158,7 +158,7 @@ export function usePaymentModal({
         if (storeId && userId && appliedGiftCards.length > 0 && ticketId) {
           for (const giftCard of appliedGiftCards) {
             try {
-              await giftCardDB.redeemGiftCard(
+              await dataService.giftCards.redeem(
                 {
                   code: giftCard.code,
                   amount: giftCard.amountUsed,

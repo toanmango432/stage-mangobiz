@@ -1,6 +1,15 @@
 /**
- * Supabase Member Service
+ * @deprecated This service is deprecated. Use teamThunks from '@/store/slices/team/teamThunks' instead.
+ *
+ * Supabase Member Service (DEPRECATED)
  * Fetches members from Supabase and converts to TeamMemberSettings format
+ *
+ * Migration guide:
+ * - fetchSupabaseMembers -> dispatch(fetchTeamMembers(storeId))
+ * - fetchSupabaseMemberById -> selectTeamMemberById selector
+ * - updateSupabaseMember -> dispatch(updateTeamMember(...))
+ * - createSupabaseMember -> dispatch(createTeamMember(...))
+ * - deleteSupabaseMember -> dispatch(deleteTeamMember(...))
  */
 
 import { supabase } from './client';
@@ -168,8 +177,12 @@ export function memberRowToTeamMemberSettings(member: MemberRow, storeId: string
   };
 }
 
+/**
+ * @deprecated Use dispatch(fetchTeamMembers(storeId)) from teamThunks instead
+ */
 // Fetch all members for a store from Supabase
 export async function fetchSupabaseMembers(storeId: string): Promise<TeamMemberSettings[]> {
+  console.warn('DEPRECATED: memberService.fetchSupabaseMembers is deprecated, use teamThunks.fetchTeamMembers instead');
   try {
     const { data: members, error } = await supabase
       .from('members')
@@ -188,8 +201,12 @@ export async function fetchSupabaseMembers(storeId: string): Promise<TeamMemberS
   }
 }
 
+/**
+ * @deprecated Use selectTeamMemberById selector from teamSlice instead
+ */
 // Fetch single member by ID
 export async function fetchSupabaseMemberById(memberId: string, storeId: string): Promise<TeamMemberSettings | null> {
+  console.warn('DEPRECATED: memberService.fetchSupabaseMemberById is deprecated, use teamThunks instead');
   try {
     const { data: member, error } = await supabase
       .from('members')
@@ -209,6 +226,9 @@ export async function fetchSupabaseMemberById(memberId: string, storeId: string)
   }
 }
 
+/**
+ * @deprecated Use dispatch(updateTeamMember(...)) from teamThunks instead
+ */
 // Update member in Supabase
 export async function updateSupabaseMember(
   memberId: string,
@@ -223,6 +243,7 @@ export async function updateSupabaseMember(
     password_hash?: string;
   }
 ): Promise<boolean> {
+  console.warn('DEPRECATED: memberService.updateSupabaseMember is deprecated, use teamThunks instead');
   try {
     const { error } = await supabase
       .from('members')
@@ -244,6 +265,9 @@ export async function updateSupabaseMember(
   }
 }
 
+/**
+ * @deprecated Use dispatch(createTeamMember(...)) from teamThunks instead
+ */
 // Create member in Supabase
 export async function createSupabaseMember(
   member: {
@@ -257,6 +281,7 @@ export async function createSupabaseMember(
     tenant_id?: string;
   }
 ): Promise<MemberRow | null> {
+  console.warn('DEPRECATED: memberService.createSupabaseMember is deprecated, use teamThunks instead');
   try {
     const { data, error } = await supabase
       .from('members')
@@ -286,8 +311,12 @@ export async function createSupabaseMember(
   }
 }
 
+/**
+ * @deprecated Use dispatch(deleteTeamMember(...)) from teamThunks instead
+ */
 // Delete member in Supabase (soft delete by setting status to inactive)
 export async function deleteSupabaseMember(memberId: string): Promise<boolean> {
+  console.warn('DEPRECATED: memberService.deleteSupabaseMember is deprecated, use teamThunks instead');
   try {
     const { error } = await supabase
       .from('members')

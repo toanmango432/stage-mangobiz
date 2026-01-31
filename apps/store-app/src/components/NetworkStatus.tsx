@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { WifiOff, Wifi, Cloud, CloudOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAppSelector } from '../store/hooks';
 import { selectIsOnline, selectIsSyncing, selectPendingOperations } from '../store/slices/syncSlice';
-import { syncManager } from '../services/syncManager';
+import { backgroundSyncService } from '../services/backgroundSyncService';
 
 export function NetworkStatus() {
   const isOnline = useAppSelector(selectIsOnline);
@@ -33,9 +33,9 @@ export function NetworkStatus() {
     return null;
   }
 
-  const handleManualSync = async () => {
+  const handleManualSync = () => {
     if (isOnline && !isSyncing) {
-      await syncManager.syncNow();
+      backgroundSyncService.triggerSync();
     }
   };
 

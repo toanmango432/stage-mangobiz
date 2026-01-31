@@ -451,6 +451,20 @@ export const sqliteAppointmentsDB = {
     const appointment = await _appointmentsService.checkIn(id);
     return appointment as unknown as Appointment | undefined;
   },
+
+  async getByClientId(storeId: string, clientId: string): Promise<Appointment[]> {
+    const adapter = await getAdapter();
+    if (!_appointmentsService) {
+      _appointmentsService = new AppointmentSQLiteService(adapter);
+    }
+    // Get appointments by client, then filter by store
+    const allClientAppointments = await _appointmentsService.getByClient(clientId);
+    // Filter by storeId to match the expected behavior
+    const filteredAppointments = allClientAppointments.filter(
+      (apt: unknown) => (apt as { storeId?: string }).storeId === storeId
+    );
+    return filteredAppointments as unknown as Appointment[];
+  },
 };
 
 // ==================== TRANSACTIONS SERVICE ====================

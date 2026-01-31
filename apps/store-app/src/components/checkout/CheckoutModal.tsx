@@ -5,7 +5,7 @@ import { CheckoutPaymentMethod, TipDistribution, TIP_PERCENTAGES, CHECKOUT_STEPS
 import { getTaxRateFromConfig } from '../../constants/checkoutConfig';
 import { ServiceSummary } from './ServiceSummary';
 import GiftCardRedeemModal, { AppliedGiftCard } from './modals/GiftCardRedeemModal';
-import { giftCardDB } from '../../db/giftCardOperations';
+import { dataService } from '../../services/dataService';
 import { useAppSelector } from '../../store/hooks';
 
 interface CheckoutModalProps {
@@ -276,7 +276,7 @@ export function CheckoutModal({
       try {
         if (storeId && userId) {
           for (const giftCard of appliedGiftCards) {
-            await giftCardDB.redeemGiftCard(
+            await dataService.giftCards.redeem(
               {
                 code: giftCard.code,
                 amount: giftCard.amountUsed,

@@ -5,7 +5,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { clientsDB } from '../../../db/database';
+import { dataService } from '../../../services/dataService';
 import { Client as ClientType } from '../../../types/client';
 import toast from 'react-hot-toast';
 import {
@@ -144,7 +144,7 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
   // Load recent clients on open
   useEffect(() => {
     if (isOpen && selectedClients.length === 0) {
-      clientsDB.getAll(storeId).then(allClients => {
+      dataService.clients.getAll().then(allClients => {
         const sorted = allClients
           .sort((a, b) => {
             const aDate = a.lastVisit ? new Date(a.lastVisit).getTime() : 0;
@@ -160,7 +160,7 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
         })) as Client[]);
       });
     }
-  }, [isOpen, selectedClients.length, storeId, setRecentClients]);
+  }, [isOpen, selectedClients.length, setRecentClients]);
 
   // Handle initial client from global search
   useEffect(() => {
@@ -179,7 +179,7 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
       }
       setSearching(true);
       try {
-        const results = await clientsDB.search(storeId, debouncedSearch);
+        const results = await dataService.clients.search(debouncedSearch);
         setClients(results.map(c => ({
           id: c.id,
           name: c.name,
@@ -193,7 +193,7 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
       }
     }
     searchClients();
-  }, [debouncedSearch, storeId, setClients, setSearching]);
+  }, [debouncedSearch, setClients, setSearching]);
 
   // Internal function to complete client selection (used after override approval)
   const completeClientSelection = useCallback((client: ClientType | Client) => {
@@ -316,7 +316,7 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
     setIsAddingClient(true);
     try {
       const fullName = `${capitalizeName(newClientFirstName.trim())} ${capitalizeName(newClientLastName.trim())}`;
-      const newClient = await clientsDB.create({
+      const newClient = await dataService.clients.create({
         storeId,
         firstName: capitalizeName(newClientFirstName.trim()),
         lastName: capitalizeName(newClientLastName.trim()),
@@ -324,7 +324,8 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
         phone: newClientPhone.trim(),
         email: newClientEmail.trim() || undefined,
         isBlocked: false,
-      } as any);
+        isVip: false,
+      });
 
       handleSelectClient(newClient);
 
