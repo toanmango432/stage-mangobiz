@@ -24,7 +24,7 @@
   "dependencies": {
     "@mango/types": "workspace:*",
     "mqtt": "^5.3.0",
-    "uuid": "^9.0.1"
+    "uuid": "^13.0.0"
   },
   "peerDependencies": {
     "react": "^18.0.0"
