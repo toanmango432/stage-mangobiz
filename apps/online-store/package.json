@@ -86,7 +86,7 @@
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.7.0",
-    "@vitest/ui": "^3.2.4",
+    "@vitest/ui": "^4.0.18",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.32.0",
     "eslint-config-next": "^16.1.5",
