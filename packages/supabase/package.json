@@ -32,11 +32,11 @@
   "dependencies": {
     "@mango/types": "workspace:*",
     "@supabase/supabase-js": "^2.84.0",
-    "react": "^18.3.1"
+    "react": "^19.2.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/react": "^18.3.1",
+    "@types/react": "^19.2.10",
     "typescript": "^5.5.4",
     "vite": "^6.3.5",
     "vitest": "^4.0.16"
