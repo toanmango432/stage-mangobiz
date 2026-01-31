@@ -23,7 +23,9 @@
   },
   "dependencies": {
     "@mango/types": "workspace:*",
-    "date-fns": "^4.1.0"
+    "@types/react-dom": "^19.2.3",
+    "date-fns": "^4.1.0",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "typescript": "^5.5.4",

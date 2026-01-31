@@ -23,14 +23,16 @@
   },
   "dependencies": {
     "@mango/types": "workspace:*",
+    "@types/react-dom": "^19.2.3",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",
+    "react-dom": "^19.2.4",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/uuid": "^9.0.8",
+    "fake-indexeddb": "^6.2.4",
     "typescript": "^5.5.4",
-    "vitest": "^4.0.16",
-    "fake-indexeddb": "^6.2.4"
+    "vitest": "^4.0.16"
   }
 }

@@ -24,12 +24,14 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@types/react-dom": "^19.2.3",
+    "react-dom": "^19.2.4",
     "zod": "^3.23.8",
     "zod-to-json-schema": "^3.23.5"
   },
   "peerDependencies": {
-    "@mango/types": "workspace:*",
-    "@mango/api-contracts": "workspace:*"
+    "@mango/api-contracts": "workspace:*",
+    "@mango/types": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.5.4",
