@@ -137,12 +137,20 @@ export interface BlockedTimeEntry extends BaseSyncableEntity {
   typeName: string;
   typeEmoji: string;
   typeColor: string;
+  isPaid?: boolean;
   startDateTime: string;
   endDateTime: string;
+  durationMinutes?: number;
   notes: string | null;
   frequency: 'none' | 'daily' | 'weekly' | 'monthly';
-  seriesId: string | null;
-  seriesEndDate: string | null;
+  repeatEndDate?: string | null;
+  repeatCount?: number | null;
+  seriesId?: string | null;
+  seriesEndDate?: string | null;
+  isRecurrenceException?: boolean;
+  originalDate?: string | null;
+  createdByStaffId?: string | null;
+  createdByManagerId?: string | null;
 }
 
 export interface BusinessClosedPeriod extends BaseSyncableEntity {
@@ -171,6 +179,7 @@ export interface Resource extends BaseSyncableEntity {
   capacity?: number;
   isBookable?: boolean;
   color?: string | null;
+  imageUrl?: string | null;
   linkedServiceIds?: string[];
 }
 

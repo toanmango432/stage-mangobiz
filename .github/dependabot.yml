@@ -4,43 +4,22 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Chicago"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "EnrichOS19/dev-team"
-    labels:
-      - "dependencies"
-      - "automated"
+      day: "sunday"
     groups:
       production-minor-patch:
         patterns:
           - "*"
-        exclude-patterns:
-          - "@types/*"
-          - "eslint*"
-          - "prettier*"
-          - "*test*"
         update-types:
           - "minor"
           - "patch"
-      dev-dependencies:
-        patterns:
-          - "@types/*"
-          - "eslint*"
-          - "prettier*"
-          - "*test*"
-        update-types:
-          - "minor"
-          - "patch"
-
+    open-pull-requests-limit: 5
+    
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    reviewers:
-      - "seanncl"
-    labels:
-      - "dependencies"
-      - "ci"
+      day: "sunday"
+    groups:
+      actions:
+        patterns:
+          - "*"
