@@ -1,0 +1,29 @@
+# Progress Log - Data Architecture Critical Fixes
+
+## Run Info
+- Created: 2026-01-31 00:00 CST
+- Purpose: Fix critical data architecture issues
+- Branch: ralph/data-arch-critical
+- Stories: 11 total
+
+## Codebase Patterns (READ FIRST)
+
+### dataService Pattern
+The dataService is located at `apps/store-app/src/services/dataService.ts`
+All data access in components should go through dataService, not direct DB imports.
+
+### Adapter Pattern
+Type adapters convert between Supabase snake_case and app camelCase.
+Location: `apps/store-app/src/services/supabase/adapters/`
+Example: appointmentAdapter.ts has toAppointment(), toAppointmentInsert(), etc.
+
+### Redux Pattern
+Team data: Use `fetchTeamMembers()` from `store/slices/team/teamThunks.ts`
+Client data: Use dataService.clients or Redux selectors from clientsSlice
+
+### Import Restrictions
+BAD: `import { clientsDB } from '@/db/database'`
+GOOD: `import { dataService } from '@/services/dataService'`
+
+---
+

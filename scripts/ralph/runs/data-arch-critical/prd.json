@@ -1,0 +1,247 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/data-arch-critical",
+  "description": "Fix critical data architecture issues: Staff/Team unification, Gift Card dataService, Client type adapter, and data access enforcement.",
+  "userStories": [
+    {
+      "id": "DA-001",
+      "title": "Staff/Team Data Unification - Update TeamSettings",
+      "description": "Update TeamSettings.tsx to use fetchTeamMembers() thunk instead of fetchSupabaseMembers() to unify staff data source.",
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/team-settings/TeamSettings.tsx",
+        "apps/store-app/src/components/team-settings/hooks/useTeamMemberData.ts"
+      ],
+      "acceptanceCriteria": [
+        "TeamSettings.tsx imports fetchTeamMembers from team/teamThunks",
+        "TeamSettings.tsx does NOT import fetchSupabaseMembers from memberService",
+        "loadData() function uses dispatch(fetchTeamMembers(storeId))",
+        "No direct calls to memberService in TeamSettings",
+        "pnpm run typecheck passes",
+        "No forbidden strings: 'as any'"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 1,
+      "passes": false,
+      "notes": "The goal is to use Redux as the single source of truth for team data."
+    },
+    {
+      "id": "DA-002",
+      "title": "Deprecate memberService.ts",
+      "description": "Mark memberService.ts as deprecated with console warnings on all functions.",
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": ["DA-001"],
+      "files": [
+        "apps/store-app/src/services/supabase/memberService.ts"
+      ],
+      "acceptanceCriteria": [
+        "File has @deprecated JSDoc comment at top",
+        "All exported functions log console.warn('DEPRECATED: memberService is deprecated, use teamThunks instead')",
+        "Functions still work (don't break them, just warn)",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 2,
+      "passes": false,
+      "notes": "Keep the service functional for rollback purposes, but add warnings."
+    },
+    {
+      "id": "DA-003",
+      "title": "Fix Gift Card dataService - GiftCardRedeemModal",
+      "description": "Update GiftCardRedeemModal.tsx to use dataService.giftCards instead of giftCardDB.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/checkout/GiftCardRedeemModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No import of giftCardDB or giftCardOperations",
+        "Imports dataService from '@/services/dataService'",
+        "Uses dataService.giftCards.getByCode() for lookup",
+        "Uses dataService.giftCards.redeem() for redemption",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 3,
+      "passes": false,
+      "notes": "Check dataService interface for exact method names."
+    },
+    {
+      "id": "DA-004",
+      "title": "Fix Gift Card dataService - CheckoutModal",
+      "description": "Update CheckoutModal.tsx to use dataService.giftCards instead of giftCardDB.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/checkout/CheckoutModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No import of giftCardDB or giftCardOperations",
+        "Uses dataService for any gift card operations",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 4,
+      "passes": false,
+      "notes": "File may have multiple gift card operations."
+    },
+    {
+      "id": "DA-005",
+      "title": "Fix Gift Card dataService - PaymentModal",
+      "description": "Update usePaymentModal.ts to use dataService.giftCards instead of giftCardDB.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/usePaymentModal.ts"
+      ],
+      "acceptanceCriteria": [
+        "No import of giftCardDB or giftCardOperations",
+        "Uses dataService for any gift card operations",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 5,
+      "passes": false,
+      "notes": "Check for gift card validation and redemption logic."
+    },
+    {
+      "id": "DA-006",
+      "title": "Fix Gift Card dataService - GiftCardManagement",
+      "description": "Update GiftCardManagement.tsx and related components to use dataService.giftCards.",
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/giftcards/GiftCardManagement.tsx",
+        "apps/store-app/src/components/giftcards/GiftCardDetailModal.tsx",
+        "apps/store-app/src/components/giftcards/GiftCardLiabilityReport.tsx",
+        "apps/store-app/src/components/giftcards/GiftCardSalesReport.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No import of giftCardDB or giftCardOperations in any file",
+        "All gift card operations use dataService.giftCards",
+        "getAllGiftCards -> dataService.giftCards.getAll()",
+        "getTotalLiability -> dataService.giftCards.getLiability()",
+        "getSalesSummary -> dataService.giftCards.getSalesSummary()",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 6,
+      "passes": false,
+      "notes": "Multiple files to update. Check dataService for available methods."
+    },
+    {
+      "id": "DA-007",
+      "title": "Create Client Type Adapter",
+      "description": "Create clientAdapter.ts for snake_case to camelCase conversion between Supabase and app types.",
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/services/supabase/adapters/clientAdapter.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "File exists at apps/store-app/src/services/supabase/adapters/clientAdapter.ts",
+        "Exports toClient(row: ClientRow): Client function",
+        "Exports toClientInsert(client: Partial<Client>, storeId: string): ClientInsert function",
+        "Exports toClientUpdate(updates: Partial<Client>): ClientUpdate function",
+        "Exports toClients(rows: ClientRow[]): Client[] function",
+        "Handles all fields from ClientRow type including sync_status, sync_version",
+        "No hardcoded default values for required fields",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 7,
+      "passes": false,
+      "notes": "Reference other adapters like appointmentAdapter.ts for patterns."
+    },
+    {
+      "id": "DA-008",
+      "title": "Fix Client Direct DB Access - QuickClientModal",
+      "description": "Update QuickClientModal.tsx to use Redux selectors or dataService instead of clientsDB.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": ["DA-007"],
+      "files": [
+        "apps/store-app/src/components/Book/QuickClientModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No import of clientsDB from database",
+        "Uses dataService.clients or Redux selectors for client operations",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 8,
+      "passes": false,
+      "notes": "Replace clientsDB.search with dataService.clients.search or Redux selector."
+    },
+    {
+      "id": "DA-009",
+      "title": "Fix Client Direct DB Access - GroupBookingModal",
+      "description": "Update GroupBookingModal.tsx to use Redux selectors or dataService instead of clientsDB.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": ["DA-007"],
+      "files": [
+        "apps/store-app/src/components/Book/GroupBookingModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No import of clientsDB from database",
+        "Uses dataService.clients or Redux selectors for client operations",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 9,
+      "passes": false,
+      "notes": "Replace clientsDB with dataService.clients."
+    },
+    {
+      "id": "DA-010",
+      "title": "Fix Client Direct DB Access - useAppointmentClients",
+      "description": "Update useAppointmentClients.ts hook to use dataService instead of clientsDB.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": ["DA-007"],
+      "files": [
+        "apps/store-app/src/components/Book/hooks/useAppointmentClients.ts"
+      ],
+      "acceptanceCriteria": [
+        "No import of clientsDB from database",
+        "Uses dataService.clients for client fetching",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter store-app run typecheck",
+      "priority": 10,
+      "passes": false,
+      "notes": "This is a hook, so it may need to use async dataService calls."
+    },
+    {
+      "id": "DA-011",
+      "title": "Add ESLint Rule for Direct DB Access",
+      "description": "Add ESLint rule to prevent direct database imports in components.",
+      "category": "tooling",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        ".eslintrc.js OR eslint.config.js"
+      ],
+      "acceptanceCriteria": [
+        "ESLint config has no-restricted-imports rule",
+        "Rule warns on clientsDB, giftCardDB, ticketsDB, appointmentsDB imports",
+        "Rule warns on direct supabase imports outside services layer",
+        "pnpm run lint passes (may have warnings, not errors)",
+        "Running lint on a file with clientsDB import shows warning"
+      ],
+      "testCommand": "pnpm run lint",
+      "priority": 11,
+      "passes": false,
+      "notes": "Use 'warn' not 'error' to avoid breaking existing code. Add pattern for **/db/database and **/db/*Operations."
+    }
+  ]
+}
