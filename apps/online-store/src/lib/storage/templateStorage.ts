@@ -81,6 +81,8 @@ export function getAllTemplates(): StorefrontTemplate[] {
  * Get template by ID
  */
 export function getTemplateById(id: string): StorefrontTemplate | null {
+  if (typeof window === 'undefined') return null;
+
   const templates = getAllTemplates();
   return templates.find(t => t.id === id) || null;
 }
@@ -88,7 +90,9 @@ export function getTemplateById(id: string): StorefrontTemplate | null {
 /**
  * Create new template
  */
-export function createTemplate(data: Omit<StorefrontTemplate, 'createdAt' | 'updatedAt' | 'version'>): StorefrontTemplate {
+export function createTemplate(data: Omit<StorefrontTemplate, 'createdAt' | 'updatedAt' | 'version'>): StorefrontTemplate | null {
+  if (typeof window === 'undefined') return null;
+
   const templates = getAllTemplates();
   const newTemplate: StorefrontTemplate = {
     ...data,
@@ -106,6 +110,8 @@ export function createTemplate(data: Omit<StorefrontTemplate, 'createdAt' | 'upd
  * Update template
  */
 export function updateTemplate(id: string, data: Partial<StorefrontTemplate>): StorefrontTemplate | null {
+  if (typeof window === 'undefined') return null;
+
   const templates = getAllTemplates();
   const index = templates.findIndex(t => t.id === id);
   
@@ -126,6 +132,8 @@ export function updateTemplate(id: string, data: Partial<StorefrontTemplate>): S
  * Delete template
  */
 export function deleteTemplate(id: string): boolean {
+  if (typeof window === 'undefined') return false;
+
   const templates = getAllTemplates();
   const template = templates.find(t => t.id === id);
   
@@ -150,6 +158,8 @@ export function deleteTemplate(id: string): boolean {
  * Activate template
  */
 export function activateTemplate(id: string): boolean {
+  if (typeof window === 'undefined') return false;
+
   const templates = getAllTemplates();
   const template = templates.find(t => t.id === id);
   
@@ -194,6 +204,8 @@ export function getTemplateSections(templateId: string): TemplateSection[] {
  * Update template section
  */
 export function updateTemplateSection(sectionId: string, data: Partial<TemplateSection>): TemplateSection | null {
+  if (typeof window === 'undefined') return null;
+
   const sections = getAllSections();
   const index = sections.findIndex(s => s.id === sectionId);
   
@@ -213,6 +225,8 @@ export function updateTemplateSection(sectionId: string, data: Partial<TemplateS
  * Reorder sections
  */
 export function reorderSections(templateId: string, sectionIds: string[]): void {
+  if (typeof window === 'undefined') return;
+
   const sections = getAllSections();
   const templateSections = sections.filter(s => s.templateId === templateId);
   
@@ -231,7 +245,9 @@ export function reorderSections(templateId: string, sectionIds: string[]): void 
 /**
  * Add section to template
  */
-export function addSection(templateId: string, sectionData: Omit<Section, 'id' | 'order'>): TemplateSection {
+export function addSection(templateId: string, sectionData: Omit<Section, 'id' | 'order'>): TemplateSection | null {
+  if (typeof window === 'undefined') return null;
+
   const sections = getAllSections();
   const templateSections = sections.filter(s => s.templateId === templateId);
   const maxOrder = templateSections.length > 0 ? Math.max(...templateSections.map(s => s.order)) : 0;
@@ -256,6 +272,8 @@ export function addSection(templateId: string, sectionData: Omit<Section, 'id' |
  * Remove section
  */
 export function removeSection(sectionId: string): boolean {
+  if (typeof window === 'undefined') return false;
+
   const sections = getAllSections();
   const filtered = sections.filter(s => s.id !== sectionId);
   localStorage.setItem(STORAGE_KEYS.TEMPLATE_SECTIONS, JSON.stringify(filtered));
@@ -266,6 +284,8 @@ export function removeSection(sectionId: string): boolean {
  * Seed sections from template JSON
  */
 export function seedTemplateSections(templateId: string, sections: Section[]): void {
+  if (typeof window === 'undefined') return;
+
   const allSections = getAllSections();
   
   // Remove existing sections for this template

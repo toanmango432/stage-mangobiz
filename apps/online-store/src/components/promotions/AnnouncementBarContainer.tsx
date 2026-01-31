@@ -1,3 +1,5 @@
+'use client';
+
 import { useQuery } from '@tanstack/react-query';
 import { getActiveAnnouncements } from '@/lib/api/promotions';
 import { useMarketingSettings } from '@/hooks/useMarketingSettings';

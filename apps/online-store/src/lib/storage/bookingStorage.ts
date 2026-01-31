@@ -8,9 +8,13 @@ const BOOKING_NUMBER_KEY = 'mango-booking-counter';
  * Generate sequential booking number (e.g., "BK-2025-0001")
  */
 export const generateBookingNumber = (): string => {
+  if (typeof window === 'undefined') {
+    // SSR fallback - generate a unique ID
+    return `BK-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+  }
   const counter = parseInt(localStorage.getItem(BOOKING_NUMBER_KEY) || '0', 10) + 1;
   localStorage.setItem(BOOKING_NUMBER_KEY, counter.toString());
-  
+
   const year = new Date().getFullYear();
   const paddedNumber = counter.toString().padStart(4, '0');
   return `BK-${year}-${paddedNumber}`;
@@ -20,6 +24,7 @@ export const generateBookingNumber = (): string => {
  * Get all bookings from localStorage
  */
 export const getBookings = (): Booking[] => {
+  if (typeof window === 'undefined') return [];
   try {
     const data = localStorage.getItem(BOOKINGS_KEY);
     return data ? JSON.parse(data) : [];
@@ -33,6 +38,7 @@ export const getBookings = (): Booking[] => {
  * Save booking to localStorage
  */
 export const saveBooking = (booking: Booking): void => {
+  if (typeof window === 'undefined') return;
   try {
     const bookings = getBookings();
     bookings.push(booking);
@@ -74,20 +80,21 @@ export const getBookingsForDate = (date: string): Booking[] => {
  * Update existing booking
  */
 export const updateBooking = (id: string, updates: Partial<Booking>): void => {
+  if (typeof window === 'undefined') return;
   try {
     const bookings = getBookings();
     const index = bookings.findIndex(b => b.id === id);
-    
+
     if (index === -1) {
       throw new Error('Booking not found');
     }
-    
+
     bookings[index] = {
       ...bookings[index],
       ...updates,
       updatedAt: new Date().toISOString(),
     };
-    
+
     localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
   } catch (error) {
     console.error('Error updating booking:', error);
@@ -109,6 +116,7 @@ export const cancelBooking = (id: string, reason?: string): void => {
  * Delete booking (admin only)
  */
 export const deleteBooking = (id: string): void => {
+  if (typeof window === 'undefined') return;
   try {
     const bookings = getBookings();
     const filtered = bookings.filter(b => b.id !== id);
@@ -142,6 +150,7 @@ export const getUpcomingBookings = (): Booking[] => {
  * Initialize with mock bookings (call once on app load)
  */
 export const initializeMockBookings = (mockBookings: Booking[]): void => {
+  if (typeof window === 'undefined') return;
   const existing = getBookings();
   if (existing.length === 0) {
     localStorage.setItem(BOOKINGS_KEY, JSON.stringify(mockBookings));

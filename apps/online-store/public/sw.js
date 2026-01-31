@@ -192,9 +192,19 @@ self.addEventListener('fetch', (event) => {
 
   // Skip Vite dev server requests in development
   if (url.hostname === 'localhost' && (
-    url.pathname.includes('/src/') || 
-    url.pathname.includes('/@vite/') || 
+    url.pathname.includes('/src/') ||
+    url.pathname.includes('/@vite/') ||
     url.pathname.includes('/node_modules/')
+  )) {
+    return;
+  }
+
+  // Skip Next.js Turbopack HMR and dev chunks in development
+  // This prevents stale chunks from being served during HMR updates
+  if (url.hostname === 'localhost' && (
+    url.pathname.startsWith('/_next/') ||
+    url.pathname.includes('turbopack') ||
+    url.pathname.includes('hmr-client')
   )) {
     return;
   }

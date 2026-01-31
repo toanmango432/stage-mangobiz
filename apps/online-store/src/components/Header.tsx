@@ -1,3 +1,5 @@
+'use client';
+
 import Link from "next/link";
 import { ShoppingBag, Search, User, LogOut, Shield, ChevronDown, Home, Mail, Image, Star, HelpCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
