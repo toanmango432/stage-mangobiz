@@ -99,7 +99,7 @@ export function useLocalStorageState<T>({
  */
 export function useLocalStorageString(
   key: string,
-  defaultValue: string = ''
+  defaultValue = ''
 ): [string, (value: string | ((prev: string) => string)) => void] {
   const [value, setValue] = useLocalStorageState({
     key,
@@ -115,7 +115,7 @@ export function useLocalStorageString(
  */
 export function useLocalStorageNumber(
   key: string,
-  defaultValue: number = 0
+  defaultValue = 0
 ): [number, (value: number | ((prev: number) => number)) => void] {
   const [value, setValue] = useLocalStorageState({
     key,
@@ -131,7 +131,7 @@ export function useLocalStorageNumber(
  */
 export function useLocalStorageBoolean(
   key: string,
-  defaultValue: boolean = false
+  defaultValue = false
 ): [boolean, (value: boolean | ((prev: boolean) => boolean)) => void] {
   const [value, setValue] = useLocalStorageState({
     key,

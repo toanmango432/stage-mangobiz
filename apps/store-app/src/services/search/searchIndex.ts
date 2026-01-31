@@ -44,13 +44,13 @@ export class SearchIndex {
   private phoneIndex: Map<string, Set<string>> = new Map();
 
   /** Store ID this index is built for */
-  private _storeId: string = '';
+  private _storeId = '';
 
   /** Last index update timestamp */
-  private lastUpdate: number = 0;
+  private lastUpdate = 0;
 
   /** Whether index is currently being built */
-  private isBuilding: boolean = false;
+  private isBuilding = false;
 
   // ==========================================================================
   // Index Building

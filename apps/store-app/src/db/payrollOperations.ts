@@ -160,7 +160,7 @@ export const payrollDB = {
     storeId: string,
     userId: string,
     deviceId: string,
-    tenantId: string = 'default-tenant'
+    tenantId = 'default-tenant'
   ): Promise<string> {
     const now = new Date().toISOString();
     const id = uuidv4();
@@ -264,7 +264,7 @@ export const payrollDB = {
 
       // Calculate service revenue for this staff member
       let serviceRevenue = 0;
-      let productRevenue = 0;
+      const productRevenue = 0;
       let tipsReceived = 0;
       let newClientCount = 0;
 

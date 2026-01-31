@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 import { Button } from '@/components/ui/button';

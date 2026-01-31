@@ -37,7 +37,7 @@ export const staffRatingsTable = {
   /**
    * Get public ratings for a staff member (for online booking display)
    */
-  async getPublicByStaff(staffId: string, limit: number = 10): Promise<StaffRatingRow[]> {
+  async getPublicByStaff(staffId: string, limit = 10): Promise<StaffRatingRow[]> {
     const { data, error } = await supabase
       .from('staff_ratings')
       .select('*')

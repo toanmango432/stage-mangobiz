@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Save, Eye, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -259,7 +261,3 @@ const SectionField = ({ property, value, onChange }: SectionFieldProps) => {
       );
   }
 };
-
-
-
-

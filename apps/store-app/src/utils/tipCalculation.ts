@@ -92,8 +92,8 @@ export function calculateEqualDistribution(
 export function calculateTipFromPercentage(
   subtotal: number,
   percentage: number,
-  preTax: boolean = true,
-  taxAmount: number = 0
+  preTax = true,
+  taxAmount = 0
 ): number {
   const baseAmount = preTax ? subtotal : subtotal + taxAmount;
   return Math.round((baseAmount * percentage / 100) * 100) / 100;
@@ -111,8 +111,8 @@ export function calculateTipFromPercentage(
 export function calculateTipSuggestions(
   subtotal: number,
   percentages: number[] = [15, 18, 20, 22],
-  preTax: boolean = true,
-  taxAmount: number = 0
+  preTax = true,
+  taxAmount = 0
 ): Array<{ percentage: number; amount: number }> {
   return percentages.map((percentage) => ({
     percentage,

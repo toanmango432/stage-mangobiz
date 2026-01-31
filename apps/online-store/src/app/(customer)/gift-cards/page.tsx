@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import GiftCards from '@/views/GiftCards';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Gift Cards',
   description:

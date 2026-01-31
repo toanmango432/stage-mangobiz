@@ -192,7 +192,7 @@ export const TeamSettingsPanel: React.FC<TeamSettingsProps> = ({
       document.body.style.overflow = '';
       // Return focus to the previously active element when closing
       if (previousActiveElement.current && 'focus' in previousActiveElement.current) {
-        ;
+        
         (previousActiveElement.current as HTMLElement).focus();
       }
     }

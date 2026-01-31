@@ -59,7 +59,7 @@ const NUMERIC_CHARS = '0123456789';
  */
 export function generateReferralCode(
   format: ReferralSettings['codeFormat'] = 'alphanumeric',
-  length: number = 6,
+  length = 6,
   prefix?: string,
   clientName?: string
 ): string {
@@ -169,7 +169,7 @@ export function generateShareMessage(
  */
 export function generateReferralLink(
   code: string,
-  baseUrl: string = 'https://book.mangospa.com'
+  baseUrl = 'https://book.mangospa.com'
 ): string {
   return `${baseUrl}/ref/${code}`;
 }

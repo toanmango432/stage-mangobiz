@@ -5,6 +5,8 @@ import { siteConfig } from '@/lib/metadata';
 import { getProducts } from '@/lib/api/store';
 import type { Product } from '@/types/catalog';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Shop',
   description:

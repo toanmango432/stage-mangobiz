@@ -8,7 +8,7 @@ import { SyncOperation } from '../types';
 
 class SyncService {
   private isOnline: boolean = navigator.onLine;
-  private isSyncing: boolean = false;
+  private isSyncing = false;
   private syncInterval: NodeJS.Timeout | null = null;
   private listeners: Set<(status: SyncStatus) => void> = new Set();
 
@@ -70,7 +70,7 @@ class SyncService {
 
   // ===== QUEUE OPERATIONS =====
 
-  async queueCreate(entity: 'appointment' | 'client' | 'service', data: any, priority: number = 3) {
+  async queueCreate(entity: 'appointment' | 'client' | 'service', data: any, priority = 3) {
     const entry: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'> = {
       type: 'create',
       action: 'CREATE',
@@ -89,7 +89,7 @@ class SyncService {
     }
   }
 
-  async queueUpdate(entity: 'appointment' | 'client' | 'service', data: any, priority: number = 3) {
+  async queueUpdate(entity: 'appointment' | 'client' | 'service', data: any, priority = 3) {
     const entry: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'> = {
       type: 'update',
       action: 'UPDATE',
@@ -107,7 +107,7 @@ class SyncService {
     }
   }
 
-  async queueDelete(entity: 'appointment' | 'client' | 'service', entityId: string, priority: number = 3) {
+  async queueDelete(entity: 'appointment' | 'client' | 'service', entityId: string, priority = 3) {
     const entry: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'> = {
       type: 'delete',
       action: 'DELETE',

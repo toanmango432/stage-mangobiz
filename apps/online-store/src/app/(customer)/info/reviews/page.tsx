@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Reviews from '@/views/info/Reviews';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Reviews',
   description: 'Read reviews and testimonials from our satisfied customers.',

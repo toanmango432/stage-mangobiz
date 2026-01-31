@@ -303,7 +303,6 @@ describe('Pad Checkout Flow Integration', () => {
 
     it('should acknowledge and dismiss help request', () => {
       const helpRequest = {
-        id: 'help-ack',
         transactionId: 'txn-ack',
         ticketId: 'ticket-ack',
         deviceId: 'pad-003',
@@ -312,11 +311,17 @@ describe('Pad Checkout Flow Integration', () => {
       };
 
       store.dispatch(addHelpRequest(helpRequest));
-      store.dispatch(acknowledgeHelpRequest({ id: 'help-ack' }));
+      
+      // Get the generated ID from state (slice generates its own ID)
+      const stateAfterAdd = store.getState();
+      const requestsAfterAdd = getAllHelpRequests(stateAfterAdd);
+      const addedRequest = requestsAfterAdd[requestsAfterAdd.length - 1];
+      
+      store.dispatch(acknowledgeHelpRequest({ id: addedRequest.id }));
 
       const state = store.getState();
       const requests = getAllHelpRequests(state);
-      const acknowledged = requests.find(r => r.id === 'help-ack');
+      const acknowledged = requests.find(r => r.id === addedRequest.id);
       expect(acknowledged?.acknowledged).toBe(true);
     });
 

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Save, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -261,4 +263,3 @@ export default function ContentBuilder() {
     </div>
   );
 }
-

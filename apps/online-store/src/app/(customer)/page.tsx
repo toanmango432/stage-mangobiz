@@ -3,6 +3,8 @@ import Index from '@/views/Index';
 import { LocalBusinessJsonLd } from '@/components/JsonLd';
 import { siteConfig } from '@/lib/metadata';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Home',
   description:

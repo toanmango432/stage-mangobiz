@@ -169,7 +169,7 @@ function extractDate(input: string): Date | undefined {
 /**
  * Get next occurrence of a day of week
  */
-function getNextDayOfWeek(dayName: string, skipToNext: boolean = false): Date {
+function getNextDayOfWeek(dayName: string, skipToNext = false): Date {
   const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const targetDay = daysOfWeek.indexOf(dayName.toLowerCase());
 

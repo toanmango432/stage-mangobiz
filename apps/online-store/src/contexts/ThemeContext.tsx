@@ -89,17 +89,31 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setTheme] = useState<ThemeConfig>(() => {
-    if (typeof window === 'undefined') return defaultTheme;
-    const saved = localStorage.getItem("mango-theme-draft");
-    return saved ? JSON.parse(saved) : defaultTheme;
-  });
+  // Use default theme initially to avoid SSR/hydration mismatch
+  const [theme, setTheme] = useState<ThemeConfig>(defaultTheme);
   const [isDraft, setIsDraft] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
+  // Load saved theme from localStorage on client-side only
   useEffect(() => {
+    const saved = localStorage.getItem("mango-theme-draft");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setTheme(parsed);
+      } catch {
+        // Invalid JSON, use default theme
+      }
+    }
+    setIsHydrated(true);
+  }, []);
+
+  // Persist theme changes to localStorage after hydration
+  useEffect(() => {
+    if (!isHydrated) return;
     localStorage.setItem("mango-theme-draft", JSON.stringify(theme));
     setIsDraft(true);
-  }, [theme]);
+  }, [theme, isHydrated]);
 
   const updateTheme = (updates: Partial<ThemeConfig>) => {
     setTheme((prev) => ({

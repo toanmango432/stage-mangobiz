@@ -210,7 +210,7 @@ export const transactionsTable = {
     storeId: string,
     startDate: Date,
     endDate: Date,
-    status: string = 'completed'
+    status = 'completed'
   ): Promise<TransactionRow[]> {
     const { data, error } = await supabase
       .from('transactions')

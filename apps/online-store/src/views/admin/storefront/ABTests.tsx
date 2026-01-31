@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Plus, Play, Pause, BarChart3, Settings, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -282,4 +284,3 @@ export default function ABTests() {
     </div>
   );
 }
-

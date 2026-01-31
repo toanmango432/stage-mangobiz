@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-export function useDebounce<T>(value: T, delay: number = 300): T {
+export function useDebounce<T>(value: T, delay = 300): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export function useDebounce<T>(value: T, delay: number = 300): T {
  */
 export function useDebounceCallback<T extends (...args: any[]) => any>(
   callback: T,
-  delay: number = 300
+  delay = 300
 ): [T, boolean] {
   const [isPending, setIsPending] = useState(false);
 

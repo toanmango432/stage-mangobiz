@@ -78,7 +78,7 @@ export function formatPhoneDisplay(value: string): string {
  * @param countryCode - Country code (default: +1 for US)
  * @returns International format phone number
  */
-export function formatInternationalPhone(value: string, countryCode: string = '+1'): string {
+export function formatInternationalPhone(value: string, countryCode = '+1'): string {
   const cleaned = cleanPhoneNumber(value);
 
   if (cleaned.length !== 10) return value;

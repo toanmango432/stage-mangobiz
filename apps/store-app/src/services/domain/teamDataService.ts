@@ -124,7 +124,7 @@ export const teamService = {
   /**
    * Search team members by name or email
    */
-  async search(query: string, limit: number = 50): Promise<TeamMemberSettings[]> {
+  async search(query: string, limit = 50): Promise<TeamMemberSettings[]> {
     const storeId = getStoreId();
     return teamDB.searchMembers(query, storeId, limit);
   },

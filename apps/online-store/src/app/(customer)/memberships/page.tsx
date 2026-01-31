@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Memberships from '@/views/Memberships';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Memberships',
   description:

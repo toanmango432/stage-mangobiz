@@ -1,0 +1,333 @@
+{
+  "project": "Mango Online Store",
+  "branchName": "ralph/online-store-fixes",
+  "description": "Fix all CRITICAL and HIGH issues from the ultrathink code review. Security fixes, SSR/hydration issues, TypeScript strictness, and architecture improvements.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fix Provider nesting syntax error",
+      "description": "As a developer, I need to fix the JSX tag nesting in Providers.tsx to prevent runtime crashes.",
+      "category": "frontend",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/Providers.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Verify AuthProvider and NextThemesProvider tags are properly nested",
+        "Provider hierarchy is correct: Redux → Query → Auth → Theme",
+        "App renders without JSX parsing errors",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run dev",
+      "priority": 1,
+      "passes": true,
+      "notes": "CRIT-001: Check lines 27-48 for malformed JSX nesting."
+    },
+    {
+      "id": "US-002",
+      "title": "Delete authHelpers.ts plaintext password storage",
+      "description": "As a security measure, I need to delete the legacy authHelpers.ts that stores passwords in plaintext localStorage.",
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/lib/authHelpers.ts (DELETE)",
+        "apps/online-store/src/services/authService.ts"
+      ],
+      "acceptanceCriteria": [
+        "authHelpers.ts is deleted",
+        "No imports of authHelpers.ts remain in codebase",
+        "authService.ts with Supabase Auth is the only auth implementation",
+        "App still functions with login/logout",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "grep -r 'authHelpers' apps/online-store/src --include='*.ts' --include='*.tsx' | grep -v node_modules || echo 'No references found'",
+      "priority": 2,
+      "passes": true,
+      "notes": "CRIT-004: This file stores passwords in localStorage which is a major security vulnerability."
+    },
+    {
+      "id": "US-003",
+      "title": "Add store authorization check to bookings API",
+      "description": "As a security measure, I need to verify users can only access bookings for stores they belong to.",
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/app/api/bookings/route.ts"
+      ],
+      "acceptanceCriteria": [
+        "GET endpoint verifies user belongs to requested storeId",
+        "Query client_auth table to verify store membership",
+        "Return 403 Forbidden if user doesn't belong to store",
+        "POST and other endpoints also verify store access",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 3,
+      "passes": true,
+      "notes": "CRIT-003: Multi-tenant isolation breach. Lines 166-182."
+    },
+    {
+      "id": "US-004",
+      "title": "Fix ThemeContext localStorage SSR issue",
+      "description": "As a developer, I need to fix localStorage access in ThemeContext to prevent SSR hydration mismatch.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/contexts/ThemeContext.tsx"
+      ],
+      "acceptanceCriteria": [
+        "localStorage read moved from useState initializer to useEffect",
+        "Initial state uses default theme value",
+        "No hydration mismatch warnings in console",
+        "Theme still persists correctly across refreshes",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run dev",
+      "priority": 4,
+      "passes": true,
+      "notes": "HIGH-004: Lines 92-100 access localStorage during SSR."
+    },
+    {
+      "id": "US-005",
+      "title": "Fix PersonalizationContext SSR violation",
+      "description": "As a developer, I need to fix getUserProfile() call that crashes on server.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/contexts/PersonalizationContext.tsx"
+      ],
+      "acceptanceCriteria": [
+        "getUserProfile() moved from useState initializer to useEffect",
+        "Initial state uses default profile",
+        "No server-side crashes",
+        "Personalization still works client-side",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 5,
+      "passes": true,
+      "notes": "HIGH-005: Lines 16-31 access localStorage during SSR."
+    },
+    {
+      "id": "US-006",
+      "title": "Fix useBookingFlow localStorage SSR issue",
+      "description": "As a developer, I need to add window check to useBookingFlow hook.",
+      "category": "frontend",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/hooks/useBookingFlow.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add typeof window !== 'undefined' check before localStorage access",
+        "useState initializer returns safe default on server",
+        "Booking flow still works on client",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 6,
+      "passes": true,
+      "notes": "HIGH-006: Lines 8-19 access localStorage without window check."
+    },
+    {
+      "id": "US-007",
+      "title": "Fix Book.tsx localStorage SSR violations",
+      "description": "As a developer, I need to fix multiple localStorage accesses in Book.tsx.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/views/Book.tsx"
+      ],
+      "acceptanceCriteria": [
+        "All useState initializers with localStorage have window checks",
+        "All useEffect hooks with localStorage have window checks",
+        "No SSR crashes on /book page",
+        "Booking functionality still works",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 7,
+      "passes": true,
+      "notes": "HIGH-007: Lines 31-45, 60-88 have multiple SSR violations."
+    },
+    {
+      "id": "US-008",
+      "title": "Fix CartContext localStorage SSR issues",
+      "description": "As a developer, I need to add window checks to CartContext storage effects.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/contexts/CartContext.tsx"
+      ],
+      "acceptanceCriteria": [
+        "All useEffect hooks have if (typeof window === 'undefined') return guard",
+        "Cart persists correctly on client",
+        "No SSR hydration errors",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 8,
+      "passes": true,
+      "notes": "HIGH-008: Lines 42-89 have multiple storage effects without window checks."
+    },
+    {
+      "id": "US-009",
+      "title": "Fix NotificationContext inconsistent localStorage guards",
+      "description": "As a developer, I need to add window checks to all NotificationContext effects.",
+      "category": "frontend",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/contexts/NotificationContext.tsx"
+      ],
+      "acceptanceCriteria": [
+        "All effects accessing localStorage have window checks",
+        "Consistent guard pattern across all storage effects",
+        "Notifications work correctly on client",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 9,
+      "passes": true,
+      "notes": "MED-010: Lines 54-105 have inconsistent guards."
+    },
+    {
+      "id": "US-010",
+      "title": "Refactor customer layout to reduce client boundary",
+      "description": "As a developer, I need to extract chat toggle to a child component so layout can be a Server Component.",
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": ["US-004", "US-008"],
+      "files": [
+        "apps/online-store/src/app/(customer)/layout.tsx",
+        "apps/online-store/src/components/ChatToggleWrapper.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Create ChatToggleWrapper client component with useChatToggle hook",
+        "Remove 'use client' from customer layout",
+        "Layout renders as Server Component",
+        "Chat toggle still functions",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 10,
+      "passes": true,
+      "notes": "HIGH-002: Entire layout is client-rendered due to one hook."
+    },
+    {
+      "id": "US-011",
+      "title": "Remove double auth check from admin layout",
+      "description": "As a developer, I need to remove redundant ProtectedRoute since middleware handles auth.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/app/admin/layout.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Remove ProtectedRoute wrapper from admin layout",
+        "Middleware handles all auth redirects",
+        "No flash of unauthenticated content",
+        "Admin pages still protected",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 11,
+      "passes": true,
+      "notes": "HIGH-003: Double auth causes UX flash."
+    },
+    {
+      "id": "US-012",
+      "title": "Remove suppressHydrationWarning from root layout",
+      "description": "As a developer, I need to remove suppressHydrationWarning and verify no hydration issues remain.",
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": ["US-004", "US-005", "US-006", "US-007", "US-008", "US-009"],
+      "files": [
+        "apps/online-store/src/app/layout.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Remove suppressHydrationWarning from <html> tag",
+        "No hydration mismatch warnings in console",
+        "All SSR issues from earlier stories are fixed",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run dev",
+      "priority": 12,
+      "passes": false,
+      "notes": "HIGH-001: This was masking real hydration issues. Run after SSR fixes."
+    },
+    {
+      "id": "US-013",
+      "title": "Fix middleware cookie handling",
+      "description": "As a developer, I need to fix cookie handling to prevent cookie loss during token refresh.",
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/middleware.ts"
+      ],
+      "acceptanceCriteria": [
+        "Response created only once at end of middleware",
+        "All cookie operations accumulated before response creation",
+        "Token refresh doesn't lose cookies",
+        "Auth flow works correctly",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 13,
+      "passes": false,
+      "notes": "HIGH-009: Lines 31-63 create new response discarding previous cookies."
+    },
+    {
+      "id": "US-014",
+      "title": "Remove client-side store validation",
+      "description": "As a security measure, I need to remove tamperable client-side store validation and rely on Supabase RLS.",
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/services/supabase/client.ts"
+      ],
+      "acceptanceCriteria": [
+        "Remove validateStoreAccess function or make it server-only",
+        "Store access validation happens via Supabase RLS policies",
+        "No fail-open error handling for security checks",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 14,
+      "passes": false,
+      "notes": "HIGH-010: Lines 169-177 use tamperable localStorage."
+    },
+    {
+      "id": "US-015",
+      "title": "Add strict env var validation",
+      "description": "As a developer, I need to validate env vars at build time instead of using placeholders.",
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/lib/env.ts"
+      ],
+      "acceptanceCriteria": [
+        "Remove placeholder Supabase credentials",
+        "Throw build error if required env vars missing",
+        "Add clear error messages for missing vars",
+        "Document required env vars in README",
+        "pnpm run typecheck passes"
+      ],
+      "testCommand": "cd apps/online-store && pnpm run typecheck",
+      "priority": 15,
+      "passes": false,
+      "notes": "HIGH-011: Lines 62-78 allow silent failure with placeholders."
+    }
+  ]
+}

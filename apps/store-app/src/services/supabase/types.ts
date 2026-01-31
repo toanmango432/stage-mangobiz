@@ -1157,6 +1157,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['form_deliveries']['Insert']>;
+      };
       // ============================================
       // CATALOG MODULE TABLES (migration 031)
       // ============================================

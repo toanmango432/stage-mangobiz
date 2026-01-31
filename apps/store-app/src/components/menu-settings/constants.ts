@@ -748,7 +748,7 @@ export const formatDuration = (minutes: number): string => {
 };
 
 // Helper function to format price
-export const formatPrice = (price: number, currencySymbol: string = '$'): string => {
+export const formatPrice = (price: number, currencySymbol = '$'): string => {
   return `${currencySymbol}${price.toFixed(0)}`;
 };
 

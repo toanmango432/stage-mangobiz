@@ -119,7 +119,7 @@ function calculateAverageWaitTime(waitlist: WaitListItem[]): number {
   return Math.round(totalMinutes / waitlist.length);
 }
 
-function hasLongWait(waitlist: WaitListItem[], thresholdMinutes: number = 20): boolean {
+function hasLongWait(waitlist: WaitListItem[], thresholdMinutes = 20): boolean {
   return waitlist.some(item => calculateWaitTime(item.createdAt) > thresholdMinutes);
 }
 

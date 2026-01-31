@@ -140,7 +140,7 @@ export function createMockAppointment(overrides: Partial<LocalAppointment> = {})
  * Create a group booking with multiple appointments
  */
 export function createMockGroupBooking(
-  memberCount: number = 3,
+  memberCount = 3,
   groupOverrides: Partial<LocalAppointment> = {}
 ): LocalAppointment[] {
   const appointments: LocalAppointment[] = [];
