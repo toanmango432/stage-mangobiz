@@ -24,7 +24,7 @@
   "dependencies": {
     "@mango/types": "workspace:*",
     "dexie": "^4.2.1",
-    "dexie-react-hooks": "^1.1.7",
+    "dexie-react-hooks": "^4.2.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
