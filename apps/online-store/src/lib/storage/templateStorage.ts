@@ -33,6 +33,8 @@ export interface TemplateSection extends Section {
  * Initialize template storage with default data
  */
 export function initializeTemplateStorage(): void {
+  if (typeof window === 'undefined') return;
+
   const templates = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
   if (!templates) {
     // Create default "Salon Showcase" template

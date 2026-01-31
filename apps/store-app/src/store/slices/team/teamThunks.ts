@@ -10,6 +10,7 @@
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { dataService } from '@/services/dataService';
+import { staffTable } from '@/services/supabase/tables/staffTable';
 import type { RootState } from '../../index';
 import type {
   TeamMemberSettings,
@@ -56,16 +57,94 @@ export const optimisticActions = {
 
 /**
  * Fetch all team members
- * Uses dataService which handles Supabase/IndexedDB routing internally
+ * First tries local IndexedDB, then falls back to Supabase if empty
  */
 export const fetchTeamMembers = createAsyncThunk(
   'team/fetchAll',
-  async (_storeId: string | undefined, { rejectWithValue }) => {
-    // Note: storeId parameter is ignored - dataService.team.getAll() uses
-    // the current store from Redux auth state internally
+  async (storeId: string | undefined, { getState, rejectWithValue }) => {
     try {
-      const members = await dataService.team.getAll();
-      console.log('[teamThunks] Fetched', members.length, 'members via dataService');
+      // First try to get from local dataService (IndexedDB)
+      let members = await dataService.team.getAll();
+      console.log('[teamThunks] Fetched', members.length, 'members via dataService (local)');
+
+      // If local is empty, fetch from Supabase directly
+      if (members.length === 0 && storeId) {
+        console.log('[teamThunks] Local empty, fetching from Supabase for storeId:', storeId);
+        const staffRows = await staffTable.getByStoreId(storeId);
+        console.log('[teamThunks] Fetched', staffRows.length, 'staff from Supabase');
+
+        // Convert StaffRow to TeamMemberSettings (minimal conversion)
+        members = staffRows.map((row): TeamMemberSettings => ({
+          id: row.id,
+          storeId: row.store_id,
+          isActive: row.is_active,
+          isDeleted: false,
+          profile: {
+            firstName: row.name.split(' ')[0] || row.name,
+            lastName: row.name.split(' ').slice(1).join(' ') || '',
+            displayName: row.name,
+            email: row.email || '',
+            phone: row.phone || '',
+            avatar: row.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(row.name)}&background=random`,
+            bio: '',
+            hireDate: row.created_at,
+          },
+          permissions: {
+            role: 'staff',
+            canAccessReports: false,
+            canManageTeam: false,
+            canManageInventory: false,
+            canProcessPayments: true,
+            canManageBookings: true,
+            canViewClientDetails: true,
+            canModifyServices: false,
+            canApplyDiscounts: false,
+            maxDiscountPercent: 0,
+          },
+          services: [],
+          workingHours: {
+            schedule: [],
+            timezone: 'America/Los_Angeles',
+          },
+          onlineBooking: {
+            isBookable: true,
+            displayName: row.name,
+            bio: '',
+            specialties: [],
+            photoUrl: row.avatar_url || '',
+          },
+          notifications: {
+            emailEnabled: true,
+            smsEnabled: false,
+            pushEnabled: true,
+            appointmentReminders: true,
+            scheduleChanges: true,
+            teamAnnouncements: true,
+            performanceReports: false,
+          },
+          performance: {
+            goals: {
+              dailyServiceTarget: 0,
+              weeklyRevenueTarget: 0,
+              monthlyClientTarget: 0,
+              targetRetailSales: 0,
+            },
+            currentMetrics: {
+              servicesThisWeek: 0,
+              revenueThisMonth: 0,
+              newClientsThisMonth: 0,
+              retailSalesThisMonth: 0,
+              averageRating: 0,
+              totalReviews: 0,
+            },
+          },
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          createdBy: 'system',
+          lastModifiedBy: 'system',
+        }));
+      }
+
       return members;
     } catch (error) {
       console.error('[teamThunks] Failed to fetch team members:', error);

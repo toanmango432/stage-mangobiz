@@ -10,7 +10,7 @@ import {
   disableSync,
   selectSyncEnabled,
 } from '../store/slices/syncSlice';
-import { selectIsOfflineEnabled, selectDeviceMode } from '../store/slices/authSlice';
+import { selectIsOfflineEnabled, selectDeviceMode, selectStoreId } from '../store/slices/authSlice';
 
 // Type definitions for sync operations
 interface SyncChange {
@@ -147,10 +147,10 @@ class SyncManager {
 
       console.log('🔄 Sync: Starting sync process...');
 
-      // Get salon ID
-      const storeId = await settingsDB.get('salon_id');
+      // Get salon ID from Redux (synced by storeAuthManager)
+      const storeId = selectStoreId(store.getState());
       if (!storeId) {
-        console.warn('⚠️ Sync: No salon ID found, skipping sync');
+        console.warn('⚠️ Sync: No salon ID found in auth state, skipping sync');
         return;
       }
 

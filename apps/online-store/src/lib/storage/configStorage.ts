@@ -21,6 +21,8 @@ export interface StorefrontConfig {
  * Initialize storefront config with default values
  */
 export function initializeStorefrontConfig(): void {
+  if (typeof window === 'undefined') return;
+
   const config = localStorage.getItem(STORAGE_KEY);
   if (!config) {
     const defaultConfig: StorefrontConfig = {
@@ -43,6 +45,8 @@ export function initializeStorefrontConfig(): void {
  * Get storefront config
  */
 export function getStorefrontConfig(): StorefrontConfig | null {
+  if (typeof window === 'undefined') return null;
+
   const data = localStorage.getItem(STORAGE_KEY);
   return data ? JSON.parse(data) : null;
 }
@@ -50,7 +54,9 @@ export function getStorefrontConfig(): StorefrontConfig | null {
 /**
  * Update storefront config
  */
-export function updateStorefrontConfig(data: Partial<StorefrontConfig>): StorefrontConfig {
+export function updateStorefrontConfig(data: Partial<StorefrontConfig>): StorefrontConfig | null {
+  if (typeof window === 'undefined') return null;
+
   const current = getStorefrontConfig();
   
   const updated: StorefrontConfig = {

@@ -62,13 +62,20 @@ export function isBuildTime(): boolean {
 
 /**
  * Validates that required environment variables are set.
- * Throws an error at build/startup time if missing.
+ * In development, returns a placeholder to allow HMR to work.
+ * In production, throws an error if missing.
  */
 function validateRequiredEnvVar(
   value: string | undefined,
-  name: string
+  name: string,
+  placeholder: string
 ): string {
   if (!value) {
+    // In development, use placeholder to prevent HMR crashes
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[env] Missing ${name} - using placeholder for development`);
+      return placeholder;
+    }
     throw new Error(
       `Missing required environment variable: ${name}\n` +
         `Please set this in your .env.local file or deployment environment.\n` +
@@ -84,20 +91,28 @@ function validateRequiredEnvVar(
 
 /**
  * Supabase URL - required for database operations
- * @throws Error if NEXT_PUBLIC_SUPABASE_URL or VITE_SUPABASE_URL is not set
+ * @throws Error if NEXT_PUBLIC_SUPABASE_URL or VITE_SUPABASE_URL is not set (production only)
  */
 export function getSupabaseUrl(): string {
   const url = getEnv('NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL');
-  return validateRequiredEnvVar(url, 'NEXT_PUBLIC_SUPABASE_URL');
+  return validateRequiredEnvVar(
+    url,
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'https://placeholder.supabase.co'
+  );
 }
 
 /**
  * Supabase anonymous key - required for client-side operations
- * @throws Error if NEXT_PUBLIC_SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY is not set
+ * @throws Error if NEXT_PUBLIC_SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY is not set (production only)
  */
 export function getSupabaseAnonKey(): string {
   const key = getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY');
-  return validateRequiredEnvVar(key, 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  return validateRequiredEnvVar(
+    key,
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    'placeholder-anon-key'
+  );
 }
 
 /**

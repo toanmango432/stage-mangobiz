@@ -21,10 +21,12 @@ import type { TeamMemberSettings } from '@/components/team-settings/types';
 
 /**
  * Get current store ID from Redux store
+ * Uses the new two-tier auth field (state.auth.store?.storeId)
+ * Falls back to legacy field (state.auth.storeId) for backwards compatibility
  */
 function getStoreId(): string {
   const state = store.getState();
-  return state.auth.storeId || '';
+  return state.auth.store?.storeId || state.auth.storeId || '';
 }
 
 /**

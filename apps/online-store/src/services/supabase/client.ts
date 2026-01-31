@@ -3,40 +3,68 @@
  *
  * Connects to the main POS database (cpaldkcvdcdyzytosntc.supabase.co)
  * with circuit breaker pattern for resilience.
+ *
+ * Uses LAZY INITIALIZATION to prevent HMR/module evaluation errors.
+ * The client is only created when first accessed, not at import time.
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
-import { getSupabaseUrl, getSupabaseAnonKey, isBuildTime } from '@/lib/env';
+import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/env';
 
-const supabaseUrl = getSupabaseUrl();
-const supabaseAnonKey = getSupabaseAnonKey();
+// Lazy-initialized Supabase client
+let _supabase: SupabaseClient<Database> | null = null;
 
-if (!isBuildTime() && typeof window !== 'undefined') {
-  // Warn if real credentials are missing at runtime
-  if (
-    supabaseUrl === 'https://placeholder.supabase.co' ||
-    supabaseAnonKey === 'placeholder-anon-key'
-  ) {
-    console.error('Missing Supabase configuration. Please check your .env file.');
+/**
+ * Get or create the Supabase client (lazy initialization)
+ * This is only called when the client is actually used, not at module load time.
+ */
+function getClient(): SupabaseClient<Database> {
+  if (!_supabase) {
+    const supabaseUrl = getSupabaseUrl();
+    const supabaseAnonKey = getSupabaseAnonKey();
+
+    // Warn if using placeholder credentials
+    if (
+      typeof window !== 'undefined' &&
+      (supabaseUrl === 'https://placeholder.supabase.co' ||
+        supabaseAnonKey === 'placeholder-anon-key')
+    ) {
+      console.error('Missing Supabase configuration. Please check your .env file.');
+    }
+
+    _supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'mango-online-store/1.0.0',
+        },
+      },
+    });
   }
+  return _supabase;
 }
 
-// Create Supabase client with auth configuration for customers
-export const supabase: SupabaseClient<Database> = createClient<Database>(
-  supabaseUrl,
-  supabaseAnonKey,
+/**
+ * Proxy-based lazy Supabase client export
+ * Allows `supabase.from(...)` syntax while deferring client creation
+ */
+export const supabase: SupabaseClient<Database> = new Proxy(
+  {} as SupabaseClient<Database>,
   {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    },
-    global: {
-      headers: {
-        'X-Client-Info': 'mango-online-store/1.0.0',
-      },
+    get(_, prop: string | symbol) {
+      const client = getClient();
+      const value = client[prop as keyof SupabaseClient<Database>];
+      // Bind methods to the client instance
+      if (typeof value === 'function') {
+        return value.bind(client);
+      }
+      return value;
     },
   }
 );
@@ -160,6 +188,13 @@ export function createStoreQuery<T extends keyof Database['public']['Tables']>(
   storeId: string
 ) {
   return supabase.from(table).select().eq('store_id' as any, storeId);
+}
+
+/**
+ * Reset the client (useful for testing or re-initialization)
+ */
+export function resetClient(): void {
+  _supabase = null;
 }
 
 // Export default client
