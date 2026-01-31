@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Trash2, Eye, EyeOff } from "lucide-react";
 import {

@@ -254,7 +254,7 @@ export async function markNotificationSent(suggestionId: string): Promise<void> 
  * @returns Array of suggestions due within the window
  */
 export async function getSuggestionsDueWithin(
-  daysAhead: number = 7
+  daysAhead = 7
 ): Promise<RebookSuggestion[]> {
   const allSuggestions: RebookSuggestion[] = [];
 

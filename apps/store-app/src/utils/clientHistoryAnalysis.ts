@@ -172,7 +172,7 @@ export function analyzeClientHistory(
  */
 export function getSuggestedServices(
   pattern: ClientBookingPattern,
-  maxSuggestions: number = 3
+  maxSuggestions = 3
 ): Array<{ serviceName: string; confidence: number; reason: string }> {
   return pattern.mostCommonServices
     .slice(0, maxSuggestions)
@@ -190,7 +190,7 @@ export function getSuggestedServices(
  */
 export function getSuggestedStaff(
   pattern: ClientBookingPattern,
-  maxSuggestions: number = 2
+  maxSuggestions = 2
 ): Array<{ staffId: string; staffName: string; confidence: number; reason: string }> {
   return pattern.preferredStaff
     .slice(0, maxSuggestions)

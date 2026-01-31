@@ -92,6 +92,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
   // Save notifications to localStorage when they change
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (notifications.length > 0) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
     }
@@ -99,6 +100,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
   // Save preferences to localStorage when they change
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (preferences) {
       localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
     }

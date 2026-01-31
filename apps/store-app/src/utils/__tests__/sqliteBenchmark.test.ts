@@ -31,7 +31,7 @@ async function measureTime<T>(
 /**
  * Generates test client data
  */
-function generateClients(count: number, storeId: string = 'store-1'): TestClient[] {
+function generateClients(count: number, storeId = 'store-1'): TestClient[] {
   const clients: TestClient[] = [];
   const now = new Date().toISOString();
 
@@ -60,7 +60,7 @@ function generateClients(count: number, storeId: string = 'store-1'): TestClient
  */
 function generateTransactions(
   count: number,
-  storeId: string = 'store-1'
+  storeId = 'store-1'
 ): TestTransaction[] {
   const transactions: TestTransaction[] = [];
   const paymentMethods = ['cash', 'card', 'gift_card', 'other'];

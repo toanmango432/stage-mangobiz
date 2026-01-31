@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { Search, Grid, List } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -135,7 +137,3 @@ const SectionCard = ({ section, viewMode, onAdd }: SectionCardProps) => {
     </Card>
   );
 };
-
-
-
-

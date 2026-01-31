@@ -174,7 +174,7 @@ export class AppointmentService {
   async getLastAppointments(
     customerId: number,
     rvcNo: number,
-    type: number = 0
+    type = 0
   ): Promise<Record<string, TicketDTO[]>> {
     const response = await this.api.get<Record<string, TicketDTO[]>>(
       `${this.BASE_URL}/GetListAptLast`,

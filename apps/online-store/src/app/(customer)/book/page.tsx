@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import BookingFlowSimple from '@/views/BookingFlowSimple';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Book an Appointment',
   description:

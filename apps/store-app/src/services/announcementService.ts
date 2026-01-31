@@ -239,7 +239,7 @@ export async function getAnnouncementsForChannel(channel: string): Promise<Annou
  */
 export async function dismissAnnouncement(
   announcementId: string,
-  acknowledged: boolean = false
+  acknowledged = false
 ): Promise<void> {
   // Add to dismissed list
   addDismissedId(announcementId);

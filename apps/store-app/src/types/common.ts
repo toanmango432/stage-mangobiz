@@ -62,6 +62,7 @@ export type TransactionStatus =
 
 export type StaffStatus =
   | 'available'
+  | 'unavailable'
   | 'busy'
   | 'on-break'
   | 'clocked-out'

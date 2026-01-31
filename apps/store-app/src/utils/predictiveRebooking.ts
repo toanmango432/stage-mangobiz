@@ -178,7 +178,7 @@ function generateRebookMessage(
  */
 export function getClientsDueForRebooking(
   appointments: LocalAppointment[],
-  daysAhead: number = 7
+  daysAhead = 7
 ): ClientRebookPrediction[] {
   // Get unique clients
   const clientIds = new Set(appointments.map(apt => apt.clientId).filter(Boolean));
@@ -213,7 +213,7 @@ export function getClientsDueForRebooking(
  */
 export function getAtRiskHighValueClients(
   appointments: LocalAppointment[],
-  minLifetimeValue: number = 500
+  minLifetimeValue = 500
 ): ClientRebookPrediction[] {
   const allPredictions = getClientsDueForRebooking(appointments, 30);
 

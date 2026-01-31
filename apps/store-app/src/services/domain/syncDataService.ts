@@ -28,7 +28,7 @@ export const syncQueueService = {
   /**
    * Get all sync operations with pagination
    */
-  async getAll(limit: number = 100, offset: number = 0) {
+  async getAll(limit = 100, offset = 0) {
     if (USE_SQLITE) {
       return sqliteSyncQueueDB.getAll(limit, offset);
     }
@@ -38,7 +38,7 @@ export const syncQueueService = {
   /**
    * Get pending sync operations
    */
-  async getPending(limit: number = 50) {
+  async getPending(limit = 50) {
     if (USE_SQLITE) {
       return sqliteSyncQueueDB.getPending(limit);
     }

@@ -493,7 +493,7 @@ export async function getStaffReviewSummary(
  */
 export async function getStaffReviews(
   staffId: string,
-  limit: number = 10
+  limit = 10
 ): Promise<StaffReview[]> {
   const { data: reviews, error } = await supabase
     .from('staff_reviews')

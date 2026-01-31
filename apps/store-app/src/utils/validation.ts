@@ -15,7 +15,7 @@ import { dataService } from '../services/dataService';
 /**
  * Validate a name field and return an error message if invalid
  */
-export function getNameError(value: string, fieldLabel: string = 'Name'): string | null {
+export function getNameError(value: string, fieldLabel = 'Name'): string | null {
   const trimmed = value.trim();
   if (!trimmed) {
     return `${fieldLabel} is required`;
@@ -131,30 +131,35 @@ export async function validateForeignKey(
     let exists = false;
 
     switch (entityType) {
-      case 'client':
+      case 'client': {
         const client = await dataService.clients.getById(id);
         exists = !!client;
         break;
+      }
 
-      case 'staff':
+      case 'staff': {
         const staff = await dataService.staff.getById(id);
         exists = !!staff;
         break;
+      }
 
-      case 'service':
+      case 'service': {
         const service = await dataService.services.getById(id);
         exists = !!service;
         break;
+      }
 
-      case 'appointment':
+      case 'appointment': {
         const appointment = await dataService.appointments.getById(id);
         exists = !!appointment;
         break;
+      }
 
-      case 'ticket':
+      case 'ticket': {
         const ticket = await dataService.tickets.getById(id);
         exists = !!ticket;
         break;
+      }
 
       default:
         return {

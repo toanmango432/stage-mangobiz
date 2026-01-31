@@ -4,6 +4,8 @@ import ProductDetail from '@/views/ProductDetail';
 import { BreadcrumbJsonLd } from '@/components/JsonLd';
 import { siteConfig } from '@/lib/metadata';
 
+export const dynamic = 'force-dynamic';
+
 interface ProductPageProps {
   params: Promise<{ productId: string }>;
 }

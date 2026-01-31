@@ -174,7 +174,7 @@ export const giftCardsTable = {
   /**
    * Get gift cards expiring soon
    */
-  async getExpiringSoon(storeId: string, daysAhead: number = 30): Promise<GiftCardRow[]> {
+  async getExpiringSoon(storeId: string, daysAhead = 30): Promise<GiftCardRow[]> {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
 

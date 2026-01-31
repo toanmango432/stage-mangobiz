@@ -410,7 +410,7 @@ export function getBadgeColors(clientType: 'VIP' | 'Priority' | 'New' | 'Regular
 /**
  * Generate combined shadow with inset highlights
  */
-export function getCombinedShadow(elevation: 'sm' | 'md' | 'lg' | 'xl', withInset: boolean = true) {
+export function getCombinedShadow(elevation: 'sm' | 'md' | 'lg' | 'xl', withInset = true) {
   const shadow = PremiumColors.shadows[elevation];
   if (withInset) {
     return `${shadow}, ${PremiumColors.insets.subtle}`;

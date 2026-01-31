@@ -325,7 +325,7 @@ interface Action {
   timestamp: number;
 }
 
-export function useUndoRedo(maxHistory: number = 50) {
+export function useUndoRedo(maxHistory = 50) {
   const [history, setHistory] = useState<Action[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
 

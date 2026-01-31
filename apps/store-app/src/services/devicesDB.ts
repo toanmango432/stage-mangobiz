@@ -367,7 +367,7 @@ export const devicesDB = {
    */
   async getActivityLog(
     deviceId: string,
-    limit: number = 50
+    limit = 50
   ): Promise<Array<{ id: string; action: string; details: unknown; createdAt: string }>> {
     const { data, error } = await supabase
       .from('device_activity_log')

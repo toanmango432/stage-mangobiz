@@ -27,12 +27,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Create a response to pass through (allows cookie updates)
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  // Accumulate cookies to set on the final response
+  // This prevents cookie loss when setAll is called multiple times during token refresh
+  const cookiesToUpdate: Array<{
+    name: string;
+    value: string;
+    options?: Parameters<typeof NextResponse.prototype.cookies.set>[2];
+  }> = [];
 
   // Create Supabase client with cookie access for session reading/refreshing
   const supabase = createServerClient(
@@ -48,14 +49,16 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value);
           });
-          // Update response cookies (for the browser)
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
+          // Accumulate cookies instead of creating new response each time
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+            // Remove any previous entry for this cookie name to avoid duplicates
+            const existingIndex = cookiesToUpdate.findIndex(
+              (c) => c.name === name
+            );
+            if (existingIndex >= 0) {
+              cookiesToUpdate.splice(existingIndex, 1);
+            }
+            cookiesToUpdate.push({ name, value, options });
           });
         },
       },
@@ -73,6 +76,18 @@ export async function middleware(request: NextRequest) {
     loginUrl.searchParams.set('returnTo', pathname);
     return NextResponse.redirect(loginUrl);
   }
+
+  // Create final response with all accumulated cookies
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  // Apply all accumulated cookies to the response
+  cookiesToUpdate.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options);
+  });
 
   return response;
 }

@@ -48,8 +48,9 @@ describe('MQTT Topics', () => {
     it('should handle pad signature topic', () => {
       const topic = buildTopic(TOPIC_PATTERNS.PAD_SIGNATURE_CAPTURED, {
         storeId: 'abc',
+        stationId: 'station-1',
       });
-      expect(topic).toBe('salon/abc/pad/signature');
+      expect(topic).toBe('salon/abc/station/station-1/pad/signature');
     });
 
     it('should handle checkin walkin topic', () => {

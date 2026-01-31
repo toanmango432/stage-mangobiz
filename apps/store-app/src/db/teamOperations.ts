@@ -134,7 +134,7 @@ export const teamDB = {
   /**
    * Search team members by name or email (excludes deleted)
    */
-  async searchMembers(query: string, storeId?: string, limit: number = 50): Promise<TeamMemberSettings[]> {
+  async searchMembers(query: string, storeId?: string, limit = 50): Promise<TeamMemberSettings[]> {
     const lowerQuery = query.toLowerCase();
     return await db.teamMembers
       .filter((member) =>
@@ -330,8 +330,8 @@ export const teamDB = {
    */
   async deleteMember(
     id: string,
-    userId: string = 'system',
-    deviceId: string = 'system'
+    userId = 'system',
+    deviceId = 'system'
   ): Promise<void> {
     await this.softDeleteMember(id, userId, deviceId);
   },
@@ -782,8 +782,8 @@ export const teamDB = {
    */
   async seedInitialData(
     members: TeamMemberSettings[],
-    userId: string = 'system',
-    deviceId: string = 'seed'
+    userId = 'system',
+    deviceId = 'seed'
   ): Promise<void> {
     const storeId = members[0]?.storeId;
     const hasData = await this.hasData(storeId);

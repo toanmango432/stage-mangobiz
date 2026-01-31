@@ -238,9 +238,9 @@ export function timeRangesOverlap(
  * @param intervalMinutes Interval between slots in minutes
  */
 export function getTimeSlots(
-  startHour: number = 8,
-  endHour: number = 20,
-  intervalMinutes: number = 15
+  startHour = 8,
+  endHour = 20,
+  intervalMinutes = 15
 ): string[] {
   const slots: string[] = [];
   const start = new Date();
@@ -272,9 +272,9 @@ export interface TimeSlot {
 }
 
 export function generateTimeSlots(
-  startHour: number = 8,
-  endHour: number = 20,
-  intervalMinutes: number = 15
+  startHour = 8,
+  endHour = 20,
+  intervalMinutes = 15
 ): TimeSlot[] {
   const slots: TimeSlot[] = [];
   const start = new Date();
@@ -353,7 +353,7 @@ export function addMinutes(date: Date, minutes: number): Date {
  * @param includeAmPm Include AM/PM (always true for timezone-aware version)
  * @returns Formatted time string (e.g., "9:30 AM")
  */
-export function formatTimeDisplay(date: Date, includeAmPm: boolean = true): string {
+export function formatTimeDisplay(date: Date, includeAmPm = true): string {
   // Use timezone-aware formatting from dateUtils
   return dateUtilsFormatTime(date, { use24Hour: !includeAmPm });
 }
@@ -415,8 +415,8 @@ export function formatDurationDisplay(minutes: number): string {
  */
 export function isWithinBusinessHours(
   time: Date,
-  businessStart: number = 8,
-  businessEnd: number = 20
+  businessStart = 8,
+  businessEnd = 20
 ): boolean {
   const hours = time.getHours();
   return hours >= businessStart && hours < businessEnd;

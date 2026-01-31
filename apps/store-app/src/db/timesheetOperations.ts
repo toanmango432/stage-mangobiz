@@ -267,7 +267,7 @@ export const timesheetDB = {
     storeId: string,
     userId: string,
     deviceId: string,
-    tenantId: string = 'default-tenant'
+    tenantId = 'default-tenant'
   ): Promise<string> {
     const now = new Date().toISOString();
     const id = uuidv4();
@@ -366,7 +366,7 @@ export const timesheetDB = {
     });
 
     // Find existing timesheet for today
-    let timesheet = await this.getTimesheetByStaffAndDate(
+    const timesheet = await this.getTimesheetByStaffAndDate(
       storeId,
       params.staffId,
       today

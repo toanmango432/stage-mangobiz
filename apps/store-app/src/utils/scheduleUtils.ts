@@ -228,7 +228,7 @@ export const INDEX_TO_DAY_KEY: Record<number, string> = {
  */
 export function uiScheduleToWeekSchedule(
   uiData: UIScheduleData,
-  weekNumber: number = 1
+  weekNumber = 1
 ): WeekSchedule {
   const days: DayScheduleConfig[] = [];
 
@@ -271,7 +271,7 @@ export function uiScheduleToWeekSchedule(
  */
 export function staffScheduleToUISchedule(
   schedule: StaffSchedule,
-  weekNumber: number = 1
+  weekNumber = 1
 ): UIScheduleData {
   const weekSchedule = schedule.weeks.find(w => w.weekNumber === weekNumber);
 
@@ -388,7 +388,7 @@ export function createDefaultWeekSchedule(weekNumber: number): WeekSchedule {
 /**
  * Create empty UI schedule data.
  */
-export function createEmptyUISchedule(staffId: string = ''): UIScheduleData {
+export function createEmptyUISchedule(staffId = ''): UIScheduleData {
   return {
     staffId,
     schedule: {},

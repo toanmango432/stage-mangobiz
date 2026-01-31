@@ -38,7 +38,7 @@ export const formatWaitTime = (minutes: number): string => {
  */
 export const getEstimatedStartTime = (
   createdAt: string | Date,
-  avgWaitMinutes: number = 15
+  avgWaitMinutes = 15
 ): Date => {
   const checkInTime = new Date(createdAt);
   return new Date(checkInTime.getTime() + avgWaitMinutes * 60000);

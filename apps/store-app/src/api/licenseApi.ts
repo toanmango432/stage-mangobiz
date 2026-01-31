@@ -43,7 +43,7 @@ export interface LicenseError {
  */
 export async function validateLicense(
   licenseKey: string,
-  appVersion: string = '1.0.0'
+  appVersion = '1.0.0'
 ): Promise<ValidateLicenseResponse> {
   try {
     const response = await axios.post<ValidateLicenseResponse>(

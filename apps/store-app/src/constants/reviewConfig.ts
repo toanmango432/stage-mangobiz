@@ -113,7 +113,7 @@ export function generateReviewMessage(
  */
 export function generateReviewLink(
   requestId: string,
-  baseUrl: string = 'https://review.mangospa.com'
+  baseUrl = 'https://review.mangospa.com'
 ): string {
   return `${baseUrl}/r/${requestId}`;
 }
@@ -286,6 +286,6 @@ export function getRatingLabel(rating: number): string {
 /**
  * Calculate request expiration date
  */
-export function calculateExpirationDate(createdAt: Date, daysValid: number = 7): Date {
+export function calculateExpirationDate(createdAt: Date, daysValid = 7): Date {
   return new Date(createdAt.getTime() + daysValid * 24 * 60 * 60 * 1000);
 }

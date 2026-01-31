@@ -162,20 +162,5 @@ export function createStoreQuery<T extends keyof Database['public']['Tables']>(
   return supabase.from(table).select().eq('store_id' as any, storeId);
 }
 
-/**
- * Validate store access (defense in depth)
- * RLS should enforce this, but we add client-side validation too
- */
-export function validateStoreAccess(storeId: string): boolean {
-  try {
-    const allowedStores = JSON.parse(
-      localStorage.getItem('mango_allowed_stores') || '[]'
-    );
-    return allowedStores.includes(storeId) || allowedStores.length === 0; // Empty = public access
-  } catch {
-    return true; // Allow if storage is unavailable
-  }
-}
-
 // Export default client
 export default supabase;

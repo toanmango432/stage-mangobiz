@@ -3,16 +3,10 @@
  *
  * This module provides a unified way to access environment variables
  * that works in both Next.js (process.env) and Vite (import.meta.env) contexts.
- */
-
-// Debug: log what Next.js is providing
-if (typeof window !== 'undefined') {
-  console.log('[ENV DEBUG] NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log('[ENV DEBUG] NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
-}
-
-/**
- * (continuing original comment)
+ *
+ * Required environment variables:
+ * - NEXT_PUBLIC_SUPABASE_URL: Supabase project URL
+ * - NEXT_PUBLIC_SUPABASE_ANON_KEY: Supabase anonymous key
  *
  * For Next.js:
  * - Client-accessible vars must have NEXT_PUBLIC_ prefix
@@ -63,23 +57,47 @@ export function isBuildTime(): boolean {
 }
 
 // =============================================================================
+// Environment variable validation
+// =============================================================================
+
+/**
+ * Validates that required environment variables are set.
+ * Throws an error at build/startup time if missing.
+ */
+function validateRequiredEnvVar(
+  value: string | undefined,
+  name: string
+): string {
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable: ${name}\n` +
+        `Please set this in your .env.local file or deployment environment.\n` +
+        `See README.md for required environment variables.`
+    );
+  }
+  return value;
+}
+
+// =============================================================================
 // Pre-defined environment variables with defaults
 // =============================================================================
 
 /**
  * Supabase URL - required for database operations
+ * @throws Error if NEXT_PUBLIC_SUPABASE_URL or VITE_SUPABASE_URL is not set
  */
 export function getSupabaseUrl(): string {
-  // TEMP: Hardcoded for testing - env vars not loading properly
-  return 'https://cpaldkcvdcdyzytosntc.supabase.co';
+  const url = getEnv('NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL');
+  return validateRequiredEnvVar(url, 'NEXT_PUBLIC_SUPABASE_URL');
 }
 
 /**
  * Supabase anonymous key - required for client-side operations
+ * @throws Error if NEXT_PUBLIC_SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY is not set
  */
 export function getSupabaseAnonKey(): string {
-  // TEMP: Hardcoded for testing - env vars not loading properly
-  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwYWxka2N2ZGNkeXp5dG9zbnRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwODMzNzIsImV4cCI6MjA3OTY1OTM3Mn0.A4tG6cf7Xk5Y0eGE-Wpx5-gX62neCnuD2QlRxZ2qOOQ';
+  const key = getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY');
+  return validateRequiredEnvVar(key, 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
 /**

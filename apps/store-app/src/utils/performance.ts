@@ -157,7 +157,7 @@ export function getVisibleRange(
   containerHeight: number,
   itemHeight: number,
   itemCount: number,
-  overscan: number = 3
+  overscan = 3
 ): { startIndex: number; endIndex: number } {
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
   const visibleCount = Math.ceil(containerHeight / itemHeight);
@@ -220,7 +220,7 @@ export const gpuAcceleratedStyles = {
   }),
 
   /** Slide animation (GPU accelerated) */
-  slide: (x: number, y: number = 0) => ({
+  slide: (x: number, y = 0) => ({
     transform: `translate3d(${x}px, ${y}px, 0)`,
     willChange: 'transform',
   }),
@@ -259,7 +259,7 @@ export const gpuAcceleratedStyles = {
 export function useWillChange(
   ref: React.RefObject<HTMLElement>,
   properties: string,
-  duration: number = 300
+  duration = 300
 ) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -333,7 +333,7 @@ export function useIntersectionObserver(
  */
 export function usePreload(
   loadFn: () => Promise<unknown>,
-  delay: number = 100
+  delay = 100
 ) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const loadedRef = useRef(false);
@@ -372,6 +372,7 @@ export function useRenderCount(componentName: string): number {
     console.log(`[Render] ${componentName}: ${renderCount.current}`);
   }
 
+  // eslint-disable-next-line react-hooks/refs
   return renderCount.current;
 }
 

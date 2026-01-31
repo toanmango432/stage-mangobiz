@@ -3,6 +3,8 @@ import About from '@/views/info/About';
 import { BreadcrumbJsonLd } from '@/components/JsonLd';
 import { siteConfig } from '@/lib/metadata';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'About Us',
   description: 'Learn about our story, mission, and the team behind our salon and spa.',

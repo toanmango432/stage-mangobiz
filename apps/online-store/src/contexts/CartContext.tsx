@@ -38,12 +38,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [savedForLater, setSavedForLater] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState<PromoCode | null>(null);
 
-  // Load cart from localStorage on mount
+  // Load cart from localStorage on mount (client-side only)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const savedCart = localStorage.getItem('mango-cart');
     const savedItems = localStorage.getItem('mango-saved-for-later');
     const savedPromo = localStorage.getItem('mango-promo-code');
-    
+
     if (savedCart) {
       try {
         setItems(JSON.parse(savedCart));
@@ -51,7 +53,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         console.error('Failed to load cart:', e);
       }
     }
-    
+
     if (savedItems) {
       try {
         setSavedForLater(JSON.parse(savedItems));
@@ -59,7 +61,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         console.error('Failed to load saved items:', e);
       }
     }
-    
+
     if (savedPromo) {
       try {
         setPromoCode(JSON.parse(savedPromo));
@@ -69,18 +71,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage whenever it changes (client-side only)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     localStorage.setItem('mango-cart', JSON.stringify(items));
   }, [items]);
 
-  // Save saved-for-later to localStorage
+  // Save saved-for-later to localStorage (client-side only)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     localStorage.setItem('mango-saved-for-later', JSON.stringify(savedForLater));
   }, [savedForLater]);
 
-  // Save promo code to localStorage
+  // Save promo code to localStorage (client-side only)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (promoCode) {
       localStorage.setItem('mango-promo-code', JSON.stringify(promoCode));
     } else {

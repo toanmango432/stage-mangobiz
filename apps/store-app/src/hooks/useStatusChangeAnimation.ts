@@ -10,7 +10,7 @@ import { useState, useEffect, useRef } from 'react';
  */
 export function useStatusChangeAnimation(
   currentStatus: string | undefined,
-  animationDuration: number = 500
+  animationDuration = 500
 ): { isAnimating: boolean } {
   const [isAnimating, setIsAnimating] = useState(false);
   const previousStatusRef = useRef<string | undefined>(currentStatus);
