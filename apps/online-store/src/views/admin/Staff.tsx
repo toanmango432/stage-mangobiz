@@ -10,16 +10,72 @@ import { getStaff, initializeMockData } from "@/lib/mockData";
 import { StaffScheduleCalendar } from "@/components/admin/staff/StaffScheduleCalendar";
 import { StaffFormDialog } from "@/components/admin/staff/StaffFormDialog";
 import { StaffDetailModal } from "@/components/admin/staff/StaffDetailModal";
+import type { Staff as BookingStaff } from "@/types/booking";
+
+// Extended staff type for admin view with additional properties
+interface AdminStaff extends BookingStaff {
+  role: string;
+  status: 'active' | 'inactive';
+  email: string;
+  phone: string;
+  bookingsCompleted: number;
+  services: string[];
+}
+
+// Type guard for StaffMember from child components (they have a simplified interface)
+interface StaffMemberFromDialog {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  services?: string[];
+  status?: string;
+  rating?: number;
+  bookingsCompleted?: number;
+}
+
+// Convert dialog StaffMember back to AdminStaff for state (preserves extra BookingStaff fields)
+const toAdminStaff = (member: StaffMemberFromDialog, existing: AdminStaff | null): AdminStaff => ({
+  // BookingStaff required fields - keep from existing or provide defaults
+  id: member.id,
+  name: member.name,
+  title: existing?.title ?? member.role ?? 'Staff',
+  rating: existing?.rating ?? member.rating ?? 0,
+  specialties: existing?.specialties ?? [],
+  workingHours: existing?.workingHours ?? {},
+  daysOff: existing?.daysOff ?? [],
+  photo: existing?.photo,
+  // AdminStaff extended fields
+  role: member.role ?? existing?.role ?? 'Staff',
+  status: (member.status as 'active' | 'inactive') ?? existing?.status ?? 'active',
+  email: member.email,
+  phone: member.phone ?? existing?.phone ?? '',
+  bookingsCompleted: member.bookingsCompleted ?? existing?.bookingsCompleted ?? 0,
+  services: member.services ?? existing?.services ?? [],
+});
 
 const Staff = () => {
-  const [selectedStaff, setSelectedStaff] = useState<any>(null);
+  const [selectedStaff, setSelectedStaff] = useState<AdminStaff | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
 
   useMemo(() => initializeMockData(), []);
-  
-  const staff = useMemo(() => getStaff(), []);
+
+  // Map base Staff to AdminStaff with default admin values
+  const staff = useMemo(() => {
+    const baseStaff = getStaff();
+    return baseStaff.map((s): AdminStaff => ({
+      ...s,
+      role: s.title || 'Staff',
+      status: 'active',
+      email: `${s.name.toLowerCase().replace(/\s+/g, '.')}@salon.com`,
+      phone: '(555) 000-0000',
+      bookingsCompleted: Math.floor(Math.random() * 200) + 50,
+      services: s.specialties || [],
+    }));
+  }, []);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -145,13 +201,14 @@ const Staff = () => {
         }}
       />
 
-      <StaffDetailModal 
+      <StaffDetailModal
         staff={selectedStaff}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
-        onEdit={(staff) => {
+        onEdit={(staffMember) => {
           setDetailsOpen(false);
-          setSelectedStaff(staff);
+          // Convert StaffMember from dialog back to AdminStaff, preserving existing fields
+          setSelectedStaff(toAdminStaff(staffMember as StaffMemberFromDialog, selectedStaff));
           setFormOpen(true);
         }}
       />

@@ -6,7 +6,26 @@
  * Also includes input validation helpers for forms.
  */
 
-import { dataService } from '../services/dataService';
+// DataService interface for dependency injection
+// This allows the validation functions to work without a direct import
+interface DataServiceInterface {
+  clients: { getById: (id: string) => Promise<unknown> };
+  staff: { getById: (id: string) => Promise<unknown> };
+  services: { getById: (id: string) => Promise<unknown> };
+  appointments: { getById: (id: string) => Promise<unknown> };
+  tickets: { getById: (id: string) => Promise<unknown> };
+}
+
+// Module-level dataService instance (set via setDataService)
+let dataService: DataServiceInterface | null = null;
+
+/**
+ * Set the dataService instance for foreign key validation.
+ * Must be called before using validateForeignKey functions.
+ */
+export function setDataService(service: DataServiceInterface): void {
+  dataService = service;
+}
 
 // =============================================================================
 // Input Validation & Formatting Helpers
@@ -117,6 +136,7 @@ export interface ValidationResult {
 
 /**
  * Validate that a foreign key entity exists
+ * Note: Requires setDataService() to be called first
  */
 export async function validateForeignKey(
   entityType: EntityType,
@@ -125,6 +145,14 @@ export async function validateForeignKey(
   // Allow null/undefined for optional foreign keys
   if (!id) {
     return { valid: true };
+  }
+
+  // Check if dataService is configured
+  if (!dataService) {
+    return {
+      valid: false,
+      error: 'dataService not configured. Call setDataService() first.',
+    };
   }
 
   try {

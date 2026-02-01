@@ -3,7 +3,7 @@
  * AI-powered service recommendations and add-on suggestions
  */
 
-import { LocalAppointment } from '../types/appointment';
+import { LocalAppointment } from '@mango/types';
 
 export interface Service {
   id: string;

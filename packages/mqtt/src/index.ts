@@ -6,7 +6,7 @@
  *
  * @example
  * // Check if MQTT is enabled
- * import { isMqttEnabled, getMqttFeatureFlags } from '@/services/mqtt';
+ * import { isMqttEnabled, getMqttFeatureFlags } from '@mango/mqtt';
  *
  * if (isMqttEnabled()) {
  *   const flags = getMqttFeatureFlags();
@@ -17,7 +17,7 @@
  *
  * @example
  * // Build topics
- * import { TOPIC_PATTERNS, buildTopic } from '@/services/mqtt';
+ * import { TOPIC_PATTERNS, buildTopic } from '@mango/mqtt';
  *
  * const topic = buildTopic(TOPIC_PATTERNS.APPOINTMENT_CREATED, {
  *   storeId: 'abc123'
@@ -92,32 +92,20 @@ export {
 export type { MqttFeatureFlags } from './featureFlags';
 
 // =============================================================================
-// Client & Provider (Phase 1)
+// Client (Phase 1)
 // =============================================================================
 export { MqttClient, getMqttClient, destroyMqttClient } from './MqttClient';
-export {
-  MqttProvider,
-  useMqttContext,
-  useMqttContextOptional,
-  destroyMqttResources,
-} from './MqttProvider';
-export {
-  DualBrokerManager,
-  getDualBrokerManager,
-  destroyDualBrokerManager,
-} from './DualBrokerManager';
 
 // =============================================================================
-// Hooks (Phase 1)
+// TODO: The following exports are temporarily disabled due to API mismatches
+// and missing dependencies that need to be resolved. The MqttProvider,
+// DualBrokerManager and related hooks have dependencies on app-specific
+// paths (@/store, ../supabase/client) that don't exist in this package.
+// See MQTT_ARCHITECTURE.md for planned refactoring.
 // =============================================================================
-export { useMqtt } from './hooks/useMqtt';
-export {
-  useMqttSubscription,
-  useMqttSubscriptions,
-} from './hooks/useMqttSubscription';
-export { useMqttPublish, useTopicPublish } from './hooks/useMqttPublish';
-
-// =============================================================================
-// Bridge (Phase 3)
-// =============================================================================
-export { mqttBridge, default as MqttBridge } from './mqttBridge';
+// export { MqttProvider, useMqttContext, useMqttContextOptional, destroyMqttResources } from './MqttProvider';
+// export { DualBrokerManager, getDualBrokerManager, destroyDualBrokerManager } from './DualBrokerManager';
+// export { mqttBridge, default as MqttBridge } from './mqttBridge';
+// export { useMqtt } from './hooks/useMqtt';
+// export { useMqttSubscription, useMqttSubscriptions } from './hooks/useMqttSubscription';
+// export { useMqttPublish, useTopicPublish } from './hooks/useMqttPublish';

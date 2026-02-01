@@ -304,3 +304,24 @@ In Next.js 16, setting `pageExtensions: ['page.tsx', 'page.ts', 'page.jsx', 'pag
 
 ### Server Component Page Wrappers for Metadata
 Next.js `export const metadata` only works in Server Components (no `'use client'`). When migrating `'use client'` page wrappers to support metadata, move `'use client'` to the imported source component (`src/pages/*.tsx`) and make the `app/*/page.tsx` wrapper a Server Component. The source component becomes self-contained as a Client Component, and the wrapper can export metadata.
+
+## From ralph/tech-debt-phase2 (2026-02-01)
+
+### Supabase Partial Select Type Workaround
+When using partial selects like `.select('id, items')` with @supabase/ssr, TypeScript often infers the return type as `never` due to generic type limitations. Fix with explicit type assertion:
+```typescript
+// 1. Extract query result to separate variable
+const { data: cartData, error } = await supabase
+  .from('online_carts')
+  .select('id, items')
+  .single();
+
+// 2. Apply explicit type assertion with the expected shape
+const cart = cartData as { id: string; items: Json } | null;
+
+// 3. For Json → typed array conversions, use double cast
+const items = cart?.items
+  ? (cart.items as unknown as CartItemData[])
+  : [];
+```
+For insert/update/upsert operations that still fail type inference, wrap `.from()` with `as any` and add eslint-disable comment when Zod validation ensures data correctness.

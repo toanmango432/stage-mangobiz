@@ -92,7 +92,7 @@ export class ServicesRepository extends BaseRepository<ServiceRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('services')
           .select(`
@@ -109,7 +109,7 @@ export class ServicesRepository extends BaseRepository<ServiceRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return (data || []).map((row: any) => toService(row as ServiceWithCategory));
+      return ((data || []) as ServiceWithCategory[]).map((row) => toService(row));
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -142,7 +142,7 @@ export class ServicesRepository extends BaseRepository<ServiceRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('services')
           .select(`
@@ -175,7 +175,7 @@ export class ServicesRepository extends BaseRepository<ServiceRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('services')
           .select(`
@@ -194,7 +194,7 @@ export class ServicesRepository extends BaseRepository<ServiceRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return (data || []).map((row: any) => toService(row as ServiceWithCategory));
+      return ((data || []) as ServiceWithCategory[]).map((row) => toService(row));
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -208,7 +208,7 @@ export class ServicesRepository extends BaseRepository<ServiceRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('services')
           .select(`
@@ -226,7 +226,7 @@ export class ServicesRepository extends BaseRepository<ServiceRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return (data || []).map((row: any) => toService(row as ServiceWithCategory));
+      return ((data || []) as ServiceWithCategory[]).map((row) => toService(row));
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -240,7 +240,7 @@ export class ServicesRepository extends BaseRepository<ServiceRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('service_categories')
           .select('*')
@@ -253,7 +253,7 @@ export class ServicesRepository extends BaseRepository<ServiceRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return data || [];
+      return (data || []) as ServiceCategoryRow[];
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);

@@ -2,61 +2,53 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ServiceMenuGridMobile } from '@/components/booking/ServiceMenuGridMobile';
+import { createMockBookingServiceData } from '@/__tests__/factories';
+
+// Create mock service data using factories
+const mockGelManicure = createMockBookingServiceData({
+  id: '1',
+  name: 'Gel Manicure',
+  category: 'Nail Services',
+  description: 'Premium gel manicure service',
+  duration: 60,
+  basePrice: 45,
+  image: '/images/gel-manicure.jpg',
+  featured: true,
+  popular: true,
+});
+
+const mockPedicure = createMockBookingServiceData({
+  id: '2',
+  name: 'Pedicure',
+  category: 'Nail Services',
+  description: 'Relaxing pedicure service',
+  duration: 45,
+  basePrice: 60,
+  image: '/images/pedicure.jpg',
+  featured: false,
+  popular: true,
+});
+
+const mockFacial = createMockBookingServiceData({
+  id: '3',
+  name: 'Facial',
+  category: 'Skin Care',
+  description: 'Deep cleansing facial treatment',
+  duration: 90,
+  basePrice: 80,
+  image: '/images/facial.jpg',
+  featured: false,
+  popular: false,
+});
 
 // Mock the bookingDataService
 vi.mock('@/lib/services/bookingDataService', () => ({
   bookingDataService: {
     getServices: vi.fn(() => Promise.resolve({
-      services: [
-        {
-          id: '1',
-          name: 'Gel Manicure',
-          category: 'Nail Services',
-          description: 'Premium gel manicure service',
-          duration: 60,
-          basePrice: 45,
-          image: '/images/gel-manicure.jpg',
-          featured: true,
-          popular: true,
-        },
-        {
-          id: '2',
-          name: 'Pedicure',
-          category: 'Nail Services',
-          description: 'Relaxing pedicure service',
-          duration: 45,
-          basePrice: 60,
-          image: '/images/pedicure.jpg',
-          featured: false,
-          popular: true,
-        },
-        {
-          id: '3',
-          name: 'Facial',
-          category: 'Skin Care',
-          description: 'Deep cleansing facial treatment',
-          duration: 90,
-          basePrice: 80,
-          image: '/images/facial.jpg',
-          featured: false,
-          popular: false,
-        },
-      ],
+      services: [mockGelManicure, mockPedicure, mockFacial],
     })),
     getFeaturedServices: vi.fn(() => Promise.resolve({
-      services: [
-        {
-          id: '1',
-          name: 'Gel Manicure',
-          category: 'Nail Services',
-          description: 'Premium gel manicure service',
-          duration: 60,
-          basePrice: 45,
-          image: '/images/gel-manicure.jpg',
-          featured: true,
-          popular: true,
-        },
-      ],
+      services: [mockGelManicure],
     })),
   },
 }));
@@ -370,21 +362,21 @@ describe('ServiceMenuGridMobile', () => {
   });
 
   it('handles missing service images gracefully', async () => {
+    const serviceWithoutImage = createMockBookingServiceData({
+      id: '1',
+      name: 'Gel Manicure',
+      category: 'Nail Services',
+      description: 'Premium gel manicure service',
+      duration: 60,
+      basePrice: 45,
+      image: null, // Missing image
+      featured: true,
+      popular: true,
+    });
+
     vi.mocked(require('@/lib/services/bookingDataService').bookingDataService.getServices)
       .mockResolvedValueOnce({
-        services: [
-          {
-            id: '1',
-            name: 'Gel Manicure',
-            category: 'Nail Services',
-            description: 'Premium gel manicure service',
-            duration: 60,
-            basePrice: 45,
-            image: null, // Missing image
-            featured: true,
-            popular: true,
-          },
-        ],
+        services: [serviceWithoutImage],
       });
 
     render(<ServiceMenuGridMobile {...defaultProps} />);
@@ -396,21 +388,21 @@ describe('ServiceMenuGridMobile', () => {
   });
 
   it('handles service with zero price', async () => {
+    const freeService = createMockBookingServiceData({
+      id: '1',
+      name: 'Free Consultation',
+      category: 'Consultation',
+      description: 'Free consultation service',
+      duration: 30,
+      basePrice: 0,
+      image: '/images/consultation.jpg',
+      featured: false,
+      popular: false,
+    });
+
     vi.mocked(require('@/lib/services/bookingDataService').bookingDataService.getServices)
       .mockResolvedValueOnce({
-        services: [
-          {
-            id: '1',
-            name: 'Free Consultation',
-            category: 'Consultation',
-            description: 'Free consultation service',
-            duration: 30,
-            basePrice: 0,
-            image: '/images/consultation.jpg',
-            featured: false,
-            popular: false,
-          },
-        ],
+        services: [freeService],
       });
 
     render(<ServiceMenuGridMobile {...defaultProps} />);
@@ -421,21 +413,21 @@ describe('ServiceMenuGridMobile', () => {
   });
 
   it('handles service with zero duration', async () => {
+    const instantService = createMockBookingServiceData({
+      id: '1',
+      name: 'Instant Service',
+      category: 'Quick Services',
+      description: 'Instant service',
+      duration: 0,
+      basePrice: 25,
+      image: '/images/instant.jpg',
+      featured: false,
+      popular: false,
+    });
+
     vi.mocked(require('@/lib/services/bookingDataService').bookingDataService.getServices)
       .mockResolvedValueOnce({
-        services: [
-          {
-            id: '1',
-            name: 'Instant Service',
-            category: 'Quick Services',
-            description: 'Instant service',
-            duration: 0,
-            basePrice: 25,
-            image: '/images/instant.jpg',
-            featured: false,
-            popular: false,
-          },
-        ],
+        services: [instantService],
       });
 
     render(<ServiceMenuGridMobile {...defaultProps} />);

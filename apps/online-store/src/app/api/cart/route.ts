@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import type { Json, OnlineCartInsert, OnlineCartUpdate } from '@/services/supabase/types';
 
 // ============================================================================
 // Validation Schemas
@@ -168,7 +169,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch cart from online_carts table
-    const { data: cart, error } = await supabase
+    const { data: cartData, error } = await supabase
       .from('online_carts')
       .select('*')
       .eq('store_id', storeId)
@@ -189,7 +190,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const items: CartItemData[] = cart?.items ?? [];
+    // Type the cart data explicitly
+    const cart = cartData as { id: string; items: Json } | null;
+    const items: CartItemData[] = cart?.items
+      ? (cart.items as unknown as CartItemData[])
+      : [];
     const summary = calculateCartSummary(items);
 
     return NextResponse.json({
@@ -255,14 +260,18 @@ export async function POST(request: NextRequest) {
     const { storeId, item } = parsed.data;
 
     // Get existing cart or create new one
-    const { data: existingCart } = await supabase
+    const { data: existingCartData } = await supabase
       .from('online_carts')
       .select('id, items')
       .eq('store_id', storeId)
       .eq('client_id', user.id)
       .single();
 
-    let items: CartItemData[] = existingCart?.items ?? [];
+    // Type the cart data explicitly to avoid 'never' type issue
+    const existingCart = existingCartData as { id: string; items: Json } | null;
+    let items: CartItemData[] = existingCart?.items
+      ? (existingCart.items as unknown as CartItemData[])
+      : [];
 
     // Check for duplicate (same id and type)
     const existingIndex = items.findIndex(
@@ -281,18 +290,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert cart
-    const { data: updatedCart, error: upsertError } = await supabase
-      .from('online_carts')
-      .upsert(
-        {
-          id: existingCart?.id ?? undefined,
-          store_id: storeId,
-          client_id: user.id,
-          items,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'store_id,client_id' }
-      )
+    const cartId = existingCart?.id;
+    const upsertData: OnlineCartInsert = {
+      ...(cartId ? { id: cartId } : {}),
+      store_id: storeId,
+      client_id: user.id,
+      items: items as unknown as Json,
+      updated_at: new Date().toISOString(),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference workaround
+    const { data: updatedCartData, error: upsertError } = await (supabase
+      .from('online_carts') as any)
+      .upsert(upsertData, { onConflict: 'store_id,client_id' })
       .select()
       .single();
 
@@ -310,11 +319,13 @@ export async function POST(request: NextRequest) {
     }
 
     const summary = calculateCartSummary(items);
+    const updatedCart = updatedCartData as { id: string } | null;
+    const newCartId = updatedCart?.id ?? cartId ?? crypto.randomUUID();
 
     return NextResponse.json(
       {
         data: {
-          id: updatedCart?.id,
+          id: newCartId,
           items,
           summary,
         },
@@ -376,12 +387,15 @@ export async function PUT(request: NextRequest) {
 
     const { storeId, itemId, quantity } = parsed.data;
 
-    const { data: cart, error: fetchError } = await supabase
+    const { data: cartData, error: fetchError } = await supabase
       .from('online_carts')
       .select('id, items')
       .eq('store_id', storeId)
       .eq('client_id', user.id)
       .single();
+
+    // Type the cart data explicitly to avoid 'never' type issue
+    const cart = cartData as { id: string; items: Json } | null;
 
     if (fetchError || !cart) {
       return NextResponse.json(
@@ -395,7 +409,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const items: CartItemData[] = cart.items ?? [];
+    const cartId = cart.id;
+    const items: CartItemData[] = cart.items
+      ? (cart.items as unknown as CartItemData[])
+      : [];
     const itemIndex = items.findIndex((i) => i.id === itemId);
 
     if (itemIndex === -1) {
@@ -412,10 +429,15 @@ export async function PUT(request: NextRequest) {
 
     items[itemIndex].quantity = quantity;
 
-    const { error: updateError } = await supabase
-      .from('online_carts')
-      .update({ items, updated_at: new Date().toISOString() })
-      .eq('id', cart.id);
+    const updateData: OnlineCartUpdate = {
+      items: items as unknown as Json,
+      updated_at: new Date().toISOString(),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference workaround
+    const { error: updateError } = await (supabase
+      .from('online_carts') as any)
+      .update(updateData)
+      .eq('id', cartId);
 
     if (updateError) {
       return NextResponse.json(
@@ -434,7 +456,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       data: {
-        id: cart.id,
+        id: cartId,
         items,
         summary,
       },
@@ -494,12 +516,15 @@ export async function DELETE(request: NextRequest) {
 
     const { storeId, itemId } = parsed.data;
 
-    const { data: cart, error: fetchError } = await supabase
+    const { data: cartData, error: fetchError } = await supabase
       .from('online_carts')
       .select('id, items')
       .eq('store_id', storeId)
       .eq('client_id', user.id)
       .single();
+
+    // Type the cart data explicitly to avoid 'never' type issue
+    const cart = cartData as { id: string; items: Json } | null;
 
     if (fetchError || !cart) {
       return NextResponse.json(
@@ -513,14 +538,23 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const items: CartItemData[] = (cart.items ?? []).filter(
+    const cartId = cart.id;
+    const cartItems = cart.items
+      ? (cart.items as unknown as CartItemData[])
+      : [];
+    const items: CartItemData[] = cartItems.filter(
       (i: CartItemData) => i.id !== itemId
     );
 
-    const { error: updateError } = await supabase
-      .from('online_carts')
-      .update({ items, updated_at: new Date().toISOString() })
-      .eq('id', cart.id);
+    const deleteUpdateData: OnlineCartUpdate = {
+      items: items as unknown as Json,
+      updated_at: new Date().toISOString(),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference workaround
+    const { error: updateError } = await (supabase
+      .from('online_carts') as any)
+      .update(deleteUpdateData)
+      .eq('id', cartId);
 
     if (updateError) {
       return NextResponse.json(
@@ -539,7 +573,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       data: {
-        id: cart.id,
+        id: cartId,
         items,
         summary,
       },

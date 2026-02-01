@@ -40,7 +40,7 @@ export interface SidebarWidthActions {
   applyWidthSettings: (viewWidth: string, customPercentage: number) => void;
   restoreOriginalWidth: () => void;
   saveOriginalWidth: () => void;
-  customWidthPopupRef: React.RefObject<HTMLDivElement>;
+  customWidthPopupRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useSidebarWidth(): SidebarWidthState & SidebarWidthActions {

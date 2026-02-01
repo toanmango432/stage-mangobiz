@@ -2,16 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StaffProfileSheet } from '@/components/booking/StaffProfileSheet';
+import { createMockStaffPersonality } from '@/__tests__/factories';
 
 // Mock the MobileBottomSheet component
 vi.mock('@/components/booking/MobileBottomSheet', () => ({
-  MobileBottomSheet: ({ children, isOpen }: any) => 
+  MobileBottomSheet: ({ children, isOpen }: any) =>
     isOpen ? <div data-testid="mobile-bottom-sheet">{children}</div> : null,
 }));
 
 describe('StaffProfileSheet', () => {
-  const defaultProps = {
-    staff: {
+  // Create base mock staff using factory with extended properties
+  const mockStaff = {
+    ...createMockStaffPersonality({
       id: '1',
       name: 'Sarah Chen',
       role: 'Senior Stylist',
@@ -29,33 +31,28 @@ describe('StaffProfileSheet', () => {
         '/images/portfolio/sarah-5.jpg',
       ],
       bio: 'Expert colorist with 8 years of experience specializing in balayage and color correction.',
-      workingHours: {
-        monday: { start: '09:00', end: '18:00' },
-        tuesday: { start: '09:00', end: '18:00' },
-        wednesday: { start: '09:00', end: '18:00' },
-        thursday: { start: '09:00', end: '18:00' },
-        friday: { start: '09:00', end: '18:00' },
-        saturday: { start: '10:00', end: '16:00' },
-        sunday: { start: '10:00', end: '16:00' },
-      },
       daysOff: [],
-      reviews: [
-        {
-          id: '1',
-          clientName: 'Jane Doe',
-          rating: 5,
-          comment: 'Amazing work! Sarah is so talented.',
-          date: '2024-01-10',
-        },
-        {
-          id: '2',
-          clientName: 'John Smith',
-          rating: 4,
-          comment: 'Great service, very professional.',
-          date: '2024-01-08',
-        },
-      ],
-    },
+    }),
+    reviews: [
+      {
+        id: '1',
+        clientName: 'Jane Doe',
+        rating: 5,
+        comment: 'Amazing work! Sarah is so talented.',
+        date: '2024-01-10',
+      },
+      {
+        id: '2',
+        clientName: 'John Smith',
+        rating: 4,
+        comment: 'Great service, very professional.',
+        date: '2024-01-08',
+      },
+    ],
+  };
+
+  const defaultProps = {
+    staff: mockStaff,
     isOpen: true,
     onClose: vi.fn(),
     onSelect: vi.fn(),
@@ -138,8 +135,9 @@ describe('StaffProfileSheet', () => {
 
   it('shows default bio when bio is missing', () => {
     const staffWithoutBio = {
-      ...defaultProps.staff,
+      ...createMockStaffPersonality({ ...mockStaff, bio: '' }),
       bio: null,
+      reviews: mockStaff.reviews,
     };
 
     render(<StaffProfileSheet {...defaultProps} staff={staffWithoutBio} />);
@@ -212,8 +210,8 @@ describe('StaffProfileSheet', () => {
 
   it('handles empty portfolio gracefully', () => {
     const staffWithoutPortfolio = {
-      ...defaultProps.staff,
-      portfolio: [],
+      ...createMockStaffPersonality({ ...mockStaff, portfolio: [] }),
+      reviews: mockStaff.reviews,
     };
 
     render(<StaffProfileSheet {...defaultProps} staff={staffWithoutPortfolio} />);
@@ -223,7 +221,7 @@ describe('StaffProfileSheet', () => {
 
   it('handles empty reviews gracefully', () => {
     const staffWithoutReviews = {
-      ...defaultProps.staff,
+      ...createMockStaffPersonality(mockStaff),
       reviews: [],
     };
 
@@ -237,8 +235,8 @@ describe('StaffProfileSheet', () => {
 
   it('handles missing avatar gracefully', () => {
     const staffWithoutAvatar = {
-      ...defaultProps.staff,
-      avatar: null,
+      ...createMockStaffPersonality({ ...mockStaff, avatar: null }),
+      reviews: mockStaff.reviews,
     };
 
     render(<StaffProfileSheet {...defaultProps} staff={staffWithoutAvatar} />);

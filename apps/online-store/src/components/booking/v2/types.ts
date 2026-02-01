@@ -66,11 +66,14 @@ export interface Service {
 export interface Staff {
   id: string;
   name: string;
-  title: string;
-  photo: string;
+  title?: string;
+  role?: string; // Alias for title used by some components
+  photo?: string;
+  avatar?: string; // Alias for photo used by some components
   rating: number;
-  specialties: string[];
-  availability: 'available' | 'busy' | 'unavailable';
+  specialties?: string[];
+  services?: string[]; // Service IDs this staff member can perform
+  availability?: Record<string, { start: string; end: string }[]>; // Day-by-day availability
   nextAvailable?: string;
   workingHours?: {
     [key: string]: { start: string; end: string };

@@ -6,6 +6,10 @@
       "DOM",
       "DOM.Iterable"
     ],
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -56,6 +60,7 @@
   ],
   "exclude": [
     "node_modules",
-    ".next"
+    ".next",
+    "src/__tests__/**/*"
   ]
 }

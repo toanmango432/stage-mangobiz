@@ -6,7 +6,7 @@
  * and aria-live announcements for screen readers.
  */
 
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -63,7 +63,7 @@ export interface UseKeyboardDragDropReturn<T> {
   /** Announcements configuration for screen readers */
   announcements: Announcements;
   /** Ref for the live region element */
-  liveRegionRef: React.RefObject<HTMLDivElement>;
+  liveRegionRef: React.RefObject<HTMLDivElement | null>;
   /** Current announcement message */
   announcement: string;
   /** Move item up by one position (keyboard shortcut) */
@@ -392,7 +392,7 @@ export interface KeyboardInstructionsProps {
   id: string;
 }
 
-export function KeyboardInstructions({ id }: KeyboardInstructionsProps): JSX.Element {
+export function KeyboardInstructions({ id }: KeyboardInstructionsProps): React.ReactElement {
   return (
     <div id={id} className="sr-only">
       To reorder, focus on the drag handle and use Arrow Up or Arrow Down keys.
@@ -409,7 +409,7 @@ export interface LiveAnnouncerProps {
   announcement: string;
 }
 
-export function LiveAnnouncer({ announcement }: LiveAnnouncerProps): JSX.Element {
+export function LiveAnnouncer({ announcement }: LiveAnnouncerProps): React.ReactElement {
   return (
     <div
       role="status"

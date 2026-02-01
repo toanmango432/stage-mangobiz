@@ -6,10 +6,12 @@ import { useBookingFlow } from '@/hooks/useBookingFlow';
 import { mockAuthApi } from '@/lib/api/mockAuth';
 
 import { Button } from '@/components/ui/button';
-import { ServiceBrowser } from '@/components/booking/v2/ServiceBrowser';
-import { StaffSelector } from '@/components/booking/v2/StaffSelector';
-import { Calendar7Day } from '@/components/booking/v2/Calendar7Day';
-import { GroupedTimeSlots } from '@/components/booking/v2/GroupedTimeSlots';
+import { ServiceSelectionSection } from '@/components/booking/ServiceSelectionSection';
+import { RequiredQuestionsSection } from '@/components/booking/RequiredQuestionsSection';
+import { TechnicianSelectionSection } from '@/components/booking/TechnicianSelectionSection';
+import { DateTimeSelectionSection } from '@/components/booking/DateTimeSelectionSection';
+import { BookingSummarySection } from '@/components/booking/BookingSummarySection';
+import { PromoSidebar } from '@/components/booking/PromoSidebar';
 import { PasswordlessLoginModal } from '@/components/auth/PasswordlessLoginModal';
 import { getServices } from '@/lib/services/catalogSyncService';
 import { cn } from '@/lib/utils';

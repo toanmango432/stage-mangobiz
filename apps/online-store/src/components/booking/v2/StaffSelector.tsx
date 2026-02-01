@@ -34,8 +34,8 @@ export const StaffSelector: React.FC<StaffSelectorProps> = ({
 
     // Filter by service category if provided
     if (serviceCategory) {
-      filtered = filtered.filter(member => 
-        member.specialties.some(specialty => 
+      filtered = filtered.filter(member =>
+        (member.specialties ?? []).some(specialty =>
           specialty.toLowerCase().includes(serviceCategory.toLowerCase()) ||
           serviceCategory.toLowerCase().includes(specialty.toLowerCase())
         )
@@ -47,8 +47,8 @@ export const StaffSelector: React.FC<StaffSelectorProps> = ({
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(member =>
         member.name.toLowerCase().includes(query) ||
-        member.title.toLowerCase().includes(query) ||
-        member.specialties.some(specialty => 
+        (member.title ?? '').toLowerCase().includes(query) ||
+        (member.specialties ?? []).some(specialty =>
           specialty.toLowerCase().includes(query)
         )
       );
@@ -83,9 +83,11 @@ export const StaffSelector: React.FC<StaffSelectorProps> = ({
               <SelectItem key={member.id} value={member.id}>
                 <div className="flex items-center gap-2">
                   <span>{member.name}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {member.title}
-                  </Badge>
+                  {member.title && (
+                    <Badge variant="outline" className="text-xs">
+                      {member.title}
+                    </Badge>
+                  )}
                 </div>
               </SelectItem>
             ))}
@@ -167,19 +169,23 @@ export const StaffSelector: React.FC<StaffSelectorProps> = ({
                       {/* Staff Info */}
                       <div className="flex-1">
                         <div className="font-semibold text-base">{member.name}</div>
-                        <div className="text-sm text-muted-foreground mb-2">{member.title}</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {member.specialties.slice(0, 3).map((specialty, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
-                              {specialty}
-                            </Badge>
-                          ))}
-                          {member.specialties.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{member.specialties.length - 3}
-                            </Badge>
-                          )}
-                        </div>
+                        {member.title && (
+                          <div className="text-sm text-muted-foreground mb-2">{member.title}</div>
+                        )}
+                        {member.specialties && member.specialties.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {member.specialties.slice(0, 3).map((specialty, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {specialty}
+                              </Badge>
+                            ))}
+                            {member.specialties.length > 3 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{member.specialties.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       {/* Rating */}

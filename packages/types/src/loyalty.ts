@@ -3,20 +3,13 @@
  * PRD Reference: 2.3.7 Loyalty Program
  */
 
-import type { LoyaltyTier } from './client';
+import type { LoyaltyTier, LoyaltyTierConfig } from './client';
+
+// Re-export from client for convenience
+export type { LoyaltyTierConfig };
 
 /** Eligible item types for earning points */
 export type LoyaltyEligibleItem = 'services' | 'products' | 'memberships' | 'packages';
-
-/** Loyalty tier configuration */
-export interface LoyaltyTierConfig {
-  tier: LoyaltyTier;
-  name: string;
-  minSpend: number;           // Minimum lifetime spend to reach this tier
-  pointsMultiplier: number;   // Points earning multiplier (1.0 = 1x, 1.5 = 1.5x)
-  color: string;              // Display color (tailwind class)
-  benefits?: string[];        // List of tier benefits for display
-}
 
 /** Loyalty program settings (store-level configuration) */
 export interface LoyaltySettings {

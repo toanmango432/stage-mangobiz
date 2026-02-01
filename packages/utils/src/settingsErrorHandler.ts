@@ -5,7 +5,22 @@
  * Provides consistent error logging and user-facing toast notifications.
  */
 
-import toast from 'react-hot-toast';
+// Toast interface for dependency injection
+interface ToastFunction {
+  error: (message: string, options?: { duration?: number; position?: string }) => void;
+}
+
+// Module-level toast instance (set via setToast)
+let toast: ToastFunction | null = null;
+
+/**
+ * Set the toast instance for user notifications.
+ * Must be called before using handleSettingsError if you want toast notifications.
+ * If not set, errors are only logged to console.
+ */
+export function setToast(toastInstance: ToastFunction): void {
+  toast = toastInstance;
+}
 
 export type SettingsErrorType = 'load' | 'save' | 'migration' | 'validation' | 'sync';
 
@@ -36,11 +51,13 @@ export function handleSettingsError(
     sync: 'Settings sync failed. Changes may not be saved across tabs.',
   };
 
-  // Show toast notification to user
-  toast.error(userMessages[type], {
-    duration: 4000,
-    position: 'bottom-right',
-  });
+  // Show toast notification to user (if toast is configured)
+  if (toast) {
+    toast.error(userMessages[type], {
+      duration: 4000,
+      position: 'bottom-right',
+    });
+  }
 }
 
 /**

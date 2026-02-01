@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import type { OnlineBookingInsert } from '@/services/supabase/types';
+
+// Type for service query result (Supabase generic inference workaround)
+type ServiceQueryResult = { id: string; store_id: string };
 
 // ============================================================================
 // Validation Schemas
@@ -73,7 +77,7 @@ export async function POST(request: NextRequest) {
       .from('services')
       .select('id, store_id')
       .eq('id', serviceId)
-      .single();
+      .single() as { data: ServiceQueryResult | null; error: unknown };
 
     if (serviceError || !service) {
       return NextResponse.json(
@@ -110,22 +114,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert booking
-    const { data: booking, error: insertError } = await supabase
-      .from('online_bookings')
-      .insert({
-        store_id: service.store_id,
-        client_id: user?.id ?? null,
-        service_id: serviceId,
-        staff_id: staffId ?? null,
-        requested_date: requestedDate,
-        requested_time: requestedTime,
-        status: 'pending',
-        guest_name: guestName ?? null,
-        guest_email: guestEmail ?? null,
-        guest_phone: guestPhone ?? null,
-        notes: notes ?? null,
-        source,
-      })
+    const bookingData: OnlineBookingInsert = {
+      store_id: service.store_id,
+      client_id: user?.id ?? null,
+      service_id: serviceId,
+      staff_id: staffId ?? null,
+      requested_date: requestedDate,
+      requested_time: requestedTime,
+      status: 'pending',
+      guest_name: guestName ?? null,
+      guest_email: guestEmail ?? null,
+      guest_phone: guestPhone ?? null,
+      notes: notes ?? null,
+      source,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: booking, error: insertError } = await (supabase
+      .from('online_bookings') as any)
+      .insert(bookingData)
       .select()
       .single();
 

@@ -6,9 +6,17 @@
  * - Store-scoped queries for multi-tenant isolation
  * - Standardized error handling
  * - Circuit breaker integration
+ *
+ * Note: Uses type assertions for dynamic table names since TypeScript's
+ * Supabase client expects literal table name types from Database['public']['Tables'].
+ * This is a known limitation when using generic repository patterns.
  */
 
 import { supabase, withCircuitBreaker } from '../client';
+
+// Helper to get untyped supabase access for dynamic table queries
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const untypedSupabase = supabase as any;
 
 // API Error class for standardized error handling
 export class APIError extends Error {
@@ -101,7 +109,7 @@ export abstract class BaseRepository<T extends { id: string }> {
    */
   async findAll(options: QueryOptions = {}): Promise<QueryResult<T[]>> {
     try {
-      let query = supabase.from(this.tableName).select('*', { count: 'exact' });
+      let query = untypedSupabase.from(this.tableName).select('*', { count: 'exact' });
 
       // Apply store filter if context is set
       if (this.storeId) {
@@ -132,7 +140,7 @@ export abstract class BaseRepository<T extends { id: string }> {
         query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
       }
 
-      const { data, error, count } = await withCircuitBreaker(() => query);
+      const { data, error, count } = await withCircuitBreaker(async () => query) as { data: T[] | null; error: any; count: number | null };
 
       if (error) {
         throw APIError.fromSupabaseError(error);
@@ -153,14 +161,14 @@ export abstract class BaseRepository<T extends { id: string }> {
    */
   async findById(id: string): Promise<QueryResult<T | null>> {
     try {
-      let query = supabase.from(this.tableName).select('*').eq('id', id);
+      let query = untypedSupabase.from(this.tableName).select('*').eq('id', id);
 
       // Apply store filter if context is set
       if (this.storeId) {
         query = query.eq('store_id', this.storeId);
       }
 
-      const { data, error } = await withCircuitBreaker(() => query.single());
+      const { data, error } = await withCircuitBreaker(async () => query.single());
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -195,8 +203,8 @@ export abstract class BaseRepository<T extends { id: string }> {
         ? { ...data, store_id: this.storeId }
         : data;
 
-      const { data: result, error } = await withCircuitBreaker(() =>
-        supabase.from(this.tableName).insert(insertData).select().single()
+      const { data: result, error } = await withCircuitBreaker(async () =>
+        untypedSupabase.from(this.tableName).insert(insertData).select().single()
       );
 
       if (error) {
@@ -215,14 +223,14 @@ export abstract class BaseRepository<T extends { id: string }> {
    */
   async update(id: string, data: Partial<T>): Promise<QueryResult<T>> {
     try {
-      let query = supabase.from(this.tableName).update(data).eq('id', id);
+      let query = untypedSupabase.from(this.tableName).update(data).eq('id', id);
 
       // Apply store filter if context is set
       if (this.storeId) {
         query = query.eq('store_id', this.storeId);
       }
 
-      const { data: result, error } = await withCircuitBreaker(() =>
+      const { data: result, error } = await withCircuitBreaker(async () =>
         query.select().single()
       );
 
@@ -245,14 +253,14 @@ export abstract class BaseRepository<T extends { id: string }> {
    */
   async delete(id: string): Promise<{ success: boolean }> {
     try {
-      let query = supabase.from(this.tableName).delete().eq('id', id);
+      let query = untypedSupabase.from(this.tableName).delete().eq('id', id);
 
       // Apply store filter if context is set
       if (this.storeId) {
         query = query.eq('store_id', this.storeId);
       }
 
-      const { error } = await withCircuitBreaker(() => query);
+      const { error } = await withCircuitBreaker(async () => query);
 
       if (error) {
         throw APIError.fromSupabaseError(error);
@@ -274,8 +282,8 @@ export abstract class BaseRepository<T extends { id: string }> {
         ? { ...data, store_id: this.storeId }
         : data;
 
-      const { data: result, error } = await withCircuitBreaker(() =>
-        supabase.from(this.tableName).upsert(upsertData).select().single()
+      const { data: result, error } = await withCircuitBreaker(async () =>
+        untypedSupabase.from(this.tableName).upsert(upsertData).select().single()
       );
 
       if (error) {
@@ -294,7 +302,7 @@ export abstract class BaseRepository<T extends { id: string }> {
    */
   async count(filters?: Record<string, any>): Promise<number> {
     try {
-      let query = supabase.from(this.tableName).select('*', { count: 'exact', head: true });
+      let query = untypedSupabase.from(this.tableName).select('*', { count: 'exact', head: true });
 
       // Apply store filter if context is set
       if (this.storeId) {
@@ -310,7 +318,7 @@ export abstract class BaseRepository<T extends { id: string }> {
         }
       }
 
-      const { count, error } = await withCircuitBreaker(() => query);
+      const { count, error } = await withCircuitBreaker(async () => query) as unknown as { count: number | null; error: any };
 
       if (error) {
         throw APIError.fromSupabaseError(error);
@@ -323,6 +331,3 @@ export abstract class BaseRepository<T extends { id: string }> {
     }
   }
 }
-
-// Export types for use in other repositories
-export type { QueryResult, QueryOptions };

@@ -145,6 +145,24 @@ window.dispatchEvent(new CustomEvent('navigate-to-module', {
 
 ---
 
+## Communication Anti-Patterns
+
+> Critical communication mistakes to NEVER repeat.
+
+### 1. Don't Promise Proactive Check-Ins
+**BAD:**
+> "I'll check back in 15 minutes"
+> "I'll monitor this every 15 minutes"
+
+**WHY:** Claude cannot initiate contact or set timers. Claude only responds when the user sends a message.
+
+**GOOD:**
+> "Send me a message in 15 minutes and I'll check the status"
+> "You can ask me to check anytime"
+> "Here's a command you can run to check: `cat progress.txt`"
+
+---
+
 ## Anti-Patterns to AVOID
 
 > These patterns caused issues in previous Ralph runs. DO NOT repeat them.

@@ -11,10 +11,52 @@ import { AvailabilityDot } from './design-system/AvailabilityDot';
 import { StaffPersonalityCard } from './StaffPersonalityCard';
 import { MobileBottomSheet } from './MobileBottomSheet';
 import { StaffProfileSheet } from './StaffProfileSheet';
-import { Service } from '@/types/catalog';
-import { bookingDataService, Staff } from '@/lib/services/bookingDataService';
+import { Service, Staff } from '@/types/catalog';
+import { bookingDataService, Staff as BookingStaff, Availability } from '@/lib/services/bookingDataService';
 import { cn } from '@/lib/utils';
 import { Star, Clock, Award, Users, Filter, Search, X, CheckCircle } from 'lucide-react';
+
+/**
+ * Converts BookingStaff (from bookingDataService) to Staff (from catalog types)
+ * Handles availability format differences: Availability[] → Record<string, ...>
+ */
+function toStaff(bookingStaff: BookingStaff): Staff {
+  // Convert Availability[] to Record<string, { start, end }[]>
+  const availabilityRecord: Record<string, { start: string; end: string }[]> = {};
+  if (bookingStaff.availability) {
+    for (const avail of bookingStaff.availability) {
+      // Convert timeSlots (strings like "09:00") to { start, end } ranges
+      // Assume each slot is 30 minutes
+      availabilityRecord[avail.date] = avail.timeSlots.map(slot => ({
+        start: slot,
+        end: slot, // Same as start for slot-based availability
+      }));
+    }
+  }
+
+  return {
+    id: bookingStaff.id,
+    name: bookingStaff.name,
+    title: bookingStaff.title,
+    avatar: bookingStaff.image,
+    bio: bookingStaff.bio,
+    specialties: bookingStaff.specialties,
+    rating: bookingStaff.rating,
+    availability: Object.keys(availabilityRecord).length > 0 ? availabilityRecord : undefined,
+  };
+}
+
+/**
+ * Gets availability status from the original BookingStaff format
+ */
+function getBookingStaffAvailability(avail: Availability[] | undefined, date: string): 'available' | 'limited' | 'unavailable' | 'unknown' {
+  if (!avail) return 'unknown';
+  const dayAvail = avail.find(a => a.date === date);
+  if (!dayAvail) return 'unavailable';
+  if (dayAvail.timeSlots.length === 0) return 'unavailable';
+  if (dayAvail.timeSlots.length < 3) return 'limited';
+  return 'available';
+}
 
 interface StaffSelectionGridProps {
   selectedService?: Service;
@@ -48,8 +90,10 @@ export const StaffSelectionGrid = ({
       try {
         const filters = selectedService ? { serviceId: selectedService.id } : undefined;
         const staffData = await bookingDataService.getStaff(filters);
-        setStaff(staffData);
-        setFilteredStaff(staffData);
+        // Convert BookingStaff to Staff (catalog type)
+        const convertedStaff = staffData.map(toStaff);
+        setStaff(convertedStaff);
+        setFilteredStaff(convertedStaff);
       } catch (error) {
         console.error('Failed to load staff:', error);
       } finally {
@@ -92,12 +136,12 @@ export const StaffSelectionGrid = ({
 
   const getAvailabilityStatus = (staffMember: Staff) => {
     if (!date) return 'unknown';
-    
-    const availability = staffMember.availability?.find(a => a.date === date);
-    if (!availability) return 'unavailable';
-    
-    if (availability.timeSlots.length === 0) return 'unavailable';
-    if (availability.timeSlots.length < 3) return 'limited';
+
+    // Staff.availability is Record<string, { start, end }[]>
+    const slots = staffMember.availability?.[date];
+    if (!slots) return 'unavailable';
+    if (slots.length === 0) return 'unavailable';
+    if (slots.length < 3) return 'limited';
     return 'available';
   };
 
@@ -204,12 +248,14 @@ export const StaffSelectionGrid = ({
           const availabilityStatus = getAvailabilityStatus(staffMember);
           const isSelected = selectedStaff?.id === staffMember.id;
           
+          // availabilityStatus is calculated but not used in StaffPersonalityCard props
+          void availabilityStatus;
+
           return (
             <StaffPersonalityCard
               key={staffMember.id}
               staff={staffMember}
               isSelected={isSelected}
-              availabilityStatus={availabilityStatus as any}
               onSelect={() => handleStaffSelect(staffMember)}
               onViewProfile={() => handleProfileView(staffMember)}
             />
@@ -240,7 +286,6 @@ export const StaffSelectionGrid = ({
               handleStaffSelect(selectedStaffProfile);
               setShowProfileModal(false);
             }}
-            onClose={() => setShowProfileModal(false)}
           />
         )}
       </MobileBottomSheet>

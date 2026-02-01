@@ -3,7 +3,7 @@
  * Analyzes client patterns and predicts when they're due for next visit
  */
 
-import { LocalAppointment } from '../types/appointment';
+import { LocalAppointment } from '@mango/types';
 
 export interface ClientRebookPrediction {
   clientId: string;

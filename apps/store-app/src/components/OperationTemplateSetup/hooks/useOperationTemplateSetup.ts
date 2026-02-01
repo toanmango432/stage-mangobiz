@@ -21,10 +21,10 @@ interface UseOperationTemplateSetupReturn {
   currentTemplateIndex: number;
   templates: string[];
   // Refs
-  suggestedTemplateRef: RefObject<HTMLDivElement>;
-  question1Ref: RefObject<HTMLDivElement>;
-  question2Ref: RefObject<HTMLDivElement>;
-  question3Ref: RefObject<HTMLDivElement>;
+  suggestedTemplateRef: RefObject<HTMLDivElement | null>;
+  question1Ref: RefObject<HTMLDivElement | null>;
+  question2Ref: RefObject<HTMLDivElement | null>;
+  question3Ref: RefObject<HTMLDivElement | null>;
   // Methods
   getSuggestedTemplate: () => FrontDeskSettingsData['operationTemplate'];
   getTemplateDetails: (template: FrontDeskSettingsData['operationTemplate'] | string) => TemplateDetails;

@@ -81,10 +81,10 @@ export interface UseFrontDeskStateReturn {
   setShowCreateTicketModal: (show: boolean) => void;
 
   // Refs
-  resizeRef: React.RefObject<HTMLDivElement>;
-  serviceDropdownRef: React.RefObject<HTMLDivElement>;
-  waitListDropdownRef: React.RefObject<HTMLDivElement>;
-  ticketSettingsRef: React.RefObject<HTMLDivElement>;
+  resizeRef: React.RefObject<HTMLDivElement | null>;
+  serviceDropdownRef: React.RefObject<HTMLDivElement | null>;
+  waitListDropdownRef: React.RefObject<HTMLDivElement | null>;
+  ticketSettingsRef: React.RefObject<HTMLDivElement | null>;
 
   // Device info
   deviceInfo: ReturnType<typeof useDeviceDetection>;

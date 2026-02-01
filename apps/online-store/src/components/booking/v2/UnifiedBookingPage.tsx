@@ -81,14 +81,13 @@ export const UnifiedBookingPage: React.FC<UnifiedBookingPageProps> = ({
       
       // Set selected staff info
       if (firstAssignment.staffId && firstAssignment.staffName) {
-        const staffData = {
+        const staffData: Staff = {
           id: firstAssignment.staffId,
           name: firstAssignment.staffName,
           title: 'Specialist',
-          photo: '',
+          avatar: '',
           specialties: [],
           rating: 4.9,
-          availability: 'available' as const,
         };
         setSelectedStaff(staffData);
         

@@ -1,0 +1,643 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/ticket-builder-foundation",
+  "description": "Complete the Ticket Builder (TicketPanel) to be a fully functional salon operations interface. All actions work end-to-end with proper persistence, cross-device sync, and UX polish. 35 stories covering: persistence, client management, status tracking, ticket operations, bulk actions, drafts, and keyboard shortcuts.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Persist ticket to IndexedDB on first service add",
+      "description": "As a front desk staff, I want my ticket saved automatically when I add the first service.",
+      "acceptanceCriteria": [
+        "When first service is added and ticketId is null, create ticket in IndexedDB",
+        "Use ticketsDB.create() with status 'draft'",
+        "Store returned ticketId in reducer state via setTicketId action",
+        "Subsequent service adds update existing ticket (not create new)",
+        "Include clientId, clientName, services array in ticket",
+        "No forbidden strings: 'Test Client', 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "handleAddServices is the trigger point (~line 291). ticketsDB is in @/db/database. Set isDraft: true on creation.",
+      "priority": 1
+    },
+    {
+      "id": "US-002",
+      "title": "Persist service updates to IndexedDB",
+      "description": "As a front desk staff, I want my price edits and service changes saved immediately.",
+      "acceptanceCriteria": [
+        "handleUpdateService saves to IndexedDB after local state update",
+        "Debounce saves by 500ms to batch rapid edits",
+        "Update the ticket's services array in IndexedDB",
+        "Handle: price, duration, staffId, staffName, notes, discount fields",
+        "Skip IndexedDB save if ticketId is null",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "handleUpdateService is at ~line 386. Use useDebouncedCallback from use-debounce. Create persistTicketToIndexedDB helper.",
+      "priority": 2
+    },
+    {
+      "id": "US-003",
+      "title": "Persist service removal to IndexedDB",
+      "description": "As a front desk staff, I want removed services reflected in the database.",
+      "acceptanceCriteria": [
+        "handleRemoveService saves updated ticket after removal",
+        "Update services array in IndexedDB (without removed service)",
+        "If last service removed, keep ticket as empty draft",
+        "Undo action should restore and persist the service",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: remove service → refresh → service gone"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "handleRemoveService is at ~line 408. Use same persistTicketToIndexedDB helper.",
+      "priority": 3
+    },
+    {
+      "id": "US-004",
+      "title": "Persist client selection to ticket",
+      "description": "As a front desk staff, I want the selected client saved with the ticket.",
+      "acceptanceCriteria": [
+        "Create handleSelectClient that dispatches AND persists",
+        "Store clientId and clientName on ticket record",
+        "When client removed, set clientId: null, clientName: 'Walk-in'",
+        "Pass handleSelectClient to ClientSelector's onSelect",
+        "Skip save if ticketId is null",
+        "No forbidden strings: 'Test Client', 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: select client → refresh → client still there"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx", "apps/store-app/src/components/checkout/TicketPanel.tsx"],
+      "notes": "Client selection currently only updates local state. Create handleRemoveClientPersisted for removal.",
+      "priority": 4
+    },
+    {
+      "id": "US-005",
+      "title": "Persist staff reassignment to IndexedDB",
+      "description": "As a front desk staff, I want staff changes saved when I reassign services.",
+      "acceptanceCriteria": [
+        "handleAddServiceToStaff saves to IndexedDB after state update",
+        "Update staffId and staffName on affected services",
+        "Update assignedStaffIds array on ticket",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: reassign service → refresh → staff correct"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "handleAddServiceToStaff is at ~line 356. This handles both reassignment and new staff selection.",
+      "priority": 5
+    },
+    {
+      "id": "US-006",
+      "title": "Persist discount and coupon applications",
+      "description": "As a front desk staff, I want discounts and coupons saved with the ticket.",
+      "acceptanceCriteria": [
+        "Create handleApplyDiscount that dispatches AND persists",
+        "Create handleApplyCoupon that dispatches AND persists",
+        "Store discount, couponCode, couponDiscount on ticket",
+        "Store per-service discounts in service objects",
+        "Removal of discount/coupon also persists",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: apply coupon → refresh → coupon still applied"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx", "apps/store-app/src/components/checkout/reducers/ticketReducer.ts"],
+      "notes": "Ticket record needs discount fields. Per-service discount: { type: '%' | '$', value: number }",
+      "priority": 6
+    },
+    {
+      "id": "US-007",
+      "title": "Wire ClientAlerts to Redux client data",
+      "description": "As a front desk staff, I want to see client alerts when I select a client.",
+      "acceptanceCriteria": [
+        "Import selectClientById from @/store/slices/clientsSlice",
+        "When selectedClient has an ID, fetch full client data via selector",
+        "Pass client data to ClientAlerts component after client selector",
+        "ClientAlerts displays: allergies (red), staffAlert/notes (yellow), balance (orange)",
+        "Blocked client shows AlertDialog requiring override or cancel",
+        "No forbidden strings: 'Test Client', 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: select client with allergy → red alert appears"
+      ],
+      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx"],
+      "notes": "ClientAlerts.tsx already has all UI logic (210 lines). Add <ClientAlerts client={fullClientData} /> below ClientSelector.",
+      "priority": 7
+    },
+    {
+      "id": "US-008",
+      "title": "Add client quick stats display",
+      "description": "As a front desk staff, I want to see visit count and last visit at a glance.",
+      "acceptanceCriteria": [
+        "Display visit count: '12 visits' or 'First Visit' badge if 0",
+        "Display last visit: 'Last: Jan 15' or 'New Client' if null",
+        "Show client phone number (clickable to call on mobile)",
+        "Show client email icon (clickable to email)",
+        "Styling: subtle gray text, beside client name",
+        "No forbidden strings: 'Test Client', 'as any'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: returning client shows stats"
+      ],
+      "files": ["apps/store-app/src/components/checkout/components/TicketHeader.tsx"],
+      "notes": "Get stats from full client data fetched in US-007. Format date with format(date, 'MMM d') from date-fns.",
+      "priority": 8
+    },
+    {
+      "id": "US-009",
+      "title": "Add recent clients quick list",
+      "description": "As a front desk staff, I want quick access to recently selected clients.",
+      "acceptanceCriteria": [
+        "Show 'Recent' section with last 5 clients used on this device",
+        "Store recent client IDs in localStorage",
+        "Update recent list when client is selected",
+        "Recent clients show avatar, name, phone",
+        "Click selects client immediately (no search needed)",
+        "Clear recent option available",
+        "No forbidden strings: 'Test Client', 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: select clients → recent list populates"
+      ],
+      "files": ["apps/store-app/src/components/checkout/ClientSelector.tsx", "apps/store-app/src/store/slices/clientsSlice.ts"],
+      "notes": "Recent clients stored in localStorage: recent-clients-{storeId}. Limit to 5.",
+      "priority": 9
+    },
+    {
+      "id": "US-010",
+      "title": "Add quick-create client inline",
+      "description": "As a front desk staff, I want to create a new client without leaving checkout.",
+      "acceptanceCriteria": [
+        "'Create New Client' button appears when search has no results",
+        "Inline form: First Name, Last Name (required), Phone, Email (optional)",
+        "Submit creates client via dataService.clients.create()",
+        "New client automatically selected after creation",
+        "Validation: phone format, email format",
+        "Show success toast after creation",
+        "No forbidden strings: 'Test Client', 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: create client → client selected → ticket has client"
+      ],
+      "files": ["apps/store-app/src/components/checkout/ClientSelector.tsx"],
+      "notes": "Follow existing form patterns. Phone validation: accept (555) 123-4567 or 5551234567 formats.",
+      "priority": 10
+    },
+    {
+      "id": "US-011",
+      "title": "Add staff conflict detection",
+      "description": "As a front desk staff, I want a warning if the staff I'm assigning is busy.",
+      "acceptanceCriteria": [
+        "Create selectStaffWithActiveService selector",
+        "Returns staff IDs with in-service tickets currently",
+        "In StaffGridView: mark busy staff with orange badge 'Serving [Client]'",
+        "Show current client name they're serving",
+        "Allow assignment anyway (warning only, not blocking)",
+        "Confirmation dialog: 'Assign anyway? This will queue.'",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: assign busy staff → see warning → can assign"
+      ],
+      "files": ["apps/store-app/src/components/checkout/StaffGridView.tsx", "apps/store-app/src/store/slices/uiTicketsSlice.ts"],
+      "notes": "Query inService array from uiTicketsSlice state. Use AlertDialog for confirmation.",
+      "priority": 11
+    },
+    {
+      "id": "US-012",
+      "title": "Create service status persistence types",
+      "description": "As a developer, I need proper types for service status with history.",
+      "acceptanceCriteria": [
+        "Add ServiceStatusChange interface: { from, to, changedAt, changedBy, deviceId }",
+        "Add statusHistory: ServiceStatusChange[] to TicketService",
+        "Add lastStatusUpdate?: string (ISO timestamp)",
+        "Add totalPausedDuration?: number (seconds)",
+        "Add actualDuration?: number (seconds)",
+        "Add pausedAt?: string for tracking pause start",
+        "Export ServiceStatus type union",
+        "No forbidden strings: 'as any'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": ["apps/store-app/src/types/Ticket.ts"],
+      "notes": "TicketService interface is at ~line 45. actualDuration = total time minus paused time.",
+      "priority": 12
+    },
+    {
+      "id": "US-013",
+      "title": "Implement full service status persistence",
+      "description": "As a front desk staff, I want status changes saved with full history.",
+      "acceptanceCriteria": [
+        "handleUpdateService with status: append to statusHistory",
+        "Record: from, to, changedAt (now), changedBy (userId), deviceId",
+        "On 'in_progress': set startTime if first start, set pausedAt: null",
+        "On 'paused': set pausedAt to now",
+        "On 'completed': calculate actualDuration, set completedAt",
+        "On 'not_started' (restart): reset timers, keep history",
+        "Save to IndexedDB immediately (no debounce for status)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "Status is critical - save immediately, not debounced. Get userId from storeAuthManager.getState().user?.id",
+      "priority": 13
+    },
+    {
+      "id": "US-014",
+      "title": "Calculate paused duration correctly",
+      "description": "As a system, I need accurate pause time tracking for reports.",
+      "acceptanceCriteria": [
+        "Create calculatePausedDuration(service) utility",
+        "When resuming from pause: add (now - pausedAt) to totalPausedDuration",
+        "When completing: actualDuration = (completedAt - startTime) - totalPausedDuration",
+        "Handle multiple pause/resume cycles correctly",
+        "Handle edge case: complete while paused",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "Use Date.now() for calculations. Store durations in seconds.",
+      "priority": 14
+    },
+    {
+      "id": "US-015",
+      "title": "Publish service status via MQTT",
+      "description": "As a system, I need to broadcast status changes to other devices.",
+      "acceptanceCriteria": [
+        "Import useMqttPublish from mqtt hooks",
+        "After status update: publish to salon/{storeId}/ticket/{ticketId}/status",
+        "Message includes: serviceId, newStatus, changedAt, changedBy",
+        "Use QoS 1 for status updates",
+        "Only publish if MQTT is connected",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "Use buildTopic() helper from mqtt/topics.ts. Check isMqttEnabled() before publishing.",
+      "priority": 15
+    },
+    {
+      "id": "US-016",
+      "title": "Subscribe to service status MQTT updates",
+      "description": "As a front desk staff, I want to see status changes from other devices.",
+      "acceptanceCriteria": [
+        "Import useMqttSubscription from mqtt hooks",
+        "Subscribe to salon/{storeId}/ticket/{ticketId}/status",
+        "On message: dispatch updateServiceStatus to local state",
+        "Debounce incoming updates by 100ms to batch",
+        "Ignore own device's messages (check deviceId)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify: change status on one device → appears on another"
+      ],
+      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx"],
+      "notes": "Get deviceId from storeAuthManager. Only subscribe when ticket is open.",
+      "priority": 16
+    },
+    {
+      "id": "US-017",
+      "title": "Add visual timer improvements",
+      "description": "As a front desk staff, I want better visual feedback for service timers.",
+      "acceptanceCriteria": [
+        "Timer turns yellow when 80% of estimated duration passed",
+        "Timer turns red when over estimated duration",
+        "Show '+5:00' format when over time",
+        "Paused timer shows blue with pause icon",
+        "Completed timer shows green checkmark",
+        "Add pulse animation when timer is over",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: timer colors change as time progresses"
+      ],
+      "files": ["apps/store-app/src/components/checkout/StaffGroup.tsx"],
+      "notes": "Use design tokens for colors. Add animate-pulse class from Tailwind.",
+      "priority": 17
+    },
+    {
+      "id": "US-018",
+      "title": "Persist split ticket to database",
+      "description": "As a front desk staff, I want split tickets saved properly.",
+      "acceptanceCriteria": [
+        "handleSplitTicket creates new ticket in IndexedDB",
+        "New ticket gets subset of services (selected ones)",
+        "Original ticket's services array updated (remaining)",
+        "Link tickets: splitFromTicketId on new, splitToTicketId on original",
+        "Both tickets saved atomically (if one fails, rollback)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: split → refresh → both tickets exist"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "Generate new ticketId with uuid(). Copy clientId to new ticket.",
+      "priority": 18
+    },
+    {
+      "id": "US-019",
+      "title": "Implement merge tickets from real data",
+      "description": "As a front desk staff, I want to merge two tickets together.",
+      "acceptanceCriteria": [
+        "handleMergeTickets combines services from both tickets",
+        "Target ticket gets all services from source",
+        "Source ticket marked as mergedIntoTicketId",
+        "Source ticket status set to 'merged'",
+        "Preserve all service metadata (status, times, notes)",
+        "Recalculate totals on target ticket",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: merge → refresh → one ticket with all services"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "Source ticket remains in DB but hidden from active list. Use batch update for atomicity.",
+      "priority": 19
+    },
+    {
+      "id": "US-020",
+      "title": "Persist void ticket operation",
+      "description": "As a front desk staff, I want voided tickets recorded properly.",
+      "acceptanceCriteria": [
+        "handleVoidTicket updates ticket in IndexedDB",
+        "Set status: 'voided', voidedAt, voidedBy, voidReason",
+        "Require reason (min 5 characters)",
+        "Log void action to audit log",
+        "Voided tickets hidden from active list but queryable",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: void ticket → refresh → ticket not in list"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "Use auditLogger.logAction() for audit trail. voidedBy is current userId.",
+      "priority": 20
+    },
+    {
+      "id": "US-021",
+      "title": "Persist undo/redo history",
+      "description": "As a system, I want undo history saved with the ticket.",
+      "acceptanceCriteria": [
+        "Add undoStack array to ticket record in IndexedDB",
+        "Each undo snapshot includes: action, previousState, timestamp",
+        "Limit stack to 20 items",
+        "Save undoStack when ticket is saved",
+        "Load undoStack when resuming draft",
+        "Redo stack NOT persisted (lost on refresh - acceptable)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: undo → refresh → can't redo but state correct"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketPersistence.ts", "apps/store-app/src/components/checkout/reducers/ticketReducer.ts"],
+      "notes": "UndoSnapshot interface already exists. Need to serialize/deserialize with ticket.",
+      "priority": 21
+    },
+    {
+      "id": "US-022",
+      "title": "Persist product sales",
+      "description": "As a front desk staff, I want product sales saved with the ticket.",
+      "acceptanceCriteria": [
+        "handleAddProducts saves to IndexedDB after adding",
+        "Products stored in services array with isProduct: true flag",
+        "Products have status: 'completed' (no tracking needed)",
+        "Product quantity tracked (or multiple line items)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: add product → refresh → product still there"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "Products already added to services array. Just need persistence after adding.",
+      "priority": 22
+    },
+    {
+      "id": "US-023",
+      "title": "Persist package purchases",
+      "description": "As a front desk staff, I want package purchases saved with the ticket.",
+      "acceptanceCriteria": [
+        "handleAddPackage saves to IndexedDB after adding",
+        "Package services have packageId reference",
+        "Package discount stored on ticket",
+        "All package services linked for undo as group",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: add package → refresh → package still there"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "Package already has undo support. Just need persistence after adding.",
+      "priority": 23
+    },
+    {
+      "id": "US-024",
+      "title": "Persist bulk price edits",
+      "description": "As a front desk staff, I want bulk price changes saved immediately.",
+      "acceptanceCriteria": [
+        "handleBulkEditPrice saves to IndexedDB after applying",
+        "All selected services updated with new price",
+        "Original prices logged for audit (originalPrice field)",
+        "Bulk edit triggers single IndexedDB update (not per-service)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: bulk edit prices → refresh → prices correct"
+      ],
+      "files": ["apps/store-app/src/components/checkout/Summary/hooks/useSummaryDialogs.ts", "apps/store-app/src/components/checkout/InteractiveSummary.tsx"],
+      "notes": "handleBulkEditPrice at ~line 76 in useSummaryDialogs.ts. Use persistTicketToIndexedDB helper.",
+      "priority": 24
+    },
+    {
+      "id": "US-025",
+      "title": "Persist bulk discounts",
+      "description": "As a front desk staff, I want bulk discounts saved immediately.",
+      "acceptanceCriteria": [
+        "handleBulkDiscount saves to IndexedDB after applying",
+        "Store discount per service: { type: '%' | '$', value: number }",
+        "Display discounted price and original price on line item",
+        "Bulk discount triggers single IndexedDB update",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: bulk discount → refresh → discounts applied"
+      ],
+      "files": ["apps/store-app/src/components/checkout/Summary/hooks/useSummaryDialogs.ts"],
+      "notes": "handleBulkDiscount at ~line 96 in useSummaryDialogs.ts. Per-service discount separate from ticket-level.",
+      "priority": 25
+    },
+    {
+      "id": "US-026",
+      "title": "Persist bulk reassignment",
+      "description": "As a front desk staff, I want bulk reassignment saved immediately.",
+      "acceptanceCriteria": [
+        "Bulk reassign updates all selected services' staffId/staffName",
+        "Save to IndexedDB after reassignment",
+        "Update assignedStaffIds on ticket",
+        "Single IndexedDB update for all services",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: bulk reassign → refresh → all correct staff"
+      ],
+      "files": ["apps/store-app/src/components/checkout/InteractiveSummary.tsx"],
+      "notes": "Bulk reassign available in BulkActionsPopup. Connect to persistence layer.",
+      "priority": 26
+    },
+    {
+      "id": "US-027",
+      "title": "Implement auto-save on significant actions",
+      "description": "As a system, I want tickets auto-saved when important changes happen.",
+      "acceptanceCriteria": [
+        "Create useTicketAutoSave hook with proper implementation",
+        "Auto-save triggers: addService, removeService, updatePrice, changeClient, applyDiscount",
+        "Debounce by 2 seconds to batch rapid changes",
+        "Track hasUnsavedChanges state",
+        "Set lastAutoSave timestamp after save",
+        "Show subtle 'Saved' indicator when save completes",
+        "Export triggerAutoSave() for manual trigger",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketAutoSave.ts"],
+      "notes": "Hook may exist but needs proper implementation. Use useDebouncedCallback from use-debounce.",
+      "priority": 27
+    },
+    {
+      "id": "US-028",
+      "title": "Implement save-on-close",
+      "description": "As a front desk staff, I want my work saved when I close the panel.",
+      "acceptanceCriteria": [
+        "handleCloseAttempt: if unsaved changes, save before close",
+        "Create saveTicketAsDraft() async helper",
+        "Await save completion before calling onClose()",
+        "Show 'Saving...' toast if save takes > 500ms",
+        "Add beforeunload listener for browser close",
+        "beforeunload uses best-effort sync save",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: add service → close → reopen → service there"
+      ],
+      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx", "apps/store-app/src/components/checkout/hooks/useTicketActions.tsx"],
+      "notes": "handleCloseAttempt at end of useTicketActions. beforeunload can't await, use sendBeacon or sync write.",
+      "priority": 28
+    },
+    {
+      "id": "US-029",
+      "title": "Add Drafts button to checkout header",
+      "description": "As a front desk staff, I want to access saved drafts from checkout.",
+      "acceptanceCriteria": [
+        "Add 'Drafts' button with Files icon to header",
+        "Show badge with draft count from Redux selectDrafts.length",
+        "Click opens DraftSalesDrawer",
+        "Pass storeId and onResumeDraft to drawer",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: Drafts button shows count, opens drawer"
+      ],
+      "files": ["apps/store-app/src/components/checkout/components/TicketHeader.tsx", "apps/store-app/src/components/checkout/TicketPanel.tsx"],
+      "notes": "DraftSalesDrawer.tsx already exists (183 lines). Get storeId from storeAuthManager.getStoreId().",
+      "priority": 29
+    },
+    {
+      "id": "US-030",
+      "title": "Implement resume draft functionality",
+      "description": "As a front desk staff, I want to resume a saved draft.",
+      "acceptanceCriteria": [
+        "Create LOAD_DRAFT action in reducer",
+        "onResumeDraft loads draft data into reducer state",
+        "Map draft: services, client, discounts, staff, undoStack",
+        "Set ticketId to draft's ID (so saves update it)",
+        "Set isNewTicket: false",
+        "Close DraftSalesDrawer after resume",
+        "Clear existing ticket state before loading",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: resume draft → all data restored"
+      ],
+      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx", "apps/store-app/src/components/checkout/reducers/ticketReducer.ts"],
+      "notes": "Need to map IndexedDB ticket format to TicketState. Handle stale service data.",
+      "priority": 30
+    },
+    {
+      "id": "US-031",
+      "title": "Load existing ticket for editing",
+      "description": "As a front desk staff, I want to open a ticket from FrontDesk to edit.",
+      "acceptanceCriteria": [
+        "Add initialTicketId?: string prop to TicketPanel",
+        "If prop provided: load ticket from IndexedDB on mount",
+        "Create LOAD_TICKET action similar to LOAD_DRAFT",
+        "Show loading spinner while fetching",
+        "Handle ticket not found error gracefully",
+        "Set isNewTicket: false for edit mode",
+        "Subsequent saves update existing ticket",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: click ticket card → TicketPanel opens with data"
+      ],
+      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx", "apps/store-app/src/components/checkout/reducers/ticketReducer.ts"],
+      "notes": "FrontDesk will pass ticketId when clicking a ticket card. Same pattern as draft loading.",
+      "priority": 31
+    },
+    {
+      "id": "US-032",
+      "title": "Implement all keyboard shortcuts",
+      "description": "As a power user, I want keyboard shortcuts for faster checkout.",
+      "acceptanceCriteria": [
+        "Cmd/Ctrl + S: Save draft",
+        "Cmd/Ctrl + P: Open payment modal (if can checkout)",
+        "Cmd/Ctrl + K: Focus search",
+        "Cmd/Ctrl + Z: Undo last action",
+        "Escape: Close modal or panel",
+        "?: Show keyboard shortcuts help",
+        "Only active when TicketPanel is open",
+        "Disabled when input/textarea focused",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: Cmd+S saves draft"
+      ],
+      "files": ["apps/store-app/src/components/checkout/hooks/useTicketKeyboard.ts"],
+      "notes": "useTicketKeyboard.ts exists (~100 lines). Add missing shortcuts and ensure all work.",
+      "priority": 32
+    },
+    {
+      "id": "US-033",
+      "title": "Add service notes UI",
+      "description": "As a front desk staff, I want to add notes to individual services.",
+      "acceptanceCriteria": [
+        "Add 'Add Note' option in service dropdown menu",
+        "Click opens small input popover",
+        "Note saved to service object and persisted",
+        "Note icon visible on service row if note exists",
+        "Hover/click note icon shows note content",
+        "Edit and delete note options",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: add note → refresh → note still there"
+      ],
+      "files": ["apps/store-app/src/components/checkout/StaffGroup.tsx"],
+      "notes": "Add notes?: string field to service. Use Popover component for note input.",
+      "priority": 33
+    },
+    {
+      "id": "US-034",
+      "title": "Persist drag-drop reorder",
+      "description": "As a front desk staff, I want service order saved when I reorder.",
+      "acceptanceCriteria": [
+        "After drag-drop reorder completes, save to IndexedDB",
+        "Services maintain order via order field or array position",
+        "Order persists per staff group",
+        "Debounce reorder saves (500ms)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: reorder → refresh → order preserved"
+      ],
+      "files": ["apps/store-app/src/components/checkout/StaffGroup.tsx"],
+      "notes": "Reorder UI already exists with Framer Motion. Trigger persistence on reorder complete.",
+      "priority": 34
+    },
+    {
+      "id": "US-035",
+      "title": "Add offline indicator and handling",
+      "description": "As a front desk staff, I want to know when I'm offline.",
+      "acceptanceCriteria": [
+        "Create/use useOnlineStatus hook",
+        "Show subtle banner when offline: 'Offline - changes saved locally'",
+        "All local operations work offline (service add, edit, status)",
+        "Disable 'Checkout' button when offline (card won't work)",
+        "Enable 'Checkout' for cash-only when offline",
+        "Auto-hide banner when back online",
+        "Queue changes for sync when online",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: go offline → banner shows → edits still work"
+      ],
+      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx", "apps/store-app/src/hooks/useOnlineStatus.ts"],
+      "notes": "Use navigator.onLine and online/offline events. IndexedDB works fully offline.",
+      "priority": 35
+    }
+  ]
+}

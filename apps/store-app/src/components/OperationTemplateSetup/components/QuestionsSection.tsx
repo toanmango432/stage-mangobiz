@@ -7,9 +7,9 @@ interface QuestionsSectionProps {
   updateQuickAnswer: (key: keyof QuickAnswers, value: QuickAnswers[keyof QuickAnswers]) => void;
   getSuggestedTemplate: () => string;
   getTemplateDetails: (template: string) => TemplateDetails | undefined;
-  question1Ref: React.RefObject<HTMLDivElement>;
-  question2Ref: React.RefObject<HTMLDivElement>;
-  question3Ref: React.RefObject<HTMLDivElement>;
+  question1Ref: React.RefObject<HTMLDivElement | null>;
+  question2Ref: React.RefObject<HTMLDivElement | null>;
+  question3Ref: React.RefObject<HTMLDivElement | null>;
 }
 
 export const QuestionsSection: React.FC<QuestionsSectionProps> = ({

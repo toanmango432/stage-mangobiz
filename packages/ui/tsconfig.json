@@ -2,9 +2,14 @@
   "extends": "../../tooling/tsconfig/react-library.json",
   "compilerOptions": {
     "rootDir": "src",
+    "baseUrl": ".",
     "paths": {
       "@mango/design-system": ["../design-system/src"],
-      "@mango/design-system/*": ["../design-system/src/*"]
+      "@mango/design-system/*": ["../design-system/src/*"],
+      "@/*": ["./src/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/components/ui/*": ["./src/*"]
     }
   },
   "include": ["src"]

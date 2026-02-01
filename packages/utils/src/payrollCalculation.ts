@@ -13,13 +13,16 @@ import type {
   PayRunCommissionBreakdown,
   CalculatedPayData,
   StaffPayment,
-} from '../types/payroll';
+  TimesheetEntry,
+  OvertimeSettings,
+  CommissionSettings,
+  PayrollSettings,
+  CommissionTier,
+} from '@mango/types';
 import {
-  createEmptyHoursBreakdown,
+  createEmptyPayRunHoursBreakdown as createEmptyHoursBreakdown,
   createEmptyCommissionBreakdown,
-} from '../types/payroll';
-import type { TimesheetEntry, OvertimeSettings } from '../types/timesheet';
-import type { CommissionSettings, PayrollSettings, CommissionTier } from '../components/team-settings/types';
+} from '@mango/types';
 
 // ============================================
 // HOURS CALCULATION
@@ -154,8 +157,10 @@ export function calculateTieredCommission(
 ): number {
   if (tiers.length === 0) return 0;
 
-  // Sort tiers by minRevenue
-  const sortedTiers = [...tiers].sort((a, b) => a.minRevenue - b.minRevenue);
+  // Sort tiers by minRevenue (default to 0 if not specified)
+  const sortedTiers = [...tiers].sort(
+    (a, b) => (a.minRevenue ?? 0) - (b.minRevenue ?? 0)
+  );
 
   let totalCommission = 0;
   let remainingRevenue = revenue;
@@ -163,7 +168,7 @@ export function calculateTieredCommission(
   for (const tier of sortedTiers) {
     if (remainingRevenue <= 0) break;
 
-    const tierMin = tier.minRevenue;
+    const tierMin = tier.minRevenue ?? 0;
     const tierMax = tier.maxRevenue ?? Infinity;
 
     // Calculate revenue in this tier

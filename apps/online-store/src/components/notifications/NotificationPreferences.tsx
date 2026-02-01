@@ -8,11 +8,11 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNotifications } from '@/contexts/NotificationContext';
-import type { NotificationPreferences, NotificationType } from '@/types/notification';
+import type { NotificationPreferences as NotificationPreferencesType, NotificationType } from '@/types/notification';
 
 export const NotificationPreferences = () => {
   const { preferences, updatePreferences } = useNotifications();
-  const [localPreferences, setLocalPreferences] = useState<NotificationPreferences | null>(null);
+  const [localPreferences, setLocalPreferences] = useState<NotificationPreferencesType | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {

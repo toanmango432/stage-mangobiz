@@ -105,8 +105,8 @@ export const ClientInfoForm = ({
   };
 
   const validateForm = () => {
-    const required = ['firstName', 'lastName', 'email', 'phone'];
-    const isValid = required.every(field => clientInfo[field as keyof typeof clientInfo].trim());
+    const required: (keyof Pick<typeof clientInfo, 'firstName' | 'lastName' | 'email' | 'phone'>)[] = ['firstName', 'lastName', 'email', 'phone'];
+    const isValid = required.every(field => clientInfo[field].trim());
     
     if (isCreatingAccount) {
       return isValid && password.length >= 6 && password === confirmPassword;

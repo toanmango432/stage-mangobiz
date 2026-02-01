@@ -27,7 +27,7 @@ export function getSmartSearchSuggestions(
         query: service.name,
         type: 'service',
         confidence: score,
-        result: service,
+        result: service as unknown as Record<string, unknown>,
       });
     }
   });
@@ -40,7 +40,7 @@ export function getSmartSearchSuggestions(
         query: product.name,
         type: 'product',
         confidence: score,
-        result: product,
+        result: product as unknown as Record<string, unknown>,
       });
     }
   });

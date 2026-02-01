@@ -54,7 +54,7 @@ export default function Memberships() {
       label: "Plan Name",
       render: (value, item) => (
         <div>
-          {value}
+          {String(value)}
           {item.isPopular && (
             <Badge variant="secondary" className="ml-2 text-xs">Most Popular</Badge>
           )}
@@ -70,7 +70,7 @@ export default function Memberships() {
       key: "description",
       label: "Description",
       render: (value) => (
-        <span className="text-sm text-muted-foreground">{value}</span>
+        <span className="text-sm text-muted-foreground">{String(value ?? '')}</span>
       ),
     },
     {

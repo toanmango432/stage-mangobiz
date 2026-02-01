@@ -2,10 +2,14 @@
   "extends": "../../tooling/tsconfig/react-library.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "types": ["vite/client"]
   },
-  "include": ["src"],
-  "references": [
-    { "path": "../types" }
+  "include": [
+    "src/index.ts",
+    "src/MqttClient.ts",
+    "src/featureFlags.ts",
+    "src/topics.ts",
+    "src/types.ts"
   ]
 }

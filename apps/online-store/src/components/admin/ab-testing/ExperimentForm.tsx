@@ -37,7 +37,7 @@ const variantSchema = z.object({
 const experimentSchema = z.object({
   name: z.string().min(1, 'Experiment name is required'),
   description: z.string().optional(),
-  type: z.enum(['promotion', 'hero', 'cta', 'pricing', 'layout', 'content']),
+  type: z.enum(['promotion', 'hero', 'cta', 'pricing', 'layout', 'content', 'other']),
   targetAudience: z.string().optional(),
   variants: z.array(variantSchema).min(2, 'At least 2 variants are required'),
   successMetric: z.string().min(1, 'Success metric is required'),
@@ -61,7 +61,8 @@ const TEST_TYPES = [
   { value: 'cta', label: 'Call-to-Action', description: 'Test button text and placement' },
   { value: 'pricing', label: 'Pricing Display', description: 'Test pricing presentation' },
   { value: 'layout', label: 'Layout', description: 'Test different page layouts' },
-  { value: 'content', label: 'Content', description: 'Test different content variations' }
+  { value: 'content', label: 'Content', description: 'Test different content variations' },
+  { value: 'other', label: 'Other', description: 'Custom experiment type' }
 ];
 
 const SUCCESS_METRICS = [
@@ -79,18 +80,25 @@ export const ExperimentForm: React.FC<ExperimentFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Convert ABTestExperiment.targetAudience object to string for form
+  const getTargetAudienceString = (): string => {
+    if (!experiment?.targetAudience) return '';
+    const { segments } = experiment.targetAudience;
+    return segments?.join(', ') || '';
+  };
+
   const form = useForm<ExperimentFormData>({
     resolver: zodResolver(experimentSchema),
     defaultValues: {
       name: experiment?.name || '',
       description: experiment?.description || '',
       type: experiment?.type || 'promotion',
-      targetAudience: experiment?.targetAudience || '',
+      targetAudience: getTargetAudienceString(),
       variants: experiment?.variants || [
         { name: 'Control', description: 'Original version', weight: 50, config: {} },
         { name: 'Variant A', description: 'Test version', weight: 50, config: {} }
       ],
-      successMetric: experiment?.successMetric || 'conversion',
+      successMetric: experiment?.successMetrics?.primary || 'conversion',
       minimumDetectableEffect: experiment?.minimumDetectableEffect || 0.05,
       confidenceLevel: experiment?.confidenceLevel || 0.95,
       maxDuration: experiment?.maxDuration || 30,
@@ -148,16 +156,34 @@ export const ExperimentForm: React.FC<ExperimentFormProps> = ({
     try {
       // Normalize weights before saving
       normalizeWeights();
-      
-      const experimentData = {
-        ...data,
+
+      // Convert form data to ABTestExperiment format
+      const experimentData: Omit<ABTestExperiment, 'id' | 'createdAt' | 'updatedAt'> = {
+        name: data.name,
+        description: data.description || '',
+        type: data.type,
         status: 'draft' as TestStatus,
         variants: data.variants.map((variant, index) => ({
-          ...variant,
           id: variant.id || `variant-${index}`,
+          name: variant.name,
+          description: variant.description || '',
+          weight: variant.weight,
+          config: variant.config || {},
           visitors: 0,
           conversions: 0
-        }))
+        })),
+        // Convert string targetAudience to object format
+        targetAudience: data.targetAudience ? {
+          segments: data.targetAudience.split(',').map(s => s.trim()).filter(Boolean)
+        } : undefined,
+        // Convert successMetric string to successMetrics object
+        successMetrics: {
+          primary: data.successMetric
+        },
+        minimumDetectableEffect: data.minimumDetectableEffect,
+        confidenceLevel: data.confidenceLevel,
+        maxDuration: data.maxDuration,
+        autoConclude: data.autoConclude
       };
 
       onSave(experimentData);

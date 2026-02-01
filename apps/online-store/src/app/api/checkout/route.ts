@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import type { Json, OnlineOrderInsert } from '@/services/supabase/types';
 
 // ============================================================================
 // Validation Schemas
@@ -235,13 +236,13 @@ export async function POST(request: NextRequest) {
     const orderNumber = generateOrderNumber();
     const orderId = crypto.randomUUID();
 
-    const order = {
+    const order: OnlineOrderInsert = {
       id: orderId,
       order_number: orderNumber,
       store_id: storeId,
       client_id: user?.id ?? null,
-      status: 'processing' as const,
-      items,
+      status: 'processing',
+      items: items as unknown as Json,
       subtotal: totals.subtotal,
       discount: totals.discount,
       tax: totals.tax,
@@ -249,9 +250,9 @@ export async function POST(request: NextRequest) {
       total: totals.total,
       customer_email: customerEmail,
       customer_phone: customerPhone,
-      shipping_address: shippingAddress ?? null,
-      billing_address: billingAddress ?? shippingAddress ?? null,
-      payment_method: paymentMethod,
+      shipping_address: (shippingAddress ?? null) as Json | null,
+      billing_address: ((billingAddress ?? shippingAddress ?? null)) as Json | null,
+      payment_method: JSON.stringify(paymentMethod),
       promo_code: promoCode ?? null,
       pickup_location: pickupLocation ?? null,
       pickup_time: pickupTime ?? null,
@@ -259,8 +260,9 @@ export async function POST(request: NextRequest) {
     };
 
     // Insert order into database
-    const { data: createdOrder, error: insertError } = await supabase
-      .from('online_orders')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference workaround
+    const { data: createdOrderData, error: insertError } = await (supabase
+      .from('online_orders') as any)
       .insert(order)
       .select()
       .single();
@@ -286,6 +288,9 @@ export async function POST(request: NextRequest) {
         .eq('store_id', storeId)
         .eq('client_id', user.id);
     }
+
+    // Type the created order explicitly
+    const createdOrder = createdOrderData as { id: string; order_number: string } | null;
 
     return NextResponse.json(
       {

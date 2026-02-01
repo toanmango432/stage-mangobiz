@@ -7,6 +7,7 @@
 
 import { supabase, withCircuitBreaker } from '../supabase/client';
 import type { User as SupabaseUser, Session, AuthError } from '@supabase/supabase-js';
+import type { ClientAuthInsert, ClientAuthUpdate } from '../supabase/types';
 
 // Types for auth operations
 export interface SignUpData {
@@ -93,20 +94,21 @@ export const customerAuthService = {
       }
 
       // 2. Create client_auth record to link with store
-      const { data: clientAuth, error: clientAuthError } = await withCircuitBreaker(() =>
-        supabase
-          .from('client_auth')
-          .insert({
-            auth_user_id: authData.user!.id,
-            store_id: data.storeId,
-            email: data.email,
-            phone: data.phone || null,
-            email_verified: false,
-            link_method: 'signup',
-          })
+      const insertData: ClientAuthInsert = {
+        auth_user_id: authData.user!.id,
+        store_id: data.storeId,
+        email: data.email,
+        phone: data.phone || null,
+        email_verified: false,
+        link_method: 'signup',
+      };
+      const { data: clientAuth, error: clientAuthError } = await withCircuitBreaker(async () =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('client_auth') as any)
+          .insert(insertData)
           .select()
           .single()
-      );
+      ) as { data: ClientAuthRecord | null; error: any };
 
       if (clientAuthError) {
         console.error('Failed to create client_auth record:', clientAuthError);
@@ -150,14 +152,14 @@ export const customerAuthService = {
       // Get the client_auth record if it exists
       let clientAuth: ClientAuthRecord | null = null;
       if (authData.user) {
-        const { data: clientAuthData } = await withCircuitBreaker(() =>
+        const { data: clientAuthData } = await withCircuitBreaker(async () =>
           supabase
             .from('client_auth')
             .select('*')
             .eq('auth_user_id', authData.user!.id)
             .single()
-        );
-        clientAuth = clientAuthData as ClientAuthRecord | null;
+        ) as { data: ClientAuthRecord | null; error: any };
+        clientAuth = clientAuthData;
       }
 
       return {
@@ -294,9 +296,10 @@ export const customerAuthService = {
 
       // Update client_auth email_verified status
       if (data.user) {
-        await supabase
-          .from('client_auth')
-          .update({ email_verified: true })
+        const updateData: ClientAuthUpdate = { email_verified: true };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('client_auth') as any)
+          .update(updateData)
           .eq('auth_user_id', data.user.id);
       }
 
@@ -320,16 +323,17 @@ export const customerAuthService = {
     method: 'manual' | 'email_match' | 'phone_match' = 'manual'
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await withCircuitBreaker(() =>
-        supabase
-          .from('client_auth')
-          .update({
-            client_id: clientId,
-            link_method: method,
-            updated_at: new Date().toISOString(),
-          })
+      const updateData: ClientAuthUpdate = {
+        client_id: clientId,
+        link_method: method,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await withCircuitBreaker(async () =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('client_auth') as any)
+          .update(updateData)
           .eq('auth_user_id', authUserId)
-      );
+      ) as { error: any };
 
       if (error) {
         return { success: false, error: error.message };
@@ -351,14 +355,14 @@ export const customerAuthService = {
   ): Promise<{ success: boolean; clientId?: string; error?: string }> {
     try {
       // Search for client with matching email in the store
-      const { data: clients, error: searchError } = await withCircuitBreaker(() =>
+      const { data: clients, error: searchError } = await withCircuitBreaker(async () =>
         supabase
           .from('clients')
           .select('id, email, first_name, last_name')
           .eq('store_id', storeId)
           .ilike('email', email)
           .limit(1)
-      );
+      ) as { data: Array<{ id: string; email: string; first_name: string; last_name: string }> | null; error: any };
 
       if (searchError) {
         return { success: false, error: searchError.message };
@@ -388,19 +392,19 @@ export const customerAuthService = {
    */
   async getClientAuth(authUserId: string): Promise<{ data: ClientAuthRecord | null; error?: string }> {
     try {
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('client_auth')
           .select('*')
           .eq('auth_user_id', authUserId)
           .single()
-      );
+      ) as { data: ClientAuthRecord | null; error: any };
 
       if (error) {
         return { data: null, error: error.message };
       }
 
-      return { data: data as ClientAuthRecord };
+      return { data };
     } catch (error: any) {
       return { data: null, error: error.message };
     }
@@ -411,13 +415,13 @@ export const customerAuthService = {
    */
   async getLinkedClient(clientId: string): Promise<{ data: any | null; error?: string }> {
     try {
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('clients')
           .select('*')
           .eq('id', clientId)
           .single()
-      );
+      ) as { data: any | null; error: any };
 
       if (error) {
         return { data: null, error: error.message };

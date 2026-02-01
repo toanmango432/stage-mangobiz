@@ -17,11 +17,13 @@ interface NotificationDropdownProps {
 
 export const NotificationDropdown = ({ onClose }: NotificationDropdownProps) => {
   const [activeTab, setActiveTab] = useState<'notifications' | 'preferences'>('notifications');
-  const { 
-    notifications, 
-    stats, 
-    markAllAsRead, 
-    clearAll 
+  const {
+    notifications,
+    stats,
+    markAllAsRead,
+    clearAll,
+    markAsRead,
+    deleteNotification
   } = useNotifications();
 
   const unreadNotifications = notifications.filter(n => !n.read);
@@ -93,7 +95,8 @@ export const NotificationDropdown = ({ onClose }: NotificationDropdownProps) => 
                       <NotificationItem
                         key={notification.id}
                         notification={notification}
-                        onClose={onClose}
+                        onMarkAsRead={() => markAsRead(notification.id)}
+                        onDelete={() => deleteNotification(notification.id)}
                       />
                     ))}
                   </div>

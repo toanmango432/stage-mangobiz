@@ -1,6 +1,6 @@
 // AI Copywriting using external AI Service
 import { aiAPI } from '@/lib/api-client/clients';
-import type { AIChatRequest, AIChatResponse } from '@/types/api/ai';
+import type { AIChatRequest, AIChatResponse, UserContext } from '@/types/api/ai';
 
 export interface CopywritingRequest {
   type: 'promotion' | 'announcement' | 'service' | 'brand' | 'cta' | 'headline';
@@ -40,14 +40,15 @@ class AICopywriter {
         message: prompt,
         context: {
           page: 'admin/copywriter',
-          user: { role: 'admin' }
+          user: { id: 'admin' }
         }
       };
 
       const response = await aiAPI.post('/chat', request);
-      
+
       if (response.success && response.data) {
-        return response.data.response;
+        const chatResponse = response.data as AIChatResponse;
+        return chatResponse.response;
       } else {
         console.error('AI Service error:', response.error);
         return this.getMockResponse(prompt);

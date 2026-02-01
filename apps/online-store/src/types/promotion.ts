@@ -1,3 +1,6 @@
+// Re-export Announcement from announcement.ts for convenience
+export type { Announcement, AnnouncementCategory, AnnouncementPriority } from './announcement';
+
 export interface Promotion {
   id: string;
   title: string;

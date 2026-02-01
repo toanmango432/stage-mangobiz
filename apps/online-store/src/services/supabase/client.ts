@@ -182,12 +182,13 @@ export async function withCircuitBreaker<T>(
 /**
  * Create a store-scoped query helper
  * Ensures all queries are filtered by store_id for multi-tenant isolation
+ * Note: Type assertion needed for dynamic table names in typed Supabase client
  */
 export function createStoreQuery<T extends keyof Database['public']['Tables']>(
   table: T,
   storeId: string
 ) {
-  return supabase.from(table).select().eq('store_id' as any, storeId);
+  return (supabase.from(table as string) as any).select().eq('store_id', storeId);
 }
 
 /**

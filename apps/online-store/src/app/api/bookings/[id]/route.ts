@@ -176,8 +176,9 @@ export async function PATCH(
     if (requestedTime !== undefined) updateData.requested_time = requestedTime;
     if (notes !== undefined) updateData.notes = notes;
 
-    const { data: booking, error } = await supabase
-      .from('online_bookings')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: booking, error } = await (supabase
+      .from('online_bookings') as any)
       .update(updateData)
       .eq('id', idParsed.data)
       .select()

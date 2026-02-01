@@ -26,13 +26,13 @@ export function useAIRecommendations(type: 'services' | 'products' | 'both', lim
             tags: s.tags || [],
             basePrice: s.price,
             showOnline: true,
+            showPriceOnline: true,
+            hasVariants: false,
             addOns: [],
             requiresDeposit: false,
-            depositAmount: 0,
-            cancellationPolicy: '',
-            imageUrl: s.imageUrl,
             bufferTimeBefore: 0,
             bufferTimeAfter: 0,
+            imageUrl: s.imageUrl,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           })), limit);

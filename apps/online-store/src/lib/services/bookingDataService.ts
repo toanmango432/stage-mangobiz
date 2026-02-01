@@ -518,19 +518,16 @@ export const bookingDataService = {
   createBooking(...args: Parameters<BookingDataService['createBooking']>) {
     return this.instance.createBooking(...args);
   },
-  updateBooking(...args: Parameters<BookingDataService['updateBooking']>) {
-    return this.instance.updateBooking(...args);
-  },
   cancelBooking(...args: Parameters<BookingDataService['cancelBooking']>) {
     return this.instance.cancelBooking(...args);
   },
-  getClientBookings(...args: Parameters<BookingDataService['getClientBookings']>) {
-    return this.instance.getClientBookings(...args);
+  getFeaturedServices(...args: Parameters<BookingDataService['getFeaturedServices']>) {
+    return this.instance.getFeaturedServices(...args);
   },
-  validateBooking(...args: Parameters<BookingDataService['validateBooking']>) {
-    return this.instance.validateBooking(...args);
+  suggestAlternatives(...args: Parameters<BookingDataService['suggestAlternatives']>) {
+    return this.instance.suggestAlternatives(...args);
   },
-  getAlternatives(...args: Parameters<BookingDataService['getAlternatives']>) {
-    return this.instance.getAlternatives(...args);
+  detectConflicts(...args: Parameters<BookingDataService['detectConflicts']>) {
+    return this.instance.detectConflicts(...args);
   },
 };

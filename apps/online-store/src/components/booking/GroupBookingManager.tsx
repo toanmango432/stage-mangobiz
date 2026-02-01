@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { ServiceCard } from './ServiceCard';
 import { ServiceDetailModal } from './ServiceDetailModal';
 import { ServiceMenuGrid } from './ServiceMenuGrid';
+import { MobileBottomSheet } from './MobileBottomSheet';
+import { ServiceQuickPreview } from './ServiceQuickPreview';
 import { PriceTag } from './design-system/PriceTag';
 import { DurationBadge } from './design-system/DurationBadge';
 import { Service } from '@/types/catalog';
@@ -356,9 +358,9 @@ export const GroupBookingManager = ({
 
       {/* Service Selection Bottom Sheet */}
       <MobileBottomSheet
-        isOpen={showServiceSheet}
+        isOpen={showServiceModal}
         onClose={() => {
-          setShowServiceSheet(false);
+          setShowServiceModal(false);
           setSelectedMember(null);
         }}
         title="Select Service"

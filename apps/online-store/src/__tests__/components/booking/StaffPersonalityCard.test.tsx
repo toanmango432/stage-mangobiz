@@ -2,37 +2,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StaffPersonalityCard } from '@/components/booking/StaffPersonalityCard';
+import { createMockStaffPersonality } from '@/__tests__/factories';
 
 describe('StaffPersonalityCard', () => {
+  // Create base mock staff using factory
+  const mockStaff = createMockStaffPersonality({
+    id: '1',
+    name: 'Sarah Chen',
+    role: 'Senior Stylist',
+    specialties: ['Hair Color', 'Balayage', 'Haircuts'],
+    rating: 4.9,
+    reviewCount: 127,
+    experience: 8,
+    totalBookings: 1250,
+    avatar: '/images/sarah-chen.jpg',
+    portfolio: [
+      '/images/portfolio/sarah-1.jpg',
+      '/images/portfolio/sarah-2.jpg',
+      '/images/portfolio/sarah-3.jpg',
+      '/images/portfolio/sarah-4.jpg',
+    ],
+    bio: 'Expert colorist with 8 years of experience',
+    daysOff: [],
+  });
+
   const defaultProps = {
-    staff: {
-      id: '1',
-      name: 'Sarah Chen',
-      role: 'Senior Stylist',
-      specialties: ['Hair Color', 'Balayage', 'Haircuts'],
-      rating: 4.9,
-      reviewCount: 127,
-      experience: 8,
-      totalBookings: 1250,
-      avatar: '/images/sarah-chen.jpg',
-      portfolio: [
-        '/images/portfolio/sarah-1.jpg',
-        '/images/portfolio/sarah-2.jpg',
-        '/images/portfolio/sarah-3.jpg',
-        '/images/portfolio/sarah-4.jpg',
-      ],
-      bio: 'Expert colorist with 8 years of experience',
-      workingHours: {
-        monday: { start: '09:00', end: '18:00' },
-        tuesday: { start: '09:00', end: '18:00' },
-        wednesday: { start: '09:00', end: '18:00' },
-        thursday: { start: '09:00', end: '18:00' },
-        friday: { start: '09:00', end: '18:00' },
-        saturday: { start: '10:00', end: '16:00' },
-        sunday: { start: '10:00', end: '16:00' },
-      },
-      daysOff: [],
-    },
+    staff: mockStaff,
     onSelect: vi.fn(),
     onViewProfile: vi.fn(),
     isSelected: false,
@@ -155,10 +150,10 @@ describe('StaffPersonalityCard', () => {
   });
 
   it('handles missing avatar gracefully', () => {
-    const staffWithoutAvatar = {
-      ...defaultProps.staff,
+    const staffWithoutAvatar = createMockStaffPersonality({
+      ...mockStaff,
       avatar: null,
-    };
+    });
 
     render(<StaffPersonalityCard {...defaultProps} staff={staffWithoutAvatar} />);
 
@@ -166,10 +161,10 @@ describe('StaffPersonalityCard', () => {
   });
 
   it('handles missing portfolio gracefully', () => {
-    const staffWithoutPortfolio = {
-      ...defaultProps.staff,
+    const staffWithoutPortfolio = createMockStaffPersonality({
+      ...mockStaff,
       portfolio: [],
-    };
+    });
 
     render(<StaffPersonalityCard {...defaultProps} staff={staffWithoutPortfolio} />);
 
@@ -177,10 +172,10 @@ describe('StaffPersonalityCard', () => {
   });
 
   it('handles missing specialties gracefully', () => {
-    const staffWithoutSpecialties = {
-      ...defaultProps.staff,
+    const staffWithoutSpecialties = createMockStaffPersonality({
+      ...mockStaff,
       specialties: [],
-    };
+    });
 
     render(<StaffPersonalityCard {...defaultProps} staff={staffWithoutSpecialties} />);
 
@@ -188,19 +183,10 @@ describe('StaffPersonalityCard', () => {
   });
 
   it('shows offline status when staff is unavailable', () => {
-    const offlineStaff = {
-      ...defaultProps.staff,
-      workingHours: {
-        monday: { start: '09:00', end: '18:00' },
-        tuesday: { start: '09:00', end: '18:00' },
-        wednesday: { start: '09:00', end: '18:00' },
-        thursday: { start: '09:00', end: '18:00' },
-        friday: { start: '09:00', end: '18:00' },
-        saturday: { start: '10:00', end: '16:00' },
-        sunday: { start: '10:00', end: '16:00' },
-      },
+    const offlineStaff = createMockStaffPersonality({
+      ...mockStaff,
       daysOff: ['2024-01-15'], // Today is off
-    };
+    });
 
     render(<StaffPersonalityCard {...defaultProps} staff={offlineStaff} />);
 
@@ -208,10 +194,10 @@ describe('StaffPersonalityCard', () => {
   });
 
   it('shows busy status when staff is busy', () => {
-    const busyStaff = {
-      ...defaultProps.staff,
+    const busyStaff = createMockStaffPersonality({
+      ...mockStaff,
       availability: 'busy',
-    };
+    });
 
     render(<StaffPersonalityCard {...defaultProps} staff={busyStaff} />);
 
@@ -219,11 +205,11 @@ describe('StaffPersonalityCard', () => {
   });
 
   it('formats large numbers correctly', () => {
-    const staffWithLargeNumbers = {
-      ...defaultProps.staff,
+    const staffWithLargeNumbers = createMockStaffPersonality({
+      ...mockStaff,
       reviewCount: 1234,
       totalBookings: 12345,
-    };
+    });
 
     render(<StaffPersonalityCard {...defaultProps} staff={staffWithLargeNumbers} />);
 
@@ -232,11 +218,11 @@ describe('StaffPersonalityCard', () => {
   });
 
   it('handles zero ratings gracefully', () => {
-    const newStaff = {
-      ...defaultProps.staff,
+    const newStaff = createMockStaffPersonality({
+      ...mockStaff,
       rating: 0,
       reviewCount: 0,
-    };
+    });
 
     render(<StaffPersonalityCard {...defaultProps} staff={newStaff} />);
 

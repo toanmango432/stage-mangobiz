@@ -45,6 +45,7 @@ export interface Service {
   // Promotional fields
   imageUrl?: string;
   featured?: boolean;
+  isPopular?: boolean;
   badge?: 'POPULAR' | 'NEW' | 'LIMITED' | 'SEASONAL';
   rating?: number;
   reviewCount?: number;
@@ -202,4 +203,27 @@ export interface GiftCard {
   status: 'active' | 'partially-used' | 'redeemed' | 'expired';
   issuedDate: string;
   expiryDate?: string;
+}
+
+/**
+ * Staff member for booking flow
+ * Note: Many properties are optional to support both full data (from API)
+ * and partial data (from mock/placeholder sources)
+ */
+export interface Staff {
+  id: string;
+  name: string;
+  avatar?: string;
+  title?: string;
+  role?: string;
+  bio?: string;
+  specialties: string[]; // Required - used by all booking components
+  rating: number; // Required - used by StaffPersonalityCard, StaffProfileSheet
+  reviewCount?: number;
+  isAvailable?: boolean;
+  services?: string[];
+  portfolio?: string[];
+  experienceYears?: number;
+  totalBookings?: number; // Optional stat shown in StaffPersonalityCard
+  availability?: Record<string, { start: string; end: string; }[]>;
 }

@@ -17,7 +17,7 @@
     }
   },
   "scripts": {
-    "typecheck": "echo \"Skipping typecheck - TODO: fix broken imports\"",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "test": "vitest"
   },
@@ -28,6 +28,8 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@types/node": "^22.16.5",
+    "@types/react": "^19.2.10",
     "typescript": "^5.5.4",
     "vitest": "^4.0.16"
   }

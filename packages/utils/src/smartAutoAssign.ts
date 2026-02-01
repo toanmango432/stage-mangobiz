@@ -3,9 +3,11 @@
  * Multi-factor intelligent staff assignment (beyond empID 9999)
  */
 
-import { LocalAppointment } from '../types/appointment';
+import { LocalAppointment } from '@mango/types';
 import { findAvailableStaff, isStaffAvailable } from './conflictDetection';
-import { NEXT_AVAILABLE_STAFF_ID } from '../constants/appointment';
+
+/** Magic ID for "next available" staff assignment */
+const NEXT_AVAILABLE_STAFF_ID = 9999;
 
 interface Staff {
   id: string;

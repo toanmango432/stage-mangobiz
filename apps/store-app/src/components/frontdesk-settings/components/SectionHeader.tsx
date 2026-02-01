@@ -8,7 +8,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 }) => (
   <div className="flex items-center mb-3">
     <div className="w-8 h-8 rounded-full bg-[#27AE60]/10 flex items-center justify-center mr-2.5">
-      {cloneElement(icon as React.ReactElement, {
+      {cloneElement(icon as React.ReactElement<{size?: number; className?: string}>, {
         size: 16,
         className: 'text-[#27AE60]'
       })}

@@ -29,21 +29,20 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
   snapPoints = [0.3, 0.7, 0.95],
   onHeightChange,
 }) => {
-  const [currentHeight, setCurrentHeight] = useState(initialHeight);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
   const [startHeight, setStartHeight] = useState(0);
+  const [currentHeightValue, setCurrentHeightValue] = useState(() => {
+    const heightMap: Record<string, number> = {
+      sm: 0.3,
+      md: 0.7,
+      lg: 0.9,
+      full: 0.95,
+    };
+    return heightMap[initialHeight] || 0.7;
+  });
   const sheetRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
-
-  const heightMap = {
-    sm: 0.3,
-    md: 0.7,
-    lg: 0.9,
-    full: 0.95,
-  };
-
-  const currentHeightValue = heightMap[currentHeight];
 
   // Handle drag gestures
   const handleTouchStart = (e: React.TouchEvent) => {

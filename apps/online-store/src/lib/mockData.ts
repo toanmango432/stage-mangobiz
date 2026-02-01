@@ -21,6 +21,72 @@ import { seedTemplateSections } from '@/lib/storage/templateStorage';
 // import salonShowcase from '@/lib/templates/salon-showcase.json';
 
 /**
+ * Order item add-on for mock data
+ */
+interface OrderItemAddOn {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+/**
+ * Order item for mock data
+ */
+interface OrderItem {
+  id: string;
+  type: 'service' | 'product';
+  serviceId?: string;
+  productId?: string;
+  name: string;
+  price: number;
+  quantity: number;
+  addOns?: OrderItemAddOn[];
+}
+
+/**
+ * Order type for admin order management mock data
+ * @deprecated Use real order data from Supabase
+ */
+interface Order {
+  id: string;
+  orderNumber: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  orderDate: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  total: number;
+  subtotal: number;
+  tax: number;
+  tip: number;
+  items: OrderItem[];
+  paymentMethod: string;
+  paymentStatus: 'pending' | 'paid' | 'refunded';
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Customer type for admin customer management
+ */
+export interface Customer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  joinDate: string;
+  bookingsCount: number;
+  totalSpent: number;
+  membershipStatus?: 'active' | 'cancelled' | 'expired';
+  preferredServices?: string[];
+  notes?: string;
+}
+
+/**
  * @deprecated Use catalogSyncService.getServices() instead
  */
 export const generateMockServices = () => {

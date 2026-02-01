@@ -14,28 +14,55 @@ import { cn } from '@/lib/utils';
 import { Search, Filter, Star, Clock, TrendingUp } from 'lucide-react';
 
 interface ServiceMenuGridProps {
-  onServiceSelect: (service: Service) => void;
+  onServiceSelect?: (service: Service) => void;
+  onSelectService?: (service: Service) => void;
   selectedService?: Service;
+  selectedServiceId?: string;
+  services?: Service[];
   className?: string;
 }
 
 export const ServiceMenuGrid = ({
   onServiceSelect,
+  onSelectService,
   selectedService,
+  selectedServiceId,
+  services: externalServices,
   className,
 }: ServiceMenuGridProps) => {
-  const [services, setServices] = useState<Service[]>([]);
+  const [internalServices, setInternalServices] = useState<Service[]>([]);
   const [featuredServices, setFeaturedServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!externalServices);
+
+  // Use external services if provided, otherwise use internal state
+  const services = externalServices ?? internalServices;
+
+  // Support both callback styles
+  const handleSelect = onServiceSelect ?? onSelectService;
+
+  // Support both selectedService and selectedServiceId
+  const isServiceSelected = (service: Service) => {
+    if (selectedServiceId) return service.id === selectedServiceId;
+    if (selectedService) return service.id === selectedService.id;
+    return false;
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('popular');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Load services on mount
+  // Load services on mount (only if external services not provided)
   useEffect(() => {
+    // Skip if external services are provided
+    if (externalServices) {
+      // Extract categories from external services
+      const uniqueCategories = Array.from(new Set(externalServices.map(s => s.category))) as string[];
+      setCategories(uniqueCategories);
+      return;
+    }
+
     const loadServices = async () => {
       setIsLoading(true);
       try {
@@ -43,12 +70,12 @@ export const ServiceMenuGrid = ({
           bookingDataService.getServices(),
           bookingDataService.getFeaturedServices(),
         ]);
-        
-        setServices(allServices);
+
+        setInternalServices(allServices);
         setFeaturedServices(featured);
-        
+
         // Extract unique categories
-        const uniqueCategories = Array.from(new Set(allServices.map(s => s.category)));
+        const uniqueCategories = Array.from(new Set(allServices.map(s => s.category))) as string[];
         setCategories(uniqueCategories);
       } catch (error) {
         console.error('Failed to load services:', error);
@@ -58,7 +85,7 @@ export const ServiceMenuGrid = ({
     };
 
     loadServices();
-  }, []);
+  }, [externalServices]);
 
   // Filter and sort services
   const filteredServices = useMemo(() => {
@@ -97,7 +124,7 @@ export const ServiceMenuGrid = ({
         filtered = filtered.sort((a, b) => a.duration - b.duration);
         break;
       case 'newest':
-        filtered = filtered.sort((a, b) => (b.badge === 'new' ? 1 : 0) - (a.badge === 'new' ? 1 : 0));
+        filtered = filtered.sort((a, b) => (b.badge === 'NEW' ? 1 : 0) - (a.badge === 'NEW' ? 1 : 0));
         break;
     }
 
@@ -105,12 +132,21 @@ export const ServiceMenuGrid = ({
   }, [services, searchQuery, selectedCategory, priceRange, sortBy]);
 
   const handleServiceSelect = (service: Service) => {
-    onServiceSelect(service);
+    handleSelect?.(service);
   };
 
-  const getServiceBadge = (service: Service) => {
+  const getServiceBadge = (service: Service): 'popular' | 'new' | 'limited' | 'discount' | undefined => {
     if (service.featured) return 'popular';
-    if (service.badge) return service.badge;
+    if (service.badge) {
+      // Convert uppercase badge types to lowercase for ServiceCard
+      const badgeMap: Record<string, 'popular' | 'new' | 'limited' | 'discount'> = {
+        'POPULAR': 'popular',
+        'NEW': 'new',
+        'LIMITED': 'limited',
+        'SEASONAL': 'limited', // Map SEASONAL to limited (closest match)
+      };
+      return badgeMap[service.badge];
+    }
     return undefined;
   };
 

@@ -24,8 +24,8 @@ export function generateEventSchema(options: EventSchemaOptions) {
     '@id': `${url}/updates/${announcement.id}#event`,
     name: announcement.title,
     description: announcement.content,
-    startDate: announcement.publishDate,
-    endDate: announcement.expiryDate,
+    startDate: announcement.startsAt,
+    endDate: announcement.endsAt,
     eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     location: {

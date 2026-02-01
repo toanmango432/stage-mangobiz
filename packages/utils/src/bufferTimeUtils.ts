@@ -3,7 +3,7 @@
  * Calculate and visualize buffer times between appointments
  */
 
-import { LocalAppointment } from '../types/appointment';
+import { LocalAppointment } from '@mango/types';
 
 /**
  * Default buffer time in minutes

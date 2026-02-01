@@ -58,7 +58,7 @@ export const EnhancedDateTimePicker = ({
         }, {} as Record<string, number>);
         
         const popular = Object.entries(timeCounts)
-          .sort(([,a], [,b]) => b - a)
+          .sort(([, a], [, b]) => (b as number) - (a as number))
           .slice(0, 3)
           .map(([time]) => time);
         
@@ -157,13 +157,15 @@ export const EnhancedDateTimePicker = ({
             disabled={(date) => date < new Date()}
             className="rounded-md border"
             components={{
-              Day: ({ date, ...props }) => {
+              Day: ({ date, displayMonth, ...props }) => {
+                // Exclude displayMonth from props spread - it's a react-day-picker prop, not an HTML attribute
+                void displayMonth; // Mark as intentionally unused
                 const badge = getDateBadge(date);
                 return (
                   <div className="relative">
                     <div {...props} />
                     {badge && (
-                      <Badge 
+                      <Badge
                         className={cn(
                           'absolute -top-1 -right-1 text-xs',
                           badge.color

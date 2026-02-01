@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BookingCard } from '@/components/booking/BookingCard';
+import { createMockBookingServiceData, createMockStaff } from '@/__tests__/factories';
 
 // Mock the MobileBottomSheet component
 vi.mock('@/components/booking/MobileBottomSheet', () => ({
-  MobileBottomSheet: ({ children, isOpen, onClose }: any) => 
+  MobileBottomSheet: ({ children, isOpen, onClose }: any) =>
     isOpen ? (
       <div data-testid="mobile-bottom-sheet" onClick={onClose}>
         {children}
@@ -25,20 +26,25 @@ vi.mock('@/components/booking/ServiceQuickPreview', () => ({
 }));
 
 describe('BookingCard', () => {
+  // Create mock data using factories
+  const mockService = {
+    id: '1',
+    name: 'Gel Manicure',
+    description: 'Premium gel manicure service',
+    duration: 60,
+    price: 45,
+    image: '/images/gel-manicure.jpg',
+  };
+
+  const mockStaffForBooking = {
+    id: '1',
+    name: 'Sarah Chen',
+    avatar: '/images/sarah-chen.jpg',
+  };
+
   const defaultProps = {
-    service: {
-      id: '1',
-      name: 'Gel Manicure',
-      description: 'Premium gel manicure service',
-      duration: 60,
-      price: 45,
-      image: '/images/gel-manicure.jpg',
-    },
-    staff: {
-      id: '1',
-      name: 'Sarah Chen',
-      avatar: '/images/sarah-chen.jpg',
-    },
+    service: mockService,
+    staff: mockStaffForBooking,
     date: '2024-01-15',
     time: '14:00',
     duration: 60,

@@ -19,7 +19,7 @@ export function generateProductSchema(options: ProductSchemaOptions) {
     '@id': `${url}/shop/${product.id}#product`,
     name: product.name,
     description: product.description,
-    image: product.imageUrl || `${url}/placeholder.svg`,
+    image: product.images?.[0] || `${url}/placeholder.svg`,
     brand: {
       '@type': 'Brand',
       name: product.brand || businessName
@@ -28,8 +28,8 @@ export function generateProductSchema(options: ProductSchemaOptions) {
       '@type': 'Offer',
       price: product.price,
       priceCurrency: 'USD',
-      availability: product.inStock 
-        ? 'https://schema.org/InStock' 
+      availability: product.stock > 0
+        ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
       seller: {
         '@type': 'Organization',
@@ -37,7 +37,7 @@ export function generateProductSchema(options: ProductSchemaOptions) {
       }
     },
     category: product.category,
-    sku: product.sku || product.id
+    sku: product.id // Use product ID as SKU since StoreProduct has no dedicated SKU
   };
 }
 
@@ -63,13 +63,13 @@ export function generateProductListSchema(
         '@type': 'Product',
         '@id': `${url}/shop/${product.id}`,
         name: product.name,
-        image: product.imageUrl,
+        image: product.images?.[0],
         offers: {
           '@type': 'Offer',
           price: product.price,
           priceCurrency: 'USD',
-          availability: product.inStock 
-            ? 'https://schema.org/InStock' 
+          availability: product.stock > 0
+            ? 'https://schema.org/InStock'
             : 'https://schema.org/OutOfStock'
         }
       }

@@ -67,6 +67,7 @@ export function getSession(): PersonalizationSession {
     return {
       sessionId: 'ssr-session',
       startTime: new Date().toISOString(),
+      currentPage: '/',
       interactions: [],
     };
   }

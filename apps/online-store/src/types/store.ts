@@ -30,6 +30,14 @@ export interface SalonInfo {
     tiktok?: string;
     website?: string;
   };
+  /** @deprecated Use socials instead */
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    tiktok?: string;
+    website?: string;
+  };
   coordinates?: {
     lat: number;
     lng: number;

@@ -1,0 +1,340 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/checkout-features",
+  "description": "Add payment processing enhancements and complete receipt delivery integration. Covers Tip Distribution visibility, Fiserv TTP Integration, Receipt delivery wiring, NFC progress states, Analytics, and Offline handling. PREREQUISITE: Run ralph/ticket-builder-foundation first. NOTE: Receipt services already exist - wire them in, don't recreate.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Show TipDistribution always when tip > 0",
+      "description": "As a front desk staff, I want to see how tips will be distributed across staff before payment.",
+      "acceptanceCriteria": [
+        "Remove the showTipDistribution conditional check on line 115 of TipSection.tsx",
+        "Always show tip distribution card when tipAmount > 0 AND staffMembers.length > 1",
+        "Auto-trigger handleAutoDistributeTip when tip is first set (if not already distributed)",
+        "Distribution updates when tip amount changes",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: add 20% tip → see distribution preview immediately"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/components/TipSection.tsx",
+        "apps/store-app/src/components/checkout/PaymentModal/hooks/usePaymentModal.ts"
+      ],
+      "notes": "TipSection.tsx line 115: change {showTipDistribution && tipDistribution.length > 0 && (...)} to just {tipDistribution.length > 0 && (...)}. In usePaymentModal.ts, add useEffect to auto-call handleAutoDistributeTip when tipAmount changes from 0 to positive.",
+      "priority": 1
+    },
+    {
+      "id": "US-002",
+      "title": "Add manual tip distribution editing",
+      "description": "As a front desk staff, I want to manually adjust tip amounts per staff member.",
+      "acceptanceCriteria": [
+        "Add 'Edit' button next to distribution display in TipSection.tsx",
+        "In edit mode: show Input field for each staff member's tip amount",
+        "Track isEditingTips state in usePaymentModal hook",
+        "Validate: sum of manual tips must equal total tip amount (show inline error if mismatch)",
+        "Save button applies manual distribution and exits edit mode",
+        "Cancel button reverts to last auto-calculated distribution",
+        "Add handleManualTipChange(staffId: string, amount: number) to hook",
+        "Add setIsEditingTips and manualTipAmounts state",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: click Edit → change amounts → save → distribution updated"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/components/TipSection.tsx",
+        "apps/store-app/src/components/checkout/PaymentModal/hooks/usePaymentModal.ts"
+      ],
+      "notes": "Use Input component from @/components/ui/Input. Store manual distribution separately from auto-calculated. Show red text validation error if sum doesn't match total.",
+      "priority": 2
+    },
+    {
+      "id": "US-003",
+      "title": "Create Fiserv TTP plugin TypeScript interface",
+      "description": "As a developer, I need TypeScript interfaces for the Fiserv Tap-to-Pay plugin.",
+      "acceptanceCriteria": [
+        "Define FiservTTPPlugin interface with methods: initialize, startPayment, cancelPayment, getDeviceStatus",
+        "Define FiservPaymentRequest interface: amount, currency, referenceId, merchantId, metadata",
+        "Define FiservPaymentResult interface: success, transactionId, authCode, cardType, cardBrand, lastFour, errorCode, errorMessage",
+        "Define FiservDeviceStatus interface: isReady, batteryLevel, nfcEnabled, sdkVersion",
+        "Define FiservCardBrand type: 'visa' | 'mastercard' | 'amex' | 'discover' | 'unknown'",
+        "Export all types",
+        "No forbidden strings: 'as any'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": [
+        "apps/store-app/src/services/payment/fiservTypes.ts"
+      ],
+      "notes": "NEW FILE. Based on Fiserv CommerceHub API. This is the JS bridge interface for Capacitor plugin. Native implementation is separate.",
+      "priority": 3
+    },
+    {
+      "id": "US-004",
+      "title": "Create Fiserv payment provider",
+      "description": "As a developer, I need a Fiserv provider that implements the PaymentProvider interface.",
+      "acceptanceCriteria": [
+        "Implement PaymentProvider interface from ./types.ts",
+        "Create FiservProvider class with name = 'Fiserv TTP'",
+        "processCardPayment(): call Fiserv plugin, map result to PaymentResult",
+        "processCashPayment(): delegate to mockPaymentProvider (Fiserv is card-only)",
+        "processGiftCardPayment(): delegate to mockPaymentProvider (Fiserv is card-only)",
+        "isAvailable(): check Capacitor.isPluginAvailable('FiservTTP') and NFC enabled",
+        "Handle Fiserv error codes and map to our PaymentResult errorCode types",
+        "Log payment attempts with auditLogger.logPayment()",
+        "Export singleton fiservProvider instance",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": [
+        "apps/store-app/src/services/payment/fiservProvider.ts"
+      ],
+      "notes": "NEW FILE. Follow pattern from mockPaymentProvider.ts. Import types from fiservTypes.ts.",
+      "priority": 4
+    },
+    {
+      "id": "US-005",
+      "title": "Create Fiserv mock for web development",
+      "description": "As a developer, I need a mock Fiserv plugin for testing payments on web.",
+      "acceptanceCriteria": [
+        "Implement FiservTTPPlugin interface with mock responses",
+        "initialize(): return success after 100ms delay",
+        "startPayment(): simulate 2-second delay, return success with mock transaction ID",
+        "Amounts ending in .99 simulate decline (for testing)",
+        "cancelPayment(): return cancelled status",
+        "getDeviceStatus(): return { isReady: true, batteryLevel: 100, nfcEnabled: true, sdkVersion: 'mock-1.0' }",
+        "No forbidden strings: 'as any'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": [
+        "apps/store-app/src/services/payment/fiservMock.ts"
+      ],
+      "notes": "NEW FILE. Only used in development/web. Use setTimeout/Promise for async simulation.",
+      "priority": 5
+    },
+    {
+      "id": "US-006",
+      "title": "Integrate Fiserv provider into payment bridge",
+      "description": "As a developer, I need the payment bridge to use Fiserv on native platforms.",
+      "acceptanceCriteria": [
+        "Import FiservProvider from ./fiservProvider",
+        "Import Capacitor from @capacitor/core",
+        "In detectPlatform(): use Capacitor.getPlatform() instead of hardcoded 'web'",
+        "In constructor: use fiservProvider for ios/android when Capacitor.isPluginAvailable('FiservTTP')",
+        "Fall back to mockPaymentProvider if Fiserv plugin not available",
+        "Export Fiserv types from ./index.ts",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": [
+        "apps/store-app/src/services/payment/paymentBridge.ts",
+        "apps/store-app/src/services/payment/index.ts"
+      ],
+      "notes": "Replace TODO comments on lines 36-38 with actual Fiserv integration. Keep mockPaymentProvider as fallback for web and when Fiserv unavailable.",
+      "priority": 6
+    },
+    {
+      "id": "US-007",
+      "title": "Add NFC payment progress states to ProcessingOverlay",
+      "description": "As a front desk staff, I want visual feedback during card payment.",
+      "acceptanceCriteria": [
+        "Add PaymentProcessingState type to types.ts: 'idle' | 'waiting_card' | 'card_detected' | 'processing' | 'approved' | 'declined'",
+        "Update ProcessingOverlay props to accept processingState and declineReason",
+        "Add 'waiting_card' state: NFC/Smartphone icon with pulse animation, text 'Present Card'",
+        "Add 'card_detected' state: show card brand text (Visa/MC/Amex), text 'Card Detected'",
+        "'processing' state already exists with spinner",
+        "'approved' state: green checkmark (already exists as showSuccess)",
+        "'declined' state: red X icon with decline reason text",
+        "Use Framer Motion AnimatePresence for smooth transitions",
+        "No forbidden strings: 'as any'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: simulate card payment shows state transitions"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/components/ProcessingOverlay.tsx",
+        "apps/store-app/src/components/checkout/PaymentModal/types.ts"
+      ],
+      "notes": "Import { motion, AnimatePresence } from 'framer-motion'. Use Smartphone icon from lucide-react for NFC. Keep backward compatible with isProcessing/showSuccess props.",
+      "priority": 7
+    },
+    {
+      "id": "US-008",
+      "title": "Wire NFC states into payment flow",
+      "description": "As a developer, I need the payment modal to control NFC progress states.",
+      "acceptanceCriteria": [
+        "Add paymentProcessingState state to usePaymentModal hook (default: 'idle')",
+        "When card payment starts in handleAddPayment: set state to 'waiting_card'",
+        "Before paymentBridge.processPayment(): set 'processing'",
+        "On success: set 'approved', wait 1.5 seconds, then continue with adding payment",
+        "On failure: set 'declined' with error, wait 2 seconds, then reset to 'idle'",
+        "Add declineReason state for error message",
+        "Export paymentProcessingState and declineReason from hook return",
+        "Pass states to ProcessingOverlay in PaymentModal.tsx",
+        "Keep isProcessing computed as boolean for backward compatibility",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/hooks/usePaymentModal.ts",
+        "apps/store-app/src/components/checkout/PaymentModal/PaymentModal.tsx"
+      ],
+      "notes": "This replaces simple isProcessing boolean with richer state machine. Use setTimeout for state timing.",
+      "priority": 8
+    },
+    {
+      "id": "US-009",
+      "title": "Wire receipt services into CompletionSection",
+      "description": "As a front desk staff, I want to send receipt after successful payment.",
+      "acceptanceCriteria": [
+        "Import sendReceiptEmail, sendReceiptSMS, printReceipt, generateReceiptData from @/services/receiptService",
+        "Add receipt delivery buttons: Print (Printer icon), Email (Mail icon), SMS (MessageSquare icon)",
+        "Add receiptMethods state: Set<'print' | 'email' | 'sms'>",
+        "Toggle button selection on click (allow multiple)",
+        "Email: if client has email, use it; else show Input field",
+        "SMS: if client has phone, use it; else show Input field",
+        "Print: call printReceipt(receiptData) immediately",
+        "Add isSendingReceipt state and per-method success state",
+        "Show loading spinner on active buttons during send",
+        "Show checkmark on buttons after successful send",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: complete payment → click Email → see loading → see success"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/components/CompletionSection.tsx"
+      ],
+      "notes": "receiptService already has all send functions. Add client, businessInfo, ticketData props to component. Use existing Button and Input components.",
+      "priority": 9
+    },
+    {
+      "id": "US-010",
+      "title": "Pass receipt data through payment completion",
+      "description": "As a developer, I need receipt context available in CompletionSection.",
+      "acceptanceCriteria": [
+        "Add client?: Client prop to PaymentModal (from @/types)",
+        "Add businessInfo?: BusinessInfo prop to PaymentModal (from @/services/receiptService)",
+        "Add ticketData?: Partial<Ticket> prop to PaymentModal",
+        "Pass these props through to CompletionSection",
+        "Update PaymentModalProps interface in types.ts",
+        "Update CompletionSectionProps interface",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/PaymentModal.tsx",
+        "apps/store-app/src/components/checkout/PaymentModal/types.ts",
+        "apps/store-app/src/components/checkout/PaymentModal/components/CompletionSection.tsx"
+      ],
+      "notes": "Import Client and Ticket from @/types. Import BusinessInfo from @/services/receiptService.",
+      "priority": 10
+    },
+    {
+      "id": "US-011",
+      "title": "Remember receipt preference per client",
+      "description": "As a front desk staff, I want receipt preferences remembered for each client.",
+      "acceptanceCriteria": [
+        "On CompletionSection mount: check localStorage for receipt-pref-{clientId}",
+        "Pre-select last used delivery method(s) for this client",
+        "After sending: save preference to localStorage",
+        "Preference format: { methods: string[], email?: string, phone?: string }",
+        "Add 'Remember for this client' checkbox (default checked)",
+        "Only save if checkbox checked AND client has ID (not walk-in)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: send email → close → reopen for same client → email pre-selected"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/components/CompletionSection.tsx"
+      ],
+      "notes": "Use JSON.parse/stringify for localStorage. Skip preference for walk-in clients (no clientId).",
+      "priority": 11
+    },
+    {
+      "id": "US-012",
+      "title": "Create checkout analytics service",
+      "description": "As a product manager, I want to track checkout behavior for analytics.",
+      "acceptanceCriteria": [
+        "Create trackCheckoutEvent(event, properties) function",
+        "Define CheckoutEvent type: 'checkout_started' | 'tip_selected' | 'payment_method_selected' | 'payment_processed' | 'checkout_completed' | 'checkout_abandoned'",
+        "Define CheckoutEventProperties interface: source?, staffCount?, itemCount?, total?, tipPercent?, paymentMethod?, durationMs?, sessionId?",
+        "Generate unique sessionId (UUID) per checkout session",
+        "In development: log to console with [Analytics] prefix",
+        "Export types and function",
+        "No PII in events (no names, emails, phones)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": [
+        "apps/store-app/src/services/analytics/checkoutEvents.ts"
+      ],
+      "notes": "NEW FILE. Keep provider-agnostic for future Mixpanel/Amplitude integration. Use v4() from uuid for sessionId.",
+      "priority": 12
+    },
+    {
+      "id": "US-013",
+      "title": "Integrate analytics into payment flow",
+      "description": "As a developer, I need to fire analytics events at key checkout moments.",
+      "acceptanceCriteria": [
+        "Import trackCheckoutEvent from @/services/analytics/checkoutEvents",
+        "Generate sessionId once when hook initializes (useRef)",
+        "Track startTime when modal opens (useRef with Date.now())",
+        "Fire checkout_started on mount (useEffect [])",
+        "Fire tip_selected when tipAmount changes (debounce 500ms to avoid spam)",
+        "Fire payment_method_selected when currentMethod set",
+        "Fire payment_processed after successful payment with method and amount",
+        "Fire checkout_completed when isFullyPaid becomes true, include durationMs",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/hooks/usePaymentModal.ts"
+      ],
+      "notes": "Use useDebouncedCallback from 'use-debounce' for tip_selected. Calculate durationMs = Date.now() - startTime.",
+      "priority": 13
+    },
+    {
+      "id": "US-014",
+      "title": "Add offline payment indicator",
+      "description": "As a front desk staff, I want to know when I'm offline during checkout.",
+      "acceptanceCriteria": [
+        "Import selectIsOnline from syncSlice (add selector if not exists)",
+        "Show Alert banner at top of PaymentModal when offline: 'Offline - Card payments unavailable'",
+        "Banner uses warning variant (yellow/amber background)",
+        "In PaymentMethodSelector: disable Card option when offline",
+        "Disabled Card button shows gray color and tooltip: 'Requires internet connection'",
+        "Cash payment remains enabled",
+        "Gift Card disabled when offline (shows tooltip: 'Requires validation')",
+        "Custom/Other payments remain enabled",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes",
+        "Verify in browser: DevTools offline mode → banner shows → Card disabled"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/PaymentModal.tsx",
+        "apps/store-app/src/components/checkout/PaymentModal/components/PaymentMethodSelector.tsx"
+      ],
+      "notes": "syncSlice already has isOnline state. Add selectIsOnline selector if not present. Use Alert component from @/components/ui/alert.",
+      "priority": 14
+    },
+    {
+      "id": "US-015",
+      "title": "Queue offline transactions for sync",
+      "description": "As a system, I want offline transactions synced when connection returns.",
+      "acceptanceCriteria": [
+        "Import selectIsOnline from syncSlice",
+        "When offline AND cash payment completes in handleAddPayment:",
+        "Use dispatch(createTransactionFromPending(...)) instead of createTransaction",
+        "Transaction created with syncStatus: 'pending'",
+        "Show toast: 'Payment saved locally - will sync when online'",
+        "Add isOfflinePayment?: boolean to PaymentCompletionData interface",
+        "Set isOfflinePayment: true when completing offline",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm exec tsc --noEmit passes"
+      ],
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/hooks/usePaymentModal.ts",
+        "apps/store-app/src/components/checkout/PaymentModal/types.ts"
+      ],
+      "notes": "transactionsSlice already has createTransactionFromPending thunk. syncService handles upload when online. Use toast from @/components/ui/use-toast.",
+      "priority": 15
+    }
+  ]
+}

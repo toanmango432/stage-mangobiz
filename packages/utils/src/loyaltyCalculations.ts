@@ -4,18 +4,143 @@
  * PRD Reference: 2.3.7 Loyalty Program
  */
 
-import type { Client, LoyaltyTier, LoyaltyInfo } from '../types/client';
 import type {
-  LoyaltySettings,
+  Client,
+  LoyaltyTier,
+  LoyaltyInfo,
   LoyaltyCalculationResult,
   EarnPointsInput,
-} from '../types/loyalty';
-import {
-  DEFAULT_LOYALTY_SETTINGS,
-  getTierConfig,
-  getTierBySpend,
-  calculatePointsEarned,
-} from '../constants/loyaltyConfig';
+} from '@mango/types';
+
+// ============================================================================
+// Local type definitions (different from @mango/types LoyaltyTierConfig entity)
+// These are configuration objects used for tier calculation, not DB entities
+// ============================================================================
+
+/** Local tier configuration for loyalty calculations */
+interface LocalLoyaltyTierConfig {
+  tier: LoyaltyTier;
+  name: string;
+  minSpend: number;
+  pointsMultiplier: number;
+  color: string;
+  benefits: string[];
+}
+
+/** Local loyalty settings that uses the calculation-specific tier config */
+interface LoyaltySettings {
+  enabled: boolean;
+  pointsPerDollar: number;
+  pointsRedemptionRate: number;
+  eligibleItems: ('services' | 'products' | 'memberships' | 'packages')[];
+  includeTaxInCalculation: boolean;
+  pointsExpire: boolean;
+  expirationMonths: number;
+  tierSystem: LocalLoyaltyTierConfig[];
+  tierEvaluationPeriod: 'lifetime' | 'rolling_12_months';
+  bonusEventsEnabled: boolean;
+}
+
+// ============================================================================
+// Default loyalty configuration (inlined from loyaltyConfig)
+// ============================================================================
+
+/** Default tier configuration matching PRD thresholds */
+const DEFAULT_TIER_CONFIG: LocalLoyaltyTierConfig[] = [
+  {
+    tier: 'bronze',
+    name: 'Bronze',
+    minSpend: 0,
+    pointsMultiplier: 1.0,
+    color: 'bg-amber-700 text-amber-50',
+    benefits: ['Earn 1 point per $1 spent', 'Birthday reward'],
+  },
+  {
+    tier: 'silver',
+    name: 'Silver',
+    minSpend: 500,
+    pointsMultiplier: 1.25,
+    color: 'bg-slate-400 text-slate-900',
+    benefits: ['Earn 1.25 points per $1 spent', 'Birthday reward', 'Early access to promotions'],
+  },
+  {
+    tier: 'gold',
+    name: 'Gold',
+    minSpend: 1500,
+    pointsMultiplier: 1.5,
+    color: 'bg-yellow-500 text-yellow-950',
+    benefits: ['Earn 1.5 points per $1 spent', 'Birthday reward', 'Priority booking', 'Free add-on service'],
+  },
+  {
+    tier: 'platinum',
+    name: 'Platinum',
+    minSpend: 5000,
+    pointsMultiplier: 2.0,
+    color: 'bg-slate-700 text-slate-50',
+    benefits: ['Earn 2 points per $1 spent', 'Birthday reward', 'VIP priority', 'Complimentary upgrades', 'Exclusive events'],
+  },
+  {
+    tier: 'vip',
+    name: 'VIP',
+    minSpend: 10000,
+    pointsMultiplier: 2.5,
+    color: 'bg-purple-600 text-purple-50',
+    benefits: ['Earn 2.5 points per $1 spent', 'All Platinum benefits', 'Personal concierge', 'Surprise gifts'],
+  },
+];
+
+/** Default loyalty settings */
+export const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = {
+  enabled: true,
+  pointsPerDollar: 1,
+  pointsRedemptionRate: 100,
+  eligibleItems: ['services', 'products'],
+  includeTaxInCalculation: false,
+  pointsExpire: false,
+  expirationMonths: 0,
+  tierSystem: DEFAULT_TIER_CONFIG,
+  tierEvaluationPeriod: 'lifetime',
+  bonusEventsEnabled: false,
+};
+
+/**
+ * Get tier configuration by tier name
+ */
+export function getTierConfig(tier: LoyaltyTier, settings: LoyaltySettings = DEFAULT_LOYALTY_SETTINGS): LocalLoyaltyTierConfig {
+  const config = settings.tierSystem.find((t: LocalLoyaltyTierConfig) => t.tier === tier);
+  return config || settings.tierSystem[0]; // Default to bronze if not found
+}
+
+/**
+ * Get tier by lifetime spend amount
+ */
+export function getTierBySpend(lifetimeSpend: number, settings: LoyaltySettings = DEFAULT_LOYALTY_SETTINGS): LoyaltyTier {
+  // Sort tiers by minSpend descending to find highest qualifying tier
+  const sortedTiers = [...settings.tierSystem].sort((a, b) => b.minSpend - a.minSpend);
+
+  for (const tierConfig of sortedTiers) {
+    if (lifetimeSpend >= tierConfig.minSpend) {
+      return tierConfig.tier;
+    }
+  }
+
+  return 'bronze'; // Default to bronze
+}
+
+/**
+ * Calculate points to be earned for a transaction
+ */
+export function calculatePointsEarned(
+  eligibleAmount: number,
+  tier: LoyaltyTier,
+  settings: LoyaltySettings = DEFAULT_LOYALTY_SETTINGS
+): number {
+  const tierConfig = getTierConfig(tier, settings);
+  const basePoints = eligibleAmount * settings.pointsPerDollar;
+  const multipliedPoints = basePoints * tierConfig.pointsMultiplier;
+
+  return Math.floor(multipliedPoints); // Round down to whole points
+}
 
 /**
  * Calculate loyalty points to be earned from a transaction

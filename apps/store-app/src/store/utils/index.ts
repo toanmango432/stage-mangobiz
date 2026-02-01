@@ -5,4 +5,4 @@
  */
 
 export { getStoreId, getStoreIdOrThrow, hasStoreId } from './getStoreId';
-export { getSyncContext } from './syncContext';
+export { getDefaultSyncContext, createSyncContext, isValidSyncContext, type SyncContext } from './syncContext';

@@ -10,15 +10,21 @@ interface UsageChartProps {
   color?: string;
 }
 
-export const UsageChart = ({ 
-  title, 
-  data, 
+export const UsageChart = ({
+  title,
+  data,
   type = 'line',
   dataKey = 'value',
   color = '#8b5cf6'
 }: UsageChartProps) => {
-  const ChartComponent = type === 'line' ? LineChart : BarChart;
-  const DataComponent = type === 'line' ? Line : Bar;
+  const commonProps = {
+    type: 'monotone' as const,
+    dataKey,
+    stroke: color,
+    fill: color,
+    strokeWidth: 2,
+    name: title,
+  };
 
   return (
     <Card>
@@ -27,34 +33,51 @@ export const UsageChart = ({
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <ChartComponent data={data}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis 
-              dataKey="label" 
-              className="text-xs"
-              tick={{ fill: 'currentColor' }}
-            />
-            <YAxis 
-              className="text-xs"
-              tick={{ fill: 'currentColor' }}
-            />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px'
-              }}
-            />
-            <Legend />
-            <DataComponent 
-              type="monotone" 
-              dataKey={dataKey} 
-              stroke={color}
-              fill={color}
-              strokeWidth={2}
-              name={title}
-            />
-          </ChartComponent>
+          {type === 'line' ? (
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis
+                dataKey="label"
+                className="text-xs"
+                tick={{ fill: 'currentColor' }}
+              />
+              <YAxis
+                className="text-xs"
+                tick={{ fill: 'currentColor' }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px'
+                }}
+              />
+              <Legend />
+              <Line {...commonProps} />
+            </LineChart>
+          ) : (
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis
+                dataKey="label"
+                className="text-xs"
+                tick={{ fill: 'currentColor' }}
+              />
+              <YAxis
+                className="text-xs"
+                tick={{ fill: 'currentColor' }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px'
+                }}
+              />
+              <Legend />
+              <Bar {...commonProps} />
+            </BarChart>
+          )}
         </ResponsiveContainer>
       </CardContent>
     </Card>

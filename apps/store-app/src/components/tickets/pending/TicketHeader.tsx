@@ -7,7 +7,7 @@ interface TicketHeaderProps {
   isMenuOpen: boolean;
   onOpenMenu: (id: string, e: React.MouseEvent) => void;
   onCloseMenu: () => void;
-  dropdownRef: React.RefObject<HTMLDivElement>;
+  dropdownRef: React.RefObject<HTMLDivElement | null>;
 }
 
 /**

@@ -83,7 +83,7 @@ const SectionHeader: React.FC<{
   icon
 }) => <div className="flex items-center mb-4">
       <div className="w-8 h-8 rounded-full bg-[#3BB09A]/10 flex items-center justify-center mr-2.5">
-        {cloneElement(icon as React.ReactElement, {
+        {cloneElement(icon as React.ReactElement<{size?: number; className?: string}>, {
           size: 16,
           className: 'text-[#3BB09A]'
         })}
@@ -107,7 +107,7 @@ const AccordionSection: React.FC<{
       <button className="w-full px-4 py-3.5 flex justify-between items-center bg-white text-left" onClick={onToggle} aria-expanded={isOpen}>
         <div className="flex items-center">
           <div className="w-7 h-7 rounded-full bg-[#3BB09A]/10 flex items-center justify-center mr-2.5">
-            {cloneElement(icon as React.ReactElement, {
+            {cloneElement(icon as React.ReactElement<{size?: number; className?: string}>, {
               size: 15,
               className: 'text-[#3BB09A]'
             })}

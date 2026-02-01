@@ -5,14 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, X } from 'lucide-react';
+import { BookingService } from '@/types/booking';
 import { Service } from '@/types/catalog';
 import { getServices } from '@/lib/services/catalogSyncService';
 
 interface ServicePickerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelectService: (service: Service) => void;
-  currentService?: Service;
+  onSelectService: (service: BookingService) => void;
+  currentService?: BookingService;
 }
 
 export const ServicePickerModal = ({ 
@@ -23,7 +24,7 @@ export const ServicePickerModal = ({
 }: ServicePickerModalProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<BookingService[]>([]);
 
   useEffect(() => {
     const loadServices = async () => {
@@ -32,11 +33,11 @@ export const ServicePickerModal = ({
         const storeId = localStorage.getItem('storeId') || '';
         const loadedServices = await getServices(storeId);
 
-        // Map to Service format
-        setServices(loadedServices.map((s: any) => ({
+        // Map to BookingService format (only properties needed for booking UI)
+        setServices(loadedServices.map((s: Service): BookingService => ({
           id: s.id,
           name: s.name,
-          description: s.description,
+          description: s.description || '',
           duration: s.duration,
           price: s.basePrice || s.price || 0,
           category: s.category,

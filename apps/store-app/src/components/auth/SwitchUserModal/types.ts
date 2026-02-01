@@ -73,7 +73,7 @@ export interface PasswordStepProps {
   showPassword: boolean;
   error: string | null;
   loading: boolean;
-  passwordInputRef: React.RefObject<HTMLInputElement>;
+  passwordInputRef: React.RefObject<HTMLInputElement | null>;
   onPasswordChange: (value: string) => void;
   onShowPasswordToggle: () => void;
   onSubmit: (e?: React.FormEvent) => void;

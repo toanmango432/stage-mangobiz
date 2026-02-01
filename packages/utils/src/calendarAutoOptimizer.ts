@@ -3,7 +3,7 @@
  * Analyzes calendar and suggests optimizations for maximum revenue and efficiency
  */
 
-import { LocalAppointment } from '../types/appointment';
+import { LocalAppointment } from '@mango/types';
 
 interface OptimizationSuggestion {
   id: string;

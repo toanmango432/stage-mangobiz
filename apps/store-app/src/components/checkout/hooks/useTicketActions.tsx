@@ -39,19 +39,9 @@ import type { IssueGiftCardInput, GiftCardType, GiftCardDeliveryMethod } from "@
 
 type TicketStatus = 'waiting' | 'in-service' | 'completed';
 
-interface ToastInput {
-  title?: string;
-  description?: string;
-  variant?: "default" | "destructive";
-  duration?: number;
-  action?: React.ReactElement;
-}
-
-type ToastFunction = (props: ToastInput) => {
-  id: string;
-  dismiss: () => void;
-  update: (props: ToastInput & { id: string }) => void;
-};
+// Use the toast function type from useToast hook - we accept any toast function shape
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ToastFunction = (props: { title?: string; description?: string; variant?: "default" | "destructive"; duration?: number; action?: any }) => { id: string; dismiss: () => void; update: (props: any) => void };
 
 export interface UseTicketActionsParams {
   state: TicketState;

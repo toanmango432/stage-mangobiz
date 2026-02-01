@@ -3,12 +3,10 @@ export * from './common';
 export * from './appointment';
 export * from './Ticket';
 export * from './transaction';
-// NOTE: './staff' exports StaffSchedule which is already in './schedule'
-// NOTE: './timesheet' exports PaymentMethod and createEmptyHoursBreakdown which are already in './common'
-// Selectively export from staff (avoiding StaffSchedule duplicate)
-export type { Staff } from './staff';
-// Selectively export from timesheet (avoiding PaymentMethod and createEmptyHoursBreakdown duplicates)
-export type { TimesheetEntry, TimesheetStatus, HoursBreakdown } from './timesheet';
+// Staff exports including StaffSchedule
+export * from './staff';
+// Timesheet exports
+export * from './timesheet';
 export * from './client';
 export * from './service';
 export * from './sync';
@@ -65,24 +63,116 @@ export {
 // Alias for backward compatibility
 export type { MenuService as CatalogService } from './catalog';
 export type { PackageServiceItem as PackageItem } from './catalog';
-// Do NOT export from './schedule' - it causes ServiceStatus duplicate
-// export * from './schedule';
-// Selectively export from payroll (avoiding PaymentMethod duplicate with common.ts)
-export type {
-  PayRunStatus,
-  AdjustmentType,
-  PayPeriodType,
-  PayRunAdjustment,
-  PayRunHoursBreakdown,
-  PayRunCommissionBreakdown,
-  StaffPayment,
-  PayRunTotals,
-  PayRun,
-  CreatePayRunParams,
-  AddAdjustmentParams,
-  CalculatedPayData,
+// Schedule module (selective exports to avoid StaffSchedule conflict with staff.ts)
+// The schedule/staffSchedule.ts has a more detailed StaffSchedule with week patterns
+// while staff.ts has a simpler StaffSchedule for basic staff data
+export {
+  // Staff Schedule types (detailed version for multi-week patterns)
+  type StaffSchedule as DetailedStaffSchedule,
+  type SchedulePatternType,
+  type WeekSchedule,
+  type DayScheduleConfig,
+  type ShiftConfig,
+  type CreateStaffScheduleInput,
+  // Time-Off types
+  type TimeOffType as ScheduleTimeOffType,
+  type TimeOffRequest as ScheduleTimeOffRequest,
+  type TimeOffRequestStatus,
+  type TimeOffStatusChange,
+  type CreateTimeOffRequestInput,
+  type CreateTimeOffTypeInput,
+  type UpdateTimeOffTypeInput,
+  // Blocked Time types
+  type BlockedTimeType,
+  type BlockedTimeEntry,
+  type BlockedTimeFrequency,
+  type CreateBlockedTimeTypeInput,
+  type CreateBlockedTimeEntryInput,
+  type UpdateBlockedTimeTypeInput,
+  // Business Closure types
+  type BusinessClosedPeriod,
+  type CreateBusinessClosedPeriodInput,
+  // Resource types
+  type Resource,
+  type ResourceCategory,
+  type CreateResourceInput,
+  type UpdateResourceInput,
+  type ResourceBooking,
+  type CreateResourceBookingInput,
+  // Pagination
+  type PaginatedResult,
+  type PaginationParams,
+  type TimeOffRequestFilters,
+  type BlockedTimeEntryFilters,
+  type ResourceBookingFilters,
+  type CustomDateRange,
+  isCustomDateRange,
+  DEFAULT_PAGINATION,
+  emptyPaginatedResult,
+  // Constants
+  DEFAULT_TIME_OFF_TYPES,
+  DEFAULT_BLOCKED_TIME_TYPES,
+  SCHEDULE_SYNC_PRIORITIES,
+  SCHEDULE_ENTITY_TYPES,
+  type ScheduleEntityType,
+  // Errors
+  type ScheduleErrorCode,
+  ScheduleError,
+  TimeOffTypeNotFoundError,
+  TimeOffRequestNotFoundError,
+  CannotDeleteSystemDefaultError,
+  RequestNotPendingError,
+  DenialReasonRequiredError,
+  ConflictExistsError,
+  InsufficientBalanceError,
+  DateRangeInvalidError,
+  BlockedTimeTypeNotFoundError,
+  BlockedTimeEntryNotFoundError,
+  CannotDeleteDefaultBlockedTimeTypeError,
+  BlockedTimeTypeInUseError,
+  DuplicateBlockedTimeTypeCodeError,
+  BlockedTimeConflictError,
+  InvalidRecurrenceConfigError,
+  ResourceNotFoundError,
+  ResourceBookingConflictError,
+  StaffNotFoundError,
+  StaffScheduleNotFoundError,
+  UnauthorizedScheduleError,
+  isScheduleError,
+  isTimeOffTypeNotFoundError,
+  isConflictExistsError,
+  isCannotDeleteSystemDefaultError,
+  isBlockedTimeTypeNotFoundError,
+  isBlockedTimeEntryNotFoundError,
+  isCannotDeleteDefaultBlockedTimeTypeError,
+  isBlockedTimeTypeInUseError,
+  isBlockedTimeConflictError,
+  isInvalidRecurrenceConfigError,
+} from './schedule';
+// Payroll exports (renaming to avoid conflicts with timesheet.ts)
+export {
+  type PayRunStatus,
+  type AdjustmentType,
+  type PayPeriodType,
+  type PayRunAdjustment,
+  type PayRunHoursBreakdown,
+  type PayRunCommissionBreakdown,
+  type StaffPayment,
+  type PayRunTotals,
+  type PayRun,
+  type CreatePayRunParams,
+  type AddAdjustmentParams,
+  type CalculatedPayData,
+  type PaymentMethod as PayrollPaymentMethod,
+  // Renamed to avoid conflict with timesheet.createEmptyHoursBreakdown
+  createEmptyHoursBreakdown as createEmptyPayRunHoursBreakdown,
+  createEmptyCommissionBreakdown,
+  createEmptyTotals,
+  createDefaultStaffPayment,
+  calculatePayRunTotals,
+  getPayRunStatusInfo,
+  getAdjustmentTypeInfo,
 } from './payroll';
-export type { PaymentMethod as PayrollPaymentMethod } from './payroll';
 
 // ============================================
 // API MODULE TYPES (PRD-API-Specifications.md)
@@ -134,6 +224,9 @@ export {
 // Notifications
 export * from './notification';
 
+// Loyalty types
+export * from './loyalty';
+
 // Marketing & Campaigns (selective export to avoid ClientSegment/LoyaltyTier duplicates with client.ts)
 export {
   type PromotionType,
@@ -163,6 +256,9 @@ export {
 
 // Integrations & Webhooks
 export * from './integration';
+
+// Team Settings Types
+export * from './team-settings';
 
 // Settings Module (selective export to avoid conflicts)
 export type {

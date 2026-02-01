@@ -3,7 +3,7 @@
  * Detect scheduling conflicts for appointments
  */
 
-import { LocalAppointment } from '../types/appointment';
+import { LocalAppointment } from '@mango/types';
 
 export interface ConflictInfo {
   type: 'double-booking' | 'client-conflict' | 'buffer-violation' | 'business-hours' | 'staff-unavailable';

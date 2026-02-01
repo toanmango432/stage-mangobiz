@@ -13,8 +13,8 @@ import type {
   OvertimeResult,
   TimesheetEntry,
   HoursBreakdown,
-} from '../types/timesheet';
-import { DEFAULT_OVERTIME_SETTINGS } from '../types/timesheet';
+} from '@mango/types';
+import { DEFAULT_OVERTIME_SETTINGS } from '@mango/types';
 
 // ============================================
 // TYPES

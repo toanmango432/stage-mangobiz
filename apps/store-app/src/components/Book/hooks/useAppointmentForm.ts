@@ -90,8 +90,8 @@ export interface UseAppointmentFormReturn {
   setIsMinimized: (minimized: boolean) => void;
   showViewMenu: boolean;
   setShowViewMenu: (show: boolean) => void;
-  viewMenuRef: RefObject<HTMLDivElement>;
-  clientSearchRef: RefObject<HTMLInputElement>;
+  viewMenuRef: RefObject<HTMLDivElement | null>;
+  clientSearchRef: RefObject<HTMLInputElement | null>;
 
   // Tab state
   activeTab: 'service' | 'staff';

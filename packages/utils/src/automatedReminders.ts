@@ -3,7 +3,7 @@
  * Handles scheduled reminders for appointments and client engagement
  */
 
-import { LocalAppointment } from '../types/appointment';
+import { LocalAppointment } from '@mango/types';
 
 export interface ReminderConfig {
   enabled: boolean;

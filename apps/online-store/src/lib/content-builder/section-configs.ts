@@ -327,7 +327,12 @@ export const SECTION_CONFIGS: Record<string, SectionConfig> = {
   }
 };
 
-export const SECTION_CATEGORIES = {
+interface SectionCategory {
+  label: string;
+  sections: readonly string[];
+}
+
+export const SECTION_CATEGORIES: Record<string, SectionCategory> = {
   content: {
     label: 'Content',
     sections: ['hero', 'cta', 'gallery', 'team']
@@ -344,5 +349,5 @@ export const SECTION_CATEGORIES = {
     label: 'Layout',
     sections: []
   }
-} as const;
+};
 

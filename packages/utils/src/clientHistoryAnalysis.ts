@@ -3,8 +3,8 @@
  * Analyze client booking patterns for smart suggestions
  */
 
-import { LocalAppointment } from '../types/appointment';
-import { Client } from '../types/client';
+import { LocalAppointment } from '@mango/types';
+import { Client } from '@mango/types';
 
 export interface ClientBookingPattern {
   // Service patterns

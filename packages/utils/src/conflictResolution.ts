@@ -7,8 +7,8 @@
  * See: tasks/phase-1.5-quality-improvements.md
  */
 
-import type { BaseSyncableEntity, VectorClock } from '../types/common';
-import type { TeamMemberSettings } from '../components/team-settings/types';
+import type { BaseSyncableEntity, VectorClock } from '@mango/types';
+import type { TeamMemberSettings } from '@mango/types';
 
 // ============================================
 // VECTOR CLOCK COMPARISON

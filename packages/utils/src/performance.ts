@@ -382,7 +382,7 @@ export function useWhyDidYouUpdate<T extends Record<string, unknown>>(
   name: string,
   props: T
 ) {
-  const previousProps = useRef<T>();
+  const previousProps = useRef<T | undefined>(undefined);
 
   useEffect(() => {
     if (previousProps.current) {

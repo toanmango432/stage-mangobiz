@@ -3,7 +3,24 @@
  * Helper functions and constants for smooth animations
  */
 
-import { premiumDesignSystem } from '../constants/premiumDesignSystem';
+// Animation constants (inlined from deprecated premiumDesignSystem)
+const animationConfig = {
+  duration: {
+    instant: '100ms',
+    fast: '200ms',
+    normal: '300ms',
+    slow: '500ms',
+    verySlow: '800ms',
+  },
+  easing: {
+    easeOut: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
+    easeIn: 'cubic-bezier(0.4, 0.0, 1, 1)',
+    easeInOut: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+    spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+    smooth: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+  },
+} as const;
 
 // ============================================================================
 // ANIMATION CLASSES (Tailwind)
@@ -68,12 +85,12 @@ export const animationClasses = {
  */
 export function transition(
   properties: string | string[] = 'all',
-  duration: keyof typeof premiumDesignSystem.animation.duration = 'normal',
-  easing: keyof typeof premiumDesignSystem.animation.easing = 'easeInOut'
+  duration: keyof typeof animationConfig.duration = 'normal',
+  easing: keyof typeof animationConfig.easing = 'easeInOut'
 ): string {
   const props = Array.isArray(properties) ? properties.join(', ') : properties;
-  const dur = premiumDesignSystem.animation.duration[duration];
-  const ease = premiumDesignSystem.animation.easing[easing];
+  const dur = animationConfig.duration[duration];
+  const ease = animationConfig.easing[easing];
 
   return `${props} ${dur} ${ease}`;
 }

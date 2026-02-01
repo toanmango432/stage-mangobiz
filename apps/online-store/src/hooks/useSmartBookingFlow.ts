@@ -28,26 +28,31 @@ export interface SmartBookingFlow {
     agreements: { state: SectionState; isExpanded: boolean };
     payment: { state: SectionState; isExpanded: boolean };
   };
-  
+
   // Actions
   expandSection: (section: string) => void;
   collapseSection: (section: string) => void;
-  completeSection: (section: string, data: any) => void;
+  completeSection: (section: string, data?: any) => void;
   editSection: (section: string) => void;
-  
+
   // Smart features
   autoSave: () => void;
   detectConflicts: () => Conflict[];
   suggestAlternatives: () => Alternative[];
-  
+
   // Form data
   formData: Partial<BookingFormData>;
   updateFormData: (data: Partial<BookingFormData>) => void;
-  
+
   // Progress
   currentSection: string | null;
   progress: number; // 0-100
   canProceed: boolean;
+
+  // Helper methods for component compatibility
+  isSectionExpanded: (section: string) => boolean;
+  isSectionCompleted: (section: string) => boolean;
+  getProgressPercentage: () => number;
 }
 
 const DRAFT_KEY = 'smart-booking-draft';
@@ -79,7 +84,7 @@ export const useSmartBookingFlow = (): SmartBookingFlow => {
   });
 
   const [currentSection, setCurrentSection] = useState<string | null>('groupSelection');
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout>();
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Auto-save functionality
   const autoSave = useCallback(() => {
@@ -196,14 +201,16 @@ export const useSmartBookingFlow = (): SmartBookingFlow => {
     }
   }, [currentSection]);
 
-  const completeSection = useCallback((section: string, data: any) => {
+  const completeSection = useCallback((section: string, data?: any) => {
     setSections(prev => ({
       ...prev,
       [section]: { state: 'completed', isExpanded: true }
     }));
     
     // Update form data with completed section data
-    updateFormData(data);
+    if (data) {
+      updateFormData(data);
+    }
     
     // Auto-collapse after 1 second
     setTimeout(() => {
@@ -259,9 +266,24 @@ export const useSmartBookingFlow = (): SmartBookingFlow => {
   // Calculate progress
   const progress = useCallback(() => {
     const totalSections = Object.keys(sections).length;
-    const completedSections = Object.values(sections).filter(state => state === 'completed').length;
+    const completedSections = Object.values(sections).filter(s => s.state === 'completed').length;
     return Math.round((completedSections / totalSections) * 100);
   }, [sections]);
+
+  // Helper methods for component compatibility
+  const isSectionExpanded = useCallback((section: string): boolean => {
+    const sectionData = sections[section as keyof typeof sections];
+    return sectionData ? sectionData.isExpanded : false;
+  }, [sections]);
+
+  const isSectionCompleted = useCallback((section: string): boolean => {
+    const sectionData = sections[section as keyof typeof sections];
+    return sectionData ? sectionData.state === 'completed' : false;
+  }, [sections]);
+
+  const getProgressPercentage = useCallback((): number => {
+    return progress();
+  }, [progress]);
 
   // Check if can proceed
   const canProceed = useCallback(() => {
@@ -288,5 +310,8 @@ export const useSmartBookingFlow = (): SmartBookingFlow => {
     currentSection,
     progress: progress(),
     canProceed: canProceed(),
+    isSectionExpanded,
+    isSectionCompleted,
+    getProgressPercentage,
   };
 };

@@ -1,0 +1,492 @@
+{
+  "project": "Mango POS - Technical Debt Cleanup Phase 2",
+  "branchName": "feature/add-tech-debt-ralph-run",
+  "description": "Fix remaining ~94 TypeScript errors in online-store. Complete full typecheck enablement.",
+  "userStories": [
+    {
+      "id": "TDP2-001",
+      "title": "Delete debug test files",
+      "description": "Remove debug-test.ts and debug-test2.ts from online-store src directory. These are temporary debugging files that shouldn't be in the codebase.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/debug-test.ts",
+        "apps/online-store/src/debug-test2.ts"
+      ],
+      "acceptanceCriteria": [
+        "debug-test.ts deleted",
+        "debug-test2.ts deleted",
+        "2 fewer TypeScript errors"
+      ],
+      "testCommand": "ls apps/online-store/src/debug*.ts 2>/dev/null || echo 'Files deleted'",
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "TDP2-002",
+      "title": "Fix API route null checks",
+      "description": "Add null checks for cart/existingCart/createdOrder in API routes. Use optional chaining and nullish coalescing.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [
+        "TDP2-001"
+      ],
+      "files": [
+        "apps/online-store/src/app/api/cart/route.ts",
+        "apps/online-store/src/app/api/checkout/route.ts"
+      ],
+      "acceptanceCriteria": [
+        "No TS18047 'possibly null' errors in cart/route.ts",
+        "No TS18047 'possibly null' errors in checkout/route.ts"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'TS18047' || echo 0",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "TDP2-003",
+      "title": "Fix missing module: @emotion/react",
+      "description": "Either install @emotion/react or remove the import from animations.ts if not needed.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/booking/v2/animations.ts"
+      ],
+      "acceptanceCriteria": [
+        "No TS2307 error for @emotion/react"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c '@emotion/react' || echo 0",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "TDP2-004",
+      "title": "Fix missing module: ../utils in mocks",
+      "description": "Create the missing utils module or fix the import path in mocks/handlers/ai.ts.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/mocks/handlers/ai.ts"
+      ],
+      "acceptanceCriteria": [
+        "No TS2307 error for '../utils'"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'mocks/handlers/ai' || echo 0",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "TDP2-005",
+      "title": "Fix mockData.ts Order type",
+      "description": "Import or define the Order type in mockData.ts.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/lib/mockData.ts"
+      ],
+      "acceptanceCriteria": [
+        "No TS2304 'Cannot find name Order' errors"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'mockData.*Order' || echo 0",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "TDP2-006",
+      "title": "Fix GroupBookingManager missing components",
+      "description": "Import or remove references to MobileBottomSheet, showServiceSheet, setShowServiceSheet, ServiceQuickPreview.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/booking/GroupBookingManager.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No TS2304 errors for missing components in GroupBookingManager"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'GroupBookingManager' || echo 0",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "TDP2-007",
+      "title": "Fix Service type mismatches in booking components",
+      "description": "Ensure Service objects have all required properties: category, basePrice, showOnline, showPriceOnline, hasVariants, etc.",
+      "category": "apps",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/booking/GroupSelector.tsx",
+        "apps/online-store/src/components/booking/ServicePickerModal.tsx",
+        "apps/online-store/src/hooks/useAIRecommendations.ts"
+      ],
+      "acceptanceCriteria": [
+        "No TS2739/TS2740 errors about missing Service properties"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'Service' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-008",
+      "title": "Fix Staff type mismatches",
+      "description": "Add missing properties to Staff type or mock data: title, photo, specialties, totalBookings. Fix availability type conflict.",
+      "category": "apps",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/booking/StaffPersonalityCard.tsx",
+        "apps/online-store/src/components/booking/StaffProfileSheet.tsx",
+        "apps/online-store/src/components/booking/StaffSelectionGrid.tsx",
+        "apps/online-store/src/components/booking/v2/EnhancedStaffTimePicker.tsx",
+        "apps/online-store/src/components/booking/v2/StaffTimePicker.tsx",
+        "apps/online-store/src/components/booking/v2/UnifiedStaffTimePicker.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No type errors about missing Staff properties",
+        "No availability type conflicts"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'Staff' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-009",
+      "title": "Fix EnhancedStaffTimePicker prop mismatches",
+      "description": "Fix selectedStaffId vs selectedStaff prop name. Fix onBack prop on StickyActionBarProps. Fix Assignment type.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [
+        "TDP2-008"
+      ],
+      "files": [
+        "apps/online-store/src/components/booking/enhanced/EnhancedStaffTimePicker.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Props match interface definitions",
+        "No TS2322 errors"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'EnhancedStaffTimePicker' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-010",
+      "title": "Fix ServiceMenuGrid badge type mismatch",
+      "description": "Fix badge type comparison: POPULAR/NEW/LIMITED/SEASONAL vs popular/new/limited. Use consistent casing.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/booking/ServiceMenuGrid.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Badge type comparisons work correctly",
+        "No TS2367 type comparison errors"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'ServiceMenuGrid' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-011",
+      "title": "Fix notification component issues",
+      "description": "Fix NotificationDropdown onClose prop. Fix NotificationPreferences duplicate declaration.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/notifications/NotificationDropdown.tsx",
+        "apps/online-store/src/components/notifications/NotificationPreferences.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No prop type errors in notification components",
+        "No duplicate declaration errors"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'notification' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-012",
+      "title": "Fix A/B testing form type errors",
+      "description": "Fix ExperimentType to include 'other'. Fix successMetric vs successMetrics. Add missing properties to experiment form.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/admin/ab-testing/ExperimentForm.tsx"
+      ],
+      "acceptanceCriteria": [
+        "ExperimentType includes all needed values",
+        "successMetrics property used correctly",
+        "No type errors in form submission"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'ExperimentForm' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-013",
+      "title": "Fix SEO schema type errors",
+      "description": "Fix business.ts: priceRange, open/close properties. Fix product.ts: imageUrl vs image, inStock vs stock, sku property.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/lib/seo/schemas/business.ts",
+        "apps/online-store/src/lib/seo/schemas/product.ts"
+      ],
+      "acceptanceCriteria": [
+        "SalonInfo has priceRange or code updated",
+        "StoreProduct properties match usage"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'lib/seo' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-014",
+      "title": "Fix AI module type errors",
+      "description": "Fix copywriter.ts role property, response access. Fix personalization.ts currentPage. Fix smartSearch Record<string, unknown> constraint.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/lib/ai/copywriter.ts",
+        "apps/online-store/src/lib/ai/personalization.ts",
+        "apps/online-store/src/lib/ai/smartSearch.ts"
+      ],
+      "acceptanceCriteria": [
+        "No type errors in AI modules"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'lib/ai' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-015",
+      "title": "Fix ab-testing tracking EventType",
+      "description": "Add ab_test_impression and ab_test_conversion to EventType enum.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/lib/ab-testing/tracking.ts"
+      ],
+      "acceptanceCriteria": [
+        "EventType includes ab_test_impression and ab_test_conversion"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'ab-testing/tracking' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-016",
+      "title": "Fix auth service Supabase insert types",
+      "description": "Fix client_auth insert/update type mismatches in authService.ts.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/services/auth/authService.ts"
+      ],
+      "acceptanceCriteria": [
+        "No Supabase type errors in authService"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'authService' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-017",
+      "title": "Fix admin Staff view type mismatch",
+      "description": "Fix AdminStaff to StaffMember conversion. Handle optional email property.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/views/admin/Staff.tsx"
+      ],
+      "acceptanceCriteria": [
+        "AdminStaff properly converts to StaffMember",
+        "Optional email handled correctly"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'views/admin/Staff' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-018",
+      "title": "Fix Memberships admin view ReactNode errors",
+      "description": "Fix unknown type not assignable to ReactNode in Memberships.tsx.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/views/admin/catalog/Memberships.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No ReactNode type errors"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'Memberships' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-019",
+      "title": "Fix misc utility type errors",
+      "description": "Fix lazy-load.ts IntersectionObserver mock. Fix test/setup.ts UUID type. Fix cart handler params.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/lib/utils/lazy-load.ts",
+        "apps/online-store/src/test/setup.ts",
+        "apps/online-store/src/mocks/handlers/cart.ts"
+      ],
+      "acceptanceCriteria": [
+        "IntersectionObserver mock has all required properties",
+        "UUID mock returns correct type",
+        "Cart handler uses correct param access"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'TS2352|TS2322|TS2304' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-020",
+      "title": "Fix EnhancedDateTimePicker type errors",
+      "description": "Fix arithmetic operation types and displayMonth HTMLDiv conflict.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/booking/EnhancedDateTimePicker.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Arithmetic operations use correct types",
+        "displayMonth prop typed correctly"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'EnhancedDateTimePicker' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-021",
+      "title": "Fix ClientInfoForm trim error",
+      "description": "Fix preferences property access that doesn't support .trim().",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/booking/ClientInfoForm.tsx"
+      ],
+      "acceptanceCriteria": [
+        "preferences property accessed correctly",
+        "No trim() on object type"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'ClientInfoForm' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-022",
+      "title": "Fix ServiceCategoryTabs prop mismatch",
+      "description": "Fix services prop not existing on ServiceMenuGridProps.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/booking/ServiceCategoryTabs.tsx"
+      ],
+      "acceptanceCriteria": [
+        "ServiceMenuGrid receives correct props"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'ServiceCategoryTabs' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-023",
+      "title": "Fix UsageChart JSX element type",
+      "description": "Fix DataComponent not having construct/call signatures.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/admin/analytics/UsageChart.tsx"
+      ],
+      "acceptanceCriteria": [
+        "DataComponent properly typed as React component"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'UsageChart' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-024",
+      "title": "Fix SectionLibrary argument type",
+      "description": "Fix argument of type 'string' not assignable to parameter of type 'never'.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/admin/content-builder/SectionLibrary.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Array access uses correct type"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'SectionLibrary' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TDP2-025",
+      "title": "Re-enable online-store typecheck",
+      "description": "Change package.json typecheck script from echo skip to actual tsc --noEmit.",
+      "category": "ci",
+      "complexity": 1,
+      "dependencies": [
+        "TDP2-001",
+        "TDP2-002",
+        "TDP2-003",
+        "TDP2-004",
+        "TDP2-005",
+        "TDP2-006",
+        "TDP2-007",
+        "TDP2-008",
+        "TDP2-009",
+        "TDP2-010",
+        "TDP2-011",
+        "TDP2-012",
+        "TDP2-013",
+        "TDP2-014",
+        "TDP2-015",
+        "TDP2-016",
+        "TDP2-017",
+        "TDP2-018",
+        "TDP2-019",
+        "TDP2-020",
+        "TDP2-021",
+        "TDP2-022",
+        "TDP2-023",
+        "TDP2-024"
+      ],
+      "files": [
+        "apps/online-store/package.json"
+      ],
+      "acceptanceCriteria": [
+        "typecheck script is 'tsc --noEmit'",
+        "pnpm --filter @mango/online-store run typecheck passes"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store run typecheck",
+      "priority": 10,
+      "passes": true
+    }
+  ]
+}

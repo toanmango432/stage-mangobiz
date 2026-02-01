@@ -12,7 +12,7 @@ interface TemplateCardProps {
   isExpanded: boolean;
   onToggleSettings: () => void;
   onApply: () => void;
-  innerRef?: React.RefObject<HTMLDivElement>;
+  innerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const TemplateCard: React.FC<TemplateCardProps> = ({

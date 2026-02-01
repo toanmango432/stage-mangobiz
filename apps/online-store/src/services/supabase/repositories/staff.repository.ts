@@ -89,7 +89,7 @@ export class StaffRepository extends BaseRepository<StaffRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('staff')
           .select('*')
@@ -103,7 +103,7 @@ export class StaffRepository extends BaseRepository<StaffRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return (data || []).map((row) => toStaffMember(row as StaffRow));
+      return ((data || []) as StaffRow[]).map((row) => toStaffMember(row));
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -118,7 +118,7 @@ export class StaffRepository extends BaseRepository<StaffRow> {
       const storeId = this.getStoreId();
 
       // First get staff IDs assigned to this service
-      const { data: assignments, error: assignError } = await withCircuitBreaker(() =>
+      const { data: assignments, error: assignError } = await withCircuitBreaker(async () =>
         supabase
           .from('staff_services')
           .select('staff_id')
@@ -131,15 +131,16 @@ export class StaffRepository extends BaseRepository<StaffRow> {
         return this.getOnlineStaff();
       }
 
-      if (!assignments || assignments.length === 0) {
+      const assignmentsArray = (assignments || []) as { staff_id: string }[];
+      if (assignmentsArray.length === 0) {
         // No specific assignments - return all online staff as they can all perform it
         return this.getOnlineStaff();
       }
 
-      const staffIds = assignments.map((a) => a.staff_id);
+      const staffIds = assignmentsArray.map((a) => a.staff_id);
 
       // Get staff details for assigned staff
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('staff')
           .select('*')
@@ -154,7 +155,7 @@ export class StaffRepository extends BaseRepository<StaffRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return (data || []).map((row) => toStaffMember(row as StaffRow));
+      return ((data || []) as StaffRow[]).map((row) => toStaffMember(row));
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -168,7 +169,7 @@ export class StaffRepository extends BaseRepository<StaffRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
+      const { data, error } = await withCircuitBreaker(async () =>
         supabase
           .from('staff')
           .select('*')
@@ -190,7 +191,7 @@ export class StaffRepository extends BaseRepository<StaffRow> {
         .select('service_id')
         .eq('staff_id', id);
 
-      const serviceIds = services?.map((s) => s.service_id) || [];
+      const serviceIds = (services as { service_id: string }[] | null)?.map((s) => s.service_id) || [];
 
       return toStaffMember(data as StaffRow, serviceIds);
     } catch (error) {
@@ -211,7 +212,7 @@ export class StaffRepository extends BaseRepository<StaffRow> {
       const storeId = this.getStoreId();
 
       // Get staff work schedule
-      const { data: staffData, error: staffError } = await withCircuitBreaker(() =>
+      const { data: staffData, error: staffError } = await withCircuitBreaker(async () =>
         supabase
           .from('staff')
           .select('work_schedule')
@@ -225,11 +226,12 @@ export class StaffRepository extends BaseRepository<StaffRow> {
       }
 
       // Parse work schedule for the given day
-      const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'lowercase' });
-      const schedule = staffData.work_schedule?.[dayOfWeek];
+      const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() as 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+      const staffDataTyped = staffData as { work_schedule?: Record<string, { start: string; end: string }> };
+      const schedule = staffDataTyped.work_schedule?.[dayOfWeek];
 
       // Get existing appointments for this staff on this date
-      const { data: appointments, error: apptError } = await withCircuitBreaker(() =>
+      const { data: appointments, error: apptError } = await withCircuitBreaker(async () =>
         supabase
           .from('appointments')
           .select('start_time, end_time')
@@ -240,7 +242,8 @@ export class StaffRepository extends BaseRepository<StaffRow> {
           .not('status', 'in', '("cancelled", "no_show")')
       );
 
-      const bookedSlots = (appointments || []).map((appt: any) => ({
+      const appointmentsArray = (appointments || []) as { start_time: string; end_time: string }[];
+      const bookedSlots = appointmentsArray.map((appt) => ({
         start: appt.start_time,
         end: appt.end_time,
       }));

@@ -8,12 +8,12 @@
  */
 
 import type {
-  StaffSchedule,
+  DetailedStaffSchedule as StaffSchedule,
   WeekSchedule,
   DayScheduleConfig,
   ShiftConfig,
   CreateStaffScheduleInput,
-} from '../types/schedule/staffSchedule';
+} from '@mango/types';
 
 // ============================================================
 // UI TYPES (from AddEditScheduleModal)

@@ -3,8 +3,8 @@
  * Calculates staff availability for time slots
  */
 
-import { LocalAppointment } from '../types/appointment';
-import { Staff } from '../types';
+import { LocalAppointment } from '@mango/types';
+import { Staff } from '@mango/types';
 
 export interface TimeSlotAvailability {
   timeSlot: Date;

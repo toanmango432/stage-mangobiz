@@ -1,5 +1,25 @@
 import { Service } from './catalog';
 
+/**
+ * Simplified service type for booking flow.
+ * Contains only the properties needed for booking UI, without requiring
+ * all the catalog/admin properties from the full Service type.
+ */
+export interface BookingService {
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  price: number;
+  category?: string;
+}
+
+/**
+ * Union type that accepts either a full Service or simplified BookingService.
+ * Used throughout the booking flow to handle both API responses and form data.
+ */
+export type ServiceForBooking = Service | BookingService;
+
 export interface TimeSlot {
   time: string; // "09:00 AM"
   available: boolean;
@@ -88,13 +108,7 @@ export type SchedulingPreference = 'same-time' | 'back-to-back' | 'flexible';
 export interface GroupMember {
   id: string;
   name?: string;
-  service: Service | {
-    id: string;
-    name: string;
-    description: string;
-    duration: number;
-    price: number;
-  };
+  service?: ServiceForBooking;
   addOns: AddOn[];
   answers?: Record<string, { answer: string; priceModifier: number }>;
   selectedAddOns?: Array<{ id: string; name: string; price: number; duration: number }>;
@@ -125,13 +139,7 @@ export interface BookingFormData {
   groupSetupComplete?: boolean;
   schedulingPreference?: SchedulingPreference;
   members?: GroupMember[];
-  service: Service | {
-    id: string;
-    name: string;
-    description: string;
-    duration: number;
-    price: number;
-  };
+  service?: ServiceForBooking;
   serviceQuestions?: Record<string, {
     answer: string;
     priceModifier: number;

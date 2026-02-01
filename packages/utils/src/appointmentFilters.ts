@@ -3,21 +3,29 @@
  * Apply various filters to appointment lists
  */
 
-import { LocalAppointment } from '../types/appointment';
-import { AppointmentFilters } from '../components/Book/FilterPanel';
+import type { LocalAppointment, AppointmentFilters } from '@mango/types';
+
+/**
+ * Extended filters with serviceTypes for UI use
+ */
+interface ExtendedFilters extends AppointmentFilters {
+  search?: string;
+  serviceTypes?: string[];
+}
 
 /**
  * Filter appointments based on search, status, and service type
  */
 export function filterAppointments(
   appointments: LocalAppointment[],
-  filters: AppointmentFilters
+  filters: ExtendedFilters
 ): LocalAppointment[] {
   let filtered = [...appointments];
 
-  // Apply search filter
-  if (filters.search && filters.search.trim()) {
-    const searchLower = filters.search.toLowerCase().trim();
+  // Apply search filter (support both search and searchQuery)
+  const searchTerm = filters.search || filters.searchQuery;
+  if (searchTerm && searchTerm.trim()) {
+    const searchLower = searchTerm.toLowerCase().trim();
     filtered = filtered.filter(apt => {
       // Search in client name
       if (apt.clientName.toLowerCase().includes(searchLower)) return true;
@@ -26,7 +34,7 @@ export function filterAppointments(
       if (apt.clientPhone?.toLowerCase().includes(searchLower)) return true;
 
       // Search in service names
-      if (apt.services.some(s => s.serviceName.toLowerCase().includes(searchLower))) return true;
+      if (apt.services.some((s: { serviceName: string }) => s.serviceName.toLowerCase().includes(searchLower))) return true;
 
       // Search in staff name
       if (apt.staffName?.toLowerCase().includes(searchLower)) return true;
@@ -37,15 +45,15 @@ export function filterAppointments(
 
   // Apply status filter
   if (filters.status && filters.status.length > 0) {
-    filtered = filtered.filter(apt => filters.status.includes(apt.status));
+    filtered = filtered.filter(apt => filters.status!.includes(apt.status));
   }
 
   // Apply service type filter
   if (filters.serviceTypes && filters.serviceTypes.length > 0) {
     filtered = filtered.filter(apt => {
       // Check if any of the appointment's services match the filter
-      return apt.services.some(service => {
-        return filters.serviceTypes.some(filterType =>
+      return apt.services.some((service: { serviceName: string }) => {
+        return filters.serviceTypes!.some((filterType: string) =>
           service.serviceName.toLowerCase().includes(filterType.toLowerCase())
         );
       });

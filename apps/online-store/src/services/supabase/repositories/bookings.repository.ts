@@ -9,6 +9,10 @@
 import { BaseRepository, APIError } from './base.repository';
 import { supabase, withCircuitBreaker } from '../client';
 
+// Helper to get untyped supabase access for queries using 'online_bookings' table
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const untypedSupabase = supabase as any;
+
 // Online booking status
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
 
@@ -137,8 +141,8 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         source: 'online_store',
       };
 
-      const { data: result, error } = await withCircuitBreaker(() =>
-        supabase
+      const { data: result, error } = await withCircuitBreaker(async () =>
+        untypedSupabase
           .from('online_bookings')
           .insert(bookingData)
           .select(`
@@ -153,7 +157,7 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return toOnlineBooking(result);
+      return toOnlineBooking(result as OnlineBookingRow & { service?: any; staff?: any });
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -167,8 +171,8 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
-        supabase
+      const { data, error } = await withCircuitBreaker(async () =>
+        untypedSupabase
           .from('online_bookings')
           .select(`
             *,
@@ -187,7 +191,7 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return toOnlineBooking(data);
+      return toOnlineBooking(data as OnlineBookingRow & { service?: any; staff?: any });
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -201,8 +205,8 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
-        supabase
+      const { data, error } = await withCircuitBreaker(async () =>
+        untypedSupabase
           .from('online_bookings')
           .select(`
             *,
@@ -219,7 +223,7 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return (data || []).map(toOnlineBooking);
+      return ((data || []) as (OnlineBookingRow & { service?: any; staff?: any })[]).map(toOnlineBooking);
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -233,8 +237,8 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
     try {
       const storeId = this.getStoreId();
 
-      const { data, error } = await withCircuitBreaker(() =>
-        supabase
+      const { data, error } = await withCircuitBreaker(async () =>
+        untypedSupabase
           .from('online_bookings')
           .select(`
             *,
@@ -250,7 +254,7 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return (data || []).map(toOnlineBooking);
+      return ((data || []) as (OnlineBookingRow & { service?: any; staff?: any })[]).map(toOnlineBooking);
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -274,8 +278,8 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         throw APIError.badRequest(`Cannot cancel a ${existing.status} booking`);
       }
 
-      const { data, error } = await withCircuitBreaker(() =>
-        supabase
+      const { data, error } = await withCircuitBreaker(async () =>
+        untypedSupabase
           .from('online_bookings')
           .update({
             status: 'cancelled',
@@ -295,7 +299,7 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return toOnlineBooking(data);
+      return toOnlineBooking(data as OnlineBookingRow & { service?: any; staff?: any });
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -335,8 +339,8 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         updateData.staff_id = newStaffId;
       }
 
-      const { data, error } = await withCircuitBreaker(() =>
-        supabase
+      const { data, error } = await withCircuitBreaker(async () =>
+        untypedSupabase
           .from('online_bookings')
           .update(updateData)
           .eq('id', id)
@@ -353,7 +357,7 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return toOnlineBooking(data);
+      return toOnlineBooking(data as OnlineBookingRow & { service?: any; staff?: any });
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -368,8 +372,8 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
       const storeId = this.getStoreId();
       const today = new Date().toISOString().split('T')[0];
 
-      const { data, error } = await withCircuitBreaker(() =>
-        supabase
+      const { data, error } = await withCircuitBreaker(async () =>
+        untypedSupabase
           .from('online_bookings')
           .select(`
             *,
@@ -388,7 +392,7 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return (data || []).map(toOnlineBooking);
+      return ((data || []) as (OnlineBookingRow & { service?: any; staff?: any })[]).map(toOnlineBooking);
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);
@@ -403,8 +407,8 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
       const storeId = this.getStoreId();
       const today = new Date().toISOString().split('T')[0];
 
-      const { data, error } = await withCircuitBreaker(() =>
-        supabase
+      const { data, error } = await withCircuitBreaker(async () =>
+        untypedSupabase
           .from('online_bookings')
           .select(`
             *,
@@ -422,7 +426,7 @@ export class BookingsRepository extends BaseRepository<OnlineBookingRow> {
         throw APIError.fromSupabaseError(error);
       }
 
-      return (data || []).map(toOnlineBooking);
+      return ((data || []) as (OnlineBookingRow & { service?: any; staff?: any })[]).map(toOnlineBooking);
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw APIError.fromSupabaseError(error);

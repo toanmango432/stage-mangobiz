@@ -247,7 +247,7 @@ export const cartHandlers = [
   }),
 
   // DELETE /api/v1/cart/items/:lineId
-  http.delete('/api/v1/cart/items/:lineId', async ({ request }) => {
+  http.delete('/api/v1/cart/items/:lineId', async ({ params, request }) => {
     await simulateLatency();
     
     const url = new URL(request.url);

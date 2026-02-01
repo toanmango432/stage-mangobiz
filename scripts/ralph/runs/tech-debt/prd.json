@@ -1,0 +1,633 @@
+{
+  "project": "Mango POS - Technical Debt Cleanup",
+  "branchName": "feature/add-tech-debt-ralph-run",
+  "description": "Fix ~914 TypeScript errors across the monorepo. Restore CI typecheck. Focus on packages/ui, packages/utils, packages/mqtt, and apps.",
+  "userStories": [
+    {
+      "id": "TD-101",
+      "title": "Create @mango/ui lib/utils module",
+      "description": "Create packages/ui/src/lib/utils.ts with cn() function using clsx and tailwind-merge. Add path aliases to tsconfig.json.",
+      "category": "packages",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "packages/ui/src/lib/utils.ts",
+        "packages/ui/tsconfig.json"
+      ],
+      "acceptanceCriteria": [
+        "packages/ui/src/lib/utils.ts exists with cn() export",
+        "cn() uses clsx and twMerge",
+        "tsconfig.json has @/lib/* path alias"
+      ],
+      "testCommand": "pnpm --filter @mango/ui exec tsc --noEmit 2>&1 | grep -c '@/lib/utils' || echo 0",
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "TD-102",
+      "title": "Create @mango/ui hooks module",
+      "description": "Create packages/ui/src/hooks/ with use-mobile.ts, use-toast.ts, and index.ts barrel export.",
+      "category": "packages",
+      "complexity": 2,
+      "dependencies": [
+        "TD-101"
+      ],
+      "files": [
+        "packages/ui/src/hooks/use-mobile.ts",
+        "packages/ui/src/hooks/use-toast.ts",
+        "packages/ui/src/hooks/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "use-mobile.ts exports useIsMobile hook",
+        "use-toast.ts exports toast hook/utilities",
+        "index.ts re-exports all hooks"
+      ],
+      "testCommand": "pnpm --filter @mango/ui exec tsc --noEmit 2>&1 | grep -c 'hooks' || echo 0",
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "TD-103",
+      "title": "Fix @mango/ui internal component imports",
+      "description": "Replace @/components/ui/* imports with relative imports in all UI package files.",
+      "category": "packages",
+      "complexity": 3,
+      "dependencies": [
+        "TD-101",
+        "TD-102"
+      ],
+      "files": [
+        "packages/ui/src/button-group.tsx",
+        "packages/ui/src/calendar.tsx",
+        "packages/ui/src/carousel.tsx",
+        "packages/ui/src/command.tsx",
+        "packages/ui/src/field.tsx",
+        "packages/ui/src/form.tsx",
+        "packages/ui/src/input-group.tsx",
+        "packages/ui/src/pagination.tsx",
+        "packages/ui/src/responsive-dialog.tsx",
+        "packages/ui/src/sidebar.tsx",
+        "packages/ui/src/toggle-group.tsx",
+        "packages/ui/src/toaster.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No imports from @/components/ui/* in packages/ui/src/",
+        "All internal imports use relative paths"
+      ],
+      "testCommand": "pnpm --filter @mango/ui exec tsc --noEmit 2>&1 | grep -c 'error TS' || echo 0",
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "TD-104",
+      "title": "Add missing dependencies to @mango/ui",
+      "description": "Add react-hook-form and next-themes to package.json dependencies.",
+      "category": "packages",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "packages/ui/package.json"
+      ],
+      "acceptanceCriteria": [
+        "package.json includes react-hook-form",
+        "package.json includes next-themes",
+        "pnpm install succeeds"
+      ],
+      "testCommand": "pnpm install && echo 'OK'",
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "TD-105",
+      "title": "Fix @mango/ui component type errors",
+      "description": "Fix remaining type errors: remove .tsx extension imports, fix duplicate props, add missing type annotations.",
+      "category": "packages",
+      "complexity": 3,
+      "dependencies": [
+        "TD-101",
+        "TD-102",
+        "TD-103",
+        "TD-104"
+      ],
+      "files": [
+        "packages/ui/src/alert-dialog.tsx",
+        "packages/ui/src/pagination.tsx",
+        "packages/ui/src/toggle-group.tsx",
+        "packages/ui/src/sidebar.tsx",
+        "packages/ui/src/toaster.tsx"
+      ],
+      "acceptanceCriteria": [
+        "alert-dialog.tsx: no .tsx extension in imports",
+        "pagination.tsx: no duplicate size prop",
+        "pnpm --filter @mango/ui exec tsc --noEmit passes (0 errors)"
+      ],
+      "testCommand": "pnpm --filter @mango/ui exec tsc --noEmit",
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "TD-201",
+      "title": "Move type definitions to @mango/types",
+      "description": "Ensure @mango/types has appointment, client, schedule, timesheet, payroll, loyalty, and common types.",
+      "category": "packages",
+      "complexity": 4,
+      "dependencies": [],
+      "files": [
+        "packages/types/src/appointment.ts",
+        "packages/types/src/client.ts",
+        "packages/types/src/schedule.ts",
+        "packages/types/src/timesheet.ts",
+        "packages/types/src/payroll.ts",
+        "packages/types/src/loyalty.ts",
+        "packages/types/src/common.ts",
+        "packages/types/src/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "All needed types exist in packages/types/src/",
+        "Types are exported from index.ts"
+      ],
+      "testCommand": "pnpm --filter @mango/types exec tsc --noEmit",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "TD-202",
+      "title": "Fix @mango/utils imports to use @mango/types",
+      "description": "Replace broken '../types/*' imports with '@mango/types' across all utils files.",
+      "category": "packages",
+      "complexity": 4,
+      "dependencies": [
+        "TD-201"
+      ],
+      "files": [
+        "packages/utils/src/animations.ts",
+        "packages/utils/src/appointmentFilters.ts",
+        "packages/utils/src/automatedReminders.ts",
+        "packages/utils/src/validation.ts"
+      ],
+      "acceptanceCriteria": [
+        "No imports from '../types/*' pattern in utils package",
+        "All type imports use '@mango/types'"
+      ],
+      "testCommand": "pnpm --filter @mango/utils exec tsc --noEmit 2>&1 | grep -c 'TS2307' || echo 0",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "TD-203",
+      "title": "Add missing dependencies to @mango/utils",
+      "description": "Add react-hot-toast, @types/node, and update tsconfig for node types.",
+      "category": "packages",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "packages/utils/package.json",
+        "packages/utils/tsconfig.json"
+      ],
+      "acceptanceCriteria": [
+        "react-hot-toast in dependencies",
+        "@types/node in devDependencies",
+        "tsconfig.json has types: ['node']"
+      ],
+      "testCommand": "pnpm install && echo 'OK'",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "TD-204",
+      "title": "Add type annotations to @mango/utils callbacks",
+      "description": "Add explicit type annotations to callback parameters that have implicit 'any'.",
+      "category": "packages",
+      "complexity": 3,
+      "dependencies": [
+        "TD-202"
+      ],
+      "files": [
+        "packages/utils/src/appointmentFilters.ts",
+        "packages/utils/src/automatedReminders.ts",
+        "packages/utils/src/scheduleUtils.ts",
+        "packages/utils/src/smartUpselling.ts"
+      ],
+      "acceptanceCriteria": [
+        "No TS7006 (implicit any) errors in utils package",
+        "pnpm --filter @mango/utils exec tsc --noEmit passes"
+      ],
+      "testCommand": "pnpm --filter @mango/utils exec tsc --noEmit",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "TD-302",
+      "title": "Fix @mango/mqtt Vite env types",
+      "description": "Add vite-env.d.ts or update tsconfig to include vite/client types.",
+      "category": "packages",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "packages/mqtt/src/vite-env.d.ts",
+        "packages/mqtt/tsconfig.json"
+      ],
+      "acceptanceCriteria": [
+        "vite-env.d.ts exists with ImportMetaEnv interface",
+        "No errors for import.meta.env usage"
+      ],
+      "testCommand": "pnpm --filter @mango/mqtt exec tsc --noEmit 2>&1 | grep -c 'import.meta' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TD-303",
+      "title": "Fix @mango/mqtt MqttClient API",
+      "description": "Add static getInstance() singleton pattern to MqttClient. Add configure() method. Add on(event, handler) method for events.",
+      "category": "packages",
+      "complexity": 4,
+      "dependencies": [],
+      "files": [
+        "packages/mqtt/src/MqttClient.ts",
+        "packages/mqtt/src/mqttBridge.ts"
+      ],
+      "acceptanceCriteria": [
+        "MqttClient has static getInstance() method",
+        "MqttClient has configure() method",
+        "MqttClient has on() for events"
+      ],
+      "testCommand": "pnpm --filter @mango/mqtt exec tsc --noEmit 2>&1 | grep -c 'TS2339' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TD-304",
+      "title": "Fix @mango/mqtt test files",
+      "description": "Add @testing-library/react, fix test setup, fix MqttClient test signatures.",
+      "category": "packages",
+      "complexity": 3,
+      "dependencies": [
+        "TD-303"
+      ],
+      "files": [
+        "packages/mqtt/package.json",
+        "packages/mqtt/src/MqttClient.test.ts",
+        "packages/mqtt/src/hooks/useMqtt.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "@testing-library/react in devDependencies",
+        "Test files import correctly"
+      ],
+      "testCommand": "pnpm --filter @mango/mqtt exec tsc --noEmit 2>&1 | grep -c 'error TS' || echo 0",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TD-305",
+      "title": "Remove or stub MQTT store dependencies",
+      "description": "Create optional callback injection pattern for store dispatch instead of direct @/store import.",
+      "category": "packages",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "packages/mqtt/src/mqttBridge.ts",
+        "packages/mqtt/src/DualBrokerManager.ts"
+      ],
+      "acceptanceCriteria": [
+        "No imports from '@/store' in mqtt package",
+        "Store dispatch provided via callback injection"
+      ],
+      "testCommand": "pnpm --filter @mango/mqtt exec tsc --noEmit",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "TD-401",
+      "title": "Fix store-app RefObject null types",
+      "description": "Change RefObject<HTMLElement> to RefObject<HTMLElement | null> where needed.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/Book/hooks/useAppointmentForm.ts",
+        "apps/store-app/src/hooks/useFrontDeskState.ts"
+      ],
+      "acceptanceCriteria": [
+        "RefObject types include null",
+        "No TS2322 errors for ref assignments"
+      ],
+      "testCommand": "pnpm --filter store-app exec tsc --noEmit 2>&1 | grep -c 'RefObject' || echo 0",
+      "priority": 4,
+      "passes": true
+    },
+    {
+      "id": "TD-402",
+      "title": "Fix store-app callback ref return types",
+      "description": "Callback refs should return void, not the element.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/common/ManagerPinModal.tsx",
+        "apps/store-app/src/components/layout/ClockInOutButton.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Callback refs return void not element"
+      ],
+      "testCommand": "pnpm --filter store-app exec tsc --noEmit 2>&1 | grep -c 'callback' || echo 0",
+      "priority": 4,
+      "passes": true
+    },
+    {
+      "id": "TD-403",
+      "title": "Fix store-app Icon size prop issues",
+      "description": "Replace size prop with className sizing for Icon components.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/TeamSettingsPanel.tsx",
+        "apps/store-app/src/components/frontdesk-settings/components/AccordionSection.tsx"
+      ],
+      "acceptanceCriteria": [
+        "No size prop on Icon components",
+        "Icons use className for sizing"
+      ],
+      "testCommand": "pnpm --filter store-app exec tsc --noEmit 2>&1 | grep -c 'size' || echo 0",
+      "priority": 4,
+      "passes": true
+    },
+    {
+      "id": "TD-404",
+      "title": "Add JSX namespace import to store-app",
+      "description": "Import JSX from react or use React.JSX namespace.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/menu-settings/hooks/useKeyboardDragDrop.tsx"
+      ],
+      "acceptanceCriteria": [
+        "JSX namespace properly imported",
+        "No TS2503 errors"
+      ],
+      "testCommand": "pnpm --filter store-app exec tsc --noEmit 2>&1 | grep -c 'JSX' || echo 0",
+      "priority": 4,
+      "passes": true
+    },
+    {
+      "id": "TD-405",
+      "title": "Fix store-app team thunks type mismatches",
+      "description": "Fix teamThunks.ts mappings: Include id, map avatar_url correctly, use StaffRole enum.",
+      "category": "apps",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/store/slices/team/teamThunks.ts"
+      ],
+      "acceptanceCriteria": [
+        "TeamMemberProfile includes id property",
+        "avatar_url mapped correctly",
+        "StaffRole uses enum value"
+      ],
+      "testCommand": "pnpm --filter store-app exec tsc --noEmit 2>&1 | grep 'teamThunks' | wc -l",
+      "priority": 4,
+      "passes": true
+    },
+    {
+      "id": "TD-406",
+      "title": "Fix store-app Toast and performance.ts",
+      "description": "Fix Toast action type and performance.ts function call.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/components/checkout/TicketPanel.tsx",
+        "apps/store-app/src/utils/performance.ts"
+      ],
+      "acceptanceCriteria": [
+        "Toast action uses correct type",
+        "performance.ts function call has required argument"
+      ],
+      "testCommand": "pnpm --filter store-app exec tsc --noEmit 2>&1 | grep -E '(TicketPanel|performance)' | wc -l",
+      "priority": 4,
+      "passes": true
+    },
+    {
+      "id": "TD-501",
+      "title": "Configure online-store vitest for jest-dom",
+      "description": "Configure vitest to use jest-dom: ensure setup.ts exists, update vitest.config.ts, add types to tsconfig.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/__tests__/setup.ts",
+        "apps/online-store/vitest.config.ts",
+        "apps/online-store/tsconfig.json"
+      ],
+      "acceptanceCriteria": [
+        "setup.ts has `import '@testing-library/jest-dom';` at the top",
+        "vitest.config.ts has setupFiles pointing to setup.ts",
+        "tsconfig.json includes @testing-library/jest-dom in types"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'jest-dom' || echo 0",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "TD-501a",
+      "title": "Add jest-dom import to existing setup.ts",
+      "description": "Add `import '@testing-library/jest-dom';` as the FIRST import in apps/online-store/src/__tests__/setup.ts. This single import enables all DOM testing matchers like toBeInTheDocument(), toHaveClass(), etc. CRITICAL: This fixes 300+ test type errors.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/__tests__/setup.ts"
+      ],
+      "acceptanceCriteria": [
+        "setup.ts has `import '@testing-library/jest-dom';` as first import line",
+        "No 'toBeInTheDocument' type errors in test files"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'toBeInTheDocument' || echo 0",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "TD-502",
+      "title": "Create test mock factories for online-store",
+      "description": "Create factories.ts with complete mock objects for Service, Store, etc.",
+      "category": "apps",
+      "complexity": 3,
+      "dependencies": [
+        "TD-501"
+      ],
+      "files": [
+        "apps/online-store/src/__tests__/factories.ts"
+      ],
+      "acceptanceCriteria": [
+        "factories.ts exports createMockService()",
+        "Mock objects have all required properties"
+      ],
+      "testCommand": "cat apps/online-store/src/__tests__/factories.ts",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "TD-503",
+      "title": "Update online-store tests to use factories",
+      "description": "Replace inline mock objects with factory functions.",
+      "category": "apps",
+      "complexity": 4,
+      "dependencies": [
+        "TD-502"
+      ],
+      "files": [
+        "apps/online-store/src/__tests__/"
+      ],
+      "acceptanceCriteria": [
+        "Tests use createMockService() etc.",
+        "No TS2739 errors in tests"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep '__tests__' | wc -l",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "TD-504a",
+      "title": "Fix online-store vite-env and env types",
+      "description": "Create vite-env.d.ts with ImportMetaEnv interface.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/vite-env.d.ts",
+        "apps/online-store/src/lib/env.ts"
+      ],
+      "acceptanceCriteria": [
+        "vite-env.d.ts has ImportMetaEnv interface",
+        "No import.meta.env type errors"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'import.meta' || echo 0",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "TD-504b",
+      "title": "Fix online-store Supabase type imports",
+      "description": "Fix Supabase client and repository type imports.",
+      "category": "apps",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/services/supabase/client.ts",
+        "apps/online-store/src/services/supabase/types.ts"
+      ],
+      "acceptanceCriteria": [
+        "@supabase/supabase-js properly imported",
+        "Database types defined"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'supabase' || echo 0",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "TD-504c",
+      "title": "Fix online-store component prop mismatches",
+      "description": "Fix component prop interfaces to match actual usage.",
+      "category": "apps",
+      "complexity": 3,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/components/booking/BookingCard.tsx",
+        "apps/online-store/src/components/booking/EnhancedFloatingSummaryBar.tsx"
+      ],
+      "acceptanceCriteria": [
+        "All required props defined in interfaces",
+        "Props match between definition and usage"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'components/booking' || echo 0",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "TD-504d",
+      "title": "Fix online-store framer-motion types",
+      "description": "Update framer-motion usage to match current version types. Fix motion.div animation props (initial, animate, exit) in checkout and order views.",
+      "category": "apps",
+      "complexity": 2,
+      "dependencies": [],
+      "files": [
+        "apps/online-store/src/views/Checkout.tsx",
+        "apps/online-store/src/views/OrderConfirmation.tsx",
+        "apps/online-store/src/components/checkout/SuccessModal.tsx",
+        "apps/online-store/src/components/checkout/CheckoutSteps.tsx"
+      ],
+      "acceptanceCriteria": [
+        "motion.div animation props typed correctly",
+        "No framer-motion type errors in views/checkout files"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c 'framer-motion' || echo 0",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "TD-504e",
+      "title": "Add __MODE__ global type declaration",
+      "description": "Add `declare const __MODE__: 'development' | 'production' | 'test';` to vite-env.d.ts. Multiple files reference __MODE__ for environment detection.",
+      "category": "apps",
+      "complexity": 1,
+      "dependencies": [
+        "TD-504a"
+      ],
+      "files": [
+        "apps/online-store/src/vite-env.d.ts"
+      ],
+      "acceptanceCriteria": [
+        "vite-env.d.ts contains __MODE__ declaration",
+        "No 'Cannot find name __MODE__' errors"
+      ],
+      "testCommand": "pnpm --filter @mango/online-store exec tsc --noEmit 2>&1 | grep -c '__MODE__' || echo 0",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "TD-601",
+      "title": "Re-enable package typechecks",
+      "description": "Change typecheck scripts back to 'tsc --noEmit' in packages.",
+      "category": "ci",
+      "complexity": 1,
+      "dependencies": [
+        "TD-105",
+        "TD-204",
+        "TD-305"
+      ],
+      "files": [
+        "packages/utils/package.json",
+        "packages/mqtt/package.json",
+        "packages/ui/package.json"
+      ],
+      "acceptanceCriteria": [
+        "typecheck script is 'tsc --noEmit' not echo",
+        "All package typechecks pass"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "priority": 6,
+      "passes": true
+    },
+    {
+      "id": "TD-602",
+      "title": "Re-enable CI typecheck workflow",
+      "description": "Update .github/workflows/ci.yml to run actual typecheck.",
+      "category": "ci",
+      "complexity": 1,
+      "dependencies": [
+        "TD-601"
+      ],
+      "files": [
+        ".github/workflows/ci.yml"
+      ],
+      "acceptanceCriteria": [
+        "CI runs pnpm typecheck",
+        "No skip/echo workaround"
+      ],
+      "testCommand": "cat .github/workflows/ci.yml | grep typecheck",
+      "priority": 6,
+      "passes": true
+    }
+  ]
+}

@@ -3,8 +3,8 @@
  * Utilities for enhanced drag & drop with snap-to-grid
  */
 
-import { LocalAppointment } from '../types/appointment';
-import type { StaffSchedule } from '../types/schedule/staffSchedule';
+import { LocalAppointment } from '@mango/types';
+import type { DetailedStaffSchedule as StaffSchedule } from '@mango/types';
 import { getScheduleForDate } from './scheduleUtils';
 
 /**

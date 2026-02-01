@@ -16,6 +16,10 @@ import type {
 
 // Import API clients
 import { storeAPI, bookingAPI, cartAPI } from '@/lib/api-client/clients';
+import { getSupabaseUrl } from '@/lib/env';
+
+// API URL for store endpoints
+const STORE_API_URL = `${getSupabaseUrl()}/functions/v1/store`;
 
 // Import local API implementations for fallback
 import {
@@ -167,7 +171,7 @@ export async function getMembershipPlans(): Promise<MembershipPlan[]> {
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to fetch membership plans');
     }
-    return response.data?.data || [];
+    return (response.data as { data?: MembershipPlan[] })?.data || [];
   } catch (error) {
     console.error('Failed to fetch membership plans:', error);
     return [];
@@ -180,7 +184,7 @@ export async function getPolicies(): Promise<Policies | null> {
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to fetch policies');
     }
-    return response.data;
+    return response.data as Policies || null;
   } catch (error) {
     console.error('Failed to fetch policies:', error);
     return null;
@@ -193,7 +197,7 @@ export async function getFAQ(): Promise<FAQResponse> {
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to fetch FAQ');
     }
-    return response.data;
+    return response.data as FAQResponse;
   } catch (error) {
     console.error('Failed to fetch FAQ:', error);
     return { items: [] };
@@ -283,7 +287,7 @@ export async function getCart(sessionId: string): Promise<any> {
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to fetch cart');
     }
-    return response.data?.cart;
+    return (response.data as { cart?: any })?.cart;
   } catch (error) {
     console.error('Failed to fetch cart:', error);
     return { id: `cart_${sessionId}`, sessionId, items: [], currency: 'USD', updatedAt: new Date().toISOString() };
@@ -302,7 +306,7 @@ export async function addToCart(sessionId: string, item: {
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to add to cart');
     }
-    return response.data?.cart;
+    return (response.data as { cart?: any })?.cart;
   } catch (error) {
     console.error('Failed to add to cart:', error);
     throw error;
@@ -315,7 +319,7 @@ export async function removeFromCart(sessionId: string, itemId: string): Promise
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to remove from cart');
     }
-    return response.data?.cart;
+    return (response.data as { cart?: any })?.cart;
   } catch (error) {
     console.error('Failed to remove from cart:', error);
     throw error;
@@ -368,7 +372,7 @@ export async function createBookingDraft(payload: {
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to create booking draft');
     }
-    return response.data?.booking;
+    return (response.data as { booking?: any })?.booking;
   } catch (error) {
     console.error('Failed to create booking draft:', error);
     throw error;
@@ -381,7 +385,7 @@ export async function confirmBooking(bookingId: string): Promise<any> {
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to confirm booking');
     }
-    return response.data?.booking;
+    return (response.data as { booking?: any })?.booking;
   } catch (error) {
     console.error('Failed to confirm booking:', error);
     throw error;
@@ -394,7 +398,7 @@ export async function cancelBooking(bookingId: string): Promise<any> {
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to cancel booking');
     }
-    return response.data?.booking;
+    return (response.data as { booking?: any })?.booking;
   } catch (error) {
     console.error('Failed to cancel booking:', error);
     throw error;

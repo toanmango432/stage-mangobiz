@@ -2609,6 +2609,33 @@ export const sqliteGiftCardsDB = {
     }
     return await _giftCardService.search(storeId, query);
   },
+
+  async getTotalOutstandingBalance(storeId: string): Promise<number> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    // Get all active gift cards and sum their balances
+    const activeCards = await _giftCardService.getActive(storeId);
+    return activeCards.reduce((total, card) => total + ((card as { current_balance?: number }).current_balance || 0), 0);
+  },
+
+  async getExpiringSoon(storeId: string, withinDays: number): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    // Get all active gift cards and filter by expiration date
+    const activeCards = await _giftCardService.getActive(storeId);
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
+    return activeCards.filter((card) => {
+      const expirationDate = (card as { expiration_date?: string }).expiration_date;
+      if (!expirationDate) return false;
+      const expDate = new Date(expirationDate);
+      return expDate >= now && expDate <= futureDate;
+    });
+  },
 };
 
 /**
@@ -2653,6 +2680,22 @@ export const sqliteGiftCardTransactionsDB = {
       _giftCardTransactionService = new GiftCardTransactionSQLiteService(adapter);
     }
     return await _giftCardTransactionService.getByDateRange(storeId, start, end);
+  },
+
+  async getTotalsByType(storeId: string, startDate: string, endDate: string): Promise<Record<string, number>> {
+    const adapter = await getAdapter();
+    if (!_giftCardTransactionService) {
+      _giftCardTransactionService = new GiftCardTransactionSQLiteService(adapter);
+    }
+    // Get transactions in date range and aggregate by type
+    const transactions = await _giftCardTransactionService.getByDateRange(storeId, startDate, endDate);
+    const totals: Record<string, number> = {};
+    for (const tx of transactions) {
+      const type = (tx as { transaction_type?: string }).transaction_type || 'unknown';
+      const amount = (tx as { amount?: number }).amount || 0;
+      totals[type] = (totals[type] || 0) + amount;
+    }
+    return totals;
   },
 };
 

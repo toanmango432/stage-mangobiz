@@ -22,7 +22,9 @@ export type EventType =
   | 'ai_chat_started'
   | 'ai_chat_message_sent'
   | 'search_performed'
-  | 'review_submitted';
+  | 'review_submitted'
+  | 'ab_test_impression'
+  | 'ab_test_conversion';
 
 export interface AnalyticsEvent {
   id: string;

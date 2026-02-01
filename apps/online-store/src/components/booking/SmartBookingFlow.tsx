@@ -18,7 +18,8 @@ import { BookingCard } from './BookingCard';
 import { SmartTimeSuggestions } from './SmartTimeSuggestions';
 import { MobileBottomSheet } from './MobileBottomSheet';
 import { useSmartBookingFlow } from '@/hooks/useSmartBookingFlow';
-import type { Service, Staff } from '@/types/catalog';
+import type { Service, Staff as CatalogStaff } from '@/types/catalog';
+import type { Staff, GroupMember } from '@/types/booking';
 
 interface SmartBookingFlowProps {
   initialService?: Service;
@@ -80,15 +81,15 @@ export const SmartBookingFlow: React.FC<SmartBookingFlowProps> = ({
   };
 
   const handleAddPerson = () => {
-    const newMember = {
+    const newMember: GroupMember = {
       id: `member-${Date.now()}`,
       name: `Guest ${(formData.members?.length || 0) + 1}`,
-      service: formData.service,
+      service: formData.service!,
+      addOns: [],
       staff: undefined,
-      date: formData.date,
-      time: formData.time,
+      dateTime: formData.date && formData.time ? `${formData.date}T${formData.time}` : undefined,
     };
-    
+
     updateFormData({
       isGroup: true,
       members: [...(formData.members || []), newMember]
@@ -162,7 +163,7 @@ export const SmartBookingFlow: React.FC<SmartBookingFlowProps> = ({
               
               {formData.service ? (
                 <BookingCard
-                  service={formData.service}
+                  service={formData.service as Service}
                   staff={formData.staff}
                   date={formData.date}
                   time={formData.time}
@@ -208,29 +209,33 @@ export const SmartBookingFlow: React.FC<SmartBookingFlowProps> = ({
                 <h4 className="font-medium text-sm text-muted-foreground">
                   Group Booking ({formData.members.length} people)
                 </h4>
-                {formData.members.map((member, index) => (
-                  <BookingCard
-                    key={member.id}
-                    service={member.service}
-                    staff={member.staff}
-                    date={member.date}
-                    time={member.time}
-                    duration={member.service?.duration}
-                    price={member.service?.price}
-                    isGroup={true}
-                    memberName={member.name}
-                    memberIndex={index + 1}
-                    onServiceChange={(service) => handleMemberServiceChange(member.id, service)}
-                    onStaffChange={(staff) => {
-                      const updatedMembers = formData.members?.map(m => 
-                        m.id === member.id ? { ...m, staff } : m
-                      ) || [];
-                      updateFormData({ members: updatedMembers });
-                    }}
-                    onRemove={() => handleRemoveMember(member.id)}
-                    isEditable={true}
-                  />
-                ))}
+                {formData.members.map((member, index) => {
+                  // Parse dateTime to date and time if present
+                  const [memberDate, memberTime] = member.dateTime?.split('T') || [undefined, undefined];
+                  return (
+                    <BookingCard
+                      key={member.id}
+                      service={member.service as Service}
+                      staff={member.staff}
+                      date={memberDate}
+                      time={memberTime}
+                      duration={member.service?.duration}
+                      price={member.service?.price}
+                      isGroup={true}
+                      memberName={member.name}
+                      memberIndex={index + 1}
+                      onServiceChange={(service) => handleMemberServiceChange(member.id, service)}
+                      onStaffChange={(staff) => {
+                        const updatedMembers = formData.members?.map(m =>
+                          m.id === member.id ? { ...m, staff } : m
+                        ) || [];
+                        updateFormData({ members: updatedMembers as GroupMember[] });
+                      }}
+                      onRemove={() => handleRemoveMember(member.id)}
+                      isEditable={true}
+                    />
+                  );
+                })}
                 <Button
                   onClick={() => setShowAddPerson(true)}
                   variant="outline"
@@ -246,12 +251,12 @@ export const SmartBookingFlow: React.FC<SmartBookingFlowProps> = ({
       </Card>
 
       {/* Completed Sections Summary */}
-      {Object.entries(sections).some(([_, section]) => section.completed) && (
+      {Object.entries(sections).some(([_, section]) => section.state === 'completed') && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-muted-foreground">Completed</h4>
           <div className="space-y-1">
             {Object.entries(sections).map(([key, section]) => {
-              if (!section.completed) return null;
+              if (section.state !== 'completed') return null;
               
               return (
                 <Card
@@ -290,7 +295,7 @@ export const SmartBookingFlow: React.FC<SmartBookingFlowProps> = ({
       >
         <div className="p-6">
           <SmartTimeSuggestions
-            selectedService={formData.service}
+            selectedService={formData.service as Service}
             selectedStaff={formData.staff}
             onTimeSelect={handleTimeSelect}
           />

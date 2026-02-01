@@ -57,7 +57,6 @@ export const EnhancedStaffTimePicker: React.FC<EnhancedStaffTimePickerProps> = (
           avatar: '',
           specialties: ['Hair', 'Color'],
           rating: 4.9,
-          availability: 'available',
         },
         {
           id: '2',
@@ -65,7 +64,6 @@ export const EnhancedStaffTimePicker: React.FC<EnhancedStaffTimePickerProps> = (
           avatar: '',
           specialties: ['Nails', 'Spa'],
           rating: 4.8,
-          availability: 'available',
         },
       ];
       setStaff(mockStaff);
@@ -101,11 +99,12 @@ export const EnhancedStaffTimePicker: React.FC<EnhancedStaffTimePickerProps> = (
   // Handle staff selection
   const handleStaffSelect = (staffId: string) => {
     // Update assignments
-    const newAssignments = cartItems.map(item => ({
-      serviceId: item.service.id,
+    const newAssignments: Assignment[] = cartItems.map(item => ({
+      cartItemId: item.id,
       staffId,
-      date: selectedDate!,
-      time: selectedTime!,
+      date: selectedDate ? BookingTimeUtils.toISODate(selectedDate) : '',
+      time: selectedTime ?? '',
+      duration: item.service.duration || 60,
     }));
     setAssignments(newAssignments);
   };
@@ -226,7 +225,7 @@ export const EnhancedStaffTimePicker: React.FC<EnhancedStaffTimePickerProps> = (
           </h3>
           <StaffSelector
             staff={staff}
-            selectedStaffId={assignments[0]?.staffId}
+            selectedStaff={assignments[0]?.staffId ?? ''}
             onStaffSelect={handleStaffSelect}
           />
         </div>
@@ -234,10 +233,9 @@ export const EnhancedStaffTimePicker: React.FC<EnhancedStaffTimePickerProps> = (
 
       {/* Action Bar */}
       <StickyActionBar
-        onBack={onBack}
-        onContinue={handleContinue}
-        canContinue={!!canContinue}
-        continueText="Continue to Review"
+        onAction={handleContinue}
+        actionText="Continue to Review"
+        disabled={!canContinue}
       />
     </div>
   );

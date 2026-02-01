@@ -18,7 +18,7 @@ export const AccordionSection: React.FC<AccordionSectionProps> = ({
     >
       <div className="flex items-center">
         <div className="w-7 h-7 rounded-full bg-[#27AE60]/10 flex items-center justify-center mr-2.5">
-          {cloneElement(icon as React.ReactElement, {
+          {cloneElement(icon as React.ReactElement<{size?: number; className?: string}>, {
             size: 15,
             className: 'text-[#27AE60]'
           })}

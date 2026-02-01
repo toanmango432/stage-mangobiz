@@ -24,7 +24,7 @@ export function generateLocalBusinessSchema(options: BusinessSchemaOptions) {
     image: logoUrl || `${url}/favicon.ico`,
     telephone: salonInfo.phone,
     email: salonInfo.email,
-    priceRange: salonInfo.priceRange || '$$',
+    priceRange: '$$', // Default price range for schema.org
     address: {
       '@type': 'PostalAddress',
       streetAddress: salonInfo.address.street,
@@ -38,12 +38,18 @@ export function generateLocalBusinessSchema(options: BusinessSchemaOptions) {
       latitude: salonInfo.coordinates.lat,
       longitude: salonInfo.coordinates.lng
     } : undefined,
-    openingHoursSpecification: salonInfo.hours ? Object.entries(salonInfo.hours).map(([day, hours]) => ({
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: day.charAt(0).toUpperCase() + day.slice(1),
-      opens: hours.open,
-      closes: hours.close
-    })) : undefined,
+    openingHoursSpecification: salonInfo.hours ? Object.entries(salonInfo.hours).map(([day, hoursStr]) => {
+      // hours format is "HH:MM - HH:MM" or "Closed"
+      const [opens, closes] = hoursStr.toLowerCase() === 'closed'
+        ? ['', '']
+        : hoursStr.split(' - ').map(s => s.trim());
+      return {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: day.charAt(0).toUpperCase() + day.slice(1),
+        opens: opens || undefined,
+        closes: closes || undefined
+      };
+    }).filter(spec => spec.opens && spec.closes) : undefined,
     sameAs: salonInfo.socialMedia ? [
       salonInfo.socialMedia.instagram,
       salonInfo.socialMedia.facebook,

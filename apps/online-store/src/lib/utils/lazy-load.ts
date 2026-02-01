@@ -27,8 +27,12 @@ export function createLazyLoadObserver(
     return {
       observe: () => {},
       unobserve: () => {},
-      disconnect: () => {}
-    } as IntersectionObserver;
+      disconnect: () => {},
+      takeRecords: () => [],
+      root: null,
+      rootMargin: '',
+      thresholds: [],
+    } as unknown as IntersectionObserver;
   }
 
   const observer = new IntersectionObserver((entries) => {

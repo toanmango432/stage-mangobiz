@@ -45,7 +45,7 @@ interface AppointmentClientPanelProps {
   setIsAddingAnotherClient: (value: boolean) => void;
   clientSearch: string;
   setClientSearch: (value: string) => void;
-  clientSearchRef: RefObject<HTMLInputElement>;
+  clientSearchRef: RefObject<HTMLInputElement | null>;
   showAddNewForm: boolean;
   setShowAddNewForm: (value: boolean) => void;
   recentClients: Client[];
