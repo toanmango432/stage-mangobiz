@@ -36,7 +36,7 @@
     "@changesets/cli": "^2.28.1",
     "prettier": "^3.8.1",
     "terser": "^5.46.0",
-    "turbo": "^2.5.4"
+    "turbo": "^2.8.3"
   },
   "dependencies": {
     "input-otp": "^1.4.2"
