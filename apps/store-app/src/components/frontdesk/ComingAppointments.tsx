@@ -292,53 +292,53 @@ export const ComingAppointments = memo(function ComingAppointments({
     return null;
   }
 
-  return <div className={`flex-1 bg-white ${!hideHeader ? 'border-l border-l-gray-200' : ''} flex flex-col transition-all duration-300 ease-in-out`}>
-    {/* Header - Hide on mobile when MobileTabBar shows metrics */}
-    {!hideHeader && (
-      <div className="px-3 py-2 border-b border-gray-200 flex-shrink-0">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
-              <Clock size={14} strokeWidth={2.5} className="text-sky-600" />
-            </div>
-            <h2 className="text-[13px] font-medium text-slate-600">Coming</h2>
-            {/* Total count badge */}
-            <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-semibold">
-              {comingAppointments.filter(appt => appt.status?.toLowerCase() !== 'checked-in' && appt.status?.toLowerCase() !== 'in-service').length}
-            </span>
-            {/* New appointment indicator */}
-            {hasNewAppointments && isMinimized && (
-              <span className="px-1.5 py-0.5 rounded-md bg-sky-500 text-white text-xs font-semibold animate-pulse">
-                New
+  return <div className={`flex-1 bg-white ${!hideHeader ? 'border-l border-l-gray-200' : ''} flex flex-col transition-all duration-300 ease-in-out max-h-full`}>
+      {/* Header - Hide on mobile when MobileTabBar shows metrics */}
+      {!hideHeader && (
+        <div className="px-3 py-2 border-b border-gray-200 flex-shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
+                <Clock size={14} strokeWidth={2.5} className="text-sky-600" />
+              </div>
+              <h2 className="text-[13px] font-medium text-slate-600">Coming</h2>
+              {/* Total count badge */}
+              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-semibold">
+                {comingAppointments.filter(appt => appt.status?.toLowerCase() !== 'checked-in' && appt.status?.toLowerCase() !== 'in-service').length}
               </span>
-            )}
-            {/* Compact metrics: late (if any) • next 1hr count */}
-            <div className="flex items-center gap-1.5 text-xs font-medium">
-              {lateCount > 0 && (
-                <span className="text-red-600">{lateCount} late</span>
+              {/* New appointment indicator */}
+              {hasNewAppointments && isMinimized && (
+                <span className="px-1.5 py-0.5 rounded-md bg-sky-500 text-white text-xs font-semibold animate-pulse">
+                  New
+                </span>
               )}
-              {lateCount > 0 && nextHourCount > 0 && (
-                <span className="text-slate-300">•</span>
-              )}
-              {nextHourCount > 0 && (
-                <span className="text-sky-600">{nextHourCount} next hr</span>
-              )}
+              {/* Compact metrics: late (if any) • next 1hr count */}
+              <div className="flex items-center gap-1.5 text-xs font-medium">
+                {lateCount > 0 && (
+                  <span className="text-red-600">{lateCount} late</span>
+                )}
+                {lateCount > 0 && nextHourCount > 0 && (
+                  <span className="text-slate-300">•</span>
+                )}
+                {nextHourCount > 0 && (
+                  <span className="text-sky-600">{nextHourCount} next hr</span>
+                )}
+              </div>
             </div>
+
+            <button
+              onClick={onToggleMinimize}
+              className="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/60 transition-all duration-200"
+              aria-label={isMinimized ? "Expand section" : "Collapse section"}
+            >
+              {isMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            </button>
           </div>
-
-          <button
-            onClick={onToggleMinimize}
-            className="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/60 transition-all duration-200"
-            aria-label={isMinimized ? "Expand section" : "Collapse section"}
-          >
-            {isMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </button>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* Content - Collapsible (always show when header is hidden) */}
-    {(hideHeader || !isMinimized) && <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+      {/* Content - Collapsible (always show when header is hidden) */}
+      {(hideHeader || !isMinimized) && <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
 
       {/* Timeframe tabs - simple and clean */}
       <div className="flex border-b border-gray-200 bg-white flex-shrink-0">
@@ -355,456 +355,461 @@ export const ComingAppointments = memo(function ComingAppointments({
       {/* Appointments content - with refined styling */}
       <div id="coming-appointments-content" className="flex-1 overflow-auto px-4 pt-3 pb-4">
         {Object.keys(appointmentBuckets).some(key => appointmentBuckets[key as keyof typeof appointmentBuckets].length > 0) ? <div className="space-y-3">
-          {/* Late appointments - always shown at the top */}
-          {appointmentBuckets['late'].length > 0 && <div className="rounded-lg overflow-hidden border border-red-200 bg-white shadow-sm">
-            {/* Bucket header - red accent for urgency */}
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-red-100 cursor-pointer hover:bg-red-50/50 transition-colors bg-red-50/30" onClick={() => toggleRowExpansion('late')}>
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-4 bg-red-500 rounded-full"></div>
-                <span className="text-sm font-semibold text-red-700">Late</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-red-600">
-                  {appointmentBuckets['late'].length}{getVipCount(appointmentBuckets['late']) > 0 && ` - ${getVipCount(appointmentBuckets['late'])} VIP`}
-                </span>
-                {expandedRows['late'] ? <ChevronUp size={14} className="text-red-500" strokeWidth={2.5} /> : <ChevronDown size={14} className="text-red-500" strokeWidth={2.5} />}
-              </div>
-            </div>
-            {/* Collapsed view - simple dots */}
-            {!expandedRows['late'] && appointmentBuckets['late'].length > 0}
-            {/* Expanded view - simplified appointment list with animation */}
-            {expandedRows['late'] && <div className="divide-y divide-red-100 animate-in fade-in slide-in-from-top-2 duration-200">
-              {appointmentBuckets['late'].map((appointment, index) => {
-                const appointmentTime = new Date(appointment.appointmentTime);
-                const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
-                const clientFirstName = appointment.clientName?.split(' ')[0] || 'Guest';
-                const clientInitial = clientFirstName.charAt(0).toUpperCase();
-                return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-red-50/30 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
-                  {/* Single action button - hover only */}
-                  <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
-                    e.stopPropagation();
-                    // More menu placeholder - to be implemented
-                  }}>
-                    <MoreVertical size={12} className="text-gray-400" />
-                  </button>
-                  {/* Client info row with photo */}
-                  <div className="flex items-start gap-2.5">
-                    {/* Client photo/avatar - 32px circle */}
-                    {appointment.clientPhoto ? (
-                      <img
-                        src={appointment.clientPhoto}
-                        alt={clientFirstName}
-                        className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-medium text-gray-600">{clientInitial}</span>
-                      </div>
-                    )}
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      {/* Time - smaller, quieter */}
-                      <div className="text-xs text-gray-500 mb-0.5">
-                        {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • Late {Math.abs(appointment.minutesUntil)}m
-                      </div>
-                      {/* Name - compact */}
-                      <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
-                        {clientFirstName}
-                        {appointment.isVip && <Star size={10} className="text-yellow-500" />}
-                        {appointment.isFirstVisit && (
-                          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
-                            <Sparkles size={8} />
-                            NEW
-                          </span>
-                        )}
-                      </div>
-                      {/* Service + Staff */}
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
-                        {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
-                          {technicianFirstName}
-                        </span>}
-                      </div>
-                    </div>
+            {/* Late appointments - always shown at the top */}
+            {appointmentBuckets['late'].length > 0 && <div className="rounded-lg overflow-hidden border border-red-200 bg-white shadow-sm">
+                {/* Bucket header - red accent for urgency */}
+                <div className="flex items-center justify-between px-3 py-2.5 border-b border-red-100 cursor-pointer hover:bg-red-50/50 transition-colors bg-red-50/30" onClick={() => toggleRowExpansion('late')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-4 bg-red-500 rounded-full"></div>
+                    <span className="text-sm font-semibold text-red-700">Late</span>
                   </div>
-                </div>;
-              })}
-            </div>}
-          </div>}
-          {/* Within 1 Hour */}
-          {appointmentBuckets['within1Hour'].length > 0 && <div className="rounded-lg overflow-hidden border border-blue-200 bg-white shadow-sm">
-            {/* Bucket header - blue accent for next hour */}
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-blue-100 cursor-pointer hover:bg-blue-50/50 transition-colors bg-blue-50/30" onClick={() => toggleRowExpansion('within1Hour')}>
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                <span className="text-sm font-semibold text-blue-700">Next Hour</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-blue-600">
-                  {appointmentBuckets['within1Hour'].length}{getVipCount(appointmentBuckets['within1Hour']) > 0 && ` - ${getVipCount(appointmentBuckets['within1Hour'])} VIP`}
-                </span>
-                {expandedRows['within1Hour'] ? <ChevronUp size={14} className="text-blue-500" strokeWidth={2.5} /> : <ChevronDown size={14} className="text-blue-500" strokeWidth={2.5} />}
-              </div>
-            </div>
-            {/* Collapsed view - simple dots */}
-            {!expandedRows['within1Hour'] && appointmentBuckets['within1Hour'].length > 0}
-            {/* Expanded view - simplified appointment list with animation */}
-            {expandedRows['within1Hour'] && <div className="divide-y divide-blue-100 animate-in fade-in slide-in-from-top-2 duration-200">
-              {appointmentBuckets['within1Hour'].map((appointment, index) => {
-                const appointmentTime = new Date(appointment.appointmentTime);
-                const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
-                const clientFirstName = appointment.clientName?.split(' ')[0] || 'Guest';
-                const clientInitial = clientFirstName.charAt(0).toUpperCase();
-                return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-blue-50/30 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
-                  {/* Single action button - hover only */}
-                  <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
-                    e.stopPropagation();
-                    // More menu placeholder - to be implemented
-                  }}>
-                    <MoreVertical size={12} className="text-gray-400" />
-                  </button>
-                  {/* Client info row with photo */}
-                  <div className="flex items-start gap-2.5">
-                    {/* Client photo/avatar - 32px circle */}
-                    {appointment.clientPhoto ? (
-                      <img
-                        src={appointment.clientPhoto}
-                        alt={clientFirstName}
-                        className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-medium text-gray-600">{clientInitial}</span>
-                      </div>
-                    )}
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      {/* Time - smaller, quieter */}
-                      <div className="text-xs text-gray-500 mb-0.5">
-                        {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • in {appointment.minutesUntil}m
-                      </div>
-                      {/* Name - compact */}
-                      <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
-                        {clientFirstName}
-                        {appointment.isVip && <Star size={10} className="text-yellow-500" />}
-                        {appointment.isFirstVisit && (
-                          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
-                            <Sparkles size={8} />
-                            NEW
-                          </span>
-                        )}
-                      </div>
-                      {/* Service + Staff */}
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
-                        {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
-                          {technicianFirstName}
-                        </span>}
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-red-600">
+                      {appointmentBuckets['late'].length}{getVipCount(appointmentBuckets['late']) > 0 && ` - ${getVipCount(appointmentBuckets['late'])} VIP`}
+                    </span>
+                    {expandedRows['late'] ? <ChevronUp size={14} className="text-red-500" strokeWidth={2.5} /> : <ChevronDown size={14} className="text-red-500" strokeWidth={2.5} />}
                   </div>
-                </div>;
-              })}
-            </div>}
-          </div>}
-          {/* Later (combines 3+ hours) */}
-          {(appointmentBuckets['within3Hours'].length > 0 || appointmentBuckets['moreThan3Hours'].length > 0) && <div className="rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
-            {/* Bucket header - gray for later appointments */}
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors bg-gray-50/50" onClick={() => toggleRowExpansion('within3Hours')}>
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-4 bg-gray-400 rounded-full"></div>
-                <span className="text-sm font-semibold text-gray-700">Later</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-600">
-                  {appointmentBuckets['within3Hours'].length + appointmentBuckets['moreThan3Hours'].length}{(getVipCount(appointmentBuckets['within3Hours']) + getVipCount(appointmentBuckets['moreThan3Hours'])) > 0 && ` - ${getVipCount(appointmentBuckets['within3Hours']) + getVipCount(appointmentBuckets['moreThan3Hours'])} VIP`}
-                </span>
-                {expandedRows['within3Hours'] ? <ChevronUp size={14} className="text-gray-500" strokeWidth={2.5} /> : <ChevronDown size={14} className="text-gray-500" strokeWidth={2.5} />}
-              </div>
-            </div>
-            {/* Collapsed view - simple dots */}
-            {!expandedRows['within3Hours'] && (appointmentBuckets['within3Hours'].length > 0 || appointmentBuckets['moreThan3Hours'].length > 0)}
-            {/* Expanded view - show both within3Hours and moreThan3Hours with animation */}
-            {expandedRows['within3Hours'] && <div className="divide-y divide-gray-200 animate-in fade-in slide-in-from-top-2 duration-200">
-              {[...appointmentBuckets['within3Hours'], ...appointmentBuckets['moreThan3Hours']].map((appointment, index) => {
-                const appointmentTime = new Date(appointment.appointmentTime);
-                const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
-                const clientFirstName = appointment.clientName?.split(' ')[0] || 'Guest';
-                const clientInitial = clientFirstName.charAt(0).toUpperCase();
-                return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-gray-50/80 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
-                  {/* Single action button - hover only */}
-                  <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
-                    e.stopPropagation();
-                    // More menu placeholder - to be implemented
-                  }}>
-                    <MoreVertical size={12} className="text-gray-400" />
-                  </button>
-                  {/* Client info row with photo */}
-                  <div className="flex items-start gap-2.5">
-                    {/* Client photo/avatar - 32px circle */}
-                    {appointment.clientPhoto ? (
-                      <img
-                        src={appointment.clientPhoto}
-                        alt={clientFirstName}
-                        className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-medium text-gray-600">{clientInitial}</span>
-                      </div>
-                    )}
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      {/* Time - smaller, quieter */}
-                      <div className="text-xs text-gray-500 mb-0.5">
-                        {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • {formatMinutesUntil(appointment.minutesUntil)}
-                      </div>
-                      {/* Name - compact */}
-                      <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
-                        {clientFirstName}
-                        {appointment.isVip && <Star size={10} className="text-yellow-500" />}
-                        {appointment.isFirstVisit && (
-                          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
-                            <Sparkles size={8} />
-                            NEW
-                          </span>
-                        )}
-                      </div>
-                      {/* Service + Staff */}
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
-                        {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
-                          {technicianFirstName}
-                        </span>}
-                      </div>
-                    </div>
-                  </div>
-                </div>;
-              })}
-            </div>}
-          </div>}
-          {/* More than 3 Hours - Now combined with "Later" bucket above */}
-          {false && appointmentBuckets['moreThan3Hours'].length > 0 && <div className="rounded-xl overflow-hidden border border-gray-200/50 bg-white/80 backdrop-blur-sm">
-            {/* Bucket header with refined styling - simplified */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200/50 cursor-pointer bg-[#F9F9FB] rounded-t-xl" onClick={() => toggleRowExpansion('moreThan3Hours')} style={{
-              transition: 'all 0.15s ease'
-            }}>
-              <div className="flex items-center">
-                <h3 className="text-sm font-semibold text-[#1C1C1E]">
-                  Later Today
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Simplified counts */}
-                <div className="text-xs text-gray-600">
-                  {appointmentBuckets['moreThan3Hours'].length} Appts
-                  {getVipCount(appointmentBuckets['moreThan3Hours']) > 0 && ` • ${getVipCount(appointmentBuckets['moreThan3Hours'])} VIP`}
                 </div>
-                {/* Expand/collapse indicator */}
-                <div>
-                  {expandedRows['moreThan3Hours'] ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                </div>
-              </div>
-            </div>
-            {/* Collapsed view - simple dots */}
-            {!expandedRows['moreThan3Hours'] && appointmentBuckets['moreThan3Hours'].length > 0}
-            {/* Expanded view - simplified appointment list */}
-            {expandedRows['moreThan3Hours'] && <div className="divide-y divide-[#E5E5EA]">
-              {appointmentBuckets['moreThan3Hours'].map((appointment, index) => {
-                const appointmentTime = new Date(appointment.appointmentTime);
-                // Extract first name from technician
-                const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
-                return <div key={appointment.id || index} className="px-4 py-[10px] bg-white/80 backdrop-blur-sm hover:bg-white/50 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
-                  {/* Action icons in top right */}
-                  <div className="absolute top-2 right-1.5 flex space-x-0.5 z-10">
-                    <Tippy content="Add/View Notes">
-                      <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
-                        e.stopPropagation();
-                        // Notes feature placeholder - to be implemented
-                      }}>
-                        <FileText size={14} strokeWidth={1.5} />
-                      </button>
-                    </Tippy>
-                    <Tippy content="Deposit Info">
-                      <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
-                        e.stopPropagation();
-                        // Deposit feature placeholder - to be implemented
-                      }}>
-                        <CreditCard size={14} strokeWidth={1.5} />
-                      </button>
-                    </Tippy>
-                    <Tippy content="Edit Appointment">
-                      <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
-                        e.stopPropagation();
-                        onEditAppointment?.(appointment.id);
-                      }}>
-                        <Pencil size={14} strokeWidth={1.5} />
-                      </button>
-                    </Tippy>
-                  </div>
-                  <div className="flex items-center mb-1">
-                    {/* Time */}
-                    <div className="mr-3">
-                      <div className="text-sm font-semibold">
-                        {appointmentTime.toLocaleTimeString([], {
-                          hour: 'numeric',
-                          minute: '2-digit'
-                        })}
-                      </div>
-                      <div className="text-xs text-[#8E8E93]">
-                        {formatMinutesUntil(appointment.minutesUntil)}
-                      </div>
-                    </div>
-                    {/* Client name with VIP indicator */}
-                    <div className="text-sm font-medium text-[#1C1C1E] flex items-center">
-                      {appointment.clientName?.split(' ')[0] || 'Guest'}
-                      {appointment.isVip && <Star size={12} className="ml-1 text-[#FF9500]" />}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-[#8E8E93] mt-1">
-                    <div className="flex items-center">
-                      {/* Service and duration */}
-                      <span className="truncate max-w-[150px]">
-                        {appointment.service}
-                      </span>
-                      <span className="mx-1">•</span>
-                      <span>{appointment.duration || '45m'}</span>
-                    </div>
-                    {/* Staff name badge */}
-                    {appointment.technician && <div className="px-2 py-0.5 rounded-full text-white text-xs font-semibold" style={{
-                      backgroundColor: appointment.techColor || '#8E8E93'
+                {/* Collapsed view - simple dots */}
+                {!expandedRows['late'] && appointmentBuckets['late'].length > 0}
+                {/* Expanded view - simplified appointment list with animation */}
+                {expandedRows['late'] && <div className="divide-y divide-red-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {appointmentBuckets['late'].map((appointment, index) => {
+              const appointmentTime = new Date(appointment.appointmentTime);
+              const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
+              const clientFirstName = appointment.clientName?.split(' ')[0] || 'Guest';
+              const clientInitial = clientFirstName.charAt(0).toUpperCase();
+              // const next3HoursAppointments = [
+              //   ...appointmentBuckets.within1Hour,
+              //   ...appointmentBuckets.within3Hours
+              // ];
+              return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-red-50/30 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
+                          {/* Single action button - hover only */}
+                          <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
+                      e.stopPropagation();
+                      // More menu placeholder - to be implemented
                     }}>
-                      {technicianFirstName}
-                    </div>}
+                            <MoreVertical size={12} className="text-gray-400" />
+                          </button>
+                          {/* Client info row with photo */}
+                          <div className="flex items-start gap-2.5">
+                            {/* Client photo/avatar - 32px circle */}
+                            {appointment.clientPhoto ? (
+                              <img
+                                src={appointment.clientPhoto}
+                                alt={clientFirstName}
+                                className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-medium text-gray-600">{clientInitial}</span>
+                              </div>
+                            )}
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              {/* Time - smaller, quieter */}
+                              {/* <div className="text-xs text-gray-500 mb-0.5">
+                                {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • Late {Math.abs(appointment.minutesUntil)}m
+                              </div> */}
+                              {/* Name - compact */}
+                              <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
+                                {clientFirstName}
+                                {appointment.isVip && <Star size={10} className="text-yellow-500" />}
+                                {appointment.isFirstVisit && (
+                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                                    <Sparkles size={8} />
+                                    NEW
+                                  </span>
+                                )}
+                              </div>
+                              {/* Service + Staff */}
+                              <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
+                                {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
+                                    {technicianFirstName}
+                                  </span>}
+                              </div>
+                            </div>
+                          </div>
+                        </div>;
+            })}
+                  </div>}
+              </div>}
+            {/* Within 1 Hour */}
+            { activeTimeframe === 'next1Hour' && appointmentBuckets['within1Hour'].length > 0 && <div className="rounded-lg overflow-hidden border border-blue-200 bg-white shadow-sm">
+                {/* Bucket header - blue accent for next hour */}
+                <div className="flex items-center justify-between px-3 py-2.5 border-b border-blue-100 cursor-pointer hover:bg-blue-50/50 transition-colors bg-blue-50/30" onClick={() => toggleRowExpansion('within1Hour')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-semibold text-blue-700">Next Hour</span>
                   </div>
-                </div>;
-              })}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-blue-600">
+                      {appointmentBuckets['within1Hour'].length}{getVipCount(appointmentBuckets['within1Hour']) > 0 && ` - ${getVipCount(appointmentBuckets['within1Hour'])} VIP`}
+                    </span>
+                    {expandedRows['within1Hour'] ? <ChevronUp size={14} className="text-blue-500" strokeWidth={2.5} /> : <ChevronDown size={14} className="text-blue-500" strokeWidth={2.5} />}
+                  </div>
+                </div>
+                {/* Collapsed view - simple dots */}
+                {!expandedRows['within1Hour'] && appointmentBuckets['within1Hour'].length > 0}
+                {/* Expanded view - simplified appointment list with animation */}
+                {expandedRows['within1Hour'] && <div className="divide-y divide-blue-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {appointmentBuckets['within1Hour'].map((appointment, index) => {
+              const appointmentTime = new Date(appointment.appointmentTime);
+              const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
+              const clientFirstName = appointment.clientName?.split(' ')[0] || 'Guest';
+              const clientInitial = clientFirstName.charAt(0).toUpperCase();
+              return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-blue-50/30 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
+                            {/* Single action button - hover only */}
+                            <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
+                      e.stopPropagation();
+                      // More menu placeholder - to be implemented
+                    }}>
+                              <MoreVertical size={12} className="text-gray-400" />
+                            </button>
+                            {/* Client info row with photo */}
+                            <div className="flex items-start gap-2.5">
+                              {/* Client photo/avatar - 32px circle */}
+                              {appointment.clientPhoto ? (
+                                <img
+                                  src={appointment.clientPhoto}
+                                  alt={clientFirstName}
+                                  className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-sm font-medium text-gray-600">{clientInitial}</span>
+                                </div>
+                              )}
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                {/* Time - smaller, quieter */}
+                                <div className="text-xs text-gray-500 mb-0.5">
+                                  {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • in {appointment.minutesUntil}m
+                                </div>
+                                {/* Name - compact */}
+                                <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
+                                  {clientFirstName}
+                                  {appointment.isVip && <Star size={10} className="text-yellow-500" />}
+                                  {appointment.isFirstVisit && (
+                                    <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                                      <Sparkles size={8} />
+                                      NEW
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Service + Staff */}
+                                <div className="flex items-center justify-between text-xs text-gray-500">
+                                  <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
+                                  {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
+                                      {technicianFirstName}
+                                    </span>}
+                                </div>
+                              </div>
+                            </div>
+                          </div>;
+            })}
+                  </div>}
+              </div>}
+            {/* Later (combines 3+ hours) */}
+            { activeTimeframe === 'next3Hours' && (appointmentBuckets['within3Hours'].length > 0 || appointmentBuckets['moreThan3Hours'].length > 0) && <div className="rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
+                {/* Bucket header - gray for later appointments */}
+                <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors bg-gray-50/50" onClick={() => toggleRowExpansion('within3Hours')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-4 bg-gray-400 rounded-full"></div>
+                    <span className="text-sm font-semibold text-gray-700">Next 3 Hours</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-600">
+                      {appointmentBuckets['within3Hours'].length + appointmentBuckets['moreThan3Hours'].length}{(getVipCount(appointmentBuckets['within3Hours']) + getVipCount(appointmentBuckets['moreThan3Hours'])) > 0 && ` - ${getVipCount(appointmentBuckets['within3Hours']) + getVipCount(appointmentBuckets['moreThan3Hours'])} VIP`}
+                    </span>
+                    {expandedRows['within3Hours'] ? <ChevronUp size={14} className="text-gray-500" strokeWidth={2.5} /> : <ChevronDown size={14} className="text-gray-500" strokeWidth={2.5} />}
+                  </div>
+                </div>
+                {/* Collapsed view - simple dots */}
+                {!expandedRows['within3Hours'] && (appointmentBuckets['within3Hours'].length > 0 || appointmentBuckets['moreThan3Hours'].length > 0)}
+                {/* Expanded view - show both within3Hours and moreThan3Hours with animation */}
+                {expandedRows['within3Hours'] && <div className="divide-y divide-gray-200 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {[...appointmentBuckets['within3Hours'], ...appointmentBuckets['moreThan3Hours']].map((appointment, index) => {
+              const appointmentTime = new Date(appointment.appointmentTime);
+              const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
+              const clientFirstName = appointment.clientName?.split(' ')[0] || 'Guest';
+              const clientInitial = clientFirstName.charAt(0).toUpperCase();
+              return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-gray-50/80 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
+                            {/* Single action button - hover only */}
+                            <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
+                      e.stopPropagation();
+                      // More menu placeholder - to be implemented
+                    }}>
+                              <MoreVertical size={12} className="text-gray-400" />
+                            </button>
+                            {/* Client info row with photo */}
+                            <div className="flex items-start gap-2.5">
+                              {/* Client photo/avatar - 32px circle */}
+                              {appointment.clientPhoto ? (
+                                <img
+                                  src={appointment.clientPhoto}
+                                  alt={clientFirstName}
+                                  className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-sm font-medium text-gray-600">{clientInitial}</span>
+                                </div>
+                              )}
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                {/* Time - smaller, quieter */}
+                                <div className="text-xs text-gray-500 mb-0.5">
+                                  {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • {formatMinutesUntil(appointment.minutesUntil)}
+                                </div>
+                                {/* Name - compact */}
+                                <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
+                                  {clientFirstName}
+                                  {appointment.isVip && <Star size={10} className="text-yellow-500" />}
+                                  {appointment.isFirstVisit && (
+                                    <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                                      <Sparkles size={8} />
+                                      NEW
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Service + Staff */}
+                                <div className="flex items-center justify-between text-xs text-gray-500">
+                                  <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
+                                  {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
+                                      {technicianFirstName}
+                                    </span>}
+                                </div>
+                              </div>
+                            </div>
+                          </div>;
+            })}
+                  </div>}
+              </div>}
+            {/* More than 3 Hours - Now combined with "Later" bucket above */}
+            { activeTimeframe === 'later' && appointmentBuckets['moreThan3Hours'].length > 0 && <div className="rounded-xl overflow-hidden border border-gray-200/50 bg-white/80 backdrop-blur-sm">
+                {/* Bucket header with refined styling - simplified */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200/50 cursor-pointer bg-[#F9F9FB] rounded-t-xl" onClick={() => toggleRowExpansion('moreThan3Hours')} style={{
+            transition: 'all 0.15s ease'
+          }}>
+                  <div className="flex items-center">
+                    <h3 className="text-sm font-semibold text-[#1C1C1E]">
+                      Later Today
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Simplified counts */}
+                    <div className="text-xs text-gray-600">
+                      {appointmentBuckets['moreThan3Hours'].length}
+                      {getVipCount(appointmentBuckets['moreThan3Hours']) > 0 && ` • ${getVipCount(appointmentBuckets['moreThan3Hours'])} VIP`}
+                    </div>
+                    {/* Expand/collapse indicator */}
+                    <div>
+                      {expandedRows['moreThan3Hours'] ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                    </div>
+                  </div>
+                </div>
+                {/* Collapsed view - simple dots */}
+                {!expandedRows['moreThan3Hours'] && appointmentBuckets['moreThan3Hours'].length > 0}
+                {/* Expanded view - simplified appointment list */}
+                {expandedRows['moreThan3Hours'] && <div className="divide-y divide-[#E5E5EA]">
+                    {appointmentBuckets['moreThan3Hours'].map((appointment, index) => {
+              const appointmentTime = new Date(appointment.appointmentTime);
+              // Extract first name from technician
+              const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
+              return <div key={appointment.id || index} className="px-4 py-[10px] bg-white/80 backdrop-blur-sm hover:bg-white/50 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
+                            {/* Action icons in top right */}
+                            <div className="absolute top-2 right-1.5 flex space-x-0.5 z-10">
+                              <Tippy content="Add/View Notes">
+                                <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
+                      e.stopPropagation();
+                      // Notes feature placeholder - to be implemented
+                    }}>
+                                  <FileText size={14} strokeWidth={1.5} />
+                                </button>
+                              </Tippy>
+                              <Tippy content="Deposit Info">
+                                <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
+                      e.stopPropagation();
+                      // Deposit feature placeholder - to be implemented
+                    }}>
+                                  <CreditCard size={14} strokeWidth={1.5} />
+                                </button>
+                              </Tippy>
+                              <Tippy content="Edit Appointment">
+                                <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
+                      e.stopPropagation();
+                      onEditAppointment?.(appointment.id);
+                    }}>
+                                  <Pencil size={14} strokeWidth={1.5} />
+                                </button>
+                              </Tippy>
+                            </div>
+                            <div className="flex items-center mb-1">
+                              {/* Time */}
+                              <div className="mr-3">
+                                <div className="text-sm font-semibold">
+                                  {appointmentTime.toLocaleTimeString([], {
+                        hour: 'numeric',
+                        minute: '2-digit'
+                      })}
+                                </div>
+                                <div className="text-xs text-[#8E8E93]">
+                                  {formatMinutesUntil(appointment.minutesUntil)}
+                                </div>
+                              </div>
+                              {/* Client name with VIP indicator */}
+                              <div className="text-sm font-medium text-[#1C1C1E] flex items-center">
+                                {appointment.clientName?.split(' ')[0] || 'Guest'}
+                                {appointment.isVip && <Star size={12} className="ml-1 text-[#FF9500]" />}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-[#8E8E93] mt-1">
+                              <div className="flex items-center">
+                                {/* Service and duration */}
+                                <span className="truncate max-w-[150px]">
+                                  {appointment.service}
+                                </span>
+                                <span className="mx-1">•</span>
+                                <span>{appointment.duration || '45m'}</span>
+                              </div>
+                              {/* Staff name badge */}
+                              {appointment.technician && <div className="px-2 py-0.5 rounded-full text-white text-xs font-semibold" style={{
+                    backgroundColor: appointment.techColor || '#8E8E93'
+                  }}>
+                                  {technicianFirstName}
+                                </div>}
+                            </div>
+                          </div>;
+            })}
+                  </div>}
             </div>}
+
+          </div> : <div className="flex flex-col items-center justify-center h-full p-6">
+            <div className="bg-[#F0FDFA] p-3 rounded-full mb-3">
+              <Clock size={24} className="text-[#0EA5A0]/70" />
+            </div>
+            <h3 className="text-base font-medium text-gray-600 mb-1">
+              No upcoming appointments
+            </h3>
+            <p className="text-xs text-gray-400 text-center max-w-xs">
+              There are no more appointments scheduled for today.
+            </p>
           </div>}
-        </div> : <div className="flex flex-col items-center justify-center h-full p-6">
-          <div className="bg-[#F0FDFA] p-3 rounded-full mb-3">
-            <Clock size={24} className="text-[#0EA5A0]/70" />
-          </div>
-          <h3 className="text-base font-medium text-gray-600 mb-1">
-            No upcoming appointments
-          </h3>
-          <p className="text-xs text-gray-400 text-center max-w-xs">
-            There are no more appointments scheduled for today.
-          </p>
-        </div>}
       </div>
       {/* Action Menu - appears when an appointment is clicked */}
       {showActionMenu && activeAppointment && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center transition-all duration-200" onClick={() => setShowActionMenu(false)}>
-        <div ref={actionMenuRef} className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all duration-300 ease-in-out animate-slide-up sm:animate-fade-in" style={{
-          maxWidth: '380px'
-        }} onClick={e => e.stopPropagation()}>
-          {/* Modal header with client photo, name, service and time */}
-          <div className="px-6 py-5 border-b border-gray-100">
-            <div className="flex items-start gap-3">
-              {/* Client photo/avatar - 40px circle for modal */}
-              {activeAppointment.clientPhoto ? (
-                <img
-                  src={activeAppointment.clientPhoto}
-                  alt={activeAppointment.clientName?.split(' ')[0] || 'Guest'}
-                  className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-                  <span className="text-base font-medium text-gray-600">
-                    {(activeAppointment.clientName?.split(' ')[0] || 'G').charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-              {/* Client info */}
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold text-[#1C1C1E] mb-1 flex items-center gap-1.5">
-                  {activeAppointment.clientName?.split(' ')[0] || 'Guest'}
-                  {activeAppointment.isVip && <Star size={14} className="text-[#FF9500]" />}
-                  {activeAppointment.isFirstVisit && (
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-xs font-medium">
-                      <Sparkles size={10} />
-                      NEW
+          <div ref={actionMenuRef} className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all duration-300 ease-in-out animate-slide-up sm:animate-fade-in" style={{
+        maxWidth: '380px'
+      }} onClick={e => e.stopPropagation()}>
+            {/* Modal header with client photo, name, service and time */}
+            <div className="px-6 py-5 border-b border-gray-100">
+              <div className="flex items-start gap-3">
+                {/* Client photo/avatar - 40px circle for modal */}
+                {activeAppointment.clientPhoto ? (
+                  <img
+                    src={activeAppointment.clientPhoto}
+                    alt={activeAppointment.clientName?.split(' ')[0] || 'Guest'}
+                    className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                    <span className="text-base font-medium text-gray-600">
+                      {(activeAppointment.clientName?.split(' ')[0] || 'G').charAt(0).toUpperCase()}
                     </span>
-                  )}
-                </h3>
-                <div className="text-[15px] text-gray-700 font-medium">
-                  {/* Truncate service name if too long */}
-                  {activeAppointment.service?.length > 25 ? `${activeAppointment.service.substring(0, 25)}...` : activeAppointment.service}{' '}
-                  •{' '}
-                  {new Date(activeAppointment.appointmentTime).toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit'
-                  })}
-                  {activeAppointment.duration && ` (${activeAppointment.duration})`}
+                  </div>
+                )}
+                {/* Client info */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-[#1C1C1E] mb-1 flex items-center gap-1.5">
+                    {activeAppointment.clientName?.split(' ')[0] || 'Guest'}
+                    {activeAppointment.isVip && <Star size={14} className="text-[#FF9500]" />}
+                    {activeAppointment.isFirstVisit && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-xs font-medium">
+                        <Sparkles size={10} />
+                        NEW
+                      </span>
+                    )}
+                  </h3>
+                  <div className="text-[15px] text-gray-700 font-medium">
+                    {/* Truncate service name if too long */}
+                    {activeAppointment.service?.length > 25 ? `${activeAppointment.service.substring(0, 25)}...` : activeAppointment.service}{' '}
+                    •{' '}
+                    {new Date(activeAppointment.appointmentTime).toLocaleTimeString([], {
+                  hour: 'numeric',
+                  minute: '2-digit'
+                })}
+                    {activeAppointment.duration && ` (${activeAppointment.duration})`}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          {/* Action buttons with icons */}
-          <div className="py-2">
-            {/* Check-In (Green, Primary) */}
-            <button
-              className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#34C759] hover:bg-[#F2FFF5] transition-colors flex items-center"
-              onClick={() => {
-                if (activeAppointment?.id) {
-                  checkInAppointment(activeAppointment.id);
-                  setShowActionMenu(false);
-                }
-              }}
-            >
-              <div className="w-10 h-10 rounded-full bg-[#34C759]/10 flex items-center justify-center mr-3">
-                <User size={18} className="text-[#34C759]" />
-              </div>
-              Check-In
-            </button>
-            {/* Edit Appointment (Blue, Neutral) */}
-            <button
-              className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#007AFF] hover:bg-[#F0F7FF] transition-colors flex items-center border-t border-gray-100"
-              onClick={handleEditAppointment}
-            >
-              <div className="w-10 h-10 rounded-full bg-[#007AFF]/10 flex items-center justify-center mr-3">
-                <Calendar size={18} className="text-[#007AFF]" />
-              </div>
-              Edit Appointment
-            </button>
-            {/* Cancel/Reschedule (Red, Destructive) */}
-            <button
-              className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#FF3B30] hover:bg-[#FFF5F5] transition-colors flex items-center border-t border-gray-100"
-              onClick={() => setShowCancelConfirm(true)}
-            >
-              <div className="w-10 h-10 rounded-full bg-[#FF3B30]/10 flex items-center justify-center mr-3">
-                <AlertCircle size={18} className="text-[#FF3B30]" />
-              </div>
-              Cancel / Reschedule
-            </button>
-            {/* No-Show (Orange, only for 15+ minutes late) */}
-            {isEligibleForNoShow(activeAppointment) && (
+            {/* Action buttons with icons */}
+            <div className="py-2">
+              {/* Check-In (Green, Primary) */}
               <button
-                className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#FF9500] hover:bg-[#FFF8F0] transition-colors flex items-center border-t border-gray-100"
-                onClick={() => setShowNoShowConfirm(true)}
+                className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#34C759] hover:bg-[#F2FFF5] transition-colors flex items-center"
+                onClick={() => {
+                  if (activeAppointment?.id) {
+                    checkInAppointment(activeAppointment.id);
+                    setShowActionMenu(false);
+                  }
+                }}
               >
-                <div className="w-10 h-10 rounded-full bg-[#FF9500]/10 flex items-center justify-center mr-3">
-                  <UserX size={18} className="text-[#FF9500]" />
+                <div className="w-10 h-10 rounded-full bg-[#34C759]/10 flex items-center justify-center mr-3">
+                  <User size={18} className="text-[#34C759]" />
                 </div>
-                Mark as No-Show
+                Check-In
               </button>
-            )}
-            {/* Add Note (Gray, Neutral) */}
-            <button className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#8E8E93] hover:bg-gray-50 transition-colors flex items-center border-t border-gray-100">
-              <div className="w-10 h-10 rounded-full bg-[#8E8E93]/10 flex items-center justify-center mr-3">
-                <MessageSquare size={18} className="text-[#8E8E93]" />
-              </div>
-              Add Note
-            </button>
+              {/* Edit Appointment (Blue, Neutral) */}
+              <button
+                className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#007AFF] hover:bg-[#F0F7FF] transition-colors flex items-center border-t border-gray-100"
+                onClick={handleEditAppointment}
+              >
+                <div className="w-10 h-10 rounded-full bg-[#007AFF]/10 flex items-center justify-center mr-3">
+                  <Calendar size={18} className="text-[#007AFF]" />
+                </div>
+                Edit Appointment
+              </button>
+              {/* Cancel/Reschedule (Red, Destructive) */}
+              <button
+                className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#FF3B30] hover:bg-[#FFF5F5] transition-colors flex items-center border-t border-gray-100"
+                onClick={() => setShowCancelConfirm(true)}
+              >
+                <div className="w-10 h-10 rounded-full bg-[#FF3B30]/10 flex items-center justify-center mr-3">
+                  <AlertCircle size={18} className="text-[#FF3B30]" />
+                </div>
+                Cancel / Reschedule
+              </button>
+              {/* No-Show (Orange, only for 15+ minutes late) */}
+              {isEligibleForNoShow(activeAppointment) && (
+                <button
+                  className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#FF9500] hover:bg-[#FFF8F0] transition-colors flex items-center border-t border-gray-100"
+                  onClick={() => setShowNoShowConfirm(true)}
+                >
+                  <div className="w-10 h-10 rounded-full bg-[#FF9500]/10 flex items-center justify-center mr-3">
+                    <UserX size={18} className="text-[#FF9500]" />
+                  </div>
+                  Mark as No-Show
+                </button>
+              )}
+              {/* Add Note (Gray, Neutral) */}
+              <button className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#8E8E93] hover:bg-gray-50 transition-colors flex items-center border-t border-gray-100">
+                <div className="w-10 h-10 rounded-full bg-[#8E8E93]/10 flex items-center justify-center mr-3">
+                  <MessageSquare size={18} className="text-[#8E8E93]" />
+                </div>
+                Add Note
+              </button>
+            </div>
+            {/* Close button */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <button className="w-full py-3 rounded-2xl bg-gray-200 text-[#1C1C1E] text-[15px] font-medium hover:bg-gray-300 transition-colors" onClick={() => setShowActionMenu(false)}>
+                Close
+              </button>
+            </div>
           </div>
-          {/* Close button */}
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <button className="w-full py-3 rounded-2xl bg-gray-200 text-[#1C1C1E] text-[15px] font-medium hover:bg-gray-300 transition-colors" onClick={() => setShowActionMenu(false)}>
-              Close
-            </button>
-          </div>
-        </div>
-      </div>}
+        </div>}
 
       {/* No-Show Confirmation Dialog */}
       {showNoShowConfirm && activeAppointment && (
@@ -904,6 +909,6 @@ export const ComingAppointments = memo(function ComingAppointments({
           </div>
         </div>
       )}
-    </div>}
-  </div>;
+      </div>}
+    </div>;
 });

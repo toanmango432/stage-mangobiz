@@ -892,7 +892,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                             style={!minimizedSections.service && !(minimizedSections.waitList && minimizedSections.comingAppointments) ? { width: `${100 - serviceWidth}%` } : undefined}
                           >
                             {/* Coming Appointments - Top */}
-                            {showUpcomingAppointments && <div className="flex-shrink-0">
+                            {showUpcomingAppointments && <div className="flex-shrink-0 max-h-[50%]">
                               <ComingAppointmentsErrorBoundary>
                                 <ComingAppointments
                                   isMinimized={minimizedSections.comingAppointments}
