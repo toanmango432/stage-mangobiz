@@ -59,7 +59,7 @@ export function PendingHeader({
       <div className={`flex flex-col ${isMobile ? 'gap-3' : 'gap-4'}`}>
         {/* Title with Icon and Count */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* <div className="flex items-center gap-2 sm:gap-3">
             <div className={`${isMobile ? 'h-9 w-9' : 'h-11 w-11'} rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center`}>
               <CreditCard size={isMobile ? 18 : 20} strokeWidth={2.5} />
             </div>
@@ -76,10 +76,10 @@ export function PendingHeader({
                 <span className="text-xs text-amber-700 font-medium mt-0.5">Total $2,340 pending</span>
               )}
             </div>
-          </div>
+          </div> */}
 
           {/* View Mode Toggle - Hide on mobile since we force list view */}
-          {!isMobile && (
+          {/* {!isMobile && (
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <Tippy content="Grid view">
                 <button
@@ -104,7 +104,7 @@ export function PendingHeader({
                 </button>
               </Tippy>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Search and Sort */}

@@ -139,6 +139,10 @@ interface DBTicket {
   // Signature capture (from Mango Pad)
   signatureBase64?: string;
   signatureTimestamp?: string;
+  // Soft delete fields
+  deletedAt?: string;
+  deletedReason?: DeleteReason;
+  deletedNote?: string;
 }
 
 // Service status for individual services within a ticket
@@ -562,12 +566,14 @@ export const loadTickets = createAsyncThunk(
 
       // Map Supabase status to UI status
       // Supabase uses: 'pending', 'in-service', 'completed', 'paid', 'cancelled'
-      const waitlist = allTickets.filter((t) => t.status === 'pending' || t.status === 'waiting');
-      const serviceTickets = allTickets.filter((t) => t.status === 'in-service');
+      // CRITICAL: Filter out soft-deleted tickets (deletedAt is set)
+      const activeTickets = allTickets.filter((t) => !t.deletedAt);
+      const waitlist = activeTickets.filter((t) => t.status === 'pending' || t.status === 'waiting');
+      const serviceTickets = activeTickets.filter((t) => t.status === 'in-service');
       // 'completed' status tickets are pending payment
-      const pendingTickets = allTickets.filter((t) => t.status === 'completed');
+      const pendingTickets = activeTickets.filter((t) => t.status === 'completed');
       // 'paid' status tickets are fully completed
-      const completedTickets = allTickets.filter((t) => t.status === 'paid');
+      const completedTickets = activeTickets.filter((t) => t.status === 'paid');
 
       // Get last ticket number from all tickets
       const lastTicketNumber = allTickets.length > 0
@@ -607,10 +613,12 @@ export const loadTickets = createAsyncThunk(
 
       console.log('📋 Loaded tickets from IndexedDB:', uniqueTickets.length);
 
-      const waitlistIdb = uniqueTickets.filter((t) => t.status === 'waiting' || t.status === 'pending');
-      const serviceTicketsIdb = uniqueTickets.filter((t) => t.status === 'in-service');
-      const pendingTicketsIdb = uniqueTickets.filter((t) => t.status === 'completed');
-      const completedTicketsIdb = uniqueTickets.filter((t) => t.status === 'paid');
+      // CRITICAL: Filter out soft-deleted tickets (deletedAt is set)
+      const activeTicketsIdb = uniqueTickets.filter((t) => !t.deletedAt);
+      const waitlistIdb = activeTicketsIdb.filter((t) => t.status === 'waiting' || t.status === 'pending');
+      const serviceTicketsIdb = activeTicketsIdb.filter((t) => t.status === 'in-service');
+      const pendingTicketsIdb = activeTicketsIdb.filter((t) => t.status === 'completed');
+      const completedTicketsIdb = activeTicketsIdb.filter((t) => t.status === 'paid');
 
       const lastTicketNumberIdb = uniqueTickets.length > 0
         ? Math.max(...uniqueTickets.map((t) => t.number || parseInt(t.id.split('-')[1]) || 0))
@@ -1480,6 +1488,29 @@ export const deleteTicket = createAsyncThunk(
   }
 );
 
+// Remove pending ticket (maps RemoveReason to DeleteReason and calls deleteTicket)
+// This is a wrapper around deleteTicket specifically for pending tickets
+export const removePendingTicket = createAsyncThunk(
+  'uiTickets/removePending',
+  async ({ ticketId, reason, notes }: {
+    ticketId: string;
+    reason: 'client_left' | 'cancelled' | 'other';
+    notes?: string;
+  }, { dispatch }) => {
+    // Map RemoveReason to DeleteReason
+    const deleteReason: DeleteReason = reason === 'client_left' ? 'client_left' : 'other';
+    
+    // Call deleteTicket thunk to perform soft delete
+    const result = await dispatch(deleteTicket({
+      ticketId,
+      reason: deleteReason,
+      note: notes,
+    })).unwrap();
+    
+    return result;
+  }
+);
+
 // ============================================================================
 // TICKET NOTES THUNKS
 // ============================================================================
@@ -2057,6 +2088,12 @@ export const updateCheckoutTicket = createAsyncThunk(
 
     console.log('📍 Found ticket in state, current status:', existingTicket.status);
 
+    // Check if status is changing (important for moving ticket between arrays)
+    const currentStatus = existingTicket.status;
+    const newStatus = updates.status;
+    const statusChanged = newStatus && newStatus !== currentStatus;
+    const isMovingToInService = statusChanged && newStatus === 'in-service' && currentStatus === 'waiting';
+
     // Calculate new totals if services updated
     let subtotal = updates.subtotal;
     let totalDuration: number | undefined;
@@ -2080,6 +2117,10 @@ export const updateCheckoutTicket = createAsyncThunk(
         checkoutServices: updates.services,
         service: updates.services[0]?.serviceName || existingTicket.service,
       }),
+      // Update status if provided
+      ...(newStatus && { status: newStatus }),
+      // Update serviceStatus when moving to in-service
+      ...(isMovingToInService && { serviceStatus: 'in_progress' as ServiceStatus }),
     };
 
     // Update assigned staff if services changed
@@ -2128,11 +2169,39 @@ export const updateCheckoutTicket = createAsyncThunk(
       }
     }
 
+    // If status is changing to 'in-service' from 'waiting', update in Supabase first
+    if (isMovingToInService) {
+      try {
+        // Update status in Supabase
+        await dataService.tickets.updateStatus(ticketId, 'in-service');
+        console.log('Ticket assigned in Supabase:', ticketId, 'Status: in-service');
+      } catch (error) {
+        console.warn('⚠️ Supabase update failed, will use IndexedDB fallback:', error);
+      }
+    }
+
     // Update in IndexedDB
+    // CRITICAL: Save both services (for backward compatibility) AND checkoutServices (for multi-service support)
+    // checkoutServices is needed when ticket is reopened - without it, only first service is preserved
     await ticketsDB.update(ticketId, {
       ...(updates.services && {
         services: updates.services.map(s => ({
           id: s.id,
+          name: s.serviceName,
+          price: s.price,
+          duration: s.duration,
+          status: s.status,
+          staffId: s.staffId,
+          staffName: s.staffName,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        })),
+        // CRITICAL: Also save checkoutServices array to preserve ALL services when ticket is reopened
+        // This prevents data loss when user adds multiple services (e.g., Haircut Women + Pedicure)
+        checkoutServices: updates.services.map(s => ({
+          id: s.id,
+          serviceId: s.serviceId,
+          serviceName: s.serviceName,
           name: s.serviceName,
           price: s.price,
           duration: s.duration,
@@ -2148,6 +2217,7 @@ export const updateCheckoutTicket = createAsyncThunk(
       ...(updates.tax !== undefined && { tax: updates.tax }),
       ...(updates.total !== undefined && { total: updates.total }),
       ...(updates.notes !== undefined && { notes: updates.notes }),
+      ...(newStatus && { status: newStatus }),
       updatedAt: now,
     } as any, 'current-user');
 
@@ -2162,7 +2232,13 @@ export const updateCheckoutTicket = createAsyncThunk(
       maxAttempts: 5,
     });
 
-    return { ticketId, updates: ticketUpdates };
+    return { 
+      ticketId, 
+      updates: ticketUpdates,
+      statusChanged,
+      previousStatus: currentStatus,
+      newStatus: newStatus || currentStatus,
+    };
   }
 );
 
@@ -2288,14 +2364,21 @@ function convertToUITicket(dbTicket: DBTicket): UITicket {
   const createdAt = dbTicket.createdAt instanceof Date ? dbTicket.createdAt : new Date(dbTicket.createdAt);
   const updatedAt = dbTicket.updatedAt instanceof Date ? dbTicket.updatedAt : new Date(dbTicket.updatedAt || dbTicket.createdAt);
 
+  // CRITICAL: Preserve checkoutServices from IndexedDB to prevent data loss
+  // Use checkoutServices if available (multi-service support), otherwise fallback to services[0]
+  const checkoutServices = dbTicket.checkoutServices as CheckoutTicketService[] | undefined;
+  const serviceName = checkoutServices?.[0]?.serviceName || 
+                      dbTicket.services?.[0]?.name || 
+                      'Service';
+
   return {
     id: dbTicket.id,
     number: dbTicket.number || parseInt(dbTicket.id.split('-')[1]) || 0,
     clientName: dbTicket.clientName || dbTicket.clientId || 'Walk-in',
     clientType: dbTicket.clientId ? 'appointment' : 'walk-in',
-    service: dbTicket.services?.[0]?.name || 'Service',
+    service: serviceName,
     time: createdAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-    duration: `${dbTicket.services?.[0]?.duration || 30}min`,
+    duration: `${checkoutServices?.[0]?.duration || dbTicket.services?.[0]?.duration || 30}min`,
     status: mapToUIStatus(dbTicket.status),
     serviceStatus: dbTicket.serviceStatus,
     assignedTo: dbTicket.assignedTo,
@@ -2310,35 +2393,53 @@ function convertToUITicket(dbTicket: DBTicket): UITicket {
     lastVisitDate: dbTicket.lastVisitDate || null,
     signatureBase64: dbTicket.signatureBase64,
     signatureTimestamp: dbTicket.signatureTimestamp,
+    // CRITICAL: Preserve checkoutServices as a hidden field (UITicket type doesn't include it, but we need it)
+    // This will be accessible via (ticket as any).checkoutServices in WaitListSection
+    ...(checkoutServices && { checkoutServices } as any),
+    // Also preserve services array for backward compatibility
+    ...(dbTicket.services && { services: dbTicket.services } as any),
   };
 }
 
 // Helper function to convert DB ticket to PendingTicket
 function convertToPendingTicket(dbTicket: DBTicket): PendingTicket {
-  const services = dbTicket.services || [];
-  const subtotal = dbTicket.subtotal || services.reduce((sum: number, s) => sum + (s.price || 0), 0);
+  // CRITICAL: Use checkoutServices if available (multi-service support), otherwise fallback to services
+  const checkoutServices = dbTicket.checkoutServices as CheckoutTicketService[] | undefined;
+  const legacyServices = dbTicket.services || [];
+  const services = checkoutServices || legacyServices;
+  const subtotal = dbTicket.subtotal || services.reduce((sum: number, s: any) => sum + (s.price || 0), 0);
+
+  // Helper to get service name (works for both CheckoutTicketService and legacy service format)
+  const getServiceName = (s: any) => s?.serviceName || s?.name || 'Service';
+  const getServiceDuration = (s: any) => s?.duration || 30;
+  const getServiceStaffName = (s: any) => s?.staffName;
+  const getServiceStaffId = (s: any) => s?.staffId;
 
   return {
     id: dbTicket.id,
     number: dbTicket.number || parseInt(dbTicket.id.split('-')[1]) || 0,
     clientName: dbTicket.clientName || dbTicket.clientId || 'Walk-in',
     clientType: dbTicket.clientId ? 'appointment' : 'walk-in',
-    service: services[0]?.name || 'Service',
+    service: checkoutServices?.[0]?.serviceName || getServiceName(legacyServices[0]) || 'Service',
     additionalServices: Math.max(0, services.length - 1),
     subtotal,
     tax: dbTicket.tax || 0,
     tip: dbTicket.tip || 0,
     paymentType: 'card',
     time: new Date(dbTicket.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-    duration: `${services[0]?.duration || 30}min`,
+    duration: `${checkoutServices?.[0]?.duration || getServiceDuration(legacyServices[0]) || 30}min`,
     notes: dbTicket.notes,
-    technician: dbTicket.technician || services[0]?.staffName,
+    technician: dbTicket.technician || checkoutServices?.[0]?.staffName || getServiceStaffName(legacyServices[0]),
     techColor: dbTicket.techColor,
-    techId: dbTicket.techId || services[0]?.staffId,
+    techId: dbTicket.techId || checkoutServices?.[0]?.staffId || getServiceStaffId(legacyServices[0]),
     assignedStaff: dbTicket.assignedStaff,
     lastVisitDate: dbTicket.lastVisitDate || null,
     signatureBase64: dbTicket.signatureBase64,
     signatureTimestamp: dbTicket.signatureTimestamp,
+    // CRITICAL: Preserve checkoutServices for editing in checkout panel
+    checkoutServices: checkoutServices,
+    // Also preserve clientId if available
+    clientId: dbTicket.clientId,
   };
 }
 
@@ -2366,17 +2467,6 @@ const uiTicketsSlice = createSlice({
     // Direct set of waitlist order (for @dnd-kit arrayMove result)
     setWaitlistOrder: (state, action: PayloadAction<UITicket[]>) => {
       state.waitlist = action.payload;
-    },
-    // Remove a pending ticket (e.g., client left, cancelled)
-    removePendingTicket: (state, action: PayloadAction<{ ticketId: string; reason: string; notes?: string }>) => {
-      const { ticketId } = action.payload;
-      const ticketIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
-      if (ticketIndex !== -1) {
-        state.pendingTickets.splice(ticketIndex, 1);
-        // Note: In a production implementation, we would also log this removal
-        // to an audit trail via a thunk that persists to the database
-        console.log(`Pending ticket ${ticketId} removed. Reason: ${action.payload.reason}${action.payload.notes ? `, Notes: ${action.payload.notes}` : ''}`);
-      }
     },
     // Real-time update from Socket.io
     ticketUpdated: (state, action: PayloadAction<UITicket>) => {
@@ -2792,8 +2882,96 @@ const uiTicketsSlice = createSlice({
       })
       // Update checkout ticket - update in ALL ticket arrays (waitlist, service, pending)
       .addCase(updateCheckoutTicket.fulfilled, (state, action) => {
-        const { ticketId, updates } = action.payload;
+        const { ticketId, updates, statusChanged, previousStatus, newStatus } = action.payload;
 
+        // If status changed from 'waiting' to 'in-service', move ticket from waitlist to serviceTickets
+        if (statusChanged && previousStatus === 'waiting' && newStatus === 'in-service') {
+          const waitlistIndex = state.waitlist.findIndex(t => t.id === ticketId);
+          if (waitlistIndex !== -1) {
+            const existingTicket = state.waitlist[waitlistIndex];
+            // Create status history entry
+            const statusEntry = createStatusHistoryEntry('waiting', 'in-service');
+            const updatedTicket: UITicket = {
+              ...existingTicket,
+              ...updates,
+              status: 'in-service',
+              serviceStatus: 'in_progress',
+              statusHistory: [...(existingTicket.statusHistory || []), statusEntry],
+            };
+            // Remove from waitlist
+            state.waitlist.splice(waitlistIndex, 1);
+            // Add to serviceTickets
+            state.serviceTickets.push(updatedTicket);
+            console.log('Moved ticket from waitlist to serviceTickets:', ticketId);
+            return;
+          }
+        }
+
+        // If status changed from 'in-service' to 'completed', move ticket from serviceTickets to pendingTickets
+        if (statusChanged && previousStatus === 'in-service' && newStatus === 'completed') {
+          const serviceIndex = state.serviceTickets.findIndex(t => t.id === ticketId);
+          if (serviceIndex !== -1) {
+            const existingTicket = state.serviceTickets[serviceIndex];
+            // Create status history entry
+            const statusEntry = createStatusHistoryEntry('in-service', 'completed');
+            const pendingTicket: PendingTicket = {
+              id: existingTicket.id,
+              number: existingTicket.number,
+              clientName: existingTicket.clientName,
+              clientType: existingTicket.clientType,
+              service: existingTicket.service,
+              additionalServices: ((existingTicket as any).checkoutServices?.length || 1) - 1,
+              subtotal: (existingTicket as any).subtotal || 0,
+              tax: (existingTicket as any).tax || 0,
+              tip: 0,
+              paymentType: 'card',
+              time: existingTicket.time,
+              duration: existingTicket.duration,
+              notes: existingTicket.notes,
+              technician: existingTicket.technician,
+              techColor: existingTicket.techColor,
+              techId: existingTicket.techId,
+              assignedStaff: existingTicket.assignedStaff,
+              lastVisitDate: existingTicket.lastVisitDate,
+              status: 'completed',
+              completedAt: new Date().toISOString(),
+              checkoutServices: (existingTicket as any).checkoutServices,
+              clientId: (existingTicket as any).clientId,
+              statusHistory: [...(existingTicket.statusHistory || []), statusEntry],
+            };
+            // Remove from serviceTickets
+            state.serviceTickets.splice(serviceIndex, 1);
+            // Add to pendingTickets
+            state.pendingTickets.push(pendingTicket);
+            console.log('Moved ticket from serviceTickets to pendingTickets:', ticketId);
+            return;
+          }
+        }
+
+        // If status changed from 'in-service' to 'waiting', move ticket from serviceTickets to waitlist
+        if (statusChanged && previousStatus === 'in-service' && newStatus === 'waiting') {
+          const serviceIndex = state.serviceTickets.findIndex(t => t.id === ticketId);
+          if (serviceIndex !== -1) {
+            const existingTicket = state.serviceTickets[serviceIndex];
+            // Create status history entry
+            const statusEntry = createStatusHistoryEntry('in-service', 'waiting');
+            const updatedTicket: UITicket = {
+              ...existingTicket,
+              ...updates,
+              status: 'waiting',
+              serviceStatus: 'not_started',
+              statusHistory: [...(existingTicket.statusHistory || []), statusEntry],
+            };
+            // Remove from serviceTickets
+            state.serviceTickets.splice(serviceIndex, 1);
+            // Add to waitlist
+            state.waitlist.push(updatedTicket);
+            console.log('Moved ticket from serviceTickets to waitlist:', ticketId);
+            return;
+          }
+        }
+
+        // No status change - just update ticket in its current array
         // Try to find and update in serviceTickets
         const serviceIndex = state.serviceTickets.findIndex(t => t.id === ticketId);
         if (serviceIndex !== -1) {
@@ -2840,7 +3018,6 @@ export const {
   setPendingTickets,
   reorderWaitlist,
   setWaitlistOrder,
-  removePendingTicket,
   applyPriceResolutions,
 } = uiTicketsSlice.actions;
 

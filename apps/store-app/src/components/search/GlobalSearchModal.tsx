@@ -350,7 +350,7 @@ export function GlobalSearchModal({
               )}
             </AnimatePresence>
 
-            {/* ESC hint */}
+            {/* ESC hint
             <kbd className={cn(
               'hidden sm:flex items-center gap-1 px-2.5 py-1.5',
               'text-[11px] font-semibold text-stone-400',
@@ -358,7 +358,7 @@ export function GlobalSearchModal({
               'shadow-sm'
             )}>
               ESC
-            </kbd>
+            </kbd> */}
           </div>
         </div>
 

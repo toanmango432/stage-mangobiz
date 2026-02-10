@@ -719,7 +719,7 @@ export default function ClientSelector({
             <h3 className="text-sm font-medium mb-2" data-testid="heading-all-clients">
               {debouncedSearch ? 'Search Results' : 'All Clients'}
             </h3>
-            <div className="space-y-1">
+            <div className="max-h-[280px] overflow-y-auto pr-2 space-y-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 #f1f5f9' }}>
               {(debouncedSearch ? filteredClients : allClients).map((client: Client, index: number) => (
                 <Card
                   key={client.id}
@@ -920,7 +920,7 @@ export default function ClientSelector({
                     <h3 className="text-sm font-medium mb-2" data-testid="heading-all-clients">
                       {debouncedSearch ? 'Search Results' : 'All Clients'}
                     </h3>
-                    <div className="space-y-1">
+                    <div className="max-h-[280px] overflow-y-auto pr-2 space-y-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 #f1f5f9' }}>
                       {(debouncedSearch ? filteredClients : allClients).map((client: Client, index: number) => (
                         <Card
                           key={client.id}

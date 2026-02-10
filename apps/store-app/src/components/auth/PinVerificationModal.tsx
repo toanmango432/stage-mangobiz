@@ -21,6 +21,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2, AlertCircle, CheckCircle, ShieldCheck, User, CreditCard, Lock, HelpCircle } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { selectMember, selectStoreId } from '../../store/slices/authSlice';
@@ -402,16 +403,19 @@ export function PinVerificationModal({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  const modalRoot = document.getElementById('pin-modal-root');
+  if (!modalRoot) return null;
+
+  const modalContent = (
+    <div className="fixed inset-0 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto pointer-events-auto" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -557,6 +561,10 @@ export function PinVerificationModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, modalRoot);
 }
 
 export default PinVerificationModal;
+
+

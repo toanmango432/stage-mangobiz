@@ -164,6 +164,15 @@ export function useTicketPersistence({
               dispatch(ticketActions.setTicketId(pendingTicket.id));
             }
 
+            // Detect if ticket came from Waiting Queue (status === 'waiting')
+            // This will change "Check In" button to "Start" button
+            if (pendingTicket.status === 'waiting') {
+              dispatch(ticketActions.setIsFromWaitingQueue(true));
+              console.log('🎯 Ticket loaded from Waiting Queue - "Start" button will be shown');
+            } else {
+              dispatch(ticketActions.setIsFromWaitingQueue(false));
+            }
+
             // Mark as saved since this is an existing ticket from Pending
             dispatch(ticketActions.markTicketSaved());
 
@@ -178,6 +187,7 @@ export function useTicketPersistence({
         // No stored ticket - this is a NEW ticket, reset state completely
         console.log('🆕 Opening new ticket panel - resetting state');
         dispatch(ticketActions.resetTicket());
+        dispatch(ticketActions.setIsFromWaitingQueue(false));
       }
     }
   }, [isOpen, dispatch]);

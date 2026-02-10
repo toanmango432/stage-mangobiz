@@ -122,14 +122,37 @@ export const BookSidebar = memo(function BookSidebar({
   };
 
   const handleDateClick = (date: Date) => {
-    onDateChange(date);
+    // Normalize to noon to avoid timezone shift issues
+    // When we create Date(year, month, day), it's at local midnight
+    // But timezone conversions can shift it by a day
+    // Setting to noon (12:00) ensures the date stays correct across timezones
+    const normalized = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      12, // Set to noon instead of midnight
+      0,
+      0,
+      0
+    );
+    onDateChange(normalized);
   };
 
   const handleGoToToday = () => {
     const today = new Date();
     setCurrentMonth(today.getMonth());
     setCurrentYear(today.getFullYear());
-    onDateChange(today);
+    // Normalize to noon to avoid timezone issues
+    const normalized = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      12,
+      0,
+      0,
+      0
+    );
+    onDateChange(normalized);
   };
 
   const handleJumpWeeks = (weeks: number) => {
@@ -137,7 +160,17 @@ export const BookSidebar = memo(function BookSidebar({
     targetDate.setDate(targetDate.getDate() + weeks * 7);
     setCurrentMonth(targetDate.getMonth());
     setCurrentYear(targetDate.getFullYear());
-    onDateChange(targetDate);
+    // Normalize to noon to avoid timezone issues
+    const normalized = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+      12,
+      0,
+      0,
+      0
+    );
+    onDateChange(normalized);
   };
 
   const handleToggleStaff = (staffId: string) => {

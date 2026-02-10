@@ -3,7 +3,7 @@
  * Manages payment modal state and handlers
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { paymentBridge } from "@/services/payment";
 import { dataService } from "@/services/dataService";
@@ -107,6 +107,7 @@ export function usePaymentModal({
   const [showGiftCardModal, setShowGiftCardModal] = useState(false);
   const [appliedGiftCards, setAppliedGiftCards] = useState<AppliedGiftCard[]>([]);
   const [sentToPadTransactionId, setSentToPadTransactionId] = useState<string | null>(null);
+  const didAutoCompleteRef = useRef(false);
 
   // Redux selectors
   const storeId = useAppSelector((state) => state.auth.store?.storeId || state.auth.storeId);
@@ -148,9 +149,10 @@ export function usePaymentModal({
     100,
   ].filter((amount, index, arr) => arr.indexOf(amount) === index && amount >= remaining);
 
-  // Auto-advance to step 3 when fully paid and trigger completion
+  // Auto-advance to step 3 when fully paid and trigger completion ONCE
   useEffect(() => {
-    if (isFullyPaid && currentStep === 2) {
+    if (isFullyPaid && currentStep === 2 && !didAutoCompleteRef.current) {
+      didAutoCompleteRef.current = true;
       setShowSuccess(true);
 
       // Redeem gift cards in the database
@@ -179,7 +181,9 @@ export function usePaymentModal({
       redeemGiftCards();
 
       // Reduced from 800ms to 400ms for faster UI response
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        // Move to completion step to avoid re-running this effect
+        setCurrentStep(3);
         onComplete({
           methods: paymentMethods,
           tip: tipAmount,
@@ -187,6 +191,13 @@ export function usePaymentModal({
           padTransactionId: sentToPadTransactionId || undefined,
         });
       }, 400);
+
+      return () => clearTimeout(timer);
+    }
+
+    // Reset guard when leaving fully-paid state or leaving step 2
+    if (!isFullyPaid || currentStep !== 2) {
+      didAutoCompleteRef.current = false;
     }
   }, [isFullyPaid, currentStep, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete, appliedGiftCards, storeId, userId, deviceId, ticketId, sentToPadTransactionId]);
 
@@ -369,17 +380,18 @@ export function usePaymentModal({
   }, [onSentToPad]);
 
   const goToNextStep = useCallback(() => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
-    }
-  }, [currentStep]);
+    setCurrentStep(prev => (prev < 3 ? prev + 1 : prev));
+  }, []);
 
   const goToPrevStep = useCallback(() => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-      setCurrentMethod(null);
-    }
-  }, [currentStep]);
+    setCurrentStep(prev => {
+      if (prev > 1) {
+        setCurrentMethod(null);
+        return prev - 1;
+      }
+      return prev;
+    });
+  }, []);
 
   return {
     // State

@@ -600,13 +600,13 @@ export default function InteractiveSummary({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-4 max-w-sm mx-auto">
-                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <ShoppingBag className="h-8 w-8 text-primary" />
+              <div className="flex flex-col items-center gap-2.5 max-w-sm mx-auto py-2">
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <ShoppingBag className="h-6 w-6 text-primary" />
                 </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">No Services Yet</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-1 text-center">
+                  <h3 className="font-semibold text-base">No Services Yet</h3>
+                  <p className="text-xs text-muted-foreground">
                     Browse and select services to add them to this ticket
                   </p>
                 </div>

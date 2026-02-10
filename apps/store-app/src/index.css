@@ -166,12 +166,34 @@ svg {
 /* Tablet optimizations */
 @media (min-width: 641px) and (max-width: 1024px) {
   .tablet-optimized-padding {
-    padding: 1rem;
+    padding: 0.25rem;
   }
   .tablet-card-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
 }
+/* Custom Scrollbar Styles */
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 /* Hide scrollbar for clean UI while maintaining functionality */
 .no-scrollbar,
 .scrollbar-hide {
@@ -796,4 +818,83 @@ svg.crisp-icon {
 
 .availability-dot-gray {
   background: rgb(148, 163, 184);
+}
+
+/* ============================================================================
+   TIPPY TOOLTIP OVERRIDES
+   Custom white background with gray border and arrow
+   ============================================================================ */
+.tippy-box {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tippy-content {
+  padding: 0 !important;
+}
+
+/* Arrow styling to match white background with gray-300 border */
+.tippy-box[data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: rgb(209, 213, 219) !important;
+}
+
+.tippy-box[data-placement^='bottom'] > .tippy-arrow::before {
+  border-bottom-color: rgb(209, 213, 219) !important;
+}
+
+.tippy-box[data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: rgb(209, 213, 219) !important;
+}
+
+.tippy-box[data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: rgb(209, 213, 219) !important;
+}
+
+/* Arrow inner (white fill) */
+.tippy-box[data-placement^='top'] > .tippy-arrow::after {
+  content: '';
+  position: absolute;
+  border-style: solid;
+  border-color: transparent;
+  border-top-color: white;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0 6px;
+}
+
+.tippy-box[data-placement^='bottom'] > .tippy-arrow::after {
+  content: '';
+  position: absolute;
+  border-style: solid;
+  border-color: transparent;
+  border-bottom-color: white;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 6px 6px 6px;
+}
+
+.tippy-box[data-placement^='left'] > .tippy-arrow::after {
+  content: '';
+  position: absolute;
+  border-style: solid;
+  border-color: transparent;
+  border-left-color: white;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px 0 6px 6px;
+}
+
+.tippy-box[data-placement^='right'] > .tippy-arrow::after {
+  content: '';
+  position: absolute;
+  border-style: solid;
+  border-color: transparent;
+  border-right-color: white;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px 6px 6px 0;
 }

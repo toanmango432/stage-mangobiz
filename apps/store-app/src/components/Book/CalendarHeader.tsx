@@ -65,7 +65,17 @@ export const CalendarHeader = memo(function CalendarHeader({
     setDateTransition(true);
     const prev = new Date(selectedDate);
     prev.setDate(prev.getDate() - 1);
-    onDateChange(prev);
+    // Normalize to noon to avoid timezone issues
+    const normalized = new Date(
+      prev.getFullYear(),
+      prev.getMonth(),
+      prev.getDate(),
+      12,
+      0,
+      0,
+      0
+    );
+    onDateChange(normalized);
     setTimeout(() => setDateTransition(false), 300);
   };
 
@@ -73,7 +83,17 @@ export const CalendarHeader = memo(function CalendarHeader({
     setDateTransition(true);
     const next = new Date(selectedDate);
     next.setDate(next.getDate() + 1);
-    onDateChange(next);
+    // Normalize to noon to avoid timezone issues
+    const normalized = new Date(
+      next.getFullYear(),
+      next.getMonth(),
+      next.getDate(),
+      12,
+      0,
+      0,
+      0
+    );
+    onDateChange(normalized);
     setTimeout(() => setDateTransition(false), 300);
   };
 

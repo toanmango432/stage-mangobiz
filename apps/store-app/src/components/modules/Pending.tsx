@@ -20,7 +20,12 @@ import { EditTicketModal } from '../tickets/EditTicketModal';
 
 type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'client-name';
 
-export function Pending() {
+interface PendingProps {   //parent props for sync 
+  displayMode?: 'grid' | 'list';
+  onDisplayModeChange?: (mode: 'grid' | 'list') => void;
+}
+
+export function Pending({ displayMode: externalDisplayMode, onDisplayModeChange }: PendingProps = {} as PendingProps) {
   const { pendingTickets, markTicketAsPaid } = useTickets();
   const { isMobile, isTablet } = useBreakpoint();
 
@@ -35,11 +40,15 @@ export function Pending() {
     specialty: s.specialty,
   }));
 
-  // State
+  // state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [internalViewMode, setInternalViewMode] = useState<'grid' | 'list'>('grid');
   const [cardViewMode, setCardViewMode] = useState<'normal' | 'compact'>('normal');
+
+  // neu co props tu parent thi dung, con khong thi dung state noi bo 
+  const viewMode = externalDisplayMode ?? internalViewMode;
+  const setViewMode = onDisplayModeChange ?? setInternalViewMode;
 
   // Force list view on mobile for better usability
   useEffect(() => {

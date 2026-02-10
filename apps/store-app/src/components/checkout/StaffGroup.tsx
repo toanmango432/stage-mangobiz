@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 // Avatar/Badge not currently used - using custom div for StaffCard alignment
@@ -167,9 +167,8 @@ function ServiceItem({
     <div className="relative overflow-hidden" data-testid={`service-item-container-${service.id}`}>
       {/* Delete Action (behind the service item - positioned absolute right) */}
       <div
-        className={`absolute right-0 top-0 bottom-0 flex items-center justify-center bg-destructive transition-all duration-200 ${
-          isSwipeRevealed ? 'w-16 opacity-100' : 'w-0 opacity-0'
-        }`}
+        className={`absolute right-0 top-0 bottom-0 flex items-center justify-center bg-destructive transition-all duration-200 ${isSwipeRevealed ? 'w-16 opacity-100' : 'w-0 opacity-0'
+          }`}
       >
         <Button
           size="icon"
@@ -192,15 +191,12 @@ function ServiceItem({
         onDragEnd={handleDragEnd}
         animate={{ x: swipeOffset }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className={`group px-3 py-2 flex items-center gap-2 transition-colors bg-card border-l-4 ${
-          CATEGORY_BORDER_COLORS[service.category || ''] || CATEGORY_BORDER_COLORS.default
-        } ${
-          isInactive
+        className={`group px-3 py-2 flex items-center gap-2 transition-colors bg-card border-l-4 ${CATEGORY_BORDER_COLORS[service.category || ''] || CATEGORY_BORDER_COLORS.default
+          } ${isInactive
             ? 'cursor-default opacity-60'
             : 'cursor-pointer hover:bg-gray-50'
-        } ${
-          isSelected ? 'bg-primary/5 ring-1 ring-primary/20' : ''
-        }`}
+          } ${isSelected ? 'bg-primary/5 ring-1 ring-primary/20' : ''
+          }`}
         onClick={(e) => {
           if (!isInactive && swipeOffset === 0) {
             onToggleSelection(service.id, e as any);
@@ -337,12 +333,35 @@ export default function StaffGroup({
   // Status change announcements for screen readers
   const [statusAnnouncement] = useState<string>("");
   const [orderedServices, setOrderedServices] = useState(services);
+  const [isCompact, setIsCompact] = useState<boolean>(true)
+  const containerRef = useRef<HTMLDivElement>(null)
+
 
   // Update ordered services when services prop changes
   useEffect(() => {
     setOrderedServices(services);
   }, [services]);
 
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const checkWidth = (width: number) => {
+      const compact = width < 400
+      setIsCompact(prev => (prev !== compact ? compact : prev))
+    }
+
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        checkWidth(entry.contentRect.width)
+      }
+    })
+
+    observer.observe(containerRef.current)
+    // Set initial width
+    checkWidth(containerRef.current.offsetWidth)
+
+    return () => observer.disconnect()
+  }, [])
   // Timer effect - updates every second for in-progress services
   useEffect(() => {
     const interval = setInterval(() => {
@@ -476,294 +495,306 @@ export default function StaffGroup({
 
   // Show "Adding Services Here" indicator when staff is active (even with single staff)
   const showActiveIndicator = isActive && staffId;
-  
+
   return (
     <>
       {/* ARIA Live Region for Status Announcements */}
-      <div 
-        role="status" 
-        aria-live="polite" 
-        aria-atomic="true" 
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
         className="sr-only"
       >
         {statusAnnouncement}
       </div>
 
-      <Card className={`overflow-hidden transition-all duration-200 rounded-xl ${
-        showActiveIndicator
+      <Card
+        ref={containerRef}
+        className={`overflow-hidden transition-all duration-200 rounded-xl ${showActiveIndicator
           ? 'border-2 border-primary/30 shadow-lg shadow-primary/10 ring-2 ring-primary/20 bg-primary/5'
           : staffId
             ? 'border border-border'
             : 'border-2 border-destructive/50'
-      } ${isInactive ? 'opacity-60 saturate-75 cursor-pointer hover:opacity-80 hover:shadow-md' : ''}`}
-      onClick={(e) => {
-        // Make inactive staff clickable to activate (only if multiple staff exist)
-        if (isInactive && onActivate) {
-          const target = e.target as HTMLElement;
-          // Don't activate if clicking on buttons or interactive elements
-          if (!target.closest('button') && !target.closest('[role="button"]')) {
-            onActivate();
+          } ${isInactive ? 'opacity-60 saturate-75 cursor-pointer hover:opacity-80 hover:shadow-md' : ''}`}
+        onClick={(e) => {
+          // Make inactive staff clickable to activate (only if multiple staff exist)
+          if (isInactive && onActivate) {
+            const target = e.target as HTMLElement;
+            // Don't activate if clicking on buttons or interactive elements
+            if (!target.closest('button') && !target.closest('[role="button"]')) {
+              onActivate();
+            }
           }
-        }
-      }}
-      data-testid={`staff-group-${staffId || 'unassigned'}`}
+        }}
+        data-testid={`staff-group-${staffId || 'unassigned'}`}
       >
-      {/* Active Staff Indicator - Shows when staff is active (even with single staff) */}
-      {showActiveIndicator && (
-        <div className="bg-gradient-to-r from-primary to-primary/90 px-4 py-1.5 flex items-center justify-center gap-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-          <span className="text-xs font-semibold text-white tracking-wide uppercase">
-            Adding Services Here
-          </span>
-          <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-        </div>
-      )}
-      
-      {/* Inactive Staff Indicator - Shows click hint */}
-      {isInactive && (
-        <div className="bg-muted/50 px-4 py-1.5 flex items-center justify-center border-b gap-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Inactive - Click to Activate
-          </span>
-          <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
-        </div>
-      )}
-      
-      {/* Staff Header - Aligned with StaffCard design from FrontDesk */}
-      <div className={`p-4 border-b border-border/50 flex items-center justify-between ${
-        showActiveIndicator
-          ? 'bg-gradient-to-r from-slate-50 to-slate-100/50'
-          : ''
-      }`}>
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {staffName ? (
-            <>
-              {/* Avatar - Matching StaffCard circular style with gradient */}
-              <div
-                className="h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-md"
-                style={{
-                  background: 'linear-gradient(to bottom right, #FFFFFF, #F8FAFC)',
-                  border: '2px solid #E5E5E5',
-                }}
-              >
-                <span
-                  className="font-black text-sm tracking-widest uppercase"
+        {/* Active Staff Indicator - Shows when staff is active (even with single staff) */}
+        {showActiveIndicator && (
+          <div className="bg-gradient-to-r from-primary to-primary/90 px-4 py-1.5 flex items-center justify-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+            <span className="text-xs font-semibold text-white tracking-wide uppercase">
+              Adding Services Here
+            </span>
+            <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+          </div>
+        )}
+
+        {/* Inactive Staff Indicator - Shows click hint */}
+        {isInactive && (
+          <div className="bg-muted/50 px-4 py-1.5 flex items-center justify-center border-b gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Inactive - Click to Activate
+            </span>
+            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+          </div>
+        )}
+
+        {/* Staff Header - Aligned with StaffCard design from FrontDesk */}
+        <div
+          ref={containerRef}
+          className={`p-2 border-b border-border/50 flex items-center justify-between ${showActiveIndicator
+            ? 'bg-gradient-to-r from-slate-50 to-slate-100/50'
+            : ''
+            }`}>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {staffName ? (
+              <>
+                {/* Avatar - Matching StaffCard circular style with gradient */}
+                <div
+                  className="h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-md"
                   style={{
-                    color: '#525252',
-                    textShadow: '0 1px 2px rgba(255,255,255,0.5)',
+                    background: 'linear-gradient(to bottom right, #FFFFFF, #F8FAFC)',
+                    border: '2px solid #E5E5E5',
                   }}
                 >
-                  {getStaffInitials(staffName)}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  {/* Name - Matching StaffCard uppercase bold style */}
-                  <h3
-                    className="font-black text-sm tracking-wide uppercase truncate"
-                    style={{ color: '#525252' }}
+                  <span
+                    className="font-black text-sm tracking-widest uppercase"
+                    style={{
+                      color: '#525252',
+                      textShadow: '0 1px 2px rgba(255,255,255,0.5)',
+                    }}
                   >
-                    {staffName}
-                  </h3>
-                  {showActiveIndicator && (
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  )}
+                    {getStaffInitials(staffName)}
+                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 font-medium">
-                  {services.length} {services.length === 1 ? "service" : "services"} · ${totalAmount.toFixed(2)}
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex-1 min-w-0">
-                <Button
-                  variant="destructive"
-                  size="default"
-                  className="mb-2"
-                  onClick={() => handleStaffOptions("assign")}
-                  data-testid="button-assign-staff-primary"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Assign Staff
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  {services.length} {services.length === 1 ? "service" : "services"} • ${totalAmount.toFixed(2)}
-                </p>
-              </div>
-            </>
-          )}
-        </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {/* Name - Matching StaffCard uppercase bold style - CLICKABLE TO REASSIGN */}
+                    <button
+                      onClick={() => {
+                        const allServiceIds = services.map(s => s.id);
+                        if (allServiceIds.length > 0) {
+                          onReassignStaff(allServiceIds);
+                        }
+                      }}
+                      className="font-black text-sm tracking-wide uppercase truncate cursor-pointer hover:opacity-70 hover:underline transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded px-1"
+                      style={{ color: '#525252' }}
+                      title="Click to reassign staff"
+                      aria-label={`Reassign all services for ${staffName}`}
+                    >
+                      {staffName}
+                    </button>
+                    {showActiveIndicator && (
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                    {services.length} {services.length === 1 ? "service" : "services"} · ${totalAmount.toFixed(2)}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-1 min-w-0">
+                  <Button
+                    variant="destructive"
+                    size="default"
+                    className="mb-2"
+                    onClick={() => handleStaffOptions("assign")}
+                    data-testid="button-assign-staff-primary"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Assign Staff
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    {services.length} {services.length === 1 ? "service" : "services"} • ${totalAmount.toFixed(2)}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
 
-        {/* Staff-level Actions - Disabled when inactive */}
-        <div className="flex items-center gap-1">
-          {canComplete && staffId && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleCompleteAll}
-              disabled={isInactive}
-              className="h-9 text-xs gap-1"
-              data-testid={`button-complete-all-${staffId || "unassigned"}`}
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Complete All</span>
-            </Button>
-          )}
-          {!allCompleted && staffId && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-9 w-9 rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              onClick={handleStaffStatusAction}
-              disabled={isInactive}
-              data-testid={`button-staff-status-${staffId || "unassigned"}`}
-              aria-label={anyInProgress ? `Pause all services for ${staffName}` : `Start all services for ${staffName}`}
-            >
-              {anyInProgress ? (
-                <Pause className="h-5 w-5" />
-              ) : (
-                <Play className="h-5 w-5" />
-              )}
-            </Button>
-          )}
-          
-          {/* More Options Dropdown - Disabled when inactive */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          {/* Staff-level Actions - Disabled when inactive */}
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+            {canComplete && staffId && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleCompleteAll}
+                disabled={isInactive}
+                className="h-7 sm:h-8 md:h-9 text-xs gap-1 px-1.5 sm:px-2"
+                data-testid={`button-complete-all-${staffId || "unassigned"}`}>
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                {!isCompact && <span>Complete All</span>}
+              </Button>
+            )}
+            {!allCompleted && staffId && (
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-9 w-9 rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                onClick={handleStaffStatusAction}
                 disabled={isInactive}
-                data-testid={`button-staff-options-${staffId || "unassigned"}`}
-                aria-label={`More options for ${staffName || 'unassigned services'}`}
-              >
-                <MoreVertical className="h-5 w-5" />
+                data-testid={`button-staff-status-${staffId || "unassigned"}`}
+                aria-label={
+                  anyInProgress
+                    ? `Pause all services for ${staffName}`
+                    : `Start all services for ${staffName}`
+                }>
+                {anyInProgress ? (
+                  <Pause className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                ) : (
+                  <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                )}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {!staffId && (
-                <>
-                  <DropdownMenuItem 
-                    onClick={() => handleStaffOptions("assign")}
-                    data-testid="option-assign-staff"
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Assign Staff
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
-              )}
-              
-              {/* Change Status Submenu */}
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger data-testid="submenu-change-status">
-                  <Shuffle className="mr-2 h-4 w-4" />
-                  Change Status
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem 
-                    onClick={() => handleStaffOptions("change_all_status", "not_started")}
-                    data-testid="option-status-not-started"
-                  >
-                    <Circle className="mr-2 h-4 w-4" />
-                    Not Started
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleStaffOptions("change_all_status", "in_progress")}
-                    data-testid="option-status-in-service"
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    In Service
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleStaffOptions("change_all_status", "paused")}
-                    data-testid="option-status-pause"
-                  >
-                    <Pause className="mr-2 h-4 w-4" />
-                    Pause
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleStaffOptions("change_all_status", "completed")}
-                    data-testid="option-status-done"
-                  >
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Done
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              
-              <DropdownMenuItem 
-                onClick={() => handleStaffOptions("reset")}
-                data-testid="option-reset-items"
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Reset Items
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => handleStaffOptions("remove")}
-                className="text-destructive"
-                data-testid="option-remove-staff"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Remove {staffId ? "Staff" : "All"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+            )}
 
-      {/* Services List with Drag & Drop */}
-      <div>
-        {services.length === 0 && staffId ? (
-          <div className="px-3 py-2.5 sm:px-4 sm:py-3">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <ArrowLeft className="h-4 w-4" />
-              <span>Click a service to add to {staffName}</span>
-            </div>
+            {/* More Options Dropdown - Disabled when inactive */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  disabled={isInactive}
+                  data-testid={`button-staff-options-${staffId || "unassigned"}`}
+                  aria-label={`More options for ${staffName || "unassigned services"}`}>
+                  <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {!staffId && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => handleStaffOptions("assign")}
+                      data-testid="option-assign-staff">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Assign Staff
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
+                {/* Change Status Submenu */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger data-testid="submenu-change-status">
+                    <Shuffle className="mr-2 h-4 w-4" />
+                    Change Status
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        handleStaffOptions("change_all_status", "not_started")
+                      }
+                      data-testid="option-status-not-started">
+                      <Circle className="mr-2 h-4 w-4" />
+                      Not Started
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        handleStaffOptions("change_all_status", "in_progress")
+                      }
+                      data-testid="option-status-in-service">
+                      <Play className="mr-2 h-4 w-4" />
+                      In Service
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        handleStaffOptions("change_all_status", "paused")
+                      }
+                      data-testid="option-status-pause">
+                      <Pause className="mr-2 h-4 w-4" />
+                      Pause
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        handleStaffOptions("change_all_status", "completed")
+                      }
+                      data-testid="option-status-done">
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Done
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
+                <DropdownMenuItem
+                  onClick={() => handleStaffOptions("reset")}
+                  data-testid="option-reset-items">
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset Items
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleStaffOptions("remove")}
+                  className="text-destructive"
+                  data-testid="option-remove-staff">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remove {staffId ? "Staff" : "All"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        ) : (
-          <Reorder.Group
-            axis="y"
-            values={orderedServices}
-            onReorder={handleReorder}
-            className="divide-y"
-          >
-            {orderedServices.map((service) => {
-              const isSelected = selectedServices.has(service.id);
-              const elapsedTime = elapsedTimes[service.id] || 0;
+        </div>
 
-              return (
-                <Reorder.Item
-                  key={service.id}
-                  value={service}
-                  className="list-none"
-                  data-testid={`reorder-item-${service.id}`}
-                >
-                  <ServiceItem
-                    service={service}
-                    isSelected={isSelected}
-                    isInactive={isInactive}
-                    elapsedTime={elapsedTime}
-                    onToggleSelection={handleToggleService}
-                    onUpdateService={onUpdateService}
-                    onDuplicateService={handleDuplicateService}
-                    onDeleteService={onRemoveService}
-                  />
-                </Reorder.Item>
-              );
-            })}
-          </Reorder.Group>
-        )}
+        {/* Services List with Drag & Drop */}
+        <div>
+          {services.length === 0 && staffId ? (
+            <div className="px-3 py-2.5 sm:px-4 sm:py-3">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <ArrowLeft className="h-4 w-4" />
+                <span>Click a service to add to {staffName}</span>
+              </div>
+            </div>
+          ) : (
+            <Reorder.Group
+              axis="y"
+              values={orderedServices}
+              onReorder={handleReorder}
+              className="divide-y"
+            >
+              {orderedServices.map((service) => {
+                const isSelected = selectedServices.has(service.id);
+                const elapsedTime = elapsedTimes[service.id] || 0;
 
-        {/* Add Service button removed - redundant since:
+                return (
+                  <Reorder.Item
+                    key={service.id}
+                    value={service}
+                    className="list-none"
+                    data-testid={`reorder-item-${service.id}`}
+                  >
+                    <ServiceItem
+                      service={service}
+                      isSelected={isSelected}
+                      isInactive={isInactive}
+                      elapsedTime={elapsedTime}
+                      onToggleSelection={handleToggleService}
+                      onUpdateService={onUpdateService}
+                      onDuplicateService={handleDuplicateService}
+                      onDeleteService={onRemoveService}
+                    />
+                  </Reorder.Item>
+                );
+              })}
+            </Reorder.Group>
+          )}
+
+          {/* Add Service button removed - redundant since:
             1. "ADDING SERVICES HERE" banner clearly shows active staff
             2. Left panel services automatically add to active staff
             3. Pulsing dot indicator reinforces which staff is active */}
-      </div>
+        </div>
       </Card>
     </>
   );

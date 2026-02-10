@@ -345,16 +345,29 @@ export function PendingTicketCard({
               {/* More menu */}
               <Tippy
                 content={
-                  <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[100px]">
-                    <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
-                      <Edit2 size={11} /> Edit
+                  <div className="bg-white rounded-md border border-gray-300 py-0.5 min-w-[110px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-blue-50 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors group"
+                    >
+                      <Edit2 size={12} className="text-blue-500 group-hover:text-blue-600" />
+                      <span className="font-medium">Edit</span>
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
-                      <StickyNote size={11} /> Details
+                    <div className="border-t border-gray-200 my-0.5" />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-purple-50 flex items-center gap-2 text-gray-700 hover:text-purple-600 transition-colors group"
+                    >
+                      <StickyNote size={12} className="text-purple-500 group-hover:text-purple-600" />
+                      <span className="font-medium">Details</span>
                     </button>
-                    <div className="border-t border-gray-100 my-1" />
-                    <button onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2">
-                      <Trash2 size={11} /> Remove
+                    <div className="border-t border-gray-200 my-0.5" />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors group"
+                    >
+                      <Trash2 size={12} className="text-red-500 group-hover:text-red-600" />
+                      <span className="font-medium">Remove</span>
                     </button>
                   </div>
                 }
@@ -365,7 +378,11 @@ export function PendingTicketCard({
               >
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                  className="flex items-center justify-center text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50 transition-colors rounded"
+                  className={`flex items-center justify-center transition-colors rounded ${
+                    showMenu
+                      ? 'bg-[#f5f0eb] text-[#2d2520] shadow-sm'
+                      : 'text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50'
+                  }`}
                   style={{ width: '24px', height: '24px' }}
                 >
                   <MoreVertical size={12} />
@@ -485,16 +502,29 @@ export function PendingTicketCard({
               {/* More menu */}
               <Tippy
                 content={
-                  <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]">
-                    <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
-                      <Edit2 size={12} /> Edit
+                  <div className="bg-white rounded-md border border-gray-300 py-0.5 min-w-[110px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-blue-50 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors group"
+                    >
+                      <Edit2 size={12} className="text-blue-500 group-hover:text-blue-600" />
+                      <span className="font-medium">Edit</span>
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
-                      <StickyNote size={12} /> Details
+                    <div className="border-t border-gray-200 my-0.5" />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-purple-50 flex items-center gap-2 text-gray-700 hover:text-purple-600 transition-colors group"
+                    >
+                      <StickyNote size={12} className="text-purple-500 group-hover:text-purple-600" />
+                      <span className="font-medium">Details</span>
                     </button>
-                    <div className="border-t border-gray-100 my-1" />
-                    <button onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2">
-                      <Trash2 size={12} /> Remove
+                    <div className="border-t border-gray-200 my-0.5" />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors group"
+                    >
+                      <Trash2 size={12} className="text-red-500 group-hover:text-red-600" />
+                      <span className="font-medium">Remove</span>
                     </button>
                   </div>
                 }
@@ -505,7 +535,11 @@ export function PendingTicketCard({
               >
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                  className="flex items-center justify-center text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50 transition-colors rounded"
+                  className={`flex items-center justify-center transition-colors rounded ${
+                    showMenu
+                      ? 'bg-[#f5f0eb] text-[#2d2520] shadow-sm'
+                      : 'text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50'
+                  }`}
                   style={{ width: '30px', height: '30px' }}
                 >
                   <MoreVertical size={16} />
@@ -581,16 +615,29 @@ export function PendingTicketCard({
           {/* More menu */}
           <Tippy
             content={
-              <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[100px]">
-                <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
-                  <Edit2 size={11} /> Edit
+              <div className="bg-white rounded-md border border-gray-300 py-0.5 min-w-[110px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }}
+                  className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-blue-50 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors group"
+                >
+                  <Edit2 size={12} className="text-blue-500 group-hover:text-blue-600" />
+                  <span className="font-medium">Edit</span>
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
-                  <StickyNote size={11} /> Details
+                <div className="border-t border-gray-200 my-0.5" />
+                <button
+                  onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }}
+                  className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-purple-50 flex items-center gap-2 text-gray-700 hover:text-purple-600 transition-colors group"
+                >
+                  <StickyNote size={12} className="text-purple-500 group-hover:text-purple-600" />
+                  <span className="font-medium">Details</span>
                 </button>
-                <div className="border-t border-gray-100 my-1" />
-                <button onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2">
-                  <Trash2 size={11} /> Remove
+                <div className="border-t border-gray-200 my-0.5" />
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }}
+                  className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors group"
+                >
+                  <Trash2 size={12} className="text-red-500 group-hover:text-red-600" />
+                  <span className="font-medium">Remove</span>
                 </button>
               </div>
             }
@@ -601,7 +648,11 @@ export function PendingTicketCard({
           >
             <button
               onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-              className="text-[#6b5d52] hover:text-[#2d2520] p-0.5 rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0"
+              className={`min-w-[44px] min-h-[44px] rounded transition-colors flex-shrink-0 flex items-center justify-center ${
+                showMenu
+                  ? 'bg-[#f5f0eb] text-[#2d2520] shadow-sm p-1.5'
+                  : 'text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50 p-2'
+              }`}
             >
               <MoreVertical size={14} />
             </button>
@@ -656,13 +707,22 @@ export function PendingTicketCard({
           }}>
           <button
             onClick={(e) => { e.stopPropagation(); onMarkPaid(ticket.id); }}
-            className="w-full flex items-center justify-center bg-white border border-gray-400 text-gray-600 hover:border-yellow-600 hover:text-white hover:bg-yellow-600 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full"
+            className="w-full flex items-center justify-center bg-white border border-gray-400 text-gray-600 hover:border-yellow-600 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full"
             style={{
               height: 'clamp(32px, 4.5vw, 40px)',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              color: '#4B5563'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(234, 179, 8, 0.25)'}
-            onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgb(255, 191, 57)';
+              e.currentTarget.style.color = '#FFFFFF';
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(255, 191, 57, 0.25)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#FFFFFF';
+              e.currentTarget.style.color = '#4B5563';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+            }}
             title="Pay"
           >
             <DollarSign style={{ width: 'clamp(14px, 2vw, 18px)', height: 'clamp(14px, 2vw, 18px)' }} strokeWidth={2.5} />
@@ -744,16 +804,29 @@ export function PendingTicketCard({
         {/* More menu */}
         <Tippy
           content={
-            <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]">
-              <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
-                <Edit2 size={14} /> Edit
+            <div className="bg-white rounded-md border border-gray-300 py-0.5 min-w-[110px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }}
+                className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-blue-50 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors group"
+              >
+                <Edit2 size={12} className="text-blue-500 group-hover:text-blue-600" />
+                <span className="font-medium">Edit</span>
               </button>
-              <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
-                <StickyNote size={14} /> Details
+              <div className="border-t border-gray-200 my-0.5" />
+              <button
+                onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }}
+                className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-purple-50 flex items-center gap-2 text-gray-700 hover:text-purple-600 transition-colors group"
+              >
+                <StickyNote size={12} className="text-purple-500 group-hover:text-purple-600" />
+                <span className="font-medium">Details</span>
               </button>
-              <div className="border-t border-gray-100 my-1" />
-              <button onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2">
-                <Trash2 size={14} /> Remove
+              <div className="border-t border-gray-200 my-0.5" />
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }}
+                className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors group"
+              >
+                <Trash2 size={12} className="text-red-500 group-hover:text-red-600" />
+                <span className="font-medium">Remove</span>
               </button>
             </div>
           }
@@ -764,7 +837,11 @@ export function PendingTicketCard({
         >
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="text-[#6b5d52] hover:text-[#2d2520] p-1 rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0"
+            className={`min-w-[44px] min-h-[44px] rounded-md transition-colors flex-shrink-0 flex items-center justify-center ${
+              showMenu
+                ? 'bg-[#f5f0eb] text-[#2d2520] shadow-sm p-1.5 sm:p-2'
+                : 'text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50 p-2 sm:p-2.5'
+            }`}
           >
             <MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
@@ -833,14 +910,23 @@ export function PendingTicketCard({
         }}>
         <button
           onClick={(e) => { e.stopPropagation(); onMarkPaid(ticket.id); }}
-          className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-400 text-gray-600 hover:border-yellow-600 hover:text-white hover:bg-yellow-600 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full"
+          className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-400 text-gray-600 hover:border-yellow-600 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full"
           style={{
             height: 'clamp(36px, 5vw, 44px)',
             background: 'linear-gradient(to bottom, #ffffff 0%, #fefefe 100%)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+            color: '#4B5563'
           }}
-          onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(234, 179, 8, 0.25)'}
-          onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)'}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgb(255, 191, 57)';
+            e.currentTarget.style.color = '#FFFFFF';
+            e.currentTarget.style.boxShadow = '0 4px 8px rgba(255, 191, 57, 0.25)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(to bottom, #ffffff 0%, #fefefe 100%)';
+            e.currentTarget.style.color = '#4B5563';
+            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)';
+          }}
           title="Pay"
         >
           <DollarSign style={{ width: 'clamp(16px, 2.25vw, 20px)', height: 'clamp(16px, 2.25vw, 20px)' }} strokeWidth={2.5} />

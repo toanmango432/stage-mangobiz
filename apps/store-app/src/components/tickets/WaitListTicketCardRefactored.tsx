@@ -212,7 +212,26 @@ function WaitListTicketCardComponent({
   const serviceDisplay = getServiceDisplay();
 
   // Get staff info - support multiple staff (assignedStaff) or single (assignedTo)
-  const staffList = ticket.assignedStaff || (ticket.assignedTo ? [ticket.assignedTo] : []);
+  // Also check technician/techId/techColor for tickets that have technician selected but not yet added to client
+  const staffList = useMemo(() => {
+    // First check assignedStaff (multi-staff support)
+    if (ticket.assignedStaff && ticket.assignedStaff.length > 0) {
+      return ticket.assignedStaff;
+    }
+    // Then check assignedTo (single staff)
+    if (ticket.assignedTo) {
+      return [ticket.assignedTo];
+    }
+    // Fallback: check technician/techId/techColor (technician selected but not yet added to client)
+    if (ticket.technician && ticket.techId) {
+      return [{
+        id: ticket.techId,
+        name: ticket.technician,
+        color: ticket.techColor || '#6B7280',
+      }];
+    }
+    return [];
+  }, [ticket.assignedStaff, ticket.assignedTo, ticket.technician, ticket.techId, ticket.techColor]);
   const hasAssignedStaff = staffList.length > 0;
 
   // Get staff color for avatar/badge
@@ -299,10 +318,10 @@ function WaitListTicketCardComponent({
                 {/* Staff badge or Assign button */}
                 {hasAssignedStaff ? (
                   <button
-                    onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                    className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/80 border border-gray-200 hover:border-blue-400 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/80 border border-gray-200 transition-colors cursor-pointer opacity-75"
                     style={{ height: '24px' }}
-                    title="Click to reassign"
+                    title="Technician already assigned"
+                    disabled 
                   >
                     {staffList.slice(0, 2).map((staff, idx) => (
                       <div key={staff.id} className="flex items-center gap-1" style={{ marginLeft: idx > 0 ? '-4px' : 0 }}>
@@ -380,10 +399,10 @@ function WaitListTicketCardComponent({
               <div className="flex-shrink-0">
                 {hasAssignedStaff ? (
                   <button
-                    onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                    className="flex items-center gap-2 px-3 py-1 rounded-md bg-white/80 border border-gray-200 hover:border-blue-400 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 px-3 py-1 rounded-md bg-white/80 border border-gray-200 transition-colors cursor-pointer opacity-75"
                     style={{ height: '30px' }}
-                    title="Click to reassign"
+                    title="Technician already assigned"
+                    disabled
                   >
                     <div className="flex items-center -space-x-1">
                       {staffList.slice(0, 3).map((staff) => (
@@ -460,7 +479,7 @@ function WaitListTicketCardComponent({
           {/* Footer - compact */}
           <div className="mt-auto px-1 py-1 rounded-md" style={{ marginLeft: 'clamp(4px, 1vw, 16px)', marginRight: 'clamp(4px, 1vw, 16px)', marginBottom: 'clamp(4px, 1vw, 8px)', background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}>
             {hasAssignedStaff ? (
-              <button onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }} className="w-full flex items-center justify-center gap-2 bg-white/80 border border-gray-200 hover:border-blue-400 transition-colors rounded-md" style={{ height: 'clamp(32px, 4.5vw, 40px)' }} title="Click to reassign">
+              <button className="w-full flex items-center justify-center gap-2 bg-white/80 border border-gray-200 transition-colors rounded-md cursor-pointer opacity-75" style={{ height: 'clamp(32px, 4.5vw, 40px)' }} title="Technician already assigned" disabled>
                 <div className="flex items-center -space-x-1">
                   {staffList.slice(0, 2).map((staff) => (
                     <div key={staff.id}>{renderStaffAvatar(staff, 'sm')}</div>
@@ -514,7 +533,7 @@ function WaitListTicketCardComponent({
           {/* Footer with Staff badge or Assign button */}
           <div className="mt-auto px-2 py-1.5 rounded-md" style={{ marginLeft: 'clamp(8px, 1.5vw, 16px)', marginRight: 'clamp(8px, 1.5vw, 16px)', marginBottom: 'clamp(8px, 1.5vw, 16px)', background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}>
             {hasAssignedStaff ? (
-              <button onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }} className="w-full flex items-center justify-center gap-2 bg-white/80 border border-gray-200 hover:border-blue-400 transition-colors rounded-md" style={{ height: 'clamp(36px, 5vw, 44px)' }} title="Click to reassign">
+              <button className="w-full flex items-center justify-center gap-2 bg-white/80 border border-gray-200 transition-colors rounded-md cursor-pointer opacity-75" style={{ height: 'clamp(36px, 5vw, 44px)' }} title="Technician already assigned" disabled>
                 <div className="flex items-center -space-x-1.5">
                   {staffList.slice(0, 3).map((staff) => (
                     <div key={staff.id}>{renderStaffAvatar(staff, 'md')}</div>

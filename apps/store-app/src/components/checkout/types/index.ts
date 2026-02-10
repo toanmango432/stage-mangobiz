@@ -113,6 +113,7 @@ export interface TicketState {
   ui: UIState;
   undoStack: UndoSnapshot[];
   isNewTicket: boolean;
+  isFromWaitingQueue: boolean;
 }
 
 // ============================================================================
@@ -160,4 +161,5 @@ export type TicketAction =
   | { type: "RESET_TICKET" }
   | { type: "CLEAR_SERVICES" }
   | { type: "MARK_TICKET_SAVED" }
-  | { type: "SET_TICKET_ID"; payload: string | null };
+  | { type: "SET_TICKET_ID"; payload: string | null }
+  | { type: "SET_IS_FROM_WAITING_QUEUE"; payload: boolean };

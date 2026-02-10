@@ -452,6 +452,11 @@ function AppShellContent() {
         </div>
       </main>
 
+      {/* Modal Container - Sibling of main to escape overflow but stay within viewport */}
+      <div id="pin-modal-root" className="fixed inset-0 pointer-events-none z-50">
+        {/* Modals render here via React portals */}
+      </div>
+
       {/* Bottom Navigation - Only on mobile and tablet */}
       {showBottomNav && (
         <BottomNavBar

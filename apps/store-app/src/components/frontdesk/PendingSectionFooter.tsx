@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
 import { Receipt, ChevronUp, ChevronDown, Maximize2, X, Grid, List, DollarSign, CreditCard } from 'lucide-react';
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { selectPendingTickets, removePendingTicket } from '../../store/slices/uiTicketsSlice';
 import { selectAllStaff } from '../../store/slices/uiStaffSlice';
@@ -474,6 +476,7 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
               <div className="text-amber-700 text-sm">
                 Total: ${totalAmount.toFixed(2)}
               </div>
+
             </div>
           </button>
 
@@ -653,18 +656,42 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
             </div>
           </div>
 
-          <button
-            onClick={closeFullView}
-            aria-label="Close full view"
-            className="p-2 hover:bg-amber-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
-          >
-            <X size={24} className="text-amber-600" aria-hidden="true" />
-          </button>
+          {/* View Mode Toggle - Grid/List */}
+          <div className="flex items-center gap-2">
+            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setDisplayMode('grid')}
+                className={`p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors ${displayMode === 'grid'
+                  ? 'bg-amber-50 text-amber-600'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+              >
+                <Grid size={18} />
+              </button>
+              <button
+                onClick={() => setDisplayMode('list')}
+                className={`p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors border-l border-gray-300 ${displayMode === 'list'
+                  ? 'bg-amber-50 text-amber-600'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+              >
+                <List size={18} />
+              </button>
+            </div>
+
+            <button
+              onClick={closeFullView}
+              aria-label="Close full view"
+              className="p-2 hover:bg-amber-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <X size={24} className="text-amber-600" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         {/* Full Pending Page Content */}
         <div className="flex-1 overflow-hidden">
-          <Pending />
+          <Pending displayMode={displayMode} onDisplayModeChange={setDisplayMode} />
         </div>
       </div>
     );

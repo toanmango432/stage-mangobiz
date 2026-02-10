@@ -11,47 +11,58 @@
  * - "Don't ask again" - Permanently dismisses prompt
  */
 
-import { useState } from 'react';
-import { Fingerprint, ScanFace, Loader2, X, Shield } from 'lucide-react';
-import { biometricService, type StoredSessionData } from '@/services/biometricService';
+import { useState } from "react"
+import { Fingerprint, ScanFace, Loader2, X, Shield } from "lucide-react"
+import {
+  biometricService,
+  type StoredSessionData,
+} from "@/services/biometricService"
 
-const BIOMETRIC_DISMISSED_KEY = 'mango_biometric_dismissed';
+const BIOMETRIC_DISMISSED_KEY = "mango_biometric_dismissed"
 
 interface BiometricEnrollmentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onEnroll: () => void;
-  memberId: string;
-  memberName: string;
-  biometricType?: 'face' | 'fingerprint' | 'unknown' | 'none';
-  platformName?: string;
+  isOpen: boolean
+  onClose: () => void
+  onEnroll: () => void
+  memberId: string
+  memberName: string
+  biometricType?: "face" | "fingerprint" | "unknown" | "none"
+  platformName?: string
   /** Session data to store with the credential for recovery after logout */
-  sessionData?: StoredSessionData;
+  sessionData?: StoredSessionData
 }
 
 /**
  * Check if user has dismissed biometric enrollment permanently
  */
 export function hasDismissedBiometricEnrollment(memberId: string): boolean {
-  const dismissed = localStorage.getItem(`${BIOMETRIC_DISMISSED_KEY}_${memberId}`);
-  return dismissed === 'true';
+  const dismissed = localStorage.getItem(
+    `${BIOMETRIC_DISMISSED_KEY}_${memberId}`,
+  )
+  return dismissed === "true"
 }
 
 /**
  * Mark biometric enrollment as dismissed for a user
  */
 export function dismissBiometricEnrollment(memberId: string): void {
-  localStorage.setItem(`${BIOMETRIC_DISMISSED_KEY}_${memberId}`, 'true');
+  localStorage.setItem(`${BIOMETRIC_DISMISSED_KEY}_${memberId}`, "true")
 }
 
 /**
  * Get the appropriate icon for the biometric type
  */
-function BiometricIcon({ type, className }: { type?: string; className?: string }) {
-  if (type === 'face') {
-    return <ScanFace className={className} />;
+function BiometricIcon({
+  type,
+  className,
+}: {
+  type?: string
+  className?: string
+}) {
+  if (type === "face") {
+    return <ScanFace className={className} />
   }
-  return <Fingerprint className={className} />;
+  return <Fingerprint className={className} />
 }
 
 export function BiometricEnrollmentModal({
@@ -60,49 +71,54 @@ export function BiometricEnrollmentModal({
   onEnroll,
   memberId,
   memberName,
-  biometricType = 'unknown',
-  platformName = 'Biometrics',
+  biometricType = "unknown",
+  platformName = "Biometrics",
   sessionData,
 }: BiometricEnrollmentModalProps) {
-  const [isEnrolling, setIsEnrolling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isEnrolling, setIsEnrolling] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const handleEnable = async () => {
-    setIsEnrolling(true);
-    setError(null);
+    setIsEnrolling(true)
+    setError(null)
 
     try {
       // Register biometric credential (WebAuthn on web, native on iOS/Android)
       // Pass session data to store with credential for recovery after logout
-      const success = await biometricService.register(memberId, memberName, sessionData);
+      const success = await biometricService.register(
+        memberId,
+        memberName,
+        sessionData,
+      )
 
       if (!success) {
-        throw new Error('Failed to register biometric credential');
+        throw new Error("Failed to register biometric credential")
       }
 
       // Store this user as the last biometric user for quick login
-      biometricService.setLastBiometricUser(memberId);
+      biometricService.setLastBiometricUser(memberId)
 
       // Success - close modal and notify parent
-      onEnroll();
+      onEnroll()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to enable biometric login';
-      setError(message);
+      const message =
+        err instanceof Error ? err.message : "Failed to enable biometric login"
+      setError(message)
     } finally {
-      setIsEnrolling(false);
+      setIsEnrolling(false)
     }
-  };
+  }
 
   const handleNotNow = () => {
-    onClose();
-  };
+    onClose()
+  }
 
   const handleDontAskAgain = () => {
-    dismissBiometricEnrollment(memberId);
-    onClose();
-  };
+    dismissBiometricEnrollment(memberId)
+    onClose()
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -118,15 +134,17 @@ export function BiometricEnrollmentModal({
         <button
           onClick={handleNotNow}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-          aria-label="Close"
-        >
+          aria-label="Close">
           <X className="w-5 h-5" />
         </button>
 
         {/* Icon */}
         <div className="flex justify-center mb-4">
           <div className="w-16 h-16 bg-gradient-to-br from-brand-500 to-amber-500 rounded-2xl flex items-center justify-center">
-            <BiometricIcon type={biometricType} className="w-8 h-8 text-white" />
+            <BiometricIcon
+              type={biometricType}
+              className="w-8 h-8 text-white"
+            />
           </div>
         </div>
 
@@ -137,14 +155,16 @@ export function BiometricEnrollmentModal({
 
         {/* Description */}
         <p className="text-gray-600 text-center text-sm mb-6">
-          Sign in faster next time using {platformName} instead of your password.
+          Sign in faster next time using {platformName} instead of your
+          password.
         </p>
 
         {/* Security note */}
         <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
           <Shield className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-blue-700">
-            Your biometric data never leaves your device. We only store a secure credential that verifies your identity.
+            Your biometric data never leaves your device. We only store a secure
+            credential that verifies your identity.
           </p>
         </div>
 
@@ -160,8 +180,7 @@ export function BiometricEnrollmentModal({
           <button
             onClick={handleEnable}
             disabled={isEnrolling}
-            className="w-full py-3 px-4 bg-gradient-to-r from-brand-500 to-amber-500 text-white rounded-lg font-medium hover:from-brand-600 hover:to-amber-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-          >
+            className="w-full py-3 px-4 bg-gradient-to-r from-brand-500 to-amber-500 text-white rounded-lg font-medium hover:from-brand-600 hover:to-amber-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2">
             {isEnrolling ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -178,22 +197,20 @@ export function BiometricEnrollmentModal({
           <button
             onClick={handleNotNow}
             disabled={isEnrolling}
-            className="w-full py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
-          >
+            className="w-full py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50">
             Not now
           </button>
 
           <button
             onClick={handleDontAskAgain}
             disabled={isEnrolling}
-            className="w-full py-2 text-gray-500 text-sm hover:text-gray-700 transition-colors disabled:opacity-50"
-          >
+            className="w-full py-2 text-gray-500 text-sm hover:text-gray-700 transition-colors disabled:opacity-50">
             Don't ask again
           </button>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default BiometricEnrollmentModal;
+export default BiometricEnrollmentModal

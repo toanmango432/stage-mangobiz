@@ -5,9 +5,18 @@
  * Used for shared POS device authentication.
  */
 
-import { useState } from 'react';
-import { Store, Loader2, AlertCircle, CheckCircle2, Building2, Lock, Eye, EyeOff } from 'lucide-react';
-import type { LoginFormProps } from './types';
+import { useState } from "react"
+import {
+  Store,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Building2,
+  Lock,
+  Eye,
+  EyeOff,
+} from "lucide-react"
+import type { LoginFormProps } from "./types"
 
 export function LoginForm({
   storeId,
@@ -21,17 +30,21 @@ export function LoginForm({
   onKeyDown,
   compact,
 }: LoginFormProps) {
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onLogin();
-  };
+    e.preventDefault()
+    onLogin()
+  }
 
   return (
-    <form onSubmit={handleSubmit} className={`space-y-4 ${compact ? 'space-y-3' : ''}`}>
+    <form
+      onSubmit={handleSubmit}
+      className={`space-y-4 ${compact ? "space-y-3" : ""}`}>
       <div>
-        <label htmlFor="store-id" className="block text-sm font-medium text-gray-700 mb-2">
+        <label
+          htmlFor="store-id"
+          className="block text-sm font-medium text-gray-700 mb-2">
           Store ID or Email
         </label>
         <div className="relative">
@@ -44,18 +57,22 @@ export function LoginForm({
             name="username"
             autoComplete="username"
             value={storeId}
-            onChange={(e) => setStoreId(e.target.value)}
+            onChange={e => setStoreId(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="mango001 or store@email.com"
             disabled={isLoading}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors ${
+              error && !success ? "border-red-300 bg-red-50" : "border-gray-300"
+            }`}
             autoFocus
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="store-password" className="block text-sm font-medium text-gray-700 mb-2">
+        <label
+          htmlFor="store-password"
+          className="block text-sm font-medium text-gray-700 mb-2">
           Password
         </label>
         <div className="relative">
@@ -64,36 +81,46 @@ export function LoginForm({
           </div>
           <input
             id="store-password"
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             name="password"
             autoComplete="current-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Enter your password"
             disabled={isLoading}
-            className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors ${
+              error && !success ? "border-red-300 bg-red-50" : "border-gray-300"
+            }`}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-          >
-            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            disabled={isLoading}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            aria-label={showPassword ? "Hide password" : "Show password"}>
+            {showPassword ? (
+              <EyeOff className="h-5 w-5" />
+            ) : (
+              <Eye className="h-5 w-5" />
+            )}
           </button>
         </div>
       </div>
 
-      {error && (
-        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200" role="alert">
+      {error && error.trim() && (
+        <div
+          className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200"
+          role="alert">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 p-3 rounded-lg border border-green-200" role="status">
+        <div
+          className="flex items-center gap-2 text-green-600 text-sm bg-green-50 p-3 rounded-lg border border-green-200"
+          role="status">
           <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
           <span>{success}</span>
         </div>
@@ -102,8 +129,7 @@ export function LoginForm({
       <button
         type="submit"
         disabled={isLoading || !storeId.trim() || !password.trim()}
-        className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg font-medium hover:from-orange-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-      >
+        className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg font-medium hover:from-orange-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2">
         {isLoading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -117,7 +143,7 @@ export function LoginForm({
         )}
       </button>
     </form>
-  );
+  )
 }
 
-export default LoginForm;
+export default LoginForm

@@ -5,243 +5,269 @@
  * Extracts complex state logic from the main component.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
-import { storeAuthManager, type MemberSession } from '../../../../services/storeAuthManager';
-import { memberAuthService } from '../../../../services/memberAuthService';
-import { authService } from '../../../../services/supabase';
-import { biometricService, type BiometricAvailability } from '../../../../services/biometricService';
-import { webAuthnService } from '../../../../services/webAuthnService';
+import { useState, useEffect, useRef, useCallback } from "react"
+import { useDispatch } from "react-redux"
+import {
+  storeAuthManager,
+  type MemberSession,
+} from "../../../../services/storeAuthManager"
+import { memberAuthService } from "../../../../services/memberAuthService"
+import { authService } from "../../../../services/supabase"
+import {
+  biometricService,
+  type BiometricAvailability,
+} from "../../../../services/biometricService"
+import { webAuthnService } from "../../../../services/webAuthnService"
 import {
   setStoreSession,
   setMemberSession,
   clearAllAuth,
   setAuthStatus,
   setAvailableStores,
-} from '../../../../store/slices/authSlice';
-import { setStoreTimezone } from '../../../../utils/dateUtils';
-import { hasSkippedPinSetup } from '../../pinSetupUtils';
-import { hasDismissedBiometricEnrollment } from '../../BiometricEnrollmentModal';
-import { totpService } from '../../../../services/totpService';
-import { otpService, type MfaMethod } from '../../../../services/otpService';
-import { auditLogger } from '../../../../services/audit/auditLogger';
-import { AUTH_TIMEOUTS } from '../../constants';
-import type { MemberAuthSession } from '../../../../types/memberAuth';
-import type { LoginMode, PinSetupMemberInfo } from '../types';
-import type { StoredSessionData } from '../../../../services/biometricService';
+} from "../../../../store/slices/authSlice"
+import { setStoreTimezone } from "../../../../utils/dateUtils"
+import { hasSkippedPinSetup } from "../../pinSetupUtils"
+import { hasDismissedBiometricEnrollment } from "../../BiometricEnrollmentModal"
+import { totpService } from "../../../../services/totpService"
+import { otpService, type MfaMethod } from "../../../../services/otpService"
+import { auditLogger } from "../../../../services/audit/auditLogger"
+import { AUTH_TIMEOUTS } from "../../constants"
+import type { MemberAuthSession } from "../../../../types/memberAuth"
+import type { LoginMode, PinSetupMemberInfo } from "../types"
+import type { StoredSessionData } from "../../../../services/biometricService"
 
 /** Info for biometric enrollment modal */
 interface BiometricEnrollmentInfo {
-  memberId: string;
-  memberName: string;
+  memberId: string
+  memberName: string
   /** Session data to store with the credential for recovery after logout */
-  sessionData?: StoredSessionData;
+  sessionData?: StoredSessionData
 }
 
 /** Info for pending TOTP login */
 interface PendingTotpLogin {
-  memberSession: MemberSession;
+  memberSession: MemberSession
   primaryStore: {
-    storeId: string;
-    storeName: string;
-    storeLoginId: string;
-    tenantId: string;
-    tier: string;
-    timezone?: string;
-  };
+    storeId: string
+    storeName: string
+    storeLoginId: string
+    tenantId: string
+    tier: string
+    timezone?: string
+  }
   allStores: Array<{
-    storeId: string;
-    storeName: string;
-    storeLoginId: string;
-    tenantId: string;
-    tier: string;
-    timezone?: string;
-  }>;
+    storeId: string
+    storeName: string
+    storeLoginId: string
+    tenantId: string
+    tier: string
+    timezone?: string
+  }>
 }
 
 /** Info for pending OTP login (email/SMS) */
 interface PendingOtpLogin {
-  memberSession: MemberSession;
+  memberSession: MemberSession
   primaryStore: {
-    storeId: string;
-    storeName: string;
-    storeLoginId: string;
-    tenantId: string;
-    tier: string;
-    timezone?: string;
-  };
+    storeId: string
+    storeName: string
+    storeLoginId: string
+    tenantId: string
+    tier: string
+    timezone?: string
+  }
   allStores: Array<{
-    storeId: string;
-    storeName: string;
-    storeLoginId: string;
-    tenantId: string;
-    tier: string;
-    timezone?: string;
-  }>;
-  method: 'email_otp' | 'sms_otp';
-  destination: string; // Masked email or phone
+    storeId: string
+    storeName: string
+    storeLoginId: string
+    tenantId: string
+    tier: string
+    timezone?: string
+  }>
+  method: "email_otp" | "sms_otp"
+  destination: string // Masked email or phone
 }
 
 interface UseLoginStateProps {
-  onLoggedIn: () => void;
+  onLoggedIn: () => void
 }
 
 export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
 
-  // Login mode toggle
-  const [loginMode, setLoginMode] = useState<LoginMode>('member');
+  // Login mode toggle - persist to localStorage to survive re-renders
+  const [loginMode, setLoginMode] = useState<LoginMode>(() => {
+    try {
+      const saved = localStorage.getItem("mango_login_mode")
+      return saved === "store" || saved === "member" ? saved : "member"
+    } catch {
+      return "member"
+    }
+  })
 
   // Store login state
-  const [storeId, setStoreId] = useState('');
-  const [password, setPassword] = useState('');
+  const [storeId, setStoreId] = useState("")
+  const [password, setPassword] = useState("")
 
   // Member login state
-  const [memberEmail, setMemberEmail] = useState('');
-  const [memberPassword, setMemberPassword] = useState('');
-  const [showMemberPassword, setShowMemberPassword] = useState(false);
+  const [memberEmail, setMemberEmail] = useState("")
+  const [memberPassword, setMemberPassword] = useState("")
+  const [showMemberPassword, setShowMemberPassword] = useState(false)
 
   // PIN login state
-  const [pin, setPin] = useState('');
-  const [members, setMembers] = useState<MemberSession[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [pin, setPin] = useState("")
+  const [members, setMembers] = useState<MemberSession[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
 
   // General state
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
 
   // PIN setup modal state (for member login mode)
-  const [showPinSetupModal, setShowPinSetupModal] = useState(false);
-  const [pinSetupMember, setPinSetupMember] = useState<PinSetupMemberInfo | null>(null);
+  const [showPinSetupModal, setShowPinSetupModal] = useState(false)
+  const [pinSetupMember, setPinSetupMember] =
+    useState<PinSetupMemberInfo | null>(null)
 
   // Forgot password modal state
-  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false)
 
   // Magic link state
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [magicLinkEmail, setMagicLinkEmail] = useState('');
-  const [magicLinkCooldown, setMagicLinkCooldown] = useState(0);
-  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [magicLinkEmail, setMagicLinkEmail] = useState("")
+  const [magicLinkCooldown, setMagicLinkCooldown] = useState(0)
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false)
 
   // Biometric state
-  const [biometricCapability, setBiometricCapability] = useState<BiometricAvailability | null>(null);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
-  const [lastBiometricUserId, setLastBiometricUserId] = useState<string | null>(null);
+  const [biometricCapability, setBiometricCapability] =
+    useState<BiometricAvailability | null>(null)
+  const [biometricEnabled, setBiometricEnabled] = useState(false)
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false)
+  const [lastBiometricUserId, setLastBiometricUserId] = useState<string | null>(
+    null,
+  )
 
   // Biometric enrollment modal state
-  const [showBiometricEnrollment, setShowBiometricEnrollment] = useState(false);
-  const [biometricEnrollmentMember, setBiometricEnrollmentMember] = useState<BiometricEnrollmentInfo | null>(null);
+  const [showBiometricEnrollment, setShowBiometricEnrollment] = useState(false)
+  const [biometricEnrollmentMember, setBiometricEnrollmentMember] =
+    useState<BiometricEnrollmentInfo | null>(null)
 
   // TOTP verification modal state
-  const [showTotpVerification, setShowTotpVerification] = useState(false);
-  const [pendingTotpLogin, setPendingTotpLogin] = useState<PendingTotpLogin | null>(null);
+  const [showTotpVerification, setShowTotpVerification] = useState(false)
+  const [pendingTotpLogin, setPendingTotpLogin] =
+    useState<PendingTotpLogin | null>(null)
 
   // OTP (email/SMS) verification modal state
-  const [showOtpVerification, setShowOtpVerification] = useState(false);
-  const [pendingOtpLogin, setPendingOtpLogin] = useState<PendingOtpLogin | null>(null);
+  const [showOtpVerification, setShowOtpVerification] = useState(false)
+  const [pendingOtpLogin, setPendingOtpLogin] =
+    useState<PendingOtpLogin | null>(null)
 
   // Track if we're in a login attempt to prevent error from being cleared
-  const isLoginAttemptRef = useRef(false);
+  const isLoginAttemptRef = useRef(false)
 
   // Track online/offline status
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline)
+    window.addEventListener("offline", handleOffline)
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+      window.removeEventListener("online", handleOnline)
+      window.removeEventListener("offline", handleOffline)
+    }
+  }, [])
 
   // Magic link cooldown timer
   useEffect(() => {
-    if (magicLinkCooldown <= 0) return;
+    if (magicLinkCooldown <= 0) return
 
     const timer = setInterval(() => {
-      setMagicLinkCooldown((prev) => {
+      setMagicLinkCooldown(prev => {
         if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
+          clearInterval(timer)
+          return 0
         }
-        return prev - 1;
-      });
-    }, 1000);
+        return prev - 1
+      })
+    }, 1000)
 
-    return () => clearInterval(timer);
-  }, [magicLinkCooldown]);
+    return () => clearInterval(timer)
+  }, [magicLinkCooldown])
 
   // Check biometric availability on mount
   useEffect(() => {
     async function checkBiometric() {
       try {
-        const capability = await biometricService.isAvailable();
-        setBiometricCapability(capability);
+        const capability = await biometricService.isAvailable()
+        setBiometricCapability(capability)
 
         // Check if there's a stored biometric user (last logged in user with biometrics)
-        const lastUserId = biometricService.getLastBiometricUser();
+        const lastUserId = biometricService.getLastBiometricUser()
         if (lastUserId && capability.available) {
-          setLastBiometricUserId(lastUserId);
-          const enabled = await biometricService.isEnabled(lastUserId);
-          setBiometricEnabled(enabled);
+          setLastBiometricUserId(lastUserId)
+          const enabled = await biometricService.isEnabled(lastUserId)
+          setBiometricEnabled(enabled)
         }
       } catch (error) {
-        console.error('Failed to check biometric availability:', error);
-        setBiometricCapability({ available: false, type: 'none', platformName: 'None', isNative: false });
+        console.error("Failed to check biometric availability:", error)
+        setBiometricCapability({
+          available: false,
+          type: "none",
+          platformName: "None",
+          isNative: false,
+        })
       }
     }
 
-    checkBiometric();
-  }, []);
+    checkBiometric()
+  }, [])
 
   // Load members when needed
   const loadMembers = useCallback(async () => {
-    setLoadingMembers(true);
+    setLoadingMembers(true)
     try {
-      const storeMembers = await storeAuthManager.getStoreMembers();
-      setMembers(storeMembers);
+      const storeMembers = await storeAuthManager.getStoreMembers()
+      setMembers(storeMembers)
     } catch (err) {
       auditLogger.log({
-        action: 'read',
-        entityType: 'member',
-        description: 'Failed to load store members for PIN login',
-        severity: 'medium',
+        action: "read",
+        entityType: "member",
+        description: "Failed to load store members for PIN login",
+        severity: "medium",
         success: false,
-        errorMessage: err instanceof Error ? err.message : 'Unknown error loading members',
-        metadata: { operation: 'loadMembers', loginMode: 'pin' },
-      });
+        errorMessage:
+          err instanceof Error ? err.message : "Unknown error loading members",
+        metadata: { operation: "loadMembers", loginMode: "pin" },
+      })
     } finally {
-      setLoadingMembers(false);
+      setLoadingMembers(false)
     }
-  }, []);
+  }, [])
 
   // Handle store login
   const handleLogin = useCallback(async () => {
     if (!storeId.trim()) {
-      setError('Please enter your Store ID');
-      return;
+      setError("Please enter your Store ID")
+      return
     }
     if (!password.trim()) {
-      setError('Please enter your password');
-      return;
+      setError("Please enter your password")
+      return
     }
 
-    isLoginAttemptRef.current = true;
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
+    isLoginAttemptRef.current = true
+    setIsLoading(true)
+    setError(null)
+    setSuccess(null)
 
     try {
-      const result = await storeAuthManager.loginStore(storeId.trim(), password);
+      const result = await storeAuthManager.loginStore(storeId.trim(), password)
 
-      if (result.status === 'active') {
-        setSuccess('Login successful!');
+      if (result.status === "active") {
+        setSuccess("Login successful!")
         if (result.store) {
           dispatch(
             setStoreSession({
@@ -250,13 +276,13 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
               storeLoginId: result.store.storeLoginId,
               tenantId: result.store.tenantId,
               tier: result.store.tier,
-            })
-          );
+            }),
+          )
         }
-        dispatch(setAuthStatus('active'));
-        onLoggedIn();
-      } else if (result.status === 'store_logged_in') {
-        setSuccess('Login successful!');
+        dispatch(setAuthStatus("active"))
+        onLoggedIn()
+      } else if (result.status === "store_logged_in") {
+        setSuccess("Login successful!")
         if (result.store) {
           dispatch(
             setStoreSession({
@@ -265,51 +291,87 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
               storeLoginId: result.store.storeLoginId,
               tenantId: result.store.tenantId,
               tier: result.store.tier,
-            })
-          );
+            }),
+          )
         }
-        dispatch(setAuthStatus('active'));
-        onLoggedIn();
-      } else if (result.status === 'offline_grace') {
-        setSuccess('Logged in (offline mode).');
-        dispatch(setAuthStatus('offline_grace'));
-        onLoggedIn();
+        dispatch(setAuthStatus("active"))
+        onLoggedIn()
+      } else if (result.status === "offline_grace") {
+        setSuccess("Logged in (offline mode).")
+        dispatch(setAuthStatus("offline_grace"))
+        onLoggedIn()
       } else {
-        const errorMessage = result.message || 'Login failed. Please check your credentials.';
-        setError(errorMessage);
-        isLoginAttemptRef.current = false;
+        // Simple, unified error message for auth failures (like staff login)
+        let errorMessage = result.message || "Invalid email or password"
+
+        // Keep specific messages only for non-auth errors
+        if (errorMessage.includes("suspended")) {
+          errorMessage =
+            "This store has been suspended. Please contact support."
+        } else if (
+          errorMessage.includes("Store not found") ||
+          errorMessage.includes("Invalid password")
+        ) {
+          errorMessage = "Invalid email or password"
+        }
+
+        setError(errorMessage)
+        isLoginAttemptRef.current = false
       }
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : 'Unable to connect. Please check your connection and try again.';
+      let errorMessage = "Invalid email or password"
+
+      if (err instanceof Error) {
+        // Keep specific messages only for system errors
+        if (err.message.includes("suspended")) {
+          errorMessage =
+            "This store has been suspended. Please contact support."
+        } else if (
+          err.message.includes("Network") ||
+          err.message.includes("connect") ||
+          err.message.includes("fetch")
+        ) {
+          errorMessage =
+            "Unable to connect. Please check your internet connection and try again."
+        } else if (
+          err.message.includes("Store not found") ||
+          err.message.includes("Invalid password") ||
+          err.message.includes("Invalid login")
+        ) {
+          errorMessage = "Invalid email or password"
+        }
+      }
+
       auditLogger.log({
-        action: 'login',
-        entityType: 'store',
-        description: 'Store login exception',
-        severity: 'medium',
+        action: "login",
+        entityType: "store",
+        description: "Store login exception",
+        severity: "medium",
         success: false,
-        errorMessage,
-        metadata: { operation: 'handleLogin', loginMode: 'store', storeId: storeId.trim() },
-      });
-      setError(errorMessage);
-      isLoginAttemptRef.current = false;
+        errorMessage: err instanceof Error ? err.message : String(err),
+        metadata: {
+          operation: "handleLogin",
+          loginMode: "store",
+          storeId: storeId.trim(),
+        },
+      })
+      setError(errorMessage)
+      isLoginAttemptRef.current = false
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [storeId, password, dispatch, onLoggedIn]);
+  }, [storeId, password, dispatch, onLoggedIn])
 
   // Helper to complete member login (after password and optional TOTP verification)
   const completeMemberLogin = useCallback(
     async (
       memberSessionData: MemberSession,
-      primaryStore: PendingTotpLogin['primaryStore'],
-      allStores: PendingTotpLogin['allStores']
+      primaryStore: PendingTotpLogin["primaryStore"],
+      allStores: PendingTotpLogin["allStores"],
     ) => {
-      const firstName = memberSessionData.firstName;
+      const firstName = memberSessionData.firstName
 
-      setSuccess(`Welcome, ${firstName || memberSessionData.memberName}!`);
+      setSuccess(`Welcome, ${firstName || memberSessionData.memberName}!`)
 
       // Dispatch Redux actions
       dispatch(
@@ -319,16 +381,16 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
           storeLoginId: primaryStore.storeLoginId,
           tenantId: primaryStore.tenantId,
           tier: primaryStore.tier,
-        })
-      );
+        }),
+      )
 
-      dispatch(setMemberSession(memberSessionData));
+      dispatch(setMemberSession(memberSessionData))
 
       if (allStores.length > 0) {
-        dispatch(setAvailableStores(allStores));
+        dispatch(setAvailableStores(allStores))
       }
 
-      dispatch(setAuthStatus('active'));
+      dispatch(setAuthStatus("active"))
 
       // Update storeAuthManager's internal state so isLoginRequired() returns false
       // This must be done BEFORE any early returns for modals
@@ -341,24 +403,29 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
           tier: primaryStore.tier,
           timezone: primaryStore.timezone,
         },
-        memberSessionData
-      );
+        memberSessionData,
+      )
 
       // Start grace period checker for offline access
-      memberAuthService.startGraceChecker();
+      memberAuthService.startGraceChecker()
 
       // Check if user has PIN set up - wrapped in try/catch to prevent blocking login
       try {
-        const hasPin = await memberAuthService.hasPin(memberSessionData.memberId);
-        const hasSkipped = hasSkippedPinSetup(memberSessionData.memberId);
+        const hasPin = await memberAuthService.hasPin(
+          memberSessionData.memberId,
+        )
+        const hasSkipped = hasSkippedPinSetup(memberSessionData.memberId)
 
         if (!hasPin && !hasSkipped) {
-          setPinSetupMember({ memberId: memberSessionData.memberId, name: firstName || memberSessionData.memberName });
-          setShowPinSetupModal(true);
-          return; // Modal will call onLoggedIn when done
+          setPinSetupMember({
+            memberId: memberSessionData.memberId,
+            name: firstName || memberSessionData.memberName,
+          })
+          setShowPinSetupModal(true)
+          return // Modal will call onLoggedIn when done
         }
       } catch (pinCheckError) {
-        console.error('Failed to check PIN status:', pinCheckError);
+        console.error("Failed to check PIN status:", pinCheckError)
         // Continue with login - PIN check failure shouldn't block
       }
 
@@ -366,28 +433,33 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
       try {
         // Check biometric availability directly to avoid race condition with state
         // (biometricCapability state may still be null if useEffect hasn't completed)
-        const currentBiometricCapability = biometricCapability ?? (await biometricService.isAvailable());
+        const currentBiometricCapability =
+          biometricCapability ?? (await biometricService.isAvailable())
 
-        const hasCredential = await biometricService.hasCredential(memberSessionData.memberId);
-        const hasDismissed = hasDismissedBiometricEnrollment(memberSessionData.memberId);
+        const hasCredential = await biometricService.hasCredential(
+          memberSessionData.memberId,
+        )
+        const hasDismissed = hasDismissedBiometricEnrollment(
+          memberSessionData.memberId,
+        )
 
-        console.log('[Biometric Debug] completeMemberLogin check:', {
+        console.log("[Biometric Debug] completeMemberLogin check:", {
           biometricAvailable: currentBiometricCapability.available,
           platformName: currentBiometricCapability.platformName,
           hasCredential,
           hasDismissed,
           memberId: memberSessionData.memberId,
-        });
+        })
 
         const shouldPromptBiometric =
           currentBiometricCapability.available &&
           !hasCredential &&
-          !hasDismissed;
+          !hasDismissed
 
         if (shouldPromptBiometric) {
           // Update state for modal to use
           if (!biometricCapability) {
-            setBiometricCapability(currentBiometricCapability);
+            setBiometricCapability(currentBiometricCapability)
           }
           setBiometricEnrollmentMember({
             memberId: memberSessionData.memberId,
@@ -398,73 +470,74 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
               email: memberSessionData.email,
               name: memberSessionData.memberName,
               role: memberSessionData.role,
-              storeIds: allStores.map((s) => s.storeId),
+              storeIds: allStores.map(s => s.storeId),
               permissions: memberSessionData.permissions,
               defaultStoreId: primaryStore.storeId,
             },
-          });
-          setShowBiometricEnrollment(true);
-          return; // Modal will call onLoggedIn when done
+          })
+          setShowBiometricEnrollment(true)
+          return // Modal will call onLoggedIn when done
         }
       } catch (biometricCheckError) {
-        console.error('Failed to check biometric status:', biometricCheckError);
+        console.error("Failed to check biometric status:", biometricCheckError)
         // Continue with login - biometric check failure shouldn't block
       }
 
       // No modals needed, complete login
-      onLoggedIn();
+      onLoggedIn()
     },
-    [dispatch, biometricCapability, onLoggedIn]
-  );
+    [dispatch, biometricCapability, onLoggedIn],
+  )
 
   // Handle member email/password login (uses Supabase Auth)
   const handleMemberLogin = useCallback(async () => {
     if (!memberEmail.trim()) {
-      setError('Please enter your email');
-      return;
+      setError("Please enter your email")
+      return
     }
     if (!memberPassword.trim()) {
-      setError('Please enter your password');
-      return;
+      setError("Please enter your password")
+      return
     }
 
     if (!isOnline) {
       setError(
-        'Connect to the internet for first login. Once logged in, you can use PIN for offline access.'
-      );
-      return;
+        "Connect to the internet for first login. Once logged in, you can use PIN for offline access.",
+      )
+      return
     }
 
-    isLoginAttemptRef.current = true;
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
+    isLoginAttemptRef.current = true
+    setIsLoading(true)
+    setError(null)
+    setSuccess(null)
 
     try {
       // 1. Authenticate with Supabase Auth
-      const authSession: MemberAuthSession = await memberAuthService.loginWithPassword(
-        memberEmail.trim(),
-        memberPassword
-      );
+      const authSession: MemberAuthSession =
+        await memberAuthService.loginWithPassword(
+          memberEmail.trim(),
+          memberPassword,
+        )
 
       // 2. Get the member's store access list
-      const storeIds = authSession.storeIds || [];
+      const storeIds = authSession.storeIds || []
       if (storeIds.length === 0) {
-        throw new Error('No store access assigned to this account');
+        throw new Error("No store access assigned to this account")
       }
 
       // 3. Fetch all store details for switching
       const allStores: Array<{
-        storeId: string;
-        storeName: string;
-        storeLoginId: string;
-        tenantId: string;
-        tier: string;
-        timezone?: string;
-      }> = [];
+        storeId: string
+        storeName: string
+        storeLoginId: string
+        tenantId: string
+        tier: string
+        timezone?: string
+      }> = []
 
       for (const stId of storeIds) {
-        const storeDetails = await authService.getStoreById(stId);
+        const storeDetails = await authService.getStoreById(stId)
         if (storeDetails) {
           allStores.push({
             storeId: storeDetails.storeId,
@@ -473,23 +546,23 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
             tenantId: storeDetails.tenantId,
             tier: storeDetails.tier,
             timezone: storeDetails.timezone || undefined,
-          });
+          })
         }
       }
 
       if (allStores.length === 0) {
-        throw new Error('Could not load store details');
+        throw new Error("Could not load store details")
       }
 
       // 4. Use default store or first store as the primary
-      const defaultStoreId = authSession.defaultStoreId;
+      const defaultStoreId = authSession.defaultStoreId
       const primaryStore = defaultStoreId
-        ? allStores.find((s) => s.storeId === defaultStoreId) || allStores[0]
-        : allStores[0];
+        ? allStores.find(s => s.storeId === defaultStoreId) || allStores[0]
+        : allStores[0]
 
       // 5. Set store timezone for date formatting
       if (primaryStore.timezone) {
-        setStoreTimezone(primaryStore.timezone);
+        setStoreTimezone(primaryStore.timezone)
       }
 
       // 6. Persist the store session
@@ -500,12 +573,12 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         tenantId: primaryStore.tenantId,
         tier: primaryStore.tier,
         timezone: primaryStore.timezone,
-      });
+      })
 
       // 7. Create member session for Redux
-      const nameParts = authSession.name.split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
+      const nameParts = authSession.name.split(" ")
+      const firstName = nameParts[0] || ""
+      const lastName = nameParts.slice(1).join(" ") || ""
 
       const memberSessionData: MemberSession = {
         memberId: authSession.memberId,
@@ -513,65 +586,79 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         firstName,
         lastName,
         email: authSession.email,
-        role: authSession.role as MemberSession['role'],
+        role: authSession.role as MemberSession["role"],
         avatarUrl: undefined,
         permissions: authSession.permissions,
-      };
+      }
 
       // 8. Check member's MFA preference and handle accordingly
-      const mfaPreference = await otpService.getMfaPreference(authSession.memberId);
+      const mfaPreference = await otpService.getMfaPreference(
+        authSession.memberId,
+      )
 
-      if (mfaPreference.method === 'email_otp' && mfaPreference.isVerified) {
+      if (mfaPreference.method === "email_otp" && mfaPreference.isVerified) {
         // Send OTP via email
         try {
-          const challenge = await otpService.sendEmailOtp(authSession.email);
+          const challenge = await otpService.sendEmailOtp(authSession.email)
           setPendingOtpLogin({
             memberSession: memberSessionData,
             primaryStore,
             allStores,
-            method: 'email_otp',
+            method: "email_otp",
             destination: challenge.destination,
-          });
-          setShowOtpVerification(true);
-          setIsLoading(false);
-          return;
+          })
+          setShowOtpVerification(true)
+          setIsLoading(false)
+          return
         } catch (otpErr) {
           // If OTP fails, show error but don't block login
-          console.error('Failed to send email OTP:', otpErr);
-          setError(otpErr instanceof Error ? otpErr.message : 'Failed to send verification code');
-          setIsLoading(false);
-          isLoginAttemptRef.current = false;
-          return;
+          console.error("Failed to send email OTP:", otpErr)
+          setError(
+            otpErr instanceof Error
+              ? otpErr.message
+              : "Failed to send verification code",
+          )
+          setIsLoading(false)
+          isLoginAttemptRef.current = false
+          return
         }
       }
 
-      if (mfaPreference.method === 'sms_otp' && mfaPreference.isVerified && mfaPreference.phone) {
+      if (
+        mfaPreference.method === "sms_otp" &&
+        mfaPreference.isVerified &&
+        mfaPreference.phone
+      ) {
         // Send OTP via SMS
         try {
-          const challenge = await otpService.sendSmsOtp(mfaPreference.phone);
+          const challenge = await otpService.sendSmsOtp(mfaPreference.phone)
           setPendingOtpLogin({
             memberSession: memberSessionData,
             primaryStore,
             allStores,
-            method: 'sms_otp',
+            method: "sms_otp",
             destination: challenge.destination,
-          });
-          setShowOtpVerification(true);
-          setIsLoading(false);
-          return;
+          })
+          setShowOtpVerification(true)
+          setIsLoading(false)
+          return
         } catch (otpErr) {
           // If OTP fails, show error but don't block login
-          console.error('Failed to send SMS OTP:', otpErr);
-          setError(otpErr instanceof Error ? otpErr.message : 'Failed to send verification code');
-          setIsLoading(false);
-          isLoginAttemptRef.current = false;
-          return;
+          console.error("Failed to send SMS OTP:", otpErr)
+          setError(
+            otpErr instanceof Error
+              ? otpErr.message
+              : "Failed to send verification code",
+          )
+          setIsLoading(false)
+          isLoginAttemptRef.current = false
+          return
         }
       }
 
-      if (mfaPreference.method === 'totp') {
+      if (mfaPreference.method === "totp") {
         // Check if TOTP verification is required (Supabase MFA)
-        const totpRequired = await totpService.isVerificationRequired();
+        const totpRequired = await totpService.isVerificationRequired()
 
         if (totpRequired) {
           // Store the pending login info and show TOTP modal
@@ -579,307 +666,336 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
             memberSession: memberSessionData,
             primaryStore,
             allStores,
-          });
-          setShowTotpVerification(true);
-          setIsLoading(false);
-          return;
+          })
+          setShowTotpVerification(true)
+          setIsLoading(false)
+          return
         }
       }
 
       // 9. Complete the login (no MFA required or MFA not configured)
-      await completeMemberLogin(memberSessionData, primaryStore, allStores);
+      await completeMemberLogin(memberSessionData, primaryStore, allStores)
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error
           ? err.message
-          : 'Unable to connect. Please check your connection and try again.';
+          : "Unable to connect. Please check your connection and try again."
       auditLogger.log({
-        action: 'login',
-        entityType: 'member',
-        description: 'Member email/password login exception',
-        severity: 'medium',
+        action: "login",
+        entityType: "member",
+        description: "Member email/password login exception",
+        severity: "medium",
         success: false,
         errorMessage,
         metadata: {
-          operation: 'handleMemberLogin',
-          loginMode: 'member',
-          email: memberEmail.trim().replace(/(.{2}).*(@.*)/, '$1***$2'), // Mask email for privacy
+          operation: "handleMemberLogin",
+          loginMode: "member",
+          email: memberEmail.trim().replace(/(.{2}).*(@.*)/, "$1***$2"), // Mask email for privacy
         },
-      });
-      setError(errorMessage);
-      isLoginAttemptRef.current = false;
+      })
+      setError(errorMessage)
+      isLoginAttemptRef.current = false
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [memberEmail, memberPassword, isOnline, completeMemberLogin]);
+  }, [memberEmail, memberPassword, isOnline, completeMemberLogin])
 
   // Handle PIN setup completion
   const handlePinSetupComplete = useCallback(async () => {
-    const member = pinSetupMember;
-    setShowPinSetupModal(false);
-    setPinSetupMember(null);
+    const member = pinSetupMember
+    setShowPinSetupModal(false)
+    setPinSetupMember(null)
 
     // Check for biometric enrollment after PIN setup
     if (member) {
       try {
         // Check biometric availability directly to avoid race condition with state
-        const currentBiometricCapability = biometricCapability ?? (await biometricService.isAvailable());
+        const currentBiometricCapability =
+          biometricCapability ?? (await biometricService.isAvailable())
 
         if (currentBiometricCapability.available) {
-          const hasCredential = await biometricService.hasCredential(member.memberId);
-          const hasDismissed = hasDismissedBiometricEnrollment(member.memberId);
+          const hasCredential = await biometricService.hasCredential(
+            member.memberId,
+          )
+          const hasDismissed = hasDismissedBiometricEnrollment(member.memberId)
 
           if (!hasCredential && !hasDismissed) {
             if (!biometricCapability) {
-              setBiometricCapability(currentBiometricCapability);
+              setBiometricCapability(currentBiometricCapability)
             }
             // Get cached session for session data to store with credential
-            const cachedSession = memberAuthService.getCachedMemberSession();
+            const cachedSession = memberAuthService.getCachedMemberSession()
             setBiometricEnrollmentMember({
               memberId: member.memberId,
               memberName: member.name,
-              sessionData: cachedSession ? {
-                memberId: cachedSession.memberId,
-                email: cachedSession.email,
-                name: cachedSession.name,
-                role: cachedSession.role,
-                storeIds: cachedSession.storeIds || [],
-                permissions: cachedSession.permissions,
-                defaultStoreId: cachedSession.defaultStoreId,
-              } : undefined,
-            });
-            setShowBiometricEnrollment(true);
-            return;
+              sessionData: cachedSession
+                ? {
+                    memberId: cachedSession.memberId,
+                    email: cachedSession.email,
+                    name: cachedSession.name,
+                    role: cachedSession.role,
+                    storeIds: cachedSession.storeIds || [],
+                    permissions: cachedSession.permissions,
+                    defaultStoreId: cachedSession.defaultStoreId,
+                  }
+                : undefined,
+            })
+            setShowBiometricEnrollment(true)
+            return
           }
         }
       } catch (err) {
-        console.error('Failed to check biometric status after PIN setup:', err);
+        console.error("Failed to check biometric status after PIN setup:", err)
       }
     }
 
-    onLoggedIn();
-  }, [pinSetupMember, biometricCapability, onLoggedIn]);
+    onLoggedIn()
+  }, [pinSetupMember, biometricCapability, onLoggedIn])
 
   // Handle PIN setup skip
   const handlePinSetupSkip = useCallback(async () => {
-    const member = pinSetupMember;
-    setShowPinSetupModal(false);
-    setPinSetupMember(null);
+    const member = pinSetupMember
+    setShowPinSetupModal(false)
+    setPinSetupMember(null)
 
     // Check for biometric enrollment after PIN skip
     if (member) {
       try {
         // Check biometric availability directly to avoid race condition with state
-        const currentBiometricCapability = biometricCapability ?? (await biometricService.isAvailable());
+        const currentBiometricCapability =
+          biometricCapability ?? (await biometricService.isAvailable())
 
         if (currentBiometricCapability.available) {
-          const hasCredential = await biometricService.hasCredential(member.memberId);
-          const hasDismissed = hasDismissedBiometricEnrollment(member.memberId);
+          const hasCredential = await biometricService.hasCredential(
+            member.memberId,
+          )
+          const hasDismissed = hasDismissedBiometricEnrollment(member.memberId)
 
           if (!hasCredential && !hasDismissed) {
             if (!biometricCapability) {
-              setBiometricCapability(currentBiometricCapability);
+              setBiometricCapability(currentBiometricCapability)
             }
             // Get cached session for session data to store with credential
-            const cachedSession = memberAuthService.getCachedMemberSession();
+            const cachedSession = memberAuthService.getCachedMemberSession()
             setBiometricEnrollmentMember({
               memberId: member.memberId,
               memberName: member.name,
-              sessionData: cachedSession ? {
-                memberId: cachedSession.memberId,
-                email: cachedSession.email,
-                name: cachedSession.name,
-                role: cachedSession.role,
-                storeIds: cachedSession.storeIds || [],
-                permissions: cachedSession.permissions,
-                defaultStoreId: cachedSession.defaultStoreId,
-              } : undefined,
-            });
-            setShowBiometricEnrollment(true);
-            return;
+              sessionData: cachedSession
+                ? {
+                    memberId: cachedSession.memberId,
+                    email: cachedSession.email,
+                    name: cachedSession.name,
+                    role: cachedSession.role,
+                    storeIds: cachedSession.storeIds || [],
+                    permissions: cachedSession.permissions,
+                    defaultStoreId: cachedSession.defaultStoreId,
+                  }
+                : undefined,
+            })
+            setShowBiometricEnrollment(true)
+            return
           }
         }
       } catch (err) {
-        console.error('Failed to check biometric status after PIN skip:', err);
+        console.error("Failed to check biometric status after PIN skip:", err)
       }
     }
 
-    onLoggedIn();
-  }, [pinSetupMember, biometricCapability, onLoggedIn]);
+    onLoggedIn()
+  }, [pinSetupMember, biometricCapability, onLoggedIn])
 
   // Handle biometric enrollment completion
   const handleBiometricEnrollmentComplete = useCallback(() => {
     // Store this user as the last biometric user for quick login
     if (biometricEnrollmentMember) {
-      biometricService.setLastBiometricUser(biometricEnrollmentMember.memberId);
-      setBiometricEnabled(true);
+      biometricService.setLastBiometricUser(biometricEnrollmentMember.memberId)
+      setBiometricEnabled(true)
     }
-    setShowBiometricEnrollment(false);
-    setBiometricEnrollmentMember(null);
-    onLoggedIn();
-  }, [biometricEnrollmentMember, onLoggedIn]);
+    setShowBiometricEnrollment(false)
+    setBiometricEnrollmentMember(null)
+    onLoggedIn()
+  }, [biometricEnrollmentMember, onLoggedIn])
 
   // Handle biometric enrollment close (Not now)
   const handleBiometricEnrollmentClose = useCallback(() => {
-    setShowBiometricEnrollment(false);
-    setBiometricEnrollmentMember(null);
-    onLoggedIn();
-  }, [onLoggedIn]);
+    setShowBiometricEnrollment(false)
+    setBiometricEnrollmentMember(null)
+    onLoggedIn()
+  }, [onLoggedIn])
 
   // Handle TOTP verification success
   const handleTotpVerificationSuccess = useCallback(async () => {
-    if (!pendingTotpLogin) return;
+    if (!pendingTotpLogin) return
 
-    setShowTotpVerification(false);
+    setShowTotpVerification(false)
 
     // Complete the login with the stored session data
     await completeMemberLogin(
       pendingTotpLogin.memberSession,
       pendingTotpLogin.primaryStore,
-      pendingTotpLogin.allStores
-    );
+      pendingTotpLogin.allStores,
+    )
 
-    setPendingTotpLogin(null);
-  }, [pendingTotpLogin, completeMemberLogin]);
+    setPendingTotpLogin(null)
+  }, [pendingTotpLogin, completeMemberLogin])
 
   // Handle TOTP verification cancel (return to login)
   const handleTotpVerificationCancel = useCallback(() => {
-    setShowTotpVerification(false);
-    setPendingTotpLogin(null);
-    setError('Login cancelled');
-    isLoginAttemptRef.current = false;
-  }, []);
+    setShowTotpVerification(false)
+    setPendingTotpLogin(null)
+    setError("Login cancelled")
+    isLoginAttemptRef.current = false
+  }, [])
 
   // Handle OTP (email/SMS) verification success
   const handleOtpVerificationSuccess = useCallback(async () => {
-    if (!pendingOtpLogin) return;
+    if (!pendingOtpLogin) return
 
-    setShowOtpVerification(false);
+    setShowOtpVerification(false)
 
     // Complete the login with the stored session data
     await completeMemberLogin(
       pendingOtpLogin.memberSession,
       pendingOtpLogin.primaryStore,
-      pendingOtpLogin.allStores
-    );
+      pendingOtpLogin.allStores,
+    )
 
-    setPendingOtpLogin(null);
-  }, [pendingOtpLogin, completeMemberLogin]);
+    setPendingOtpLogin(null)
+  }, [pendingOtpLogin, completeMemberLogin])
 
   // Handle OTP (email/SMS) verification cancel (return to login)
   const handleOtpVerificationCancel = useCallback(() => {
-    setShowOtpVerification(false);
-    setPendingOtpLogin(null);
-    otpService.clearChallenge();
-    setError('Login cancelled');
-    isLoginAttemptRef.current = false;
-  }, []);
+    setShowOtpVerification(false)
+    setPendingOtpLogin(null)
+    otpService.clearChallenge()
+    setError("Login cancelled")
+    isLoginAttemptRef.current = false
+  }, [])
 
   // Handle forgot password
   const handleForgotPassword = useCallback(() => {
-    setShowForgotPasswordModal(true);
-  }, []);
+    setShowForgotPasswordModal(true)
+  }, [])
 
   // Handle send magic link
   const handleSendMagicLink = useCallback(async () => {
-    const emailToSend = memberEmail.trim();
+    const emailToSend = memberEmail.trim()
     if (!emailToSend) {
-      setError('Please enter your email address first');
-      return;
+      setError("Please enter your email address first")
+      return
     }
 
     if (!isOnline) {
-      setError('Magic link requires an internet connection');
-      return;
+      setError("Magic link requires an internet connection")
+      return
     }
 
-    setIsSendingMagicLink(true);
-    setError(null);
-    setSuccess(null);
+    setIsSendingMagicLink(true)
+    setError(null)
+    setSuccess(null)
 
     try {
-      await memberAuthService.sendMagicLink(emailToSend);
+      await memberAuthService.sendMagicLink(emailToSend)
 
       // Success - show the "check your email" state
-      setMagicLinkSent(true);
-      setMagicLinkEmail(emailToSend);
-      setMagicLinkCooldown(memberAuthService.MAGIC_LINK_COOLDOWN_SECONDS);
+      setMagicLinkSent(true)
+      setMagicLinkEmail(emailToSend)
+      setMagicLinkCooldown(memberAuthService.MAGIC_LINK_COOLDOWN_SECONDS)
     } catch (err: unknown) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to send login link. Please try again.';
+        err instanceof Error
+          ? err.message
+          : "Failed to send login link. Please try again."
       auditLogger.log({
-        action: 'login',
-        entityType: 'member',
-        description: 'Magic link send failed',
-        severity: 'low',
+        action: "login",
+        entityType: "member",
+        description: "Magic link send failed",
+        severity: "low",
         success: false,
         errorMessage,
         metadata: {
-          operation: 'handleSendMagicLink',
-          email: emailToSend.replace(/(.{2}).*(@.*)/, '$1***$2'), // Mask email for privacy
+          operation: "handleSendMagicLink",
+          email: emailToSend.replace(/(.{2}).*(@.*)/, "$1***$2"), // Mask email for privacy
         },
-      });
-      setError(errorMessage);
+      })
+      setError(errorMessage)
     } finally {
-      setIsSendingMagicLink(false);
+      setIsSendingMagicLink(false)
     }
-  }, [memberEmail, isOnline]);
+  }, [memberEmail, isOnline])
 
   // Handle biometric login
   const handleBiometricLogin = useCallback(async () => {
     if (!lastBiometricUserId) {
-      setError('No biometric credential found. Please log in with password first.');
-      return;
+      setError(
+        "No biometric credential found. Please log in with password first.",
+      )
+      return
     }
 
     if (!biometricCapability?.available) {
-      setError('Biometric authentication is not available on this device.');
-      return;
+      setError("Biometric authentication is not available on this device.")
+      return
     }
 
-    setIsBiometricLoading(true);
-    setError(null);
-    setSuccess(null);
+    setIsBiometricLoading(true)
+    setError(null)
+    setSuccess(null)
 
     try {
-      console.log('[Biometric Debug] handleBiometricLogin starting for:', lastBiometricUserId);
+      console.log(
+        "[Biometric Debug] handleBiometricLogin starting for:",
+        lastBiometricUserId,
+      )
 
       // Authenticate with biometrics (WebAuthn on web, native on iOS/Android)
-      const authenticated = await biometricService.authenticate(lastBiometricUserId);
+      const authenticated =
+        await biometricService.authenticate(lastBiometricUserId)
 
-      console.log('[Biometric Debug] WebAuthn authentication result:', authenticated);
+      console.log(
+        "[Biometric Debug] WebAuthn authentication result:",
+        authenticated,
+      )
 
       if (!authenticated) {
-        setError('Biometric authentication failed. Please try again or use password.');
-        return;
+        setError(
+          "Biometric authentication failed. Please try again or use password.",
+        )
+        return
       }
 
       // Get the cached session for this user
-      let cachedSession = memberAuthService.getCachedMemberSession();
+      let cachedSession = memberAuthService.getCachedMemberSession()
 
-      console.log('[Biometric Debug] Cached session check:', {
+      console.log("[Biometric Debug] Cached session check:", {
         hasCachedSession: !!cachedSession,
         cachedMemberId: cachedSession?.memberId,
         expectedMemberId: lastBiometricUserId,
         match: cachedSession?.memberId === lastBiometricUserId,
-      });
+      })
 
       // If no cached session or wrong user, try to get stored session data from the credential
       if (!cachedSession || cachedSession.memberId !== lastBiometricUserId) {
-        console.log('[Biometric Debug] No cached session, trying stored session data from credential...');
+        console.log(
+          "[Biometric Debug] No cached session, trying stored session data from credential...",
+        )
 
         // Try to get session data stored with the WebAuthn credential
-        const storedSessionData = await webAuthnService.getStoredSessionData(lastBiometricUserId);
+        const storedSessionData =
+          await webAuthnService.getStoredSessionData(lastBiometricUserId)
 
-        console.log('[Biometric Debug] Stored session data:', {
+        console.log("[Biometric Debug] Stored session data:", {
           hasStoredData: !!storedSessionData,
           storedMemberId: storedSessionData?.memberId,
-        });
+        })
 
-        if (storedSessionData && storedSessionData.memberId === lastBiometricUserId) {
+        if (
+          storedSessionData &&
+          storedSessionData.memberId === lastBiometricUserId
+        ) {
           // Use stored session data to reconstruct the cached session format
           // Some fields like authUserId aren't stored with the credential, use defaults
-          const now = new Date();
+          const now = new Date()
           cachedSession = {
             memberId: storedSessionData.memberId,
             authUserId: storedSessionData.memberId, // Use memberId as fallback
@@ -891,47 +1007,53 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
             defaultStoreId: storedSessionData.defaultStoreId ?? null,
             lastOnlineAuth: now, // Biometric auth is local, set to now
             sessionCreatedAt: now,
-          };
-          console.log('[Biometric Debug] Using stored session data from credential');
+          }
+          console.log(
+            "[Biometric Debug] Using stored session data from credential",
+          )
         } else {
           // No stored session data either - credentials are stale
-          console.log('[Biometric Debug] No stored session data, clearing stale credentials');
+          console.log(
+            "[Biometric Debug] No stored session data, clearing stale credentials",
+          )
 
           // Clear the stale biometric credentials so the button won't appear anymore
-          await biometricService.removeCredential(lastBiometricUserId);
+          await biometricService.removeCredential(lastBiometricUserId)
 
           // Clear the last biometric user so the Touch ID button won't show
-          biometricService.clearLastBiometricUser();
-          setLastBiometricUserId(null);
-          setBiometricEnabled(false);
+          biometricService.clearLastBiometricUser()
+          setLastBiometricUserId(null)
+          setBiometricEnabled(false)
 
-          setError('Your session has ended. Please log in with your password to re-enable Touch ID.');
-          return;
+          setError(
+            "Your session has ended. Please log in with your password to re-enable Touch ID.",
+          )
+          return
         }
       }
 
       // Session is valid (either from cache or stored credential data), proceed with login
       // TypeScript doesn't track that the else branch returns, so add explicit check
       if (!cachedSession) {
-        throw new Error('Session data is unexpectedly null');
+        throw new Error("Session data is unexpectedly null")
       }
-      const storeIds = cachedSession.storeIds || [];
+      const storeIds = cachedSession.storeIds || []
       if (storeIds.length === 0) {
-        throw new Error('No store access assigned to this account');
+        throw new Error("No store access assigned to this account")
       }
 
       // Fetch store details
       const allStores: Array<{
-        storeId: string;
-        storeName: string;
-        storeLoginId: string;
-        tenantId: string;
-        tier: string;
-        timezone?: string;
-      }> = [];
+        storeId: string
+        storeName: string
+        storeLoginId: string
+        tenantId: string
+        tier: string
+        timezone?: string
+      }> = []
 
       for (const stId of storeIds) {
-        const storeDetails = await authService.getStoreById(stId);
+        const storeDetails = await authService.getStoreById(stId)
         if (storeDetails) {
           allStores.push({
             storeId: storeDetails.storeId,
@@ -940,21 +1062,21 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
             tenantId: storeDetails.tenantId,
             tier: storeDetails.tier,
             timezone: storeDetails.timezone || undefined,
-          });
+          })
         }
       }
 
       if (allStores.length === 0) {
-        throw new Error('Could not load store details');
+        throw new Error("Could not load store details")
       }
 
-      const defaultStoreId = cachedSession.defaultStoreId;
+      const defaultStoreId = cachedSession.defaultStoreId
       const primaryStore = defaultStoreId
-        ? allStores.find((s) => s.storeId === defaultStoreId) || allStores[0]
-        : allStores[0];
+        ? allStores.find(s => s.storeId === defaultStoreId) || allStores[0]
+        : allStores[0]
 
       if (primaryStore.timezone) {
-        setStoreTimezone(primaryStore.timezone);
+        setStoreTimezone(primaryStore.timezone)
       }
 
       authService.setStoreSession({
@@ -964,11 +1086,11 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         tenantId: primaryStore.tenantId,
         tier: primaryStore.tier,
         timezone: primaryStore.timezone,
-      });
+      })
 
-      const nameParts = cachedSession.name.split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
+      const nameParts = cachedSession.name.split(" ")
+      const firstName = nameParts[0] || ""
+      const lastName = nameParts.slice(1).join(" ") || ""
 
       const memberSessionData: MemberSession = {
         memberId: cachedSession.memberId,
@@ -976,12 +1098,12 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         firstName,
         lastName,
         email: cachedSession.email,
-        role: cachedSession.role as MemberSession['role'],
+        role: cachedSession.role as MemberSession["role"],
         avatarUrl: undefined,
         permissions: cachedSession.permissions,
-      };
+      }
 
-      setSuccess(`Welcome back, ${firstName || memberSessionData.memberName}!`);
+      setSuccess(`Welcome back, ${firstName || memberSessionData.memberName}!`)
 
       dispatch(
         setStoreSession({
@@ -990,16 +1112,16 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
           storeLoginId: primaryStore.storeLoginId,
           tenantId: primaryStore.tenantId,
           tier: primaryStore.tier,
-        })
-      );
+        }),
+      )
 
-      dispatch(setMemberSession(memberSessionData));
+      dispatch(setMemberSession(memberSessionData))
 
       if (allStores.length > 0) {
-        dispatch(setAvailableStores(allStores));
+        dispatch(setAvailableStores(allStores))
       }
 
-      dispatch(setAuthStatus('active'));
+      dispatch(setAuthStatus("active"))
 
       // Update storeAuthManager's internal state so isLoginRequired() returns false
       storeAuthManager.setActiveSession(
@@ -1011,62 +1133,62 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
           tier: primaryStore.tier,
           timezone: primaryStore.timezone,
         },
-        memberSessionData
-      );
+        memberSessionData,
+      )
 
       // Also persist the session to localStorage for future biometric logins
-      memberAuthService.startGraceChecker();
+      memberAuthService.startGraceChecker()
 
       auditLogger.log({
-        action: 'login',
-        entityType: 'member',
-        description: 'Biometric login successful',
-        severity: 'low',
+        action: "login",
+        entityType: "member",
+        description: "Biometric login successful",
+        severity: "low",
         success: true,
         metadata: {
-          operation: 'handleBiometricLogin',
+          operation: "handleBiometricLogin",
           biometricType: biometricCapability.type,
         },
-      });
+      })
 
-      onLoggedIn();
+      onLoggedIn()
     } catch (err: unknown) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Biometric authentication failed.';
+        err instanceof Error ? err.message : "Biometric authentication failed."
       auditLogger.log({
-        action: 'login',
-        entityType: 'member',
-        description: 'Biometric login failed',
-        severity: 'medium',
+        action: "login",
+        entityType: "member",
+        description: "Biometric login failed",
+        severity: "medium",
         success: false,
         errorMessage,
         metadata: {
-          operation: 'handleBiometricLogin',
+          operation: "handleBiometricLogin",
           biometricType: biometricCapability?.type,
         },
-      });
-      setError(errorMessage);
+      })
+      setError(errorMessage)
     } finally {
-      setIsBiometricLoading(false);
+      setIsBiometricLoading(false)
     }
-  }, [lastBiometricUserId, biometricCapability, dispatch, onLoggedIn]);
+  }, [lastBiometricUserId, biometricCapability, dispatch, onLoggedIn])
 
   // Handle PIN login
   const handlePinLogin = useCallback(async () => {
     if (pin.length < 4) {
-      setError('Please enter your 4-digit PIN');
-      return;
+      setError("Please enter your 4-digit PIN")
+      return
     }
 
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
+    setIsLoading(true)
+    setError(null)
+    setSuccess(null)
 
     try {
-      const member = await storeAuthManager.loginWithPin(pin);
+      const member = await storeAuthManager.loginWithPin(pin)
 
       if (member) {
-        setSuccess(`Welcome, ${member.firstName || member.memberName}!`);
+        setSuccess(`Welcome, ${member.firstName || member.memberName}!`)
         dispatch(
           setMemberSession({
             memberId: member.memberId,
@@ -1077,117 +1199,127 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
             role: member.role,
             avatarUrl: member.avatarUrl,
             permissions: member.permissions,
-          })
-        );
-        onLoggedIn();
+          }),
+        )
+        onLoggedIn()
       } else {
-        setError('Invalid PIN. Please try again.');
-        setPin('');
+        setError("Invalid PIN. Please try again.")
+        setPin("")
       }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'PIN verification failed.';
+      const errMsg =
+        err instanceof Error ? err.message : "PIN verification failed."
       auditLogger.log({
-        action: 'login',
-        entityType: 'member',
-        description: 'PIN login exception',
-        severity: 'medium',
+        action: "login",
+        entityType: "member",
+        description: "PIN login exception",
+        severity: "medium",
         success: false,
         errorMessage: errMsg,
-        metadata: { operation: 'handlePinLogin', loginMode: 'pin' },
-      });
-      setError(errMsg);
-      setPin('');
+        metadata: { operation: "handlePinLogin", loginMode: "pin" },
+      })
+      setError(errMsg)
+      setPin("")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [pin, dispatch, onLoggedIn]);
+  }, [pin, dispatch, onLoggedIn])
 
   // Handle PIN input (auto-submit on 4+ digits)
   const handlePinChange = useCallback(
     (value: string) => {
-      const digits = value.replace(/\D/g, '').slice(0, 6);
-      setPin(digits);
-      setError(null);
+      const digits = value.replace(/\D/g, "").slice(0, 6)
+      setPin(digits)
+      setError(null)
 
       if (digits.length >= 4 && !isLoading) {
-        setTimeout(() => handlePinLogin(), AUTH_TIMEOUTS.PIN_AUTO_SUBMIT_DELAY_MS);
+        setTimeout(
+          () => handlePinLogin(),
+          AUTH_TIMEOUTS.PIN_AUTO_SUBMIT_DELAY_MS,
+        )
       }
     },
-    [isLoading, handlePinLogin]
-  );
+    [isLoading, handlePinLogin],
+  )
 
   // Handle PIN keypad press
   const handlePinKeyPress = useCallback(
     (digit: string) => {
       if (pin.length < 6) {
-        handlePinChange(pin + digit);
+        handlePinChange(pin + digit)
       }
     },
-    [pin, handlePinChange]
-  );
+    [pin, handlePinChange],
+  )
 
   // Handle backspace on PIN
   const handlePinBackspace = useCallback(() => {
-    setPin((prev) => prev.slice(0, -1));
-    setError(null);
-  }, []);
+    setPin(prev => prev.slice(0, -1))
+    setError(null)
+  }, [])
 
   // Handle logout from store
   const handleLogoutStore = useCallback(async () => {
-    await storeAuthManager.logoutStore();
-    dispatch(clearAllAuth());
-    setPin('');
-    setMembers([]);
-    setError(null);
-    setSuccess(null);
-  }, [dispatch]);
+    await storeAuthManager.logoutStore()
+    dispatch(clearAllAuth())
+    setPin("")
+    setMembers([])
+    setError(null)
+    setSuccess(null)
+  }, [dispatch])
 
   // Handle Enter key for store login
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !isLoading) {
-        e.preventDefault();
-        handleLogin();
+      if (e.key === "Enter" && !isLoading) {
+        e.preventDefault()
+        handleLogin()
       }
     },
-    [isLoading, handleLogin]
-  );
+    [isLoading, handleLogin],
+  )
 
   // Handle Enter key for member login
   const handleMemberKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !isLoading) {
-        e.preventDefault();
-        handleMemberLogin();
+      if (e.key === "Enter" && !isLoading) {
+        e.preventDefault()
+        handleMemberLogin()
       }
     },
-    [isLoading, handleMemberLogin]
-  );
+    [isLoading, handleMemberLogin],
+  )
 
   // Clear error when switching login modes
   const handleLoginModeChange = useCallback((mode: LoginMode) => {
-    setLoginMode(mode);
-    setError(null);
-    setSuccess(null);
-  }, []);
+    setLoginMode(mode)
+    // Persist to localStorage
+    try {
+      localStorage.setItem("mango_login_mode", mode)
+    } catch (err) {
+      console.warn("Failed to save login mode preference:", err)
+    }
+    setError(null)
+    setSuccess(null)
+  }, [])
 
   // Toggle password visibility for member login
   const handleShowMemberPasswordToggle = useCallback(() => {
-    setShowMemberPassword(prev => !prev);
-  }, []);
+    setShowMemberPassword(prev => !prev)
+  }, [])
 
   // Handle PIN keyboard events
   const handlePinKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Backspace') {
-        handlePinBackspace();
-      } else if (e.key === 'Enter' && pin.length >= 4 && !isLoading) {
-        e.preventDefault();
-        handlePinLogin();
+      if (e.key === "Backspace") {
+        handlePinBackspace()
+      } else if (e.key === "Enter" && pin.length >= 4 && !isLoading) {
+        e.preventDefault()
+        handlePinLogin()
       }
     },
-    [pin, isLoading, handlePinBackspace, handlePinLogin]
-  );
+    [pin, isLoading, handlePinBackspace, handlePinLogin],
+  )
 
   return {
     // State
@@ -1259,7 +1391,7 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     handleLoginModeChange,
     handleShowMemberPasswordToggle,
     handlePinKeyDown,
-  };
+  }
 }
 
-export default useLoginState;
+export default useLoginState

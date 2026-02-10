@@ -5,7 +5,8 @@
  * Supports both full and dock modes with appropriate layouts.
  */
 
-import { ChevronLeft, Users, Minimize2, Maximize2, Search, MoreVertical, Sparkles, ShoppingBag, Package, Gift } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronLeft, Users, Minimize2, Maximize2, Search, MoreVertical, Sparkles, ShoppingBag, Package, Gift, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ItemTabBar, type ItemTabType } from "../ItemTabBar";
 import StaffGridView from "../StaffGridView";
@@ -64,6 +65,16 @@ export function CatalogPanel({
   onAddServiceToStaff,
   onAddGiftCard,
 }: CatalogPanelProps) {
+  const [showSearchInput, setShowSearchInput] = useState(false);  
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus search input when it becomes visible
+  useEffect(() => {
+    if (showSearchInput && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [showSearchInput]);
+
   const handleAddProductAsService = (product: { name: string; category: string; price: number }) => {
     onAddServices([{
       id: `prod-${Date.now()}`,
@@ -168,8 +179,44 @@ export function CatalogPanel({
           <>
             {/* Top Row: Controls (right-aligned) */}
             <div className="flex items-center justify-end gap-1.5 mb-2">
+              {/* Search Input - Toggleable */}
+              {showSearchInput && (
+                <div className="flex items-center gap-1">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => onSetSearchQuery(e.target.value)}
+                    placeholder="Search..."
+                    onBlur={() => {
+                      if (!searchQuery.trim()) {
+                        setShowSearchInput(false);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        onSetSearchQuery("");
+                        setShowSearchInput(false);
+                      }
+                    }}
+                    className="h-7 px-2 py-1 text-xs bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  />
+                  <button
+                    onClick={() => {
+                      onSetSearchQuery("");
+                      setShowSearchInput(false);
+                    }}
+                    className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150"
+                    aria-label="Close search"
+                  >
+                    <X className="h-3.5 w-3.5 text-gray-500" />
+                  </button>
+                </div>
+              )}
+
+              {/* Search Icon Button */}
               <button
-                onClick={() => console.log("Search clicked")}
+                onClick={() => setShowSearchInput(!showSearchInput)}
                 className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Search"
               >
@@ -366,6 +413,31 @@ function CatalogContent({
   onAddPackage,
   compactMode,
 }: CatalogContentProps) {
+  const q = (searchQuery || '').trim().toLowerCase();
+
+  const productsForCategory = getProductsByCategory(selectedCategory);
+  const filteredProducts = q
+    ? productsForCategory.filter((p: any) => {
+        const hay = `${p.name || ''} ${p.category || ''} ${p.description || ''}`.toLowerCase();
+        return hay.includes(q);
+      })
+    : productsForCategory;
+
+  const packagesForCategory = getPackagesByCategory(selectedCategory);
+  const filteredPackages = q
+    ? packagesForCategory.filter((pkg: any) => {
+        const hay = `${pkg.name || ''} ${pkg.description || ''}`.toLowerCase();
+        return hay.includes(q);
+      })
+    : packagesForCategory;
+
+  const filteredGiftCards = q
+    ? (giftCardDenominations || []).filter((d: any) => {
+        const hay = `${d.label || ''} ${d.amount || ''} ${d.isActive ? 'active' : 'inactive'}`.toLowerCase();
+        return hay.includes(q);
+      })
+    : giftCardDenominations || [];
+
   if (fullPageTab === "staff") {
     return (
       <StaffGridView
@@ -398,7 +470,7 @@ function CatalogContent({
   if (addItemTab === "products") {
     return (
       <ProductGrid
-        products={getProductsByCategory(selectedCategory)}
+        products={filteredProducts}
         onSelectProduct={onAddProduct}
       />
     );
@@ -407,7 +479,7 @@ function CatalogContent({
   if (addItemTab === "packages") {
     return (
       <PackageGrid
-        packages={getPackagesByCategory(selectedCategory)}
+        packages={filteredPackages}
         onSelectPackage={onAddPackage}
       />
     );
@@ -416,7 +488,7 @@ function CatalogContent({
   if (addItemTab === "giftcards") {
     return (
       <GiftCardGrid
-        denominations={giftCardDenominations || []}
+        denominations={filteredGiftCards}
         settings={giftCardSettings}
         onAddGiftCard={onAddGiftCard}
       />

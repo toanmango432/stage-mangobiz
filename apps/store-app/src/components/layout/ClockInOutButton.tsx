@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { X, Loader2, AlertCircle, CheckCircle, User, LogIn, LogOut, Users, ChevronLeft, Search } from 'lucide-react';
 import type { AppDispatch } from '../../store';
@@ -352,16 +353,20 @@ export function ClockInOutButton() {
       </button>
 
       {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => !isProcessing && setIsModalOpen(false)}
-          />
+      {isModalOpen && (() => {
+        const modalRoot = document.getElementById('pin-modal-root');
+        if (!modalRoot) return null;
 
-          {/* Modal Content */}
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+        const modalContent = (
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => !isProcessing && setIsModalOpen(false)}
+            />
+
+            {/* Modal Content */}
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto pointer-events-auto" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
@@ -706,9 +711,12 @@ export function ClockInOutButton() {
                 </button>
               </div>
             )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+
+        return createPortal(modalContent, modalRoot);
+      })()}
     </>
   );
 }

@@ -76,6 +76,7 @@ export const createInitialState = (): TicketState => ({
   },
   undoStack: [],
   isNewTicket: true,
+  isFromWaitingQueue: false,
 });
 
 // ============================================================================
@@ -607,6 +608,12 @@ export function ticketReducer(state: TicketState, action: TicketAction): TicketS
         ticketId: action.payload,
       };
 
+    case "SET_IS_FROM_WAITING_QUEUE":
+      return {
+        ...state,
+        isFromWaitingQueue: action.payload,
+      };
+
     default:
       return state;
   }
@@ -818,5 +825,9 @@ export const ticketActions = {
   setTicketId: (ticketId: string | null): TicketAction => ({
     type: "SET_TICKET_ID",
     payload: ticketId,
+  }),
+  setIsFromWaitingQueue: (isFromWaitingQueue: boolean): TicketAction => ({
+    type: "SET_IS_FROM_WAITING_QUEUE",
+    payload: isFromWaitingQueue,
   }),
 };

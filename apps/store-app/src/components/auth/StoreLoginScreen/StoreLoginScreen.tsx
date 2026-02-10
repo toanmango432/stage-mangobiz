@@ -96,6 +96,11 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     handleOtpVerificationCancel,
   } = useLoginState({ onLoggedIn });
 
+  // Fallback to initialState.message if hook's error is null (happens after remount)
+  const displayError = error || (initialState?.status === 'not_logged_in' && initialState?.message && 
+    initialState.message !== 'Please log in to your store.' && 
+    initialState.message !== 'Logged out.' ? initialState.message : null);
+
   // Load members when store is logged in
   useEffect(() => {
     if (state.status === 'store_logged_in' && state.store?.storeId) {
@@ -144,7 +149,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
             password={password}
             setPassword={setPassword}
             isLoading={isLoading}
-            error={error}
+            error={displayError}
             success={success}
             onLogin={handleLogin}
             onKeyDown={handleKeyDown}
@@ -208,7 +213,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
               password={password}
               setPassword={setPassword}
               isLoading={isLoading}
-              error={error}
+              error={displayError}
               success={success}
               onLogin={handleLogin}
               onKeyDown={handleKeyDown}
@@ -313,7 +318,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
             password={password}
             setPassword={setPassword}
             isLoading={isLoading}
-            error={error}
+            error={displayError}
             success={success}
             onLogin={handleLogin}
             onKeyDown={handleKeyDown}

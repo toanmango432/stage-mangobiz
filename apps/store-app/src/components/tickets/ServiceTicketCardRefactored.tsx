@@ -1,6 +1,7 @@
 import { useState, useEffect, memo } from 'react';
 import { MoreVertical, Check, Pause, Play, Trash2, StickyNote, Edit2 } from 'lucide-react';
 import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css';
 import { TicketDetailsModal } from './TicketDetailsModal';
 import {
   ProgressIndicator,
@@ -403,8 +404,57 @@ function ServiceTicketCardComponent({
                 {hasNote && <StickyNote className="w-2.5 h-2.5 text-amber-500 flex-shrink-0" />}
               </div>
             </div>
-            <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]">{isPaused ? <button onClick={(e) => { e.stopPropagation(); onResume?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2"><Play size={12} /> Resume</button> : <button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2"><Pause size={12} /> Pause</button>}<button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2"><Edit2 size={12} /> Edit</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={12} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end">
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 min-w-[44px] min-h-[44px] rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center">
+            <Tippy
+              content={
+                <div className="bg-white rounded-md border border-gray-300 py-0.5 min-w-[110px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+                  {isPaused ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onResume?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-amber-50 flex items-center gap-2 text-gray-700 hover:text-amber-600 transition-colors group"
+                    >
+                      <Play size={12} className="text-amber-500 group-hover:text-amber-600" />
+                      <span className="font-medium">Resume</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-amber-50 flex items-center gap-2 text-gray-700 hover:text-amber-600 transition-colors group"
+                    >
+                      <Pause size={12} className="text-amber-500 group-hover:text-amber-600" />
+                      <span className="font-medium">Pause</span>
+                    </button>
+                  )}
+                  <div className="border-t border-gray-200 my-0.5" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }}
+                    className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-blue-50 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors group"
+                  >
+                    <Edit2 size={12} className="text-blue-500 group-hover:text-blue-600" />
+                    <span className="font-medium">Edit</span>
+                  </button>
+                  <div className="border-t border-gray-200 my-0.5" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); setShowMenu(false); }}
+                    className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors group"
+                  >
+                    <Trash2 size={12} className="text-red-500 group-hover:text-red-600" />
+                    <span className="font-medium">Delete</span>
+                  </button>
+                </div>
+              }
+              visible={showMenu}
+              onClickOutside={() => setShowMenu(false)}
+              interactive={true}
+              placement="bottom-end"
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                className={`min-w-[44px] min-h-[44px] rounded transition-colors flex-shrink-0 flex items-center justify-center ${  //highlight ... button 
+                  showMenu
+                    ? 'bg-[#f5f0eb] text-[#2d2520] shadow-sm p-1.5'
+                    : 'text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50 p-2'
+                }`}
+              >
                 <MoreVertical size={16} />
               </button>
             </Tippy>
@@ -476,7 +526,68 @@ function ServiceTicketCardComponent({
           <div className="absolute top-0 right-0 w-7 h-7 z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
           <div className="absolute left-0 text-[#1a1614] flex items-center justify-center font-black z-20" style={{ top: 'clamp(12px, 2vw, 20px)', width: 'clamp(40px, 5.5vw, 56px)', fontSize: 'clamp(16px, 2.25vw, 24px)', height: isFirstVisit ? 'clamp(2rem, 4.5vw, 2.75rem)' : 'clamp(1.85rem, 4vw, 2.5rem)', background: 'rgba(16, 185, 129, 0.06)', borderTopRightRadius: '8px', borderBottomRightRadius: '8px', borderTop: '2px solid rgba(16, 185, 129, 0.28)', borderRight: '2px solid rgba(16, 185, 129, 0.28)', borderBottom: '2px solid rgba(16, 185, 129, 0.28)', boxShadow: `3px 0 6px rgba(16, 185, 129, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, letterSpacing: '-0.02em', transform: 'translateX(-4px)' }}>{ticket.number}</div>
           <div className="flex items-start justify-between px-2 sm:px-3 md:px-4 pb-1" style={{ paddingTop: 'clamp(12px, 2vw, 20px)', paddingLeft: 'clamp(44px, calc(5.5vw + 4px), 60px)' }}><div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1"><span className="font-bold text-[#1a1614] truncate tracking-tight" style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}>{ticket.clientName}</span>{isPaused && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded flex-shrink-0">PAUSED</span>}{hasStar && <span className="text-xs sm:text-sm md:text-base flex-shrink-0">⭐</span>}{hasNote && <StickyNote className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-amber-500 flex-shrink-0" />}</div><div className="text-[#6b5d52] font-medium tracking-wide" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{getLastVisitText()}</div></div>
-            <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]">{isPaused ? <button onClick={(e) => { e.stopPropagation(); onResume?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Play size={14} /> Resume</button> : <button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Pause size={14} /> Pause</button>}<button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Edit2 size={14} /> Edit</button><button onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><StickyNote size={14} /> Details</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={14} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 sm:p-2.5 min-w-[44px] min-h-[44px] rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center"><MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" /></button></Tippy>
+            <Tippy
+              content={
+                <div className="bg-white rounded-md border border-gray-300 py-0.5 min-w-[110px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+                  {isPaused ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onResume?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-amber-50 flex items-center gap-2 text-gray-700 hover:text-amber-600 transition-colors group"
+                    >
+                      <Play size={12} className="text-amber-500 group-hover:text-amber-600" />
+                      <span className="font-medium">Resume</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); setShowMenu(false); }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-amber-50 flex items-center gap-2 text-gray-700 hover:text-amber-600 transition-colors group"
+                    >
+                      <Pause size={12} className="text-amber-500 group-hover:text-amber-600" />
+                      <span className="font-medium">Pause</span>
+                    </button>
+                  )}
+                  <div className="border-t border-gray-200 my-0.5" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }}
+                    className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-blue-50 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors group"
+                  >
+                    <Edit2 size={12} className="text-blue-500 group-hover:text-blue-600" />
+                    <span className="font-medium">Edit</span>
+                  </button>
+                  <div className="border-t border-gray-200 my-0.5" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); setShowMenu(false); }}
+                    className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-purple-50 flex items-center gap-2 text-gray-700 hover:text-purple-600 transition-colors group"
+                  >
+                    <StickyNote size={12} className="text-purple-500 group-hover:text-purple-600" />
+                    <span className="font-medium">Details</span>
+                  </button>
+                  <div className="border-t border-gray-200 my-0.5" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); setShowMenu(false); }}
+                    className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors group"
+                  >
+                    <Trash2 size={12} className="text-red-500 group-hover:text-red-600" />
+                    <span className="font-medium">Delete</span>
+                  </button>
+                </div>
+              }
+              visible={showMenu}
+              onClickOutside={() => setShowMenu(false)}
+              interactive={true}
+              placement="bottom-end"
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                className={`min-w-[44px] min-h-[44px] rounded-md transition-colors flex-shrink-0 flex items-center justify-center ${
+                  showMenu
+                    ? 'bg-[#f5f0eb] text-[#2d2520] shadow-sm p-1.5 sm:p-2'
+                    : 'text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50 p-2 sm:p-2.5'
+                }`}
+              >
+                <MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" />
+              </button>
+            </Tippy>
           </div>
           {/* Service name */}
           <div className="px-2 sm:px-3 md:px-4 pb-2 sm:pb-3 text-xs sm:text-sm md:text-base text-[#1a1614] font-semibold leading-snug tracking-tight flex items-center gap-2">

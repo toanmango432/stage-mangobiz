@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Printer, AlertCircle, X } from "lucide-react";
 import { Card } from "@/components/ui/Card";
@@ -119,6 +120,10 @@ export default function PaymentModal({
             <DialogTitle className="text-lg sm:text-xl text-center">
               Checkout
             </DialogTitle>
+            {/* A11y description to satisfy Radix requirement and avoid warnings */}
+            <DialogDescription className="sr-only">
+              Review tip, choose a payment method, and complete checkout.
+            </DialogDescription>
           </DialogHeader>
 
           <StepIndicator currentStep={currentStep} isFullyPaid={isFullyPaid} />

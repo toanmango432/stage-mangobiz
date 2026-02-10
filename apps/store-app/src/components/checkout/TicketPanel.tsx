@@ -74,13 +74,14 @@ import { storeAuthManager } from "@/services/storeAuthManager";
 import type { PanelMode } from "./types";
 import { createInitialState, ticketReducer, ticketActions } from "./reducers/ticketReducer";
 import { MOCK_OPEN_TICKETS, KEYBOARD_HINTS_DISMISSED_KEY, DEFAULT_TAX_RATE } from "./constants";
-import { 
-  KeyboardShortcutsHint, 
-  ClientProfileDialog, 
-  RemoveClientDialog, 
-  PreventStaffRemovalDialog, 
-  ClientSelectorSheet 
+import {
+  KeyboardShortcutsHint,
+  ClientProfileDialog,
+  RemoveClientDialog,
+  PreventStaffRemovalDialog,
+  ClientSelectorSheet
 } from "./components";
+import { CatalogPanel } from "./components/CatalogPanel";
 import { useTicketKeyboard, useTicketPersistence, useTicketActions } from "./hooks";
 // Collapsible imports available if needed
 // import {
@@ -191,6 +192,7 @@ export default function TicketPanel({
     dialogs,
     ui,
     isNewTicket,
+    isFromWaitingQueue,
   } = state;
 
   const {
@@ -226,6 +228,10 @@ export default function TicketPanel({
 
   // Price change resolution modal state
   const [showPriceResolutionModal, setShowPriceResolutionModal] = useState(false);
+
+  // Search input visibility state
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Check if ticket has unresolved price changes
   const hasPriceChangeWarning = useAppSelector(selectHasPriceChangeWarning(ticketId || ''));
@@ -305,12 +311,19 @@ export default function TicketPanel({
     localStorage.setItem("checkout-default-mode", mode);
   }, [mode]);
 
+  // Focus search input when it becomes visible
+  useEffect(() => {
+    if (showSearchInput && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [showSearchInput]);
+
   useEffect(() => {
     if (!isOpen && checkoutCloseTimeoutRef.current) {
       clearTimeout(checkoutCloseTimeoutRef.current);
       checkoutCloseTimeoutRef.current = null;
     }
-    
+
     return () => {
       if (checkoutCloseTimeoutRef.current) {
         clearTimeout(checkoutCloseTimeoutRef.current);
@@ -333,7 +346,7 @@ export default function TicketPanel({
     const handleScroll = (e: Event) => {
       const target = e.target as HTMLDivElement;
       const currentScrollY = target.scrollTop;
-      
+
       if (currentScrollY < 10) {
         dispatch(ticketActions.setHeaderVisible(true));
       } else if (currentScrollY < lastScrollY) {
@@ -341,7 +354,7 @@ export default function TicketPanel({
       } else if (currentScrollY > lastScrollY && currentScrollY > 50) {
         dispatch(ticketActions.setHeaderVisible(false));
       }
-      
+
       dispatch(ticketActions.setLastScrollY(currentScrollY));
     };
 
@@ -393,16 +406,14 @@ export default function TicketPanel({
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/50 z-[60] transition-opacity ${
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black/50 z-[60] transition-opacity ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
         onClick={handleCloseAttempt}
       />
 
       <div
-        className={`fixed right-0 top-0 bottom-0 bg-background border-l shadow-xl z-[70] transition-all duration-200 ease-out flex flex-col ${
-          mode === "dock" ? "w-full md:w-[900px]" : "w-full"
-        }`}
+        className={`fixed right-0 top-0 bottom-0 bg-background border-l shadow-xl z-[70] transition-all duration-200 ease-out flex flex-col ${mode === "dock" ? "w-full md:w-[900px]" : "w-full"
+          }`}
       >
         <div
           className="flex-1 overflow-hidden min-h-0"
@@ -416,167 +427,166 @@ export default function TicketPanel({
               <div className="hidden lg:flex flex-1 min-h-0">
                 {/* Modern Layout: Cart LEFT (resizable), Catalog RIGHT */}
                 <div className="flex-1 flex pl-safe-add pr-safe-add">
-                    {/* Close Button Column - Own column on far left (matching Classic) */}
-                    <div className="flex-shrink-0 pr-4 pt-1">
-                      <button
-                        onClick={handleCloseAttempt}
-                        data-testid="button-close-panel-modern"
-                        className="group h-10 w-10 rounded-full bg-white hover:bg-gray-50 border border-gray-200 flex items-center justify-center transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
-                        aria-label="Close checkout panel"
-                      >
-                        <X className="h-5 w-5 text-gray-600 group-hover:text-gray-800 transition-colors" strokeWidth={2} />
-                      </button>
-                    </div>
-
-                    {/* Main Content with Resizable Panels */}
-                    <ResizablePanel
-                      defaultRightWidth={400}
-                      minRightWidth={320}
-                      maxRightWidth={660}
-                      minOppositePanelWidth={580}
-                      storageKey="mango-checkout-modern-left-panel-width"
-                      className="flex-1 overflow-hidden"
-                      resizeLeft={true}
+                  {/* Close Button Column - Own column on far left (matching Classic) */}
+                  <div className="flex-shrink-0 pr-4 pt-1">
+                    <button
+                      onClick={handleCloseAttempt}
+                      data-testid="button-close-panel-modern"
+                      className="group h-10 w-10 rounded-full bg-white hover:bg-gray-50 border border-gray-200 flex items-center justify-center transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+                      aria-label="Close checkout panel"
                     >
-                      {/* Left Panel - Cart (resizable) */}
-                      <div className="h-full">
-                        <div className="h-full flex flex-col pr-4 bg-white">
-                          {/* Header - Unified ticket/client left, actions right */}
-                          <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100">
-                            {/* Left: Unified ticket info + client */}
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              {selectedClient ? (
-                                <>
-                                  {/* Client Avatar - Clickable to view profile */}
-                                  <button
-                                    onClick={() => dispatch(ticketActions.toggleDialog("showClientProfile", true))}
-                                    className="h-11 w-11 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white hover:ring-primary/30 transition-all cursor-pointer"
-                                  >
-                                    <span className="text-sm font-bold text-gray-600">
-                                      {selectedClient.firstName?.[0]}{selectedClient.lastName?.[0]}
-                                    </span>
-                                  </button>
-                                  {/* Ticket + Client Info */}
-                                  <div className="min-w-0 flex-1">
-                                    {/* Ticket # and time */}
-                                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-0.5">
-                                      <span className="font-medium">#{Date.now().toString().slice(-4)}</span>
-                                      <span>•</span>
-                                      <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                    </div>
-                                    {/* Client name + loyalty badge - clickable with dropdown */}
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <button className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left">
-                                          <span className="font-semibold text-gray-900 truncate">
-                                            {selectedClient.firstName} {selectedClient.lastName}
-                                          </span>
-                                          {selectedClient.loyaltyStatus && (
-                                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${
-                                              selectedClient.loyaltyStatus === 'gold'
-                                                ? 'bg-amber-100 text-amber-700'
-                                                : selectedClient.loyaltyStatus === 'silver'
-                                                  ? 'bg-gray-200 text-gray-600'
-                                                  : 'bg-orange-100 text-orange-600'
-                                            }`}>
-                                              {selectedClient.loyaltyStatus}
-                                            </span>
-                                          )}
-                                          <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
-                                        </button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="start" className="w-48">
-                                        <DropdownMenuItem onClick={() => dispatch(ticketActions.toggleDialog("showClientSelector", true))}>
-                                          <User className="mr-2 h-4 w-4" />
-                                          Change Client
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => dispatch(ticketActions.toggleDialog("showClientProfile", true))}>
-                                          <AlertCircle className="mr-2 h-4 w-4" />
-                                          View Profile
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                          onClick={() => handleRemoveClient(null)}
-                                          className="text-destructive"
-                                        >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Remove Client
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                    {/* Client metrics */}
-                                    <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
-                                      <span>{selectedClient.totalVisits || 0} visits</span>
-                                      <span>•</span>
-                                      <span>${(selectedClient.lifetimeSpend || 0).toLocaleString()} spent</span>
-                                    </div>
-                                  </div>
-                                </>
-                              ) : (
-                                /* Prominent Add Client Button */
+                      <X className="h-5 w-5 text-gray-600 group-hover:text-gray-800 transition-colors" strokeWidth={2} />
+                    </button>
+                  </div>
+
+                  {/* Main Content with Resizable Panels */}
+                  <ResizablePanel
+                    defaultRightWidth={400}
+                    minRightWidth={370}
+                    maxRightWidth={660}
+                    minOppositePanelWidth={580}
+                    storageKey="mango-checkout-modern-left-panel-width"
+                    className="flex-1 overflow-hidden"
+                    resizeLeft={true}
+                  >
+                    {/* Left Panel - Cart (resizable) */}
+                    <div className="h-full">
+                      <div className="h-full flex flex-col pr-4 bg-white">
+                        {/* Header - Unified ticket/client left, actions right */}
+                        <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100">
+                          {/* Left: Unified ticket info + client */}
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            {selectedClient ? (
+                              <>
+                                {/* Client Avatar - Clickable to view profile */}
                                 <button
-                                  onClick={() => dispatch(ticketActions.toggleDialog("showClientSelector", true))}
-                                  className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 hover:bg-primary/15 border border-primary/20 rounded-xl transition-all group"
+                                  onClick={() => dispatch(ticketActions.toggleDialog("showClientProfile", true))}
+                                  className="h-11 w-11 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white hover:ring-primary/30 transition-all cursor-pointer"
                                 >
-                                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-                                    <UserPlus className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div className="text-left">
-                                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-0.5">
-                                      <span className="font-medium">#{Date.now().toString().slice(-4)}</span>
-                                      <span>•</span>
-                                      <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                    </div>
-                                    <span className="font-semibold text-primary">Add Client</span>
-                                  </div>
+                                  <span className="text-sm font-bold text-gray-600">
+                                    {selectedClient.firstName?.[0]}{selectedClient.lastName?.[0]}
+                                  </span>
                                 </button>
-                              )}
-                            </div>
-                            {/* Right: Action icons */}
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={handleCheckIn}
-                                    disabled={services.length === 0}
-                                    className="h-10 w-10 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
-                                  >
-                                    <LogIn className="h-5 w-5" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Check in client</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={handleReset}
-                                    disabled={services.length === 0}
-                                    className="h-10 w-10 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
-                                  >
-                                    <RotateCcw className="h-5 w-5" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Clear cart</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
+                                {/* Ticket + Client Info */}
+                                <div className="min-w-0 flex-1">
+                                  {/* Ticket # and time */}
+                                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-0.5">
+                                    <span className="font-medium">#{Date.now().toString().slice(-4)}</span>
+                                    <span>•</span>
+                                    <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                  {/* Client name + loyalty badge - clickable with dropdown */}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left">
+                                        <span className="font-semibold text-gray-900 truncate">
+                                          {selectedClient.firstName} {selectedClient.lastName}
+                                        </span>
+                                        {selectedClient.loyaltyStatus && (
+                                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${selectedClient.loyaltyStatus === 'gold'
+                                            ? 'bg-amber-100 text-amber-700'
+                                            : selectedClient.loyaltyStatus === 'silver'
+                                              ? 'bg-gray-200 text-gray-600'
+                                              : 'bg-orange-100 text-orange-600'
+                                            }`}>
+                                            {selectedClient.loyaltyStatus}
+                                          </span>
+                                        )}
+                                        <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" className="w-48">
+                                      <DropdownMenuItem onClick={() => dispatch(ticketActions.toggleDialog("showClientSelector", true))}>
+                                        <User className="mr-2 h-4 w-4" />
+                                        Change Client
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => dispatch(ticketActions.toggleDialog("showClientProfile", true))}>
+                                        <AlertCircle className="mr-2 h-4 w-4" />
+                                        View Profile
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={() => handleRemoveClient(null)}
+                                        className="text-destructive"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Remove Client
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                  {/* Client metrics */}
+                                  <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
+                                    <span>{selectedClient.totalVisits || 0} visits</span>
+                                    <span>•</span>
+                                    <span>${(selectedClient.lifetimeSpend || 0).toLocaleString()} spent</span>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              /* Prominent Add Client Button */
+                              <button
+                                onClick={() => dispatch(ticketActions.toggleDialog("showClientSelector", true))}
+                                className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 hover:bg-primary/15 border border-primary/20 rounded-xl transition-all group"
+                              >
+                                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                                  <UserPlus className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="text-left">
+                                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-0.5">
+                                    <span className="font-medium">#{Date.now().toString().slice(-4)}</span>
+                                    <span>•</span>
+                                    <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                  <span className="font-semibold text-primary">Add Client</span>
+                                </div>
+                              </button>
+                            )}
                           </div>
+                          {/* Right: Action icons */}
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={isFromWaitingQueue ? handleStartService : handleCheckIn}
+                                  disabled={services.length === 0}
+                                  className="h-10 w-10 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                                >
+                                  <LogIn className="h-5 w-5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">{isFromWaitingQueue ? "Start service" : "Check in client"}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={handleReset}
+                                  disabled={services.length === 0}
+                                  className="h-10 w-10 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                                >
+                                  <RotateCcw className="h-5 w-5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">Clear cart</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
 
-                          {/* Price Change Warning Banner */}
-                          {ticketId && hasPriceChangeWarning && (
-                            <div className="px-3 pt-2">
-                              <PriceChangeWarningBanner
-                                ticketId={ticketId}
-                                onReview={() => setShowPriceResolutionModal(true)}
-                              />
-                            </div>
-                          )}
+                        {/* Price Change Warning Banner */}
+                        {ticketId && hasPriceChangeWarning && (
+                          <div className="px-3 pt-2">
+                            <PriceChangeWarningBanner
+                              ticketId={ticketId}
+                              onReview={() => setShowPriceResolutionModal(true)}
+                            />
+                          </div>
+                        )}
 
-                          {/* Cart Content */}
-                          <div className="flex-1 overflow-hidden">
+                        {/* Cart Content */}
+                        <div className="flex-1 overflow-hidden">
                           <InteractiveSummary
                             selectedClient={selectedClient}
                             services={services}
@@ -609,140 +619,27 @@ export default function TicketPanel({
                     </div>
 
                     {/* Right Panel - Catalog (flex-1) */}
-                    <div className="h-full flex flex-col min-w-0 overflow-hidden">
-                      {/* Main Category Tab Bar - darker background */}
-                      <div className="flex-shrink-0 bg-gray-100/70 px-4 py-3">
-                        {fullPageTab === "staff" ? (
-                          /* Staff Selection Header - Clean design with back button */
-                          <div className="flex items-center gap-4">
-                            {/* Back Button - Prominent pill style */}
-                            <button
-                              onClick={() => setFullPageTab("services")}
-                              className="flex items-center gap-2 pl-3 pr-4 py-2 text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-full shadow-sm transition-all hover:shadow"
-                            >
-                              <ChevronLeft className="h-4 w-4" />
-                              <span>Catalog</span>
-                            </button>
-
-                            {/* Title - Centered with icon badge */}
-                            <div className="flex-1 flex items-center justify-center">
-                              <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 rounded-full">
-                                <Users className="h-4 w-4 text-primary" />
-                                <span className="text-sm font-semibold text-primary">Select Staff</span>
-                              </div>
-                            </div>
-
-                            {/* Right side controls */}
-                            <div className="flex items-center gap-2">
-                              {/* Minimize Button */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => setMode("dock")}
-                                    data-testid="button-toggle-mode-staff"
-                                    className="h-9 w-9 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
-                                    aria-label="Switch to docked view"
-                                  >
-                                    <Minimize2 className="h-4 w-4 text-gray-500" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Switch to partial view</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </div>
-                        ) : (
-                          <ItemTabBar
-                            activeTab={addItemTab}
-                            onTabChange={(tab) => {
-                              setAddItemTab(tab);
-                              setSelectedCategory("all");
-                              setSearchQuery(""); // Clear search when switching tabs
-                            }}
-                            layout="modern"
-                            searchQuery={searchQuery}
-                            onSearchChange={setSearchQuery}
-                            onMoreClick={() => {
-                              // TODO: Open menu editing modal
-                              console.log("More options clicked - menu editing");
-                            }}
-                            rightControls={
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => setMode("dock")}
-                                    data-testid="button-toggle-mode-inline"
-                                    className="h-9 w-9 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
-                                    aria-label="Switch to docked view"
-                                  >
-                                    <Minimize2 className="h-4 w-4 text-gray-500" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Switch to partial view</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            }
-                          />
-                        )}
-                      </div>
-
-                      {/* Content Area - lighter background, scrollable */}
-                      <div className="flex-1 min-h-0 overflow-auto bg-gray-50/50 px-4">
-                        {fullPageTab === "staff" ? (
-                          <StaffGridView
-                            staffMembers={staffMembers}
-                            services={services}
-                            onAddServiceToStaff={handleAddServiceToStaff}
-                            reassigningServiceIds={reassigningServiceIds}
-                            selectedStaffId={activeStaffId}
-                          />
-                        ) : addItemTab === "services" ? (
-                          <FullPageServiceSelector
-                            selectedCategory={selectedCategory}
-                            onSelectCategory={setSelectedCategory}
-                            onAddServices={handleAddServices}
-                            staffMembers={staffMembers}
-                            activeStaffId={activeStaffId}
-                            layout="modern"
-                            externalSearchQuery={searchQuery}
-                          />
-                        ) : addItemTab === "products" ? (
-                          <ProductGrid
-                            products={getProductsByCategory(selectedCategory)}
-                            onSelectProduct={(product) => {
-                              handleAddServices([{
-                                id: `prod-${Date.now()}`,
-                                name: product.name,
-                                category: product.category,
-                                price: product.price,
-                                duration: 0,
-                              }]);
-                            }}
-                          />
-                        ) : addItemTab === "packages" ? (
-                          <PackageGrid
-                            packages={getPackagesByCategory(selectedCategory)}
-                            onSelectPackage={(pkg) => {
-                              handleAddServices([{
-                                id: `pkg-${Date.now()}`,
-                                name: pkg.name,
-                                category: "Package",
-                                price: pkg.salePrice,
-                                duration: 0,
-                              }]);
-                            }}
-                          />
-                        ) : addItemTab === "giftcards" ? (
-                          <GiftCardGrid
-                            denominations={giftCardDenominations || []}
-                            settings={giftCardSettings}
-                            onAddGiftCard={handleAddGiftCard}
-                          />
-                        ) : null}
-                      </div>
-                    </div>
+                    <CatalogPanel
+                      fullPageTab={fullPageTab}
+                      addItemTab={addItemTab}
+                      selectedCategory={selectedCategory}
+                      searchQuery={searchQuery}
+                      mode={mode}
+                      staffMembers={staffMembers}
+                      services={services}
+                      activeStaffId={activeStaffId}
+                      reassigningServiceIds={reassigningServiceIds}
+                      giftCardDenominations={giftCardDenominations || []}
+                      giftCardSettings={giftCardSettings}
+                      onSetMode={setMode}
+                      onSetFullPageTab={setFullPageTab}
+                      onSetAddItemTab={setAddItemTab}
+                      onSetSelectedCategory={setSelectedCategory}
+                      onSetSearchQuery={setSearchQuery}
+                      onAddServices={handleAddServices}
+                      onAddServiceToStaff={handleAddServiceToStaff}
+                      onAddGiftCard={handleAddGiftCard}
+                    />
                   </ResizablePanel>
                 </div>
               </div>
@@ -834,7 +731,7 @@ export default function TicketPanel({
                 {/* Main Content with Resizable Panels */}
                 <ResizablePanel
                   defaultRightWidth={380}
-                  minRightWidth={300}
+                  minRightWidth={370}
                   maxRightWidth={480}
                   minOppositePanelWidth={350}
                   storageKey="mango-checkout-dock-modern-left-panel-width"
@@ -852,20 +749,20 @@ export default function TicketPanel({
                           <span className="text-xs text-gray-400">•</span>
                           <span className="text-xs text-gray-400">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        {/* Right: Check In + Reset */}
+                        {/* Right: Check In/Start + Reset */}
                         <div className="flex items-center gap-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button
-                                onClick={handleCheckIn}
+                                onClick={isFromWaitingQueue ? handleStartService : handleCheckIn}
                                 disabled={services.length === 0}
                                 className="h-7 px-2 rounded-md text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
                               >
                                 <LogIn className="h-3.5 w-3.5" />
-                                <span>Check In</span>
+                                <span>{isFromWaitingQueue ? "Start" : "Check In"}</span>
                               </button>
                             </TooltipTrigger>
-                            <TooltipContent><p className="text-xs">Check in client</p></TooltipContent>
+                            <TooltipContent><p className="text-xs">{isFromWaitingQueue ? "Start service" : "Check in client"}</p></TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -925,162 +822,27 @@ export default function TicketPanel({
                   </div>
 
                   {/* Right Panel - Catalog (flex-1) */}
-                  <div className="h-full flex flex-col min-w-0 overflow-hidden">
-                    {/* Header with controls and tabs - same background */}
-                    <div className="flex-shrink-0 bg-gray-100/70 px-3 pt-2 pb-1">
-                      {fullPageTab === "staff" ? (
-                        /* Staff Selection Header - Clean design with back button */
-                        <div className="flex items-center gap-3 py-1.5">
-                          {/* Back Button - Prominent pill style */}
-                          <button
-                            onClick={() => setFullPageTab("services")}
-                            className="flex items-center gap-1.5 pl-2 pr-3 py-1.5 text-xs font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-full shadow-sm transition-all hover:shadow"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                            <span>Catalog</span>
-                          </button>
-
-                          {/* Title - Centered with icon */}
-                          <div className="flex-1 flex items-center justify-center gap-2">
-                            <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full">
-                              <Users className="h-3.5 w-3.5 text-primary" />
-                              <span className="text-xs font-semibold text-primary">Select Staff</span>
-                            </div>
-                          </div>
-
-                          {/* Spacer to balance the back button */}
-                          <div className="w-[72px]" />
-                        </div>
-                      ) : (
-                        <>
-                          {/* Top Row: Controls (right-aligned) */}
-                          <div className="flex items-center justify-end gap-1.5 mb-2">
-                            {/* Search Icon */}
-                            <button
-                              onClick={() => console.log("Search clicked")}
-                              className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                              aria-label="Search"
-                            >
-                              <Search className="h-3.5 w-3.5 text-gray-500" />
-                            </button>
-
-                            {/* More Options */}
-                            <button
-                              onClick={() => console.log("More options clicked")}
-                              className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                              aria-label="More options"
-                            >
-                              <MoreVertical className="h-3.5 w-3.5 text-gray-500" />
-                            </button>
-
-                            {/* Expand Button */}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => setMode("full")}
-                                  data-testid="button-toggle-mode-dock-inline"
-                                  className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
-                                  aria-label="Expand to full screen"
-                                >
-                                  <Maximize2 className="h-3.5 w-3.5 text-gray-500" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Expand to full page</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-
-                          {/* Second Row: Main Category Tabs */}
-                          <div className="flex items-center bg-gray-100/80 p-1 rounded-full overflow-x-auto scrollbar-hide">
-                            {[
-                              { id: 'services' as const, label: 'Services', icon: Sparkles },
-                              { id: 'products' as const, label: 'Products', icon: ShoppingBag },
-                              { id: 'packages' as const, label: 'Packages', icon: Package },
-                              { id: 'giftcards' as const, label: 'Gift Cards', icon: Gift },
-                            ].map((tab) => {
-                              const Icon = tab.icon;
-                              return (
-                                <button
-                                  key={tab.id}
-                                  onClick={() => {
-                                    setAddItemTab(tab.id);
-                                    setSelectedCategory("all");
-                                    setSearchQuery("");
-                                  }}
-                                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap flex-shrink-0 ${
-                                    addItemTab === tab.id
-                                      ? 'bg-white text-gray-800 shadow-sm'
-                                      : 'text-gray-500 hover:text-gray-600'
-                                  }`}
-                                >
-                                  <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                                  <span>{tab.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Content Area - lighter background, scrollable */}
-                    <div className="flex-1 min-h-0 overflow-auto bg-gray-50/50 px-3">
-                      {fullPageTab === "staff" ? (
-                        <StaffGridView
-                          staffMembers={staffMembers}
-                          services={services}
-                          onAddServiceToStaff={handleAddServiceToStaff}
-                          reassigningServiceIds={reassigningServiceIds}
-                          selectedStaffId={activeStaffId}
-                          compactMode={true}
-                        />
-                      ) : addItemTab === "services" ? (
-                        <FullPageServiceSelector
-                          selectedCategory={selectedCategory}
-                          onSelectCategory={setSelectedCategory}
-                          onAddServices={handleAddServices}
-                          staffMembers={staffMembers}
-                          activeStaffId={activeStaffId}
-                          layout="modern"
-                          searchQuery={searchQuery}
-                          compactMode={true}
-                        />
-                      ) : addItemTab === "products" ? (
-                        <ProductGrid
-                          products={getProductsByCategory(selectedCategory)}
-                          onSelectProduct={(product) => {
-                            handleAddServices([{
-                              id: `prod-${Date.now()}`,
-                              name: product.name,
-                              category: product.category,
-                              price: product.price,
-                              duration: 0,
-                            }]);
-                          }}
-                        />
-                      ) : addItemTab === "packages" ? (
-                        <PackageGrid
-                          packages={getPackagesByCategory(selectedCategory)}
-                          onSelectPackage={(pkg) => {
-                            handleAddServices([{
-                              id: `pkg-${Date.now()}`,
-                              name: pkg.name,
-                              category: "Package",
-                              price: pkg.salePrice,
-                              duration: 0,
-                            }]);
-                          }}
-                        />
-                      ) : addItemTab === "giftcards" ? (
-                        <GiftCardGrid
-                          denominations={giftCardDenominations || []}
-                          settings={giftCardSettings}
-                          onAddGiftCard={handleAddGiftCard}
-                        />
-                      ) : null}
-                    </div>
-                  </div>
+                  <CatalogPanel
+                    fullPageTab={fullPageTab}
+                    addItemTab={addItemTab}
+                    selectedCategory={selectedCategory}
+                    searchQuery={searchQuery}
+                    mode={mode}
+                    staffMembers={staffMembers}
+                    services={services}
+                    activeStaffId={activeStaffId}
+                    reassigningServiceIds={reassigningServiceIds}
+                    giftCardDenominations={giftCardDenominations || []}
+                    giftCardSettings={giftCardSettings}
+                    onSetMode={setMode}
+                    onSetFullPageTab={setFullPageTab}
+                    onSetAddItemTab={setAddItemTab}
+                    onSetSelectedCategory={setSelectedCategory}
+                    onSetSearchQuery={setSearchQuery}
+                    onAddServices={handleAddServices}
+                    onAddServiceToStaff={handleAddServiceToStaff}
+                    onAddGiftCard={handleAddGiftCard}
+                  />
                 </ResizablePanel>
               </div>
 
@@ -1352,13 +1114,12 @@ export default function TicketPanel({
                 {staffMembers.map((staff) => {
                   const isAssigned = assignedStaffIds.includes(staff.id);
                   const serviceCount = services.filter(s => s.staffId === staff.id).length;
-                  
+
                   return (
                     <Card
                       key={staff.id}
-                      className={`p-4 hover-elevate active-elevate-2 cursor-pointer transition-all ${
-                        isAssigned ? 'border-primary' : ''
-                      }`}
+                      className={`p-4 hover-elevate active-elevate-2 cursor-pointer transition-all ${isAssigned ? 'border-primary' : ''
+                        }`}
                       onClick={() => {
                         handleAddStaff(staff.id, staff.name);
                         setShowStaffOnMobile(false);
@@ -1407,29 +1168,44 @@ export default function TicketPanel({
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-3 py-4">
-            {/* Check In - Add to Waitlist */}
-            <Button
-              variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
-              onClick={handleCheckIn}
-              data-testid="button-checkin"
-            >
-              <Clock className="h-6 w-6 text-blue-600" />
-              <span className="font-medium">Check In</span>
-              <span className="text-xs text-muted-foreground">Add to Waitlist</span>
-            </Button>
+            {/* Check In / Start - Conditional based on isFromWaitingQueue */}
+            {isFromWaitingQueue ? (
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-300"
+                onClick={handleStartService}
+                data-testid="button-start"
+              >
+                <Play className="h-6 w-6 text-green-600" />
+                <span className="font-medium">Start</span>
+                <span className="text-xs text-muted-foreground">Begin service</span>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
+                onClick={handleCheckIn}
+                data-testid="button-checkin"
+              >
+                <Clock className="h-6 w-6 text-blue-600" />
+                <span className="font-medium">Check In</span>
+                <span className="text-xs text-muted-foreground">Add to Waitlist</span>
+              </Button>
+            )}
 
-            {/* Start Service - Add to In Service */}
-            <Button
-              variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-300"
-              onClick={handleStartService}
-              data-testid="button-start-service"
-            >
-              <Play className="h-6 w-6 text-green-600" />
-              <span className="font-medium">Start Service</span>
-              <span className="text-xs text-muted-foreground">Begin immediately</span>
-            </Button>
+            {/* Start Service - Add to In Service (only show when NOT from Waiting Queue) */}
+            {!isFromWaitingQueue && (
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-300"
+                onClick={handleStartService}
+                data-testid="button-start-service"
+              >
+                <Play className="h-6 w-6 text-green-600" />
+                <span className="font-medium">Start Service</span>
+                <span className="text-xs text-muted-foreground">Begin immediately</span>
+              </Button>
+            )}
 
             {/* Save to Pending - Add to Pending (awaiting payment) */}
             <Button
